@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { sendWelcomeEmail } from '@/lib/email';
 import bcrypt from 'bcryptjs';
 
 export async function POST(request: NextRequest) {
@@ -145,6 +146,15 @@ export async function POST(request: NextRequest) {
         console.warn('Referral update notice:', refErr);
       }
     }
+
+    // Trigger Welcome Email in background via Resend
+    void sendWelcomeEmail({
+      name: userPayload.name,
+      email: userPayload.email,
+      accountNumber: userPayload.accountNumber,
+      freeFireUid: userPayload.freeFireUid,
+      inGameName: userPayload.inGameName,
+    }).catch((err) => console.warn('[Register Welcome Email Notice]:', err));
 
     // Return sanitized user object merged with client model defaults
     const { password: _, ...sanitizedUser } = {

@@ -25,11 +25,15 @@ import {
   Youtube,
   Send,
   Bell,
-  Eye
+  Eye,
+  Mail,
+  Key,
+  Inbox,
+  AlertCircle
 } from 'lucide-react';
 
 export default function AdminSettingsPage() {
-  const [activeTab, setActiveTab] = useState<'HOMEPAGE' | 'YOUTUBE_LIVE' | 'PAYMENTS' | 'GENERAL'>('HOMEPAGE');
+  const [activeTab, setActiveTab] = useState<'HOMEPAGE' | 'YOUTUBE_LIVE' | 'WELCOME_EMAIL' | 'PAYMENTS' | 'GENERAL'>('HOMEPAGE');
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
@@ -87,14 +91,29 @@ export default function AdminSettingsPage() {
   const [notifyProcessing, setNotifyProcessing] = useState(false);
   const [notifySuccessMsg, setNotifySuccessMsg] = useState('');
 
-  // 3. Payment Agent Numbers & Thresholds
+  // 3. Welcome Email (Resend) CMS
+  const [welcomeEmailEnabled, setWelcomeEmailEnabled] = useState(true);
+  const [resendApiKey, setResendApiKey] = useState('');
+  const [welcomeEmailFrom, setWelcomeEmailFrom] = useState('BlackRock Esports <onboarding@resend.dev>');
+  const [welcomeEmailSubject, setWelcomeEmailSubject] = useState('🔥 Welcome to Black Rock Esports - Player ID: {PLAYER_ID}');
+  const [welcomeEmailBody, setWelcomeEmailBody] = useState(`Welcome to Black Rock Esports, {NAME}!
+
+Your official Player Unique ID is {PLAYER_ID}.
+You are now ready to compete in daily Free Fire squad, duo, and solo championship tournaments with automated Booyah payouts.
+
+Login to your account and book your slot today!`);
+  const [testEmailRecipient, setTestEmailRecipient] = useState('');
+  const [isSendingTestEmail, setIsSendingTestEmail] = useState(false);
+  const [testEmailResult, setTestEmailResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  // 4. Payment Agent Numbers & Thresholds
   const [bkashNo, setBkashNo] = useState('01712-998877');
   const [nagadNo, setNagadNo] = useState('01812-998877');
   const [rocketNo, setRocketNo] = useState('01912-998877');
   const [minDeposit, setMinDeposit] = useState('20');
   const [minWithdraw, setMinWithdraw] = useState('50');
 
-  // 4. Platform General Branding
+  // 5. Platform General Branding
   const [siteName, setSiteName] = useState('BlackRock Esports');
   const [helpline, setHelpline] = useState('+880 1712-998877');
 
@@ -154,6 +173,13 @@ export default function AdminSettingsPage() {
         if (s.YOUTUBE_LIVE_TITLE) setYoutubeLiveTitle(s.YOUTUBE_LIVE_TITLE);
         if (s.YOUTUBE_LIVE_DESCRIPTION) setYoutubeLiveDesc(s.YOUTUBE_LIVE_DESCRIPTION);
         if (s.YOUTUBE_CHANNEL_URL) setYoutubeChannelUrl(s.YOUTUBE_CHANNEL_URL);
+
+        // Welcome Email (Resend) Settings
+        if (s.WELCOME_EMAIL_ENABLED !== undefined) setWelcomeEmailEnabled(s.WELCOME_EMAIL_ENABLED !== 'false');
+        if (s.RESEND_API_KEY) setResendApiKey(s.RESEND_API_KEY);
+        if (s.WELCOME_EMAIL_FROM) setWelcomeEmailFrom(s.WELCOME_EMAIL_FROM);
+        if (s.WELCOME_EMAIL_SUBJECT) setWelcomeEmailSubject(s.WELCOME_EMAIL_SUBJECT);
+        if (s.WELCOME_EMAIL_BODY) setWelcomeEmailBody(s.WELCOME_EMAIL_BODY);
 
         // Payments & General
         if (s.bkash_no) setBkashNo(s.bkash_no);
@@ -227,6 +253,13 @@ export default function AdminSettingsPage() {
         YOUTUBE_LIVE_DESCRIPTION: youtubeLiveDesc.trim(),
         YOUTUBE_CHANNEL_URL: youtubeChannelUrl.trim(),
 
+        // Welcome Email (Resend) Settings
+        WELCOME_EMAIL_ENABLED: String(welcomeEmailEnabled),
+        RESEND_API_KEY: resendApiKey.trim(),
+        WELCOME_EMAIL_FROM: welcomeEmailFrom.trim(),
+        WELCOME_EMAIL_SUBJECT: welcomeEmailSubject.trim(),
+        WELCOME_EMAIL_BODY: welcomeEmailBody.trim(),
+
         // Payments & General
         bkash_no: bkashNo,
         nagad_no: nagadNo,
@@ -290,6 +323,41 @@ export default function AdminSettingsPage() {
     }
   };
 
+  const handleSendTestEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!testEmailRecipient.trim()) {
+      alert('Please enter a recipient email address for testing.');
+      return;
+    }
+    setIsSendingTestEmail(true);
+    setTestEmailResult(null);
+    try {
+      const res = await fetch('/api/admin/email/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          toEmail: testEmailRecipient.trim(),
+          apiKey: resendApiKey.trim(),
+          fromEmail: welcomeEmailFrom.trim(),
+          subject: welcomeEmailSubject.trim(),
+          bodyTemplate: welcomeEmailBody.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setTestEmailResult({ success: true, message: data.message || 'Test email sent successfully! Please check your inbox or spam folder.' });
+      } else {
+        setTestEmailResult({ success: false, message: data.message || 'Failed to send test email.' });
+      }
+    } catch (err: any) {
+      setTestEmailResult({ success: false, message: err?.message || 'Network error while sending test email.' });
+    } finally {
+      setIsSendingTestEmail(false);
+    }
+  };
+
   const getYoutubeVideoId = (url: string) => {
     if (!url) return null;
     const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|live\/))([^&?#]+)/);
@@ -305,10 +373,10 @@ export default function AdminSettingsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-[28px] sm:text-[32px] font-bold text-[#0F172A] tracking-tight leading-tight">
-            Platform Settings & Live Stream Control
+            Platform Settings & Integrations
           </h1>
           <p className="text-[13px] text-[#64748B] font-normal mt-1">
-            Control YouTube live broadcasts, video uploads, homepage headlines, and payment gateway numbers.
+            Customize welcome emails, Resend API, YouTube live broadcasts, homepage CMS, and payment agent numbers.
           </p>
         </div>
 
@@ -336,7 +404,7 @@ export default function AdminSettingsPage() {
       {savedSuccess && (
         <div className="p-4 rounded-[16px] bg-[#ECFDF5] border border-[#A7F3D0] text-[#047857] text-xs font-semibold flex items-center gap-2 shadow-2xs">
           <CheckCircle2 className="w-4 h-4 text-[#059669]" />
-          <span>All platform settings & live broadcast configurations saved successfully to Supabase database!</span>
+          <span>All platform settings & email templates saved successfully to Supabase database!</span>
         </div>
       )}
 
@@ -352,7 +420,20 @@ export default function AdminSettingsPage() {
           }`}
         >
           <LayoutTemplate className="w-4 h-4" />
-          <span>Homepage Hero & Banners</span>
+          <span>Homepage CMS</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('WELCOME_EMAIL')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-[12px] text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
+            activeTab === 'WELCOME_EMAIL'
+              ? 'bg-indigo-600 text-white shadow-xs'
+              : 'bg-white border border-[#E2E8F0] text-indigo-600 hover:text-indigo-700'
+          }`}
+        >
+          <Mail className="w-4 h-4" />
+          <span>📧 Welcome Email (Resend)</span>
         </button>
 
         <button
@@ -364,8 +445,8 @@ export default function AdminSettingsPage() {
               : 'bg-white border border-[#E2E8F0] text-red-600 hover:text-red-700'
           }`}
         >
-          <Radio className="w-4 h-4 animate-pulse" />
-          <span>🔴 YouTube Live Stream & Videos</span>
+          <Radio className="w-4 h-4" />
+          <span>🔴 YouTube Live Broadcast</span>
         </button>
 
         <button
@@ -378,7 +459,7 @@ export default function AdminSettingsPage() {
           }`}
         >
           <CreditCard className="w-4 h-4" />
-          <span>Mobile Banking Agent Numbers</span>
+          <span>Mobile Banking Numbers</span>
         </button>
 
         <button
@@ -400,7 +481,7 @@ export default function AdminSettingsPage() {
           <Loader2 className="w-8 h-8 animate-spin" />
         </div>
       ) : (
-        <form onSubmit={handleSaveAll} className="space-y-6 text-xs font-medium">
+        <div className="space-y-6 text-xs font-medium">
           
           {/* TAB 1: HOMEPAGE CMS */}
           {activeTab === 'HOMEPAGE' && (
@@ -543,7 +624,175 @@ export default function AdminSettingsPage() {
             </div>
           )}
 
-          {/* TAB 2: YOUTUBE LIVE STREAM & BROADCAST CONTROL */}
+          {/* TAB 2: WELCOME EMAIL (RESEND) CMS */}
+          {activeTab === 'WELCOME_EMAIL' && (
+            <div className="space-y-6">
+              
+              {/* Header & Status Card */}
+              <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] p-6 space-y-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+                <div className="flex items-center justify-between border-b border-[#F1F5F9] pb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100">
+                      <Mail className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h2 className="text-[17px] font-bold text-[#0F172A]">Automatic Welcome Email on Registration</h2>
+                      <p className="text-xs text-[#64748B]">
+                        Powered by <strong>Resend.com API</strong>. Automatically delivers player credentials and welcome message to user's inbox upon signup.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setWelcomeEmailEnabled(!welcomeEmailEnabled)}
+                    className={`px-4 py-2 rounded-[14px] font-bold text-xs flex items-center gap-2 transition-all cursor-pointer ${
+                      welcomeEmailEnabled
+                        ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/20'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    <span className={`w-2.5 h-2.5 rounded-full ${welcomeEmailEnabled ? 'bg-white' : 'bg-slate-400'}`} />
+                    <span>{welcomeEmailEnabled ? 'WELCOME EMAIL ENABLED' : 'EMAIL DISABLED'}</span>
+                  </button>
+                </div>
+
+                {/* Resend API Key & From Address */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                  <div>
+                    <label className="block text-[#475569] font-bold mb-1 flex items-center justify-between">
+                      <span>Resend API Key *</span>
+                      <span className="text-[10px] text-indigo-600 font-normal">resend.com/api-keys</span>
+                    </label>
+                    <div className="relative">
+                      <Key className="w-4 h-4 text-indigo-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={resendApiKey}
+                        onChange={(e) => setResendApiKey(e.target.value)}
+                        placeholder="re_12345678_..."
+                        className="w-full pl-10 pr-4 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] font-mono text-xs text-[#0F172A] focus:outline-none focus:border-indigo-600"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[#475569] font-bold mb-1">
+                      Sender Name & From Email Address
+                    </label>
+                    <input
+                      type="text"
+                      value={welcomeEmailFrom}
+                      onChange={(e) => setWelcomeEmailFrom(e.target.value)}
+                      placeholder="BlackRock Esports <onboarding@resend.dev>"
+                      className="w-full px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] font-mono text-xs text-[#0F172A] focus:outline-none focus:border-indigo-600"
+                      required
+                    />
+                    <span className="text-[10px] text-slate-400 mt-1 block">
+                      Use <code>onboarding@resend.dev</code> for testing or verified domain (e.g. <code>support@brkesports.com</code>).
+                    </span>
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-[#475569] font-bold mb-1">
+                      Welcome Email Subject Line *
+                    </label>
+                    <input
+                      type="text"
+                      value={welcomeEmailSubject}
+                      onChange={(e) => setWelcomeEmailSubject(e.target.value)}
+                      placeholder="🔥 Welcome to Black Rock Esports - Player ID: {PLAYER_ID}"
+                      className="w-full px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] font-bold text-xs text-[#0F172A] focus:outline-none focus:border-indigo-600"
+                      required
+                    />
+                    <span className="text-[10px] text-slate-400 mt-1 block">
+                      Tags available: <code>{'{NAME}'}</code>, <code>{'{PLAYER_ID}'}</code>, <code>{'{EMAIL}'}</code>
+                    </span>
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-[#475569] font-bold mb-1">
+                      Welcome Email Body & Instructions *
+                    </label>
+                    <textarea
+                      rows={6}
+                      value={welcomeEmailBody}
+                      onChange={(e) => setWelcomeEmailBody(e.target.value)}
+                      placeholder="Enter welcome message..."
+                      className="w-full px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] text-xs text-[#0F172A] focus:outline-none focus:border-indigo-600 leading-relaxed font-sans"
+                      required
+                    />
+                    <div className="flex flex-wrap gap-2 mt-1.5 text-[11px] text-slate-500">
+                      <span>Available dynamic tags:</span>
+                      <span className="bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded font-mono font-bold">{'{NAME}'}</span>
+                      <span className="bg-orange-50 text-orange-700 px-1.5 py-0.5 rounded font-mono font-bold">{'{PLAYER_ID}'}</span>
+                      <span className="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded font-mono font-bold">{'{EMAIL}'}</span>
+                      <span className="bg-cyan-50 text-cyan-700 px-1.5 py-0.5 rounded font-mono font-bold">{'{UID}'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleSaveAll}
+                    disabled={isSaving}
+                    className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                  >
+                    {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                    <span>Save Email Template</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Test Email Dispatcher Box */}
+              <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] p-6 space-y-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+                <div className="flex items-center space-x-2 border-b border-[#F1F5F9] pb-3">
+                  <Inbox className="w-5 h-5 text-indigo-600" />
+                  <h3 className="text-sm font-bold text-[#0F172A]">Send A Live Test Email (Inbox Preview)</h3>
+                </div>
+
+                <p className="text-xs text-slate-600">
+                  Enter your email address below to send a live test message using your current Resend API key and template.
+                </p>
+
+                {testEmailResult && (
+                  <div className={`p-3.5 rounded-xl text-xs font-semibold flex items-center gap-2 ${
+                    testEmailResult.success
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      : 'bg-red-50 text-red-700 border border-red-200'
+                  }`}>
+                    {testEmailResult.success ? <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" /> : <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" />}
+                    <span>{testEmailResult.message}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleSendTestEmail} className="flex flex-col sm:flex-row items-center gap-3">
+                  <input
+                    type="email"
+                    placeholder="Enter your email address (e.g. brkesportsorganisation@gmail.com)"
+                    value={testEmailRecipient}
+                    onChange={(e) => setTestEmailRecipient(e.target.value)}
+                    className="w-full sm:flex-1 px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-medium text-[#0F172A] focus:outline-none focus:border-indigo-600"
+                    required
+                  />
+
+                  <button
+                    type="submit"
+                    disabled={isSendingTestEmail}
+                    className="w-full sm:w-auto px-5 py-2.5 rounded-[12px] bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {isSendingTestEmail ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5 text-indigo-400" />}
+                    <span>{isSendingTestEmail ? 'Sending Test Email...' : 'Send Test Email Now'}</span>
+                  </button>
+                </form>
+              </div>
+
+            </div>
+          )}
+
+          {/* TAB 3: YOUTUBE LIVE STREAM & BROADCAST CONTROL */}
           {activeTab === 'YOUTUBE_LIVE' && (
             <div className="space-y-6">
               
@@ -695,7 +944,7 @@ export default function AdminSettingsPage() {
             </div>
           )}
 
-          {/* TAB 3: PAYMENTS */}
+          {/* TAB 4: PAYMENTS */}
           {activeTab === 'PAYMENTS' && (
             <div className="space-y-6">
               <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] p-6 space-y-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
@@ -768,7 +1017,7 @@ export default function AdminSettingsPage() {
             </div>
           )}
 
-          {/* TAB 4: GENERAL BRANDING & HELPLINE */}
+          {/* TAB 5: GENERAL BRANDING & HELPLINE */}
           {activeTab === 'GENERAL' && (
             <div className="space-y-6">
               <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] p-6 space-y-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
@@ -802,7 +1051,7 @@ export default function AdminSettingsPage() {
             </div>
           )}
 
-        </form>
+        </div>
       )}
 
     </div>
