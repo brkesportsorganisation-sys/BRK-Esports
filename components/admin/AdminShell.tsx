@@ -174,18 +174,18 @@ interface NavSection {
           
           {/* Brand Header */}
           <div className="flex items-center justify-between pb-5 border-b border-slate-800/60">
-            <Link href="/admin" className="flex items-center space-x-3 group">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-red to-brand-orange p-0.5 shadow-neon-red flex items-center justify-center">
+            <Link href="/admin" className="flex items-center space-x-3 group flex-shrink-0">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-red to-brand-orange p-0.5 shadow-neon-red flex items-center justify-center flex-shrink-0">
                 <div className="w-full h-full bg-[#090D16] rounded-[14px] flex items-center justify-center">
                   <ShieldCheck className="w-5 h-5 text-brand-red group-hover:scale-110 transition-transform" />
                 </div>
               </div>
-              <div>
-                <div className="font-heading font-black text-base tracking-wider text-white flex items-center gap-1.5">
+              <div className="whitespace-nowrap">
+                <div className="font-heading font-black text-base tracking-wider text-white flex items-center gap-1.5 leading-none">
                   <span>BLACKROCK</span>
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-brand-red/20 text-brand-red font-mono font-bold">PRO</span>
                 </div>
-                <div className="text-[11px] text-slate-400 font-medium">Executive Admin Suite</div>
+                <div className="text-[11px] text-slate-400 font-medium mt-1">Executive Admin Suite</div>
               </div>
             </Link>
 

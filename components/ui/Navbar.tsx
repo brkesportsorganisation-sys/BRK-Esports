@@ -99,19 +99,19 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-20">
           
           {/* Brand Logo */}
-          <Link href="/" className="flex items-center space-x-3 group">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-brand-red via-brand-orange to-brand-gold p-0.5 shadow-neon-red group-hover:scale-105 transition-transform duration-300">
+          <Link href="/" className="flex items-center space-x-3 group flex-shrink-0">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-brand-red via-brand-orange to-brand-gold p-0.5 shadow-neon-red group-hover:scale-105 transition-transform duration-300 flex-shrink-0">
               <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
-                <Flame className="w-6 h-6 text-brand-red animate-pulse" />
+                <Flame className="w-5 h-5 sm:w-6 sm:h-6 text-brand-red animate-pulse" />
               </div>
             </div>
-            <div>
-              <span className="font-heading font-black text-lg md:text-2xl tracking-wider text-slate-900 flex items-center gap-1 md:gap-1.5 leading-tight">
-                BLACK ROCK <span className="hidden sm:inline text-transparent bg-clip-text bg-gradient-to-r from-brand-red to-brand-orange">ESPORTS</span>
-              </span>
-              <span className="text-[8px] md:text-[10px] text-slate-500 block -mt-0.5 md:-mt-1 font-semibold uppercase tracking-widest">
+            <div className="whitespace-nowrap">
+              <div className="font-heading font-black text-xl sm:text-2xl tracking-wider text-slate-900 leading-none">
+                BLACKROCK <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-red to-brand-orange">ESPORTS</span>
+              </div>
+              <div className="text-[9px] sm:text-[10px] text-slate-500 font-semibold uppercase tracking-widest mt-1">
                 Free Fire Championship Hub
-              </span>
+              </div>
             </div>
           </Link>
 
