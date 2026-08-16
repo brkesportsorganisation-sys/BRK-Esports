@@ -45,13 +45,13 @@ function RegisterContent() {
 
         if (res.ok && data.success && data.nickname) {
           setIgn(data.nickname);
-          setFetchStatus({ status: 'success', message: `✅ Player Name: ${data.nickname}` });
+          setFetchStatus({ status: 'success', message: `✅ Verified IGN: ${data.nickname}` });
         } else if (res.ok && data.success && data.verified) {
           // UID is valid but nickname could not be fetched — focus IGN field
-          setFetchStatus({ status: 'success', message: '✅ UID Valid — IGN বক্সে নাম লিখুন' });
+          setFetchStatus({ status: 'success', message: '✅ UID Valid — Please enter your IGN' });
           setTimeout(() => ignRef.current?.focus(), 100);
         } else {
-          setFetchStatus({ status: 'failed', message: 'Player ID পাওয়া যায়নি / ম্যানুয়ালি লিখুন' });
+          setFetchStatus({ status: 'failed', message: 'Player UID not found / Enter IGN manually' });
         }
       } catch (err) {
         setFetchStatus({ status: 'failed', message: 'Error fetching player name' });

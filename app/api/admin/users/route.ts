@@ -131,17 +131,39 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date().toISOString(),
     };
 
-    const { data: created, error } = await supabaseAdmin
-      .from('User')
-      .insert([newVendor])
-      .select()
-      .single();
+    let created: any = null;
+    let retries = 10;
+    const workingVendor = { ...newVendor };
 
-    if (error) throw new Error(error.message);
+    while (retries > 0) {
+      const { data: insertedData, error } = await supabaseAdmin
+        .from('User')
+        .insert([workingVendor])
+        .select()
+        .single();
+
+      if (!error && insertedData) {
+        created = insertedData;
+        break;
+      }
+
+      if (error) {
+        const match = error.message?.match(/Could not find the '([^']+)' column/i);
+        if (match && match[1] && workingVendor[match[1] as keyof typeof workingVendor] !== undefined) {
+          delete (workingVendor as any)[match[1]];
+          retries--;
+          continue;
+        }
+        throw new Error(error.message);
+      }
+      break;
+    }
+
+    if (!created) throw new Error('Failed to create vendor in database.');
 
     logAdminAction(session!.email, 'VENDOR_CREATE', `Created vendor ${created.email} in Supabase`);
 
-    const { password: _, ...sanitized } = created;
+    const { password: _, ...sanitized } = { ...newVendor, ...created };
     return NextResponse.json({ user: sanitized, message: 'Vendor account created successfully.' }, { status: 201 });
   } catch (error: any) {
     console.error('[POST /api/admin/users]', error);

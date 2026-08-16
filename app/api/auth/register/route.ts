@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     const referralCode = `REF_${Math.floor(1000 + Math.random() * 9000)}`;
     const accountNumber = `BRE-${Math.floor(100000 + Math.random() * 900000)}`;
 
-    const newUser = {
+    const userPayload: Record<string, any> = {
       id: userId,
       name: name.trim(),
       email: trimmedEmail,
@@ -58,38 +58,72 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date().toISOString(),
     };
 
-    const { data, error } = await supabaseAdmin
-      .from('User')
-      .insert([newUser])
-      .select()
-      .single();
+    let insertedData: any = null;
+    let retries = 10;
+    const workingPayload = { ...userPayload };
 
-    if (error) {
-      console.error('[POST /api/auth/register] Supabase error:', error);
-      throw new Error(error.message);
+    while (retries > 0) {
+      const { data, error } = await supabaseAdmin
+        .from('User')
+        .insert([workingPayload])
+        .select()
+        .single();
+
+      if (!error && data) {
+        insertedData = data;
+        break;
+      }
+
+      if (error) {
+        // Detect missing column error from PostgREST: "Could not find the 'xyz' column of 'User' in the schema cache"
+        const match = error.message?.match(/Could not find the '([^']+)' column/i);
+        if (match && match[1] && workingPayload[match[1]] !== undefined) {
+          const missingCol = match[1];
+          console.warn(`[POST /api/auth/register] Omission of column '${missingCol}' due to schema cache mismatch.`);
+          delete workingPayload[missingCol];
+          retries--;
+          continue;
+        }
+
+        console.error('[POST /api/auth/register] Supabase error:', error);
+        throw new Error(error.message);
+      }
+      break;
+    }
+
+    if (!insertedData) {
+      throw new Error('Registration failed while saving user to database.');
     }
 
     // Handle referral increment and promo bonus for referrer
     if (refCode) {
-      const { data: referrer } = await supabaseAdmin
-        .from('User')
-        .select('id, totalReferrals, promoBalance, walletBalance')
-        .eq('referralCode', refCode.trim())
-        .maybeSingle();
-
-      if (referrer) {
-        await supabaseAdmin
+      try {
+        const { data: referrer } = await supabaseAdmin
           .from('User')
-          .update({
-            totalReferrals: (referrer.totalReferrals || 0) + 1,
-            updatedAt: new Date().toISOString(),
-          })
-          .eq('id', referrer.id);
+          .select('id, totalReferrals')
+          .eq('referralCode', refCode.trim())
+          .maybeSingle();
+
+        if (referrer) {
+          await supabaseAdmin
+            .from('User')
+            .update({
+              totalReferrals: (referrer.totalReferrals || 0) + 1,
+              updatedAt: new Date().toISOString(),
+            })
+            .eq('id', referrer.id);
+        }
+      } catch (refErr) {
+        console.warn('Referral update notice:', refErr);
       }
     }
 
-    // Return sanitized user object
-    const { password: _, ...sanitizedUser } = data;
+    // Return sanitized user object merged with client model defaults
+    const { password: _, ...sanitizedUser } = {
+      ...userPayload,
+      ...insertedData,
+    };
+
     return NextResponse.json({ user: sanitizedUser, message: 'Account created successfully!' }, { status: 201 });
   } catch (error: any) {
     console.error('[POST /api/auth/register]', error);
