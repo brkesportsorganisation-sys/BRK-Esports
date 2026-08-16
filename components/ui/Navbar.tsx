@@ -51,7 +51,7 @@ export default function Navbar() {
     }
   };
 
-  const navLinks = [
+  const navLinks: { name: string; href: string; icon: React.ElementType; isLive?: boolean }[] = [
     { name: 'Home', href: '/', icon: Flame },
     { name: 'Tournaments', href: '/tournaments', icon: Trophy },
     { name: 'Ad', href: '/ads', icon: PlusSquare },

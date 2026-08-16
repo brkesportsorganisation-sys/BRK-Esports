@@ -8,7 +8,7 @@ import { Flame, Trophy, Gift, Wallet, User, PlusSquare } from 'lucide-react';
 export default function MobileBottomNav() {
   const pathname = usePathname();
 
-  const tabs = [
+  const tabs: { name: string; href: string; icon: React.ElementType; isLive?: boolean }[] = [
     { name: 'Home', href: '/', icon: Flame },
     { name: 'Tournaments', href: '/tournaments', icon: Trophy },
     { name: 'Ad', href: '/ads', icon: PlusSquare },
