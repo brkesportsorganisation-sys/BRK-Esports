@@ -503,97 +503,97 @@ export default function AdminTournamentsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#fdfaf6] p-4 text-slate-900 lg:p-8">
-      <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/50">
+    <div className="space-y-6">
+      <div className="rounded-3xl border border-slate-800/80 bg-[#111827]/80 p-6 sm:p-8 backdrop-blur-xl shadow-xl">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.35em] text-red-500 font-semibold">Secure Tournament Operations</p>
-            <h1 className="mt-1 text-3xl font-semibold text-slate-900">Admin Tournament Control Center</h1>
-            <p className="mt-2 text-sm text-slate-500">Create, edit, publish, feature, duplicate, and remove tournaments with protected backend actions.</p>
+            <p className="text-xs uppercase tracking-[0.35em] text-brand-red font-bold">Secure Tournament Operations</p>
+            <h1 className="mt-1 text-2xl sm:text-3xl font-heading font-black text-white">TOURNAMENT CONTROL CENTER</h1>
+            <p className="mt-1 text-xs text-slate-400">Create, edit, publish, feature, duplicate, and manage tournament slot brackets.</p>
           </div>
-          <button onClick={openCreateModal} className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-red-500 to-orange-500 px-4 py-3 font-semibold text-white">
-            <PlusCircle className="h-4 w-4" /> Create Tournament
+          <button onClick={openCreateModal} className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-brand-red to-brand-orange px-5 py-3 font-heading font-black text-xs text-white shadow-neon-red hover:brightness-110 transition-all">
+            <PlusCircle className="h-4 w-4" /> CREATE TOURNAMENT
           </button>
         </div>
 
-        {feedback ? <div className={`mt-4 rounded-2xl border px-4 py-3 text-sm font-medium ${feedbackTone === 'error' ? 'border-red-500/20 bg-red-50 text-red-600' : 'border-emerald-500/20 bg-emerald-50 text-emerald-600'}`}>{feedback}</div> : null}
+        {feedback ? <div className={`mt-4 rounded-2xl border px-4 py-3 text-xs font-bold ${feedbackTone === 'error' ? 'border-red-900/50 bg-red-950/40 text-red-300' : 'border-emerald-900/50 bg-emerald-950/40 text-emerald-300'}`}>{feedback}</div> : null}
 
         <div className="mt-6 grid gap-4 md:grid-cols-3">
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-xs uppercase tracking-[0.3em] text-slate-500 font-semibold">Total</p>
-            <p className="mt-2 text-2xl font-semibold text-slate-900">{tournaments.length}</p>
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+            <p className="text-xs uppercase tracking-[0.3em] text-slate-400 font-bold">Total Competitions</p>
+            <p className="mt-1 text-2xl font-heading font-black text-white">{tournaments.length}</p>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-xs uppercase tracking-[0.3em] text-slate-500 font-semibold">Published</p>
-            <p className="mt-2 text-2xl font-semibold text-slate-900">{tournaments.filter((item) => item.isPublished || item.status === 'LIVE').length}</p>
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+            <p className="text-xs uppercase tracking-[0.3em] text-slate-400 font-bold">Live & Published</p>
+            <p className="mt-1 text-2xl font-heading font-black text-emerald-400">{tournaments.filter((item) => item.isPublished || item.status === 'LIVE').length}</p>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-xs uppercase tracking-[0.3em] text-slate-500 font-semibold">Featured</p>
-            <p className="mt-2 text-2xl font-semibold text-slate-900">{tournaments.filter((item) => item.isFeatured).length}</p>
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+            <p className="text-xs uppercase tracking-[0.3em] text-slate-400 font-bold">Featured Hubs</p>
+            <p className="mt-1 text-2xl font-heading font-black text-brand-gold">{tournaments.filter((item) => item.isFeatured).length}</p>
           </div>
         </div>
 
         <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-center">
-          <label className="flex flex-1 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm focus-within:border-red-300 focus-within:ring-1 focus-within:ring-red-300">
+          <label className="flex flex-1 items-center gap-2 rounded-2xl border border-slate-800 bg-slate-900 px-4 py-2.5 text-xs text-white shadow-sm focus-within:border-brand-red">
             <Search className="h-4 w-4 text-slate-400" />
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search tournaments" className="w-full bg-transparent outline-none" />
+            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search tournaments..." className="w-full bg-transparent outline-none text-white placeholder-slate-500 font-medium" />
           </label>
-          <label className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm focus-within:border-red-300 focus-within:ring-1 focus-within:ring-red-300">
+          <label className="flex items-center gap-2 rounded-2xl border border-slate-800 bg-slate-900 px-4 py-2.5 text-xs text-white shadow-sm focus-within:border-brand-red">
             <Filter className="h-4 w-4 text-slate-400" />
-            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as 'ALL' | TournamentStatus)} className="bg-transparent outline-none">
+            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as 'ALL' | TournamentStatus)} className="bg-transparent outline-none text-white font-bold">
               {statusOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option === 'ALL' ? 'All statuses' : option}
+                <option key={option} value={option} className="bg-slate-900 text-white">
+                  {option === 'ALL' ? 'All Statuses' : option}
                 </option>
               ))}
             </select>
           </label>
         </div>
 
-        <div className="mt-6 overflow-x-auto rounded-2xl border border-slate-200 shadow-sm bg-white">
+        <div className="mt-6 overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/40">
           <table className="min-w-full text-left text-sm">
-            <thead className="bg-slate-50 text-xs uppercase tracking-[0.3em] text-slate-500 border-b border-slate-200">
+            <thead className="bg-slate-900/90 text-slate-400 text-xs uppercase font-bold border-b border-slate-800">
               <tr>
-                <th className="px-4 py-4 font-semibold">Tournament</th>
-                <th className="px-4 py-4 font-semibold">Status</th>
-                <th className="px-4 py-4 font-semibold">Prize</th>
-                <th className="px-4 py-4 font-semibold">Visibility</th>
-                <th className="px-4 py-4 font-semibold">Actions</th>
+                <th className="px-4 py-4">Tournament</th>
+                <th className="px-4 py-4">Status</th>
+                <th className="px-4 py-4">Prize Pool</th>
+                <th className="px-4 py-4">Visibility</th>
+                <th className="px-4 py-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-800/80">
               {loading ? (
-                <tr><td colSpan={5} className="px-4 py-6 text-slate-500 text-center">Loading secure admin data…</td></tr>
+                <tr><td colSpan={5} className="px-4 py-8 text-slate-500 text-center">Loading tournament database...</td></tr>
               ) : filteredTournaments.length === 0 ? (
-                <tr><td colSpan={5} className="px-4 py-6 text-slate-500 text-center">No tournaments match your filters.</td></tr>
+                <tr><td colSpan={5} className="px-4 py-8 text-slate-500 text-center">No tournaments match your search filter.</td></tr>
               ) : filteredTournaments.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                <tr key={item.id} className="hover:bg-slate-900/60 transition-colors">
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-500 border border-red-100">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-brand-red/10 text-brand-red border border-brand-red/20">
                         <ShieldCheck className="h-5 w-5" />
                       </div>
                       <div>
-                        <div className="font-semibold text-slate-900">{item.title}</div>
-                        <div className="text-xs text-slate-500 mt-0.5">{item.mode} • {item.format.replace('_', ' ')}</div>
+                        <div className="font-bold text-white text-xs">{item.title}</div>
+                        <div className="text-[11px] text-slate-400 mt-0.5 font-mono">{item.mode} • {item.format.replace('_', ' ')}</div>
                       </div>
                     </div>
                   </td>
                   <td className="px-4 py-4">
-                    <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold uppercase text-slate-700 shadow-sm">{item.status}</span>
+                    <span className="rounded-xl border border-slate-800 bg-slate-900 px-3 py-1 text-[10px] font-black uppercase text-slate-300">{item.status}</span>
                   </td>
-                  <td className="px-4 py-4 font-medium text-slate-700">৳{item.prizePool}</td>
-                  <td className="px-4 py-4 text-slate-700">
-                    {item.isFeatured ? <span className="mr-2 inline-flex items-center gap-1 rounded-full bg-orange-50 border border-orange-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-orange-600"><Star className="h-3 w-3" /> Featured</span> : null}
-                    {item.isPublished ? <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-600"><Sparkles className="h-3 w-3" /> Published</span> : null}
-                  </td>
+                  <td className="px-4 py-4 font-heading font-black text-brand-gold text-base">৳{item.prizePool}</td>
                   <td className="px-4 py-4">
-                    <div className="flex flex-wrap gap-2">
-                      <button onClick={() => openEditModal(item)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50 hover:text-red-500 transition-colors">Edit</button>
-                      <button onClick={() => void handleQuickAction(item.id, { status: item.status === 'LIVE' ? 'UPCOMING' : 'LIVE', isPublished: true })} className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-100 transition-colors">Publish</button>
-                      <button onClick={() => void handleQuickAction(item.id, { isFeatured: !item.isFeatured })} className="rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-xs font-medium text-orange-700 hover:bg-orange-100 transition-colors">Feature</button>
-                      <button onClick={() => void duplicateTournament(item)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50 hover:text-red-500 transition-colors"><Copy className="mr-1 mb-0.5 inline h-3 w-3" /> Duplicate</button>
-                      <button onClick={() => void handleDelete(item.id)} className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-100 transition-colors"><Trash2 className="mr-1 mb-0.5 inline h-3 w-3" /> Delete</button>
+                    {item.isFeatured ? <span className="mr-2 inline-flex items-center gap-1 rounded-lg bg-orange-950/50 border border-orange-800/40 px-2 py-0.5 text-[9px] font-bold uppercase text-orange-400"><Star className="h-3 w-3" /> Featured</span> : null}
+                    {item.isPublished ? <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-950/50 border border-emerald-800/40 px-2 py-0.5 text-[9px] font-bold uppercase text-emerald-400"><Sparkles className="h-3 w-3" /> Published</span> : null}
+                  </td>
+                  <td className="px-4 py-4 text-right">
+                    <div className="flex flex-wrap justify-end gap-1.5">
+                      <button onClick={() => openEditModal(item)} className="rounded-xl border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs font-bold text-slate-300 hover:text-white transition-colors">Edit</button>
+                      <button onClick={() => void handleQuickAction(item.id, { status: item.status === 'LIVE' ? 'UPCOMING' : 'LIVE', isPublished: true })} className="rounded-xl border border-emerald-800/50 bg-emerald-950/50 px-2.5 py-1.5 text-xs font-bold text-emerald-400 hover:bg-emerald-900 transition-colors">Publish</button>
+                      <button onClick={() => void handleQuickAction(item.id, { isFeatured: !item.isFeatured })} className="rounded-xl border border-orange-800/50 bg-orange-950/50 px-2.5 py-1.5 text-xs font-bold text-orange-400 hover:bg-orange-900 transition-colors">Feature</button>
+                      <button onClick={() => void duplicateTournament(item)} className="rounded-xl border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs font-bold text-slate-300 hover:text-white transition-colors"><Copy className="mr-1 h-3 w-3 inline" /> Copy</button>
+                      <button onClick={() => void handleDelete(item.id)} className="rounded-xl border border-red-900/50 bg-red-950/50 px-2.5 py-1.5 text-xs font-bold text-red-400 hover:bg-red-900 transition-colors"><Trash2 className="mr-1 h-3 w-3 inline" /> Delete</button>
                     </div>
                   </td>
                 </tr>
@@ -604,14 +604,14 @@ export default function AdminTournamentsPage() {
       </div>
 
       {modalOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-md">
-          <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-[2rem] border border-slate-200 bg-white p-6 shadow-2xl shadow-slate-200/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
+          <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-3xl border border-slate-800 bg-[#111827] p-6 shadow-2xl">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs uppercase tracking-[0.35em] text-red-500 font-semibold">Protected Tournament Form</p>
-                <h2 className="mt-1 text-2xl font-semibold text-slate-900">{editingId ? 'Edit Tournament' : 'Create Tournament'}</h2>
+                <p className="text-xs uppercase tracking-[0.35em] text-brand-red font-bold">Tournament Configuration</p>
+                <h2 className="mt-1 text-2xl font-heading font-black text-white">{editingId ? 'Edit Tournament' : 'Create Tournament'}</h2>
               </div>
-              <button onClick={resetForm} className="rounded-2xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50 transition-colors">
+              <button onClick={resetForm} className="rounded-2xl border border-slate-800 p-2 text-slate-400 hover:text-white transition-colors">
                 <X className="h-5 w-5" />
               </button>
             </div>
