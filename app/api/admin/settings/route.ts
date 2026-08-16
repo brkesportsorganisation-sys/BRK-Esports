@@ -45,8 +45,27 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { key, value } = body;
+    
+    // Support batch update { settings: { key1: val1, key2: val2, ... } }
+    if (body.settings && typeof body.settings === 'object') {
+      const entries = Object.entries(body.settings);
+      const upserts = entries.map(([key, value]) => ({
+        id: `setting_${key}`,
+        key,
+        value: typeof value === 'string' ? value : JSON.stringify(value),
+        updatedAt: new Date().toISOString(),
+      }));
 
+      const { error } = await supabaseAdmin
+        .from('SiteSetting')
+        .upsert(upserts, { onConflict: 'key' });
+
+      if (error) throw new Error(error.message);
+
+      return NextResponse.json({ message: 'Settings batch updated successfully' });
+    }
+
+    const { key, value } = body;
     if (!key) {
       return NextResponse.json({ message: 'Key is required' }, { status: 400 });
     }
@@ -56,7 +75,7 @@ export async function POST(request: Request) {
       .upsert({
         id: `setting_${key}`,
         key,
-        value: value || '',
+        value: typeof value === 'string' ? value : JSON.stringify(value),
         updatedAt: new Date().toISOString()
       }, { onConflict: 'key' })
       .select()
@@ -69,6 +88,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: 'Setting updated successfully', setting });
   } catch (error: any) {
     console.error('[POST /api/admin/settings]', error);
-    return NextResponse.json({ message: 'Failed to update setting' }, { status: 500 });
+    return NextResponse.json({ message: error?.message || 'Failed to update setting' }, { status: 500 });
   }
 }

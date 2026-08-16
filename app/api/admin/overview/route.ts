@@ -17,8 +17,8 @@ export async function GET() {
 
   try {
     const [tournamentsRes, usersRes, paymentsRes] = await Promise.all([
-      supabaseAdmin.from('Tournament').select('id, status, registeredCount, maxTeams, prizePool'),
-      supabaseAdmin.from('User').select('id, isBanned, role'),
+      supabaseAdmin.from('Tournament').select('*').order('createdAt', { ascending: false }),
+      supabaseAdmin.from('User').select('id, isBanned, role, createdAt'),
       supabaseAdmin.from('Payment').select('*').order('createdAt', { ascending: false }),
     ]);
 
@@ -27,9 +27,72 @@ export async function GET() {
     const payments = paymentsRes.data || [];
 
     const activeTournaments = tournaments.filter(t => t.status === 'UPCOMING' || t.status === 'LIVE').length;
-    const pendingPayments = payments.filter(p => p.status === 'PENDING').length;
+    const pendingPayments = payments.filter(p => p.status === 'PENDING' && !p.trxId?.startsWith('WTH-')).length;
     const verifiedPayments = payments.filter(p => p.status === 'VERIFIED');
     const totalRevenue = verifiedPayments.reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
+
+    // Aggregate monthly sales for the last 6 months from real verified payments
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const now = new Date();
+    const last6Months: Array<{ month: string; sales: number; monthIdx: number; year: number }> = [];
+    
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      last6Months.push({
+        month: months[d.getMonth()],
+        monthIdx: d.getMonth(),
+        year: d.getFullYear(),
+        sales: 0,
+      });
+    }
+
+    verifiedPayments.forEach(p => {
+      if (!p.createdAt) return;
+      const pDate = new Date(p.createdAt);
+      const match = last6Months.find(m => m.monthIdx === pDate.getMonth() && m.year === pDate.getFullYear());
+      if (match) {
+        match.sales += Number(p.amount) || 0;
+      }
+    });
+
+    const monthlySales = last6Months.map(({ month, sales }) => ({ month, sales }));
+
+    // Aggregate real game mode / category distribution from tournaments
+    const formatCounts: Record<string, number> = {
+      'BR Squad 4v4': 0,
+      'BR Duo Battle': 0,
+      'CS 4v4 Clash': 0,
+      'Solo Survival': 0,
+    };
+
+    tournaments.forEach(t => {
+      const mode = (t.mode || '').toUpperCase();
+      const format = (t.format || '').toUpperCase();
+      if (mode === 'SQUAD' && (format.includes('CS') || format.includes('CLASH'))) {
+        formatCounts['CS 4v4 Clash'] += 1;
+      } else if (mode === 'SQUAD') {
+        formatCounts['BR Squad 4v4'] += 1;
+      } else if (mode === 'DUO') {
+        formatCounts['BR Duo Battle'] += 1;
+      } else if (mode === 'SOLO') {
+        formatCounts['Solo Survival'] += 1;
+      } else {
+        formatCounts['BR Squad 4v4'] += 1;
+      }
+    });
+
+    const donutColors: Record<string, string> = {
+      'BR Squad 4v4': '#2563EB',
+      'BR Duo Battle': '#10B981',
+      'CS 4v4 Clash': '#8B5CF6',
+      'Solo Survival': '#EA580C',
+    };
+
+    const categoryStats = Object.keys(formatCounts).map(name => ({
+      name,
+      count: formatCounts[name],
+      color: donutColors[name] || '#2563EB',
+    }));
 
     return NextResponse.json({
       totalTournaments: tournaments.length,
@@ -37,6 +100,9 @@ export async function GET() {
       totalUsers: users.length,
       pendingPayments,
       totalRevenue,
+      monthlySales,
+      categoryStats,
+      recentTournaments: tournaments.slice(0, 6),
       recentPayments: payments.slice(0, 10),
     });
   } catch (error: any) {

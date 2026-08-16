@@ -11,6 +11,20 @@ interface TournamentCardProps {
   tournament: Tournament;
 }
 
+function stripHtml(html?: string) {
+  if (!html) return '';
+  return html
+    .replace(/<[^>]*>?/gm, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export default function TournamentCard({ tournament }: TournamentCardProps) {
   const isFree = tournament.entryFee === 0;
   const isFull = tournament.registeredCount >= tournament.maxTeams;
@@ -106,7 +120,7 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
             {tournament.title}
           </h3>
           <p className="text-slate-600 text-xs mt-1 line-clamp-2 leading-relaxed">
-            {tournament.description}
+            {stripHtml(tournament.description)}
           </p>
         </div>
 

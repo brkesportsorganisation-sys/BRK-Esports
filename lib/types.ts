@@ -7,7 +7,7 @@ export type PaymentStatus = 'PENDING' | 'VERIFIED' | 'REJECTED';
 export type CommunityAccessType = 'WHATSAPP' | 'DISCORD' | 'TELEGRAM' | 'FACEBOOK_GROUP' | 'MESSENGER_GROUP' | 'CUSTOM_LINK';
 export type CommunityUnlockMode = 'SLOT_PURCHASE_ONLY' | 'PAYMENT_VERIFICATION_ONLY' | 'ADMIN_APPROVAL_ONLY';
 export type PlayerStatus = 'AVAILABLE' | 'PENDING' | 'IN_MATCH';
-export type LFGType = 'PLAYER_LOOKING_FOR_SQUAD' | 'SQUAD_LOOKING_FOR_PLAYER';
+export type LFGType = 'PLAYER_LOOKING_FOR_SQUAD' | 'SQUAD_LOOKING_FOR_PLAYER' | 'NEED_MANAGER' | 'NEED_SPONSOR' | 'NEED_COACH';
 
 export interface TournamentCommunityConfig {
   enabled: boolean;

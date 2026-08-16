@@ -59,20 +59,22 @@ export default async function LivePage() {
     return match && match[1].length === 11 ? match[1] : null;
   };
 
-
   return (
-    <div className="min-h-screen bg-background flex flex-col font-sans selection:bg-brand-red/30">
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 flex flex-col font-sans">
       <Navbar />
 
-      <main className="flex-grow pt-24 pb-20 lg:pt-28 lg:pb-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-        <div className="mb-8 text-center space-y-4">
-          <div className="inline-flex items-center justify-center space-x-2 px-4 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 text-brand-red font-bold uppercase tracking-widest text-sm animate-pulse">
-            <Flame className="w-4 h-4" />
-            <span>Live Broadcast</span>
+      <main className="flex-grow pt-10 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+        <div className="mb-8 text-center space-y-3">
+          <div className="inline-flex items-center justify-center space-x-2 px-4 py-1.5 rounded-full bg-red-50 border border-brand-red/20 text-brand-red font-bold uppercase tracking-widest text-xs animate-pulse">
+            <Flame className="w-3.5 h-3.5" />
+            <span>Official Live Broadcast Stream</span>
           </div>
-          <h1 className="text-3xl md:text-5xl font-black text-white font-heading tracking-tight uppercase">
-            Watch our daily Free Fire tournaments live! Join the stream, cheer for your favorite squads, and don't miss the intense action.
+          <h1 className="text-2xl md:text-4xl font-black text-slate-900 font-heading tracking-tight">
+            WATCH LIVE FREE FIRE TOURNAMENTS
           </h1>
+          <p className="text-slate-600 text-xs sm:text-sm max-w-2xl mx-auto">
+            Cheer for your favorite squads, watch high-tier tactical plays, and don't miss the intense Booyah action.
+          </p>
         </div>
 
         <div className={`grid gap-8 ${streams.length > 1 ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
@@ -86,33 +88,31 @@ export default async function LivePage() {
               return (
                 <div key={index} className="flex flex-col space-y-4">
                   {t && (
-                    <div className="p-4 rounded-xl bg-slate-900/50 backdrop-blur-md border border-brand-red/30 shadow-lg shadow-brand-red/5 relative overflow-hidden group">
-                      <div className="absolute inset-0 bg-gradient-to-br from-brand-red/10 to-transparent opacity-50"></div>
-                      <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                        <div className="space-y-2 flex-1 min-w-0">
+                    <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm relative overflow-hidden">
+                      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                        <div className="space-y-1.5 flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-brand-red text-white rounded-md whitespace-nowrap">Live Match</span>
-                            <span className="text-xs text-gray-400 truncate">{t.mode} • {t.format.replace('_', ' ')}</span>
+                            <span className="text-xs text-slate-500 font-semibold truncate">{t.mode} • {t.format.replace('_', ' ')}</span>
                           </div>
-                          <h2 className="text-lg md:text-xl font-black text-white font-heading uppercase truncate w-full" title={t.title}>
+                          <h2 className="text-base md:text-lg font-black text-slate-900 font-heading uppercase truncate w-full" title={t.title}>
                             {t.title}
                           </h2>
-                          <div className="flex flex-wrap items-center gap-3 text-xs text-gray-400">
-                            <div className="flex items-center gap-1"><Banknote className="w-3 h-3 text-brand-orange" /> ৳{t.prizePool}</div>
-                            <div className="flex items-center gap-1"><Users className="w-3 h-3 text-brand-cyan" /> Teams: {t.maxTeams}</div>
+                          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 font-semibold">
+                            <div className="flex items-center gap-1"><Banknote className="w-3.5 h-3.5 text-orange-600" /> ৳{t.prizePool}</div>
+                            <div className="flex items-center gap-1"><Users className="w-3.5 h-3.5 text-blue-600" /> Teams: {t.maxTeams}</div>
                           </div>
                         </div>
                         <Link href={`/tournaments/${t.id}`} className="shrink-0">
-                          <button className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-lg border border-white/20 transition-all flex items-center gap-1.5">
-                            <Trophy className="w-3.5 h-3.5" /> View
+                          <button className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-xs">
+                            <Trophy className="w-3.5 h-3.5" /> View Match
                           </button>
                         </Link>
                       </div>
                     </div>
                   )}
 
-                  <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black relative group shadow-cyber border border-brand-red/20 shadow-brand-red/10">
-                    <div className="absolute -inset-[1px] bg-gradient-to-r from-brand-red via-brand-orange to-brand-red rounded-2xl opacity-20 blur-sm group-hover:opacity-40 transition-opacity duration-500" />
+                  <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black relative group shadow-md border border-slate-200">
                     <iframe
                       width="100%"
                       height="100%"
@@ -127,11 +127,11 @@ export default async function LivePage() {
               );
             })
           ) : (
-            <div className="aspect-video w-full rounded-2xl bg-slate-900 border border-slate-800 flex flex-col items-center justify-center text-center p-6 space-y-4 col-span-full">
-              <Youtube className="w-20 h-20 text-gray-700 mx-auto" />
+            <div className="aspect-video w-full rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col items-center justify-center text-center p-8 space-y-3 col-span-full">
+              <Youtube className="w-16 h-16 text-slate-300 mx-auto" />
               <div>
-                <h3 className="text-2xl font-heading font-bold text-gray-400">OFFLINE</h3>
-                <p className="text-gray-500 mt-2 max-w-md mx-auto">There is no live tournament broadcasting at the moment. Please check back later or view our tournament schedule.</p>
+                <h3 className="text-xl font-heading font-bold text-slate-900">STREAM CURRENTLY OFFLINE</h3>
+                <p className="text-slate-500 text-xs mt-1 max-w-md mx-auto">There is no live tournament broadcasting at the moment. Please check back later or view our tournament schedule.</p>
               </div>
             </div>
           )}

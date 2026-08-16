@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
@@ -25,6 +25,7 @@ function RegisterContent() {
   // Real-time UID to Player Name Fetch State
   const [isFetchingIgn, setIsFetchingIgn] = useState(false);
   const [fetchStatus, setFetchStatus] = useState<{ status: 'idle' | 'loading' | 'success' | 'failed'; message?: string }>({ status: 'idle' });
+  const ignRef = useRef<HTMLInputElement>(null);
 
   // Debounced auto-fetch when UID is 8+ digits
   useEffect(() => {
@@ -44,7 +45,11 @@ function RegisterContent() {
 
         if (res.ok && data.success && data.nickname) {
           setIgn(data.nickname);
-          setFetchStatus({ status: 'success', message: `Player Name: ${data.nickname}` });
+          setFetchStatus({ status: 'success', message: `✅ Player Name: ${data.nickname}` });
+        } else if (res.ok && data.success && data.verified) {
+          // UID is valid but nickname could not be fetched — focus IGN field
+          setFetchStatus({ status: 'success', message: '✅ UID Valid — IGN বক্সে নাম লিখুন' });
+          setTimeout(() => ignRef.current?.focus(), 100);
         } else {
           setFetchStatus({ status: 'failed', message: 'Player ID পাওয়া যায়নি / ম্যানুয়ালি লিখুন' });
         }
@@ -193,6 +198,7 @@ function RegisterContent() {
                 <div className="relative">
                   <Gamepad2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
+                    ref={ignRef}
                     type="text"
                     value={ign}
                     onChange={(e) => setIgn(e.target.value)}

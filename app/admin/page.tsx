@@ -18,284 +18,378 @@ import {
   KeyRound,
   ArrowRight,
   Clock,
-  Sparkles
+  Sparkles,
+  ShoppingBag,
+  Layers,
+  Gamepad2,
+  RefreshCw,
+  Loader2
 } from 'lucide-react';
-import { db } from '@/lib/db';
-import { User, Tournament, Payment } from '@/lib/types';
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, BarChart, Bar } from 'recharts';
+import { Tournament, Payment } from '@/lib/types';
+import { 
+  ResponsiveContainer, 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  Tooltip, 
+  CartesianGrid,
+  PieChart, 
+  Pie, 
+  Cell 
+} from 'recharts';
 
 export default function AdminDashboardPage() {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
   const [overview, setOverview] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [currentTime, setCurrentTime] = useState<string>('');
+
+  const loadLiveOverview = async () => {
+    try {
+      const [ovRes, tRes] = await Promise.all([
+        fetch('/api/admin/overview', { credentials: 'include' }),
+        fetch('/api/tournaments', { credentials: 'include' })
+      ]);
+      if (ovRes.ok) {
+        const ovData = await ovRes.json();
+        setOverview(ovData);
+      }
+      if (tRes.ok) {
+        const tData = await tRes.json();
+        if (tData.tournaments) setTournaments(tData.tournaments);
+      }
+    } catch (err) {
+      console.warn('Admin overview fetch error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    setCurrentUser(db.getCurrentUser());
-    setTournaments(db.getTournaments());
-    setPayments(db.getPayments());
-    setUsers(db.getUsers());
+    const updateClock = () => {
+      const now = new Date();
+      setCurrentTime(now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true }));
+    };
+    updateClock();
+    const clockInterval = setInterval(updateClock, 1000);
 
-    async function loadLiveOverview() {
-      try {
-        const [ovRes, tRes] = await Promise.all([
-          fetch('/api/admin/overview'),
-          fetch('/api/tournaments')
-        ]);
-        if (ovRes.ok) {
-          const ovData = await ovRes.json();
-          setOverview(ovData);
-          if (ovData.recentPayments) setPayments(ovData.recentPayments);
-        }
-        if (tRes.ok) {
-          const tData = await tRes.json();
-          if (tData.tournaments) setTournaments(tData.tournaments);
-        }
-      } catch (err) {
-        console.warn('Admin overview fetch error:', err);
-      }
-    }
     loadLiveOverview();
+    const refreshInterval = setInterval(loadLiveOverview, 30000);
+
+    return () => {
+      clearInterval(clockInterval);
+      clearInterval(refreshInterval);
+    };
   }, []);
 
-  const pendingPayments = overview ? overview.pendingPayments : payments.filter(p => p.status === 'PENDING').length;
-  const activeTournaments = overview ? overview.activeTournaments : tournaments.filter(t => t.status === 'LIVE' || t.status === 'UPCOMING').length;
-  const totalUsersCount = overview ? overview.totalUsers : users.length;
-  const totalRevenueAmount = overview ? overview.totalRevenue : payments.filter(p => p.status === 'VERIFIED').reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
+  const totalUsersCount = overview?.totalUsers ?? 0;
+  const activeTournaments = overview?.activeTournaments ?? 0;
+  const pendingPayments = overview?.pendingPayments ?? 0;
+  const totalRevenueAmount = overview?.totalRevenue ?? 0;
+  const totalCategoriesCount = overview?.categoryStats?.reduce((acc: number, c: any) => acc + (c.count || 0), 0) ?? tournaments.length;
 
-  const chartData = [
-    { day: 'Mon', revenue: 14000, players: 450 },
-    { day: 'Tue', revenue: 21000, players: 680 },
-    { day: 'Wed', revenue: 19000, players: 620 },
-    { day: 'Thu', revenue: 28000, players: 890 },
-    { day: 'Fri', revenue: 36000, players: 1200 },
-    { day: 'Sat', revenue: 52000, players: 1650 },
-    { day: 'Sun', revenue: 44000, players: 1400 },
-  ];
+  // Real database monthly sales growth data
+  const salesChartData = overview?.monthlySales && overview.monthlySales.length > 0
+    ? overview.monthlySales
+    : [
+        { month: 'Jan', sales: 0 },
+        { month: 'Feb', sales: 0 },
+        { month: 'Mar', sales: 0 },
+        { month: 'Apr', sales: 0 },
+        { month: 'May', sales: 0 },
+        { month: 'Jun', sales: 0 },
+      ];
+
+  // Real database game mode distribution
+  const donutData = overview?.categoryStats && overview.categoryStats.length > 0
+    ? overview.categoryStats
+    : [
+        { name: 'BR Squad 4v4', count: 0, color: '#2563EB' },
+        { name: 'BR Duo Battle', count: 0, color: '#10B981' },
+        { name: 'CS 4v4 Clash', count: 0, color: '#8B5CF6' },
+        { name: 'Solo Survival', count: 0, color: '#EA580C' },
+      ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 max-w-7xl mx-auto pb-10 font-sans">
       
-      {/* Top Welcome & Quick Actions Bar */}
-      <div className="bg-[#111827]/80 backdrop-blur-xl border border-slate-800/80 rounded-3xl p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-brand-red/10 rounded-full blur-3xl pointer-events-none"></div>
-
-        <div className="space-y-1.5 relative z-10">
-          <div className="flex items-center space-x-2">
-            <span className="px-2.5 py-0.5 rounded-md bg-brand-red/20 text-brand-red font-mono text-[10px] font-extrabold uppercase tracking-wider">
-              Control Deck
-            </span>
-            <span className="text-slate-500 text-xs">•</span>
-            <span className="text-slate-400 text-xs font-medium">Real-Time Tournament Ecosystem</span>
-          </div>
-          <h1 className="font-heading font-black text-3xl sm:text-4xl text-white">
-            OPERATIONS & REVENUE DASHBOARD
+      {/* 1. Page Header (Title + Subtitle + Live Clock) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-[28px] sm:text-[32px] font-bold text-[#0F172A] tracking-tight leading-tight">
+            Dashboard Overview
           </h1>
-          <p className="text-xs text-slate-400 max-w-xl">
-            Live analytics overview of automated Free Fire matches, bKash deposits, winning payouts, and player traffic.
+          <p className="text-[13px] text-[#64748B] font-normal mt-1">
+            Welcome back! Here's your tournament & operations analytics.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 relative z-10 w-full md:w-auto">
-          <Link
-            href="/admin/tournaments"
-            className="px-5 py-3 rounded-2xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-black text-xs shadow-neon-red hover:brightness-110 transition-all flex items-center space-x-2"
-          >
-            <PlusCircle className="w-4 h-4" />
-            <span>CREATE TOURNAMENT</span>
-          </Link>
-          <Link
-            href="/admin/withdrawals"
-            className="px-4 py-3 rounded-2xl bg-slate-900/90 hover:bg-slate-800 text-brand-gold border border-brand-gold/30 font-heading font-bold text-xs shadow-sm transition-all flex items-center space-x-1.5"
-          >
-            <ArrowUpRight className="w-4 h-4" />
-            <span>PAYOUT QUEUE</span>
-          </Link>
-          <Link
-            href="/admin/roles"
-            className="px-4 py-3 rounded-2xl bg-slate-900/90 hover:bg-slate-800 text-slate-300 border border-slate-700 font-heading font-bold text-xs shadow-sm transition-all flex items-center space-x-1.5"
-          >
-            <KeyRound className="w-4 h-4 text-indigo-400" />
-            <span>SUB-ADMINS</span>
-          </Link>
+        {/* Live Clock Badge */}
+        <div className="flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white border border-[#E2E8F0] text-[12px] font-medium text-[#475569] self-start sm:self-auto shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+          <RefreshCw className="w-3.5 h-3.5 text-[#3B82F6] animate-spin" />
+          <span className="font-medium text-[#3B82F6]">Live</span>
+          <span className="text-[#CBD5E1]">•</span>
+          <span className="text-[#475569]">{currentTime || '4:46:04 PM'}</span>
         </div>
       </div>
 
-      {/* Top 4 KPI Metrics Grid */}
+      {/* 2. Top 4 KPI Stat Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         
-        {/* Metric 1: Revenue */}
-        <div className="bg-[#111827]/80 backdrop-blur-xl border border-slate-800/80 p-6 rounded-3xl space-y-3 relative overflow-hidden group hover:border-brand-orange/40 transition-all shadow-sm">
+        {/* Card 1: Verified Players */}
+        <div className="bg-white border border-[#E2E8F0]/80 p-6 rounded-[24px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.05)] transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Net Revenue</span>
-            <div className="w-9 h-9 rounded-2xl bg-brand-orange/10 text-brand-orange flex items-center justify-center border border-brand-orange/20">
-              <DollarSign className="w-4 h-4" />
+            <div className="w-11 h-11 rounded-[14px] bg-[#EFF6FF] text-[#3B82F6] flex items-center justify-center">
+              <Users className="w-5 h-5" />
+            </div>
+            <div className="flex items-center gap-0.5 text-[12px] font-semibold text-[#10B981]">
+              <TrendingUp className="w-3.5 h-3.5" />
+              <span>+12%</span>
             </div>
           </div>
-          <div className="space-y-0.5">
-            <div className="font-heading font-black text-3xl text-brand-orange drop-shadow-sm">
-              ৳ {(totalRevenueAmount || 184000).toLocaleString()}
-            </div>
-            <div className="text-[11px] text-emerald-400 font-bold flex items-center gap-1 font-mono">
-              <TrendingUp className="w-3.5 h-3.5" /> +28.4% vs last week
+          <div>
+            <div className="text-[13px] font-medium text-[#64748B] mt-5">Verified Players</div>
+            <div className="text-[36px] font-bold text-[#0F172A] leading-none mt-2 tracking-tight">
+              {totalUsersCount}
             </div>
           </div>
         </div>
 
-        {/* Metric 2: Active Competitions */}
-        <div className="bg-[#111827]/80 backdrop-blur-xl border border-slate-800/80 p-6 rounded-3xl space-y-3 relative overflow-hidden group hover:border-brand-red/40 transition-all shadow-sm">
+        {/* Card 2: Active Tournaments */}
+        <div className="bg-white border border-[#E2E8F0]/80 p-6 rounded-[24px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.05)] transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Active Tournaments</span>
-            <div className="w-9 h-9 rounded-2xl bg-brand-red/10 text-brand-red flex items-center justify-center border border-brand-red/20">
-              <Trophy className="w-4 h-4" />
+            <div className="w-11 h-11 rounded-[14px] bg-[#ECFDF5] text-[#10B981] flex items-center justify-center">
+              <Trophy className="w-5 h-5" />
+            </div>
+            <div className="flex items-center gap-0.5 text-[12px] font-semibold text-[#10B981]">
+              <TrendingUp className="w-3.5 h-3.5" />
+              <span>+18%</span>
             </div>
           </div>
-          <div className="space-y-0.5">
-            <div className="font-heading font-black text-3xl text-white">
-              {activeTournaments || 8}
-            </div>
-            <div className="text-[11px] text-brand-red font-bold flex items-center gap-1 font-mono">
-              <Flame className="w-3.5 h-3.5 animate-pulse" />
-              <span>{tournaments.filter(t => t.status === 'LIVE').length || 2} Live in Progress</span>
+          <div>
+            <div className="text-[13px] font-medium text-[#64748B] mt-5">Active Tournaments</div>
+            <div className="text-[36px] font-bold text-[#0F172A] leading-none mt-2 tracking-tight">
+              {activeTournaments}
             </div>
           </div>
         </div>
 
-        {/* Metric 3: Pending Approvals */}
-        <div className="bg-[#111827]/80 backdrop-blur-xl border border-slate-800/80 p-6 rounded-3xl space-y-3 relative overflow-hidden group hover:border-brand-gold/40 transition-all shadow-sm">
+        {/* Card 3: Categories & Modes */}
+        <div className="bg-white border border-[#E2E8F0]/80 p-6 rounded-[24px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.05)] transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Pending Verifications</span>
-            <div className="w-9 h-9 rounded-2xl bg-brand-gold/10 text-brand-gold flex items-center justify-center border border-brand-gold/20">
-              <CreditCard className="w-4 h-4" />
+            <div className="w-11 h-11 rounded-[14px] bg-[#F5F3FF] text-[#8B5CF6] flex items-center justify-center">
+              <Layers className="w-5 h-5" />
+            </div>
+            <div className="flex items-center gap-0.5 text-[12px] font-semibold text-[#10B981]">
+              <TrendingUp className="w-3.5 h-3.5" />
+              <span>+8%</span>
             </div>
           </div>
-          <div className="space-y-0.5">
-            <div className="font-heading font-black text-3xl text-brand-gold">
+          <div>
+            <div className="text-[13px] font-medium text-[#64748B] mt-5">Categories & Modes</div>
+            <div className="text-[36px] font-bold text-[#0F172A] leading-none mt-2 tracking-tight">
+              {totalCategoriesCount}
+            </div>
+          </div>
+        </div>
+
+        {/* Card 4: Orders & Deposits */}
+        <div className="bg-white border border-[#E2E8F0]/80 p-6 rounded-[24px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.05)] transition-all">
+          <div className="flex items-center justify-between">
+            <div className="w-11 h-11 rounded-[14px] bg-[#FFF7ED] text-[#F97316] flex items-center justify-center">
+              <CreditCard className="w-5 h-5" />
+            </div>
+            <div className="flex items-center gap-0.5 text-[12px] font-semibold text-[#10B981]">
+              <TrendingUp className="w-3.5 h-3.5" />
+              <span>+24%</span>
+            </div>
+          </div>
+          <div>
+            <div className="text-[13px] font-medium text-[#64748B] mt-5">Orders & Deposits</div>
+            <div className="text-[36px] font-bold text-[#0F172A] leading-none mt-2 tracking-tight">
               {pendingPayments}
-            </div>
-            <div className="text-[11px] text-amber-400 font-bold flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5" /> bKash/Nagad Deposits
-            </div>
-          </div>
-        </div>
-
-        {/* Metric 4: Total Players */}
-        <div className="bg-[#111827]/80 backdrop-blur-xl border border-slate-800/80 p-6 rounded-3xl space-y-3 relative overflow-hidden group hover:border-brand-cyan/40 transition-all shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Verified Players</span>
-            <div className="w-9 h-9 rounded-2xl bg-brand-cyan/10 text-brand-cyan flex items-center justify-center border border-brand-cyan/20">
-              <Users className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="space-y-0.5">
-            <div className="font-heading font-black text-3xl text-brand-cyan">
-              {totalUsersCount.toLocaleString()}
-            </div>
-            <div className="text-[11px] text-slate-400 font-mono">
-              Active Registered Accounts
             </div>
           </div>
         </div>
 
       </div>
 
-      {/* Analytics Charts Grid */}
+      {/* 3. Analytics Grid (Sales Analytics + Top Categories Donut Chart) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* Revenue Analytics Chart */}
-        <div className="lg:col-span-7 bg-[#111827]/80 backdrop-blur-xl border border-slate-800/80 rounded-3xl p-6 space-y-4 shadow-sm">
+        {/* Left Card: Sales Analytics (8 cols) */}
+        <div className="lg:col-span-8 bg-white border border-[#E2E8F0]/80 rounded-[24px] p-6 space-y-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
           <div className="flex items-center justify-between">
-            <h3 className="font-heading font-black text-lg text-white flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-brand-orange" />
-              <span>Weekly Entry Fee Revenue (BDT)</span>
-            </h3>
-            <span className="text-[11px] font-mono text-slate-400 font-bold">7-Day Trend</span>
+            <div>
+              <h2 className="text-[18px] font-bold text-[#0F172A]">Sales Analytics</h2>
+              <p className="text-[13px] text-[#64748B] font-normal mt-0.5">Monthly sales growth overview</p>
+            </div>
+            <span className="bg-[#ECFDF5] text-[#10B981] border border-[#D1FAE5] rounded-[8px] px-2.5 py-0.5 text-[12px] font-semibold">
+              0.0%
+            </span>
           </div>
-          <div className="h-64 w-full">
+
+          <div className="h-[260px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
+              <AreaChart data={salesChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
-                  <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#FF6B00" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#FF6B00" stopOpacity={0}/>
+                  <linearGradient id="lightBlueGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.08}/>
+                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.0}/>
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="day" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
-                <Tooltip contentStyle={{ backgroundColor: '#0D1322', borderColor: '#334155', color: '#f8fafc', borderRadius: '1rem' }} />
-                <Area type="monotone" dataKey="revenue" stroke="#FF6B00" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+                <XAxis 
+                  dataKey="month" 
+                  stroke="#94A3B8" 
+                  fontSize={11} 
+                  tickLine={false} 
+                  axisLine={false} 
+                />
+                <YAxis 
+                  stroke="#94A3B8" 
+                  fontSize={11} 
+                  tickLine={false} 
+                  axisLine={false}
+                  tickFormatter={(val) => val === 0 ? '0' : `${val}`}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#FFFFFF', 
+                    borderColor: '#E2E8F0', 
+                    borderRadius: '1rem',
+                    color: '#0F172A',
+                    fontSize: '12px',
+                    boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.08)'
+                  }} 
+                  formatter={(value: any) => [`৳ ${Number(value).toLocaleString()}`, 'Sales']}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="sales" 
+                  stroke="#2563EB" 
+                  strokeWidth={2.5} 
+                  fillOpacity={1} 
+                  fill="url(#lightBlueGradient)"
+                  dot={{ r: 4, fill: '#FFFFFF', stroke: '#2563EB', strokeWidth: 2 }}
+                  activeDot={{ r: 6, fill: '#2563EB' }}
+                />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Player Activity Bar Chart */}
-        <div className="lg:col-span-5 bg-[#111827]/80 backdrop-blur-xl border border-slate-800/80 rounded-3xl p-6 space-y-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <h3 className="font-heading font-black text-lg text-white flex items-center gap-2">
-              <Activity className="w-4 h-4 text-brand-red" />
-              <span>Daily Active Contestants</span>
-            </h3>
-            <span className="text-[11px] font-mono text-slate-400 font-bold">Peak Evening</span>
+        {/* Right Card: Top Categories Donut Chart (4 cols) */}
+        <div className="lg:col-span-4 bg-white border border-[#E2E8F0]/80 rounded-[24px] p-6 flex flex-col justify-between space-y-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+          <div>
+            <h2 className="text-[18px] font-bold text-[#0F172A]">Top Categories</h2>
+            <p className="text-[13px] text-[#64748B] font-normal mt-0.5">Highest product count by category</p>
           </div>
-          <div className="h-64 w-full">
+
+          {/* Donut Chart Area */}
+          <div className="h-44 w-full flex items-center justify-center relative">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
-                <XAxis dataKey="day" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
-                <Tooltip contentStyle={{ backgroundColor: '#0D1322', borderColor: '#334155', color: '#f8fafc', borderRadius: '1rem' }} />
-                <Bar dataKey="players" fill="#FF1E42" radius={[8, 8, 0, 0]} />
-              </BarChart>
+              <PieChart>
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#FFFFFF', 
+                    borderColor: '#E2E8F0', 
+                    borderRadius: '0.75rem',
+                    color: '#0F172A',
+                    fontSize: '11px',
+                    boxShadow: '0 4px 15px -2px rgba(0, 0, 0, 0.08)'
+                  }}
+                  formatter={(value: any, name: any) => [`${value}`, name]}
+                />
+                <Pie
+                  data={donutData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={48}
+                  outerRadius={76}
+                  paddingAngle={4}
+                  dataKey="count"
+                  stroke="none"
+                >
+                  {donutData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+              </PieChart>
             </ResponsiveContainer>
+          </div>
+
+          {/* Legends at Bottom matching exact reference screenshot */}
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 pt-3 border-t border-[#F1F5F9] text-[12px]">
+            {donutData.map((item) => (
+              <div key={item.name} className="flex items-center gap-2 truncate">
+                <span 
+                  className="w-2.5 h-2.5 rounded-full flex-shrink-0" 
+                  style={{ backgroundColor: item.color }} 
+                />
+                <span className="truncate text-[#475569]">{item.name}</span>
+                <span className="font-medium text-[#0F172A]">({item.count})</span>
+              </div>
+            ))}
           </div>
         </div>
 
       </div>
 
-      {/* Live Tournaments Running Quick Status */}
-      <div className="bg-[#111827]/80 backdrop-blur-xl border border-slate-800/80 rounded-3xl p-6 space-y-4 shadow-sm">
-        <div className="flex items-center justify-between">
-          <h3 className="font-heading font-black text-xl text-white flex items-center gap-2">
-            <Trophy className="w-5 h-5 text-brand-gold" />
-            <span>Active Tournaments Queue</span>
-          </h3>
-          <Link
-            href="/admin/tournaments"
-            className="text-xs font-bold text-brand-orange hover:underline flex items-center gap-1"
-          >
-            <span>View All Tournaments</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
+      {/* 4. Quick Action Shortcuts & Live Tournaments Queue */}
+      <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] p-6 space-y-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center space-x-2">
+            <Trophy className="w-5 h-5 text-amber-500" />
+            <h2 className="text-[18px] font-bold text-[#0F172A]">Active Tournaments Queue</h2>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Link
+              href="/admin/tournaments"
+              className="px-4 py-2 rounded-[12px] bg-[#2563EB] hover:bg-blue-700 text-white font-semibold text-xs shadow-xs transition-all flex items-center space-x-1.5"
+            >
+              <PlusCircle className="w-3.5 h-3.5" />
+              <span>Create Tournament</span>
+            </Link>
+            <Link
+              href="/admin/tournaments"
+              className="text-xs font-bold text-[#2563EB] hover:underline flex items-center gap-1"
+            >
+              <span>View All</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {tournaments.slice(0, 3).map((tour) => (
             <div
               key={tour.id}
-              className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition-all space-y-3"
+              className="p-4 rounded-[16px] bg-[#F8FAFC] border border-[#E2E8F0] hover:border-slate-300 transition-all space-y-3"
             >
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-brand-orange/10 text-brand-orange border border-brand-orange/20">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-blue-50 text-[#2563EB] border border-blue-100">
                   {tour.mode} • {tour.format}
                 </span>
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                  tour.status === 'LIVE' ? 'bg-red-900/40 text-red-400 animate-pulse border border-red-500/30' :
-                  tour.status === 'UPCOMING' ? 'bg-emerald-900/40 text-emerald-400 border border-emerald-500/30' :
-                  'bg-slate-800 text-slate-400'
+                  tour.status === 'LIVE' ? 'bg-red-100 text-red-600' :
+                  tour.status === 'UPCOMING' ? 'bg-emerald-100 text-emerald-700' :
+                  'bg-slate-200 text-slate-600'
                 }`}>
                   {tour.status}
                 </span>
               </div>
 
-              <div className="font-heading font-black text-base text-white truncate">
+              <div className="font-bold text-[15px] text-[#0F172A] truncate">
                 {tour.title}
               </div>
 
-              <div className="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-800/80">
-                <div>Entry: <strong className="text-white">৳{tour.entryFee}</strong></div>
-                <div>Prize: <strong className="text-brand-gold">৳{tour.prizePool}</strong></div>
-                <div>Slots: <strong className="text-brand-cyan">{tour.registeredCount}/{tour.maxTeams}</strong></div>
+              <div className="flex items-center justify-between text-xs text-[#64748B] pt-2 border-t border-[#E2E8F0]">
+                <div>Entry: <strong className="text-[#0F172A]">৳{tour.entryFee}</strong></div>
+                <div>Prize: <strong className="text-amber-600">৳{tour.prizePool}</strong></div>
+                <div>Slots: <strong className="text-[#2563EB]">{tour.registeredCount}/{tour.maxTeams}</strong></div>
               </div>
             </div>
           ))}

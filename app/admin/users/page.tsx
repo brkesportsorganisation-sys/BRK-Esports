@@ -18,15 +18,16 @@ import {
   RefreshCw,
   Award,
   DollarSign,
-  UserCheck
+  UserCheck,
+  UserPlus
 } from 'lucide-react';
-import { db } from '@/lib/db';
 import { User, Role } from '@/lib/types';
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState<string>('ALL');
 
   // Fund Modal State
   const [fundModal, setFundModal] = useState<{ isOpen: boolean; userId: string; userName: string; type: 'WALLET' | 'COINS'; amount: number }>({
@@ -36,58 +37,46 @@ export default function AdminUsersPage() {
     type: 'WALLET',
     amount: 100,
   });
+  const [fundProcessing, setFundProcessing] = useState(false);
 
   const refreshUsers = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/users');
+      const res = await fetch('/api/admin/users', { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
-        if (data.users) {
-          setUsers(data.users);
-          setLoading(false);
-          return;
-        }
+        setUsers(data.users || []);
+      } else {
+        console.warn('Failed to fetch users from database');
       }
     } catch (err) {
       console.warn('Live users load error:', err);
+    } finally {
+      setLoading(false);
     }
-    setUsers([...db.getUsers()]);
-    setLoading(false);
   };
 
   useEffect(() => {
     refreshUsers();
   }, []);
 
-  const handleBanToggle = async (id: string) => {
-    const target = users.find(u => u.id === id);
-    if (!target) return;
+  const handleBanToggle = async (id: string, currentBanned: boolean) => {
     try {
-      await fetch('/api/admin/users', {
+      const res = await fetch('/api/admin/users', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, isBanned: !target.isBanned }),
+        credentials: 'include',
+        body: JSON.stringify({ id, isBanned: !currentBanned }),
       });
+      if (res.ok) {
+        await refreshUsers();
+      } else {
+        const err = await res.json();
+        alert(err.message || 'Ban toggle failed.');
+      }
     } catch (err) {
-      console.warn('Ban toggle error:', err);
+      console.error('Ban toggle error:', err);
     }
-    db.toggleBanUser(id);
-    await refreshUsers();
-  };
-
-  const handleRoleChange = async (id: string, role: Role) => {
-    try {
-      await fetch('/api/admin/users', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, role }),
-      });
-    } catch (err) {
-      console.warn('Role change error:', err);
-    }
-    db.updateUser(id, { role });
-    await refreshUsers();
   };
 
   const handleAddFunds = async (e: React.FormEvent) => {
@@ -95,185 +84,236 @@ export default function AdminUsersPage() {
     const targetUser = users.find(u => u.id === fundModal.userId);
     if (!targetUser) return;
 
+    setFundProcessing(true);
     try {
       const updates: Record<string, any> = { id: fundModal.userId };
       if (fundModal.type === 'WALLET') {
-        updates.walletBalance = targetUser.walletBalance + fundModal.amount;
+        updates.walletBalance = Number(targetUser.walletBalance || 0) + Number(fundModal.amount);
       } else {
-        updates.coinBalance = (targetUser.coinBalance || 0) + fundModal.amount;
+        updates.coinBalance = Number(targetUser.coinBalance || 0) + Number(fundModal.amount);
       }
-      await fetch('/api/admin/users', {
+
+      const res = await fetch('/api/admin/users', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(updates),
       });
+
+      if (res.ok) {
+        setFundModal({ ...fundModal, isOpen: false });
+        await refreshUsers();
+      } else {
+        const err = await res.json();
+        alert(err.message || 'Failed to update user balance.');
+      }
     } catch (err) {
-      console.warn('Funds update error:', err);
+      console.error('Fund add error:', err);
+    } finally {
+      setFundProcessing(false);
     }
-
-    if (fundModal.type === 'WALLET') {
-      db.updateUser(fundModal.userId, { walletBalance: targetUser.walletBalance + fundModal.amount });
-    } else {
-      const currentCoins = targetUser.coinBalance || 0;
-      db.updateUser(fundModal.userId, { coinBalance: currentCoins + fundModal.amount });
-    }
-
-    setFundModal({ ...fundModal, isOpen: false });
-    await refreshUsers();
   };
 
-  const filteredUsers = users.filter(u =>
-    u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (u.freeFireUid && u.freeFireUid.includes(searchQuery)) ||
-    (u.accountNumber && u.accountNumber.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredUsers = users.filter((u) => {
+    const query = searchQuery.toLowerCase();
+    const matchesSearch = 
+      u.name?.toLowerCase().includes(query) ||
+      u.inGameName?.toLowerCase().includes(query) ||
+      u.email?.toLowerCase().includes(query) ||
+      u.freeFireUid?.toLowerCase().includes(query);
+    const matchesRole = roleFilter === 'ALL' || u.role === roleFilter;
+    return matchesSearch && matchesRole;
+  });
+
+  const bannedCount = users.filter((u) => u.isBanned).length;
+  const activeCount = users.filter((u) => !u.isBanned).length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto pb-10 font-sans">
       
-      {/* Header */}
-      <div className="bg-[#111827]/80 backdrop-blur-xl border border-slate-800/80 rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
-        <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 rounded-2xl bg-cyan-950/50 text-brand-cyan flex items-center justify-center border border-cyan-800/40 shadow-sm">
-            <Users className="w-6 h-6" />
-          </div>
+      {/* 1. Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-[28px] sm:text-[32px] font-bold text-[#0F172A] tracking-tight leading-tight">
+            Player Accounts & Verification
+          </h1>
+          <p className="text-[13px] text-[#64748B] font-normal mt-1">
+            Search players, manage balances, adjust roles, and enforce platform anti-cheat bans.
+          </p>
+        </div>
+
+        <button
+          onClick={refreshUsers}
+          disabled={loading}
+          className="flex items-center gap-2 px-4 py-2 rounded-[12px] bg-white border border-[#E2E8F0] hover:bg-[#F8FAFC] text-[#475569] text-xs font-semibold shadow-xs self-start sm:self-auto transition-all"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-[#2563EB]' : ''}`} />
+          <span>Refresh Players</span>
+        </button>
+      </div>
+
+      {/* 2. Top Summary KPI Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        <div className="bg-white border border-[#E2E8F0]/80 p-5 rounded-[20px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex items-center justify-between">
           <div>
-            <h1 className="font-heading font-black text-2xl text-white">
-              PLAYER DIRECTORY & WALLET MANAGER
-            </h1>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Inspect verified Free Fire accounts, adjust wallet balances, and manage player bans.
-            </p>
+            <div className="text-xs font-medium text-[#64748B]">Total Registered Players</div>
+            <div className="text-2xl font-bold text-[#0F172A] mt-1">{users.length}</div>
+          </div>
+          <div className="w-10 h-10 rounded-[12px] bg-blue-50 text-[#2563EB] flex items-center justify-center">
+            <Users className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="px-4 py-2 rounded-2xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-300">
-            Total Players: <span className="font-black text-white">{users.length}</span>
+        <div className="bg-white border border-[#E2E8F0]/80 p-5 rounded-[20px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex items-center justify-between">
+          <div>
+            <div className="text-xs font-medium text-[#64748B]">Active Standing</div>
+            <div className="text-2xl font-bold text-emerald-600 mt-1">{activeCount}</div>
           </div>
-          <button
-            onClick={refreshUsers}
-            className="p-2 rounded-2xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
+          <div className="w-10 h-10 rounded-[12px] bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <CheckCircle2 className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className="bg-white border border-[#E2E8F0]/80 p-5 rounded-[20px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex items-center justify-between">
+          <div>
+            <div className="text-xs font-medium text-[#64748B]">Banned / Suspended</div>
+            <div className="text-2xl font-bold text-red-600 mt-1">{bannedCount}</div>
+          </div>
+          <div className="w-10 h-10 rounded-[12px] bg-red-50 text-red-600 flex items-center justify-center">
+            <Ban className="w-5 h-5" />
+          </div>
         </div>
       </div>
 
-      {/* Search Filter Bar */}
-      <div className="relative">
-        <Search className="w-4 h-4 text-slate-500 absolute left-4 top-1/2 -translate-y-1/2" />
-        <input
-          type="text"
-          placeholder="Search by player name, email, Free Fire UID, or BRE-Account ID..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full bg-[#111827]/80 border border-slate-800/80 rounded-2xl pl-11 pr-4 py-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-cyan font-medium shadow-sm"
-        />
+      {/* 3. Search and Role Filter */}
+      <div className="bg-white border border-[#E2E8F0]/80 rounded-[20px] p-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="relative w-full sm:w-80">
+          <Search className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Search by Name, IGN, UID, or Email..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-medium text-[#0F172A] placeholder-[#94A3B8] focus:outline-none focus:border-[#2563EB] transition-colors"
+          />
+        </div>
+
+        <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto">
+          {['ALL', 'USER', 'ADMIN', 'MODERATOR', 'VENDOR'].map((r) => (
+            <button
+              key={r}
+              onClick={() => setRoleFilter(r)}
+              className={`px-3.5 py-1.5 rounded-[10px] text-xs font-semibold transition-colors ${
+                roleFilter === r
+                  ? 'bg-[#2563EB] text-white shadow-xs'
+                  : 'bg-[#F8FAFC] border border-[#E2E8F0] text-[#64748B] hover:text-[#0F172A]'
+              }`}
+            >
+              {r}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Users Table */}
-      <div className="bg-[#111827]/80 backdrop-blur-xl border border-slate-800/80 rounded-3xl overflow-hidden shadow-sm">
+      {/* 4. Users Table */}
+      <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
         {loading ? (
-          <div className="flex items-center justify-center py-20 text-brand-cyan">
+          <div className="flex items-center justify-center py-20 text-[#2563EB]">
             <Loader2 className="w-8 h-8 animate-spin" />
           </div>
         ) : filteredUsers.length === 0 ? (
-          <div className="p-12 text-center text-slate-400 space-y-2">
-            <UserCheck className="w-10 h-10 text-slate-500 mx-auto" />
-            <div className="font-bold text-slate-200">No Players Found</div>
-            <div className="text-xs">No user account matched your search query.</div>
+          <div className="p-16 text-center text-[#64748B] space-y-2">
+            <Users className="w-10 h-10 text-slate-300 mx-auto" />
+            <div className="font-bold text-[#0F172A] text-base">No Players Found</div>
+            <div className="text-xs">Try adjusting your search query or filter.</div>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-slate-900/90 text-slate-400 text-xs uppercase font-bold border-b border-slate-800">
+              <thead className="bg-[#F8FAFC] text-[#64748B] text-[11px] uppercase font-bold border-b border-[#E2E8F0]">
                 <tr>
-                  <th className="p-4">Player & App ID</th>
-                  <th className="p-4">Free Fire Identity</th>
-                  <th className="p-4">Wallet Balances</th>
-                  <th className="p-4">Stats & Win Rate</th>
-                  <th className="p-4">Role & Status</th>
-                  <th className="p-4 text-right">Actions</th>
+                  <th className="py-3.5 px-5">Player Profile</th>
+                  <th className="py-3.5 px-5">Free Fire UID</th>
+                  <th className="py-3.5 px-5">Wallet & Coins</th>
+                  <th className="py-3.5 px-5">Game Stats</th>
+                  <th className="py-3.5 px-5">Status</th>
+                  <th className="py-3.5 px-5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/80">
+              <tbody className="divide-y divide-[#F1F5F9]">
                 {filteredUsers.map((u) => (
-                  <tr key={u.id} className="hover:bg-slate-900/40 transition-colors">
-                    <td className="p-4">
+                  <tr key={u.id} className="hover:bg-[#F8FAFC] transition-colors">
+                    <td className="py-4 px-5">
                       <div className="flex items-center space-x-3">
-                        <img
-                          src={u.avatar || 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150'}
-                          alt={u.name}
-                          className="w-10 h-10 rounded-2xl object-cover border border-slate-700 shadow-sm"
-                        />
-                        <div>
-                          <div className="font-bold text-white text-xs">{u.name}</div>
-                          <div className="text-[11px] text-slate-400">{u.email}</div>
-                          <div className="text-[10px] font-mono text-brand-cyan font-bold">{u.accountNumber || 'BRE-XXXXXX'}</div>
+                        <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2563EB] font-bold flex items-center justify-center text-xs border border-blue-100 flex-shrink-0">
+                          {u.name?.charAt(0).toUpperCase() || 'P'}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-bold text-[#0F172A] text-xs truncate flex items-center gap-1.5">
+                            <span>{u.name}</span>
+                            {u.role === 'ADMIN' && (
+                              <span className="px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-600 text-[9px] font-bold border border-indigo-100">ADMIN</span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-[#64748B] truncate">{u.email}</div>
+                          <div className="text-[10px] font-semibold text-[#2563EB] truncate">IGN: {u.inGameName || 'N/A'}</div>
                         </div>
                       </div>
                     </td>
 
-                    <td className="p-4 font-mono text-xs">
-                      <div className="font-bold text-slate-200">{u.inGameName || 'No IGN'}</div>
-                      <div className="text-slate-400 text-[11px]">UID: {u.freeFireUid || 'Not Set'}</div>
+                    <td className="py-4 px-5">
+                      <span className="font-mono text-xs font-bold text-[#0F172A] bg-slate-100 px-2 py-0.5 rounded">
+                        {u.freeFireUid || 'Not Linked'}
+                      </span>
                     </td>
 
-                    <td className="p-4 space-y-0.5">
-                      <div className="font-heading font-black text-brand-gold text-base">
-                        ৳ {(u.walletBalance || 0).toLocaleString()}
-                      </div>
-                      <div className="text-[10px] font-mono text-slate-400">
-                        {u.coinBalance || 0} Coins • Win: ৳{u.winningBalance || 0}
-                      </div>
-                    </td>
-
-                    <td className="p-4 text-xs font-mono">
-                      <div className="text-slate-300">Wins: <strong className="text-emerald-400">{u.totalWins || 0}</strong> • Kills: <strong className="text-brand-red">{u.totalKills || 0}</strong></div>
-                      <div className="text-[10px] text-brand-gold">{u.winRate || (u.totalWins > 0 ? Math.min(100, Math.round((u.totalWins / Math.max(1, u.totalWins + 5)) * 100)) : 0)}% Win Rate</div>
-                    </td>
-
-                    <td className="p-4 space-y-1">
-                      <select
-                        value={u.role}
-                        onChange={(e) => handleRoleChange(u.id, e.target.value as Role)}
-                        className="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-[11px] font-bold text-slate-300 focus:outline-none"
-                      >
-                        <option value="USER">USER</option>
-                        <option value="VENDOR">VENDOR</option>
-                        <option value="MODERATOR">MODERATOR</option>
-                        <option value="ADMIN">ADMIN</option>
-                      </select>
-
-                      <div>
-                        <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold uppercase ${
-                          u.isBanned ? 'bg-red-950 text-red-400 border border-red-800' : 'bg-emerald-950 text-emerald-400 border border-emerald-800'
-                        }`}>
-                          {u.isBanned ? 'BANNED' : 'ACTIVE'}
-                        </span>
+                    <td className="py-4 px-5">
+                      <div className="space-y-0.5 text-xs">
+                        <div className="font-bold text-[#059669]">
+                          ৳ {Number(u.walletBalance || 0).toLocaleString()}
+                        </div>
+                        <div className="text-[10px] text-amber-600 font-semibold">
+                          🪙 {Number(u.coinBalance || 0).toLocaleString()} Coins
+                        </div>
                       </div>
                     </td>
 
-                    <td className="p-4 text-right">
+                    <td className="py-4 px-5 text-xs text-[#64748B]">
+                      <div>Kills: <strong className="text-[#0F172A]">{u.totalKills || 0}</strong></div>
+                      <div>Wins: <strong className="text-[#059669]">{u.totalWins || 0}</strong></div>
+                    </td>
+
+                    <td className="py-4 px-5">
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
+                        u.isBanned
+                          ? 'bg-red-50 text-red-600 border border-red-200'
+                          : 'bg-[#ECFDF5] text-[#059669] border border-[#A7F3D0]'
+                      }`}>
+                        {u.isBanned ? 'BANNED' : 'ACTIVE'}
+                      </span>
+                    </td>
+
+                    <td className="py-4 px-5 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => setFundModal({ isOpen: true, userId: u.id, userName: u.name, type: 'WALLET', amount: 100 })}
-                          className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-brand-gold text-xs font-bold transition-colors flex items-center space-x-1 border border-slate-700"
+                          className="px-2.5 py-1.5 rounded-[10px] bg-blue-50 hover:bg-blue-100 text-[#2563EB] text-xs font-semibold flex items-center space-x-1 transition-colors"
                           title="Add Funds"
                         >
-                          <DollarSign className="w-3.5 h-3.5" />
-                          <span>Fund</span>
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Funds</span>
                         </button>
+
                         <button
-                          onClick={() => handleBanToggle(u.id)}
-                          className={`p-1.5 rounded-xl transition-colors ${
-                            u.isBanned ? 'bg-emerald-950 hover:bg-emerald-900 text-emerald-400 border border-emerald-800' : 'bg-red-950 hover:bg-red-900 text-red-400 border border-red-800'
+                          onClick={() => handleBanToggle(u.id, Boolean(u.isBanned))}
+                          className={`p-1.5 rounded-[10px] text-xs font-semibold transition-colors ${
+                            u.isBanned
+                              ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                              : 'bg-red-50 text-red-600 hover:bg-red-100'
                           }`}
                           title={u.isBanned ? 'Unban Player' : 'Ban Player'}
                         >
-                          <Ban className="w-4 h-4" />
+                          {u.isBanned ? <CheckCircle2 className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
                         </button>
                       </div>
                     </td>
@@ -285,55 +325,62 @@ export default function AdminUsersPage() {
         )}
       </div>
 
-      {/* Fund Player Modal */}
+      {/* 5. Fund Balance Modal */}
       {fundModal.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="bg-[#111827] rounded-3xl p-6 max-w-md w-full border border-slate-800 space-y-4 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-[24px] p-6 max-w-md w-full border border-[#E2E8F0] space-y-4 shadow-2xl">
             <div className="flex items-center justify-between">
-              <h3 className="font-heading font-black text-xl text-white">ADJUST PLAYER BALANCE</h3>
-              <button onClick={() => setFundModal({ ...fundModal, isOpen: false })} className="text-slate-400 hover:text-white font-bold">✕</button>
+              <h3 className="font-bold text-base text-[#0F172A]">Adjust Player Balance</h3>
+              <button 
+                onClick={() => setFundModal({ ...fundModal, isOpen: false })} 
+                className="p-1 rounded-lg text-[#94A3B8] hover:text-[#0F172A] hover:bg-slate-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            <form onSubmit={handleAddFunds} className="space-y-4 text-xs">
-              <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 font-medium">
-                Player: <strong className="text-white">{fundModal.userName}</strong>
-              </div>
+            <p className="text-xs text-[#64748B]">
+              Credit or debit funds for player <strong className="text-[#0F172A]">{fundModal.userName}</strong>.
+            </p>
 
+            <form onSubmit={handleAddFunds} className="space-y-4 text-xs font-medium">
               <div>
-                <label className="font-bold text-slate-300 block mb-1">Currency Type</label>
+                <label className="block text-[#475569] mb-1.5 font-semibold">Balance Type</label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setFundModal({ ...fundModal, type: 'WALLET' })}
-                    className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1 font-bold ${
-                      fundModal.type === 'WALLET' ? 'border-brand-orange bg-brand-orange/10 text-brand-orange' : 'border-slate-800 text-slate-400'
+                    className={`py-2 rounded-[10px] font-semibold text-xs transition-colors ${
+                      fundModal.type === 'WALLET'
+                        ? 'bg-[#2563EB] text-white shadow-xs'
+                        : 'bg-[#F8FAFC] border border-[#E2E8F0] text-[#64748B]'
                     }`}
                   >
-                    <Wallet className="w-4 h-4" />
-                    <span>Wallet (BDT)</span>
+                    BDT Wallet (৳)
                   </button>
                   <button
                     type="button"
                     onClick={() => setFundModal({ ...fundModal, type: 'COINS' })}
-                    className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1 font-bold ${
-                      fundModal.type === 'COINS' ? 'border-yellow-500 bg-yellow-500/10 text-yellow-400' : 'border-slate-800 text-slate-400'
+                    className={`py-2 rounded-[10px] font-semibold text-xs transition-colors ${
+                      fundModal.type === 'COINS'
+                        ? 'bg-[#2563EB] text-white shadow-xs'
+                        : 'bg-[#F8FAFC] border border-[#E2E8F0] text-[#64748B]'
                     }`}
                   >
-                    <Coins className="w-4 h-4" />
-                    <span>Coins</span>
+                    Reward Coins (🪙)
                   </button>
                 </div>
               </div>
 
               <div>
-                <label className="font-bold text-slate-300 block mb-1">Amount</label>
+                <label className="block text-[#475569] mb-1.5 font-semibold">Amount to Add (৳ / Coins)</label>
                 <input
                   type="number"
-                  value={fundModal.amount}
-                  onChange={(e) => setFundModal({ ...fundModal, amount: Number(e.target.value) || 0 })}
                   required
-                  min={1}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-white font-bold"
+                  min="1"
+                  value={fundModal.amount}
+                  onChange={(e) => setFundModal({ ...fundModal, amount: Number(e.target.value) })}
+                  className="w-full px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-semibold text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
                 />
               </div>
 
@@ -341,15 +388,17 @@ export default function AdminUsersPage() {
                 <button
                   type="button"
                   onClick={() => setFundModal({ ...fundModal, isOpen: false })}
-                  className="flex-1 py-3 rounded-xl bg-slate-800 text-slate-400 font-bold"
+                  className="w-1/2 py-2.5 rounded-[12px] bg-slate-100 hover:bg-slate-200 text-[#475569] font-semibold text-xs"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-bold"
+                  disabled={fundProcessing}
+                  className="w-1/2 py-2.5 rounded-[12px] bg-[#059669] hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center space-x-1 disabled:opacity-50"
                 >
-                  CONFIRM ADD
+                  {fundProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                  <span>{fundProcessing ? 'Updating...' : 'Confirm Balance'}</span>
                 </button>
               </div>
             </form>

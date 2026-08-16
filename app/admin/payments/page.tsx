@@ -2,193 +2,300 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { CreditCard, Check, X, Eye, ExternalLink, Loader2, CheckCircle2, Clock, ShieldCheck, RefreshCw } from 'lucide-react';
-import { db } from '@/lib/db';
+import { 
+  CreditCard, 
+  Check, 
+  X, 
+  Eye, 
+  ExternalLink, 
+  Loader2, 
+  CheckCircle2, 
+  Clock, 
+  ShieldCheck, 
+  RefreshCw,
+  Search,
+  Filter,
+  Copy,
+  AlertCircle
+} from 'lucide-react';
 import { Payment } from '@/lib/types';
 
 export default function AdminPaymentsPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING' | 'VERIFIED' | 'REJECTED'>('ALL');
   const [selectedScreenshot, setSelectedScreenshot] = useState<string | null>(null);
+  const [processingId, setProcessingId] = useState<string | null>(null);
+  const [copiedTrx, setCopiedTrx] = useState<string | null>(null);
 
   const refreshPayments = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/registrations');
+      const res = await fetch('/api/admin/payments', { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
-        if (data.registrations) {
-          setPayments(data.registrations);
-          setLoading(false);
-          return;
-        }
+        setPayments(data.payments || []);
+      } else {
+        console.warn('Failed to load payments from Supabase');
       }
     } catch (err) {
       console.warn('Payments load error:', err);
+    } finally {
+      setLoading(false);
     }
-    setPayments([...db.getPayments()]);
-    setLoading(false);
   };
 
   useEffect(() => {
     refreshPayments();
   }, []);
 
-  const handleVerify = async (id: string, status: 'VERIFIED' | 'REJECTED') => {
+  const handleVerify = async (id: string, action: 'APPROVE' | 'REJECT') => {
+    setProcessingId(id);
     try {
-      await fetch('/api/admin/registrations', {
+      const res = await fetch('/api/admin/payments', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ registrationId: id, action: status === 'VERIFIED' ? 'APPROVE' : 'REJECT' }),
+        credentials: 'include',
+        body: JSON.stringify({ paymentId: id, action }),
       });
+      if (res.ok) {
+        await refreshPayments();
+      } else {
+        const errData = await res.json();
+        alert(errData.message || 'Action failed.');
+      }
     } catch (err) {
-      console.warn('Verify error:', err);
+      console.error('Verify error:', err);
+      alert('Network error while processing deposit.');
+    } finally {
+      setProcessingId(null);
     }
-    db.verifyPayment(id, status);
-    await refreshPayments();
   };
 
-  const pendingPayments = payments.filter((p) => p.status === 'PENDING');
-  const verifiedPayments = payments.filter((p) => p.status === 'VERIFIED');
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedTrx(text);
+    setTimeout(() => setCopiedTrx(null), 2000);
+  };
+
+  const pendingCount = payments.filter((p) => p.status === 'PENDING').length;
+  const verifiedCount = payments.filter((p) => p.status === 'VERIFIED').length;
+  const totalDepositAmount = payments
+    .filter((p) => p.status === 'VERIFIED')
+    .reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
+
+  const filteredPayments = payments.filter((p) => {
+    const matchesSearch = 
+      p.userName?.toLowerCase().includes(search.toLowerCase()) ||
+      p.userEmail?.toLowerCase().includes(search.toLowerCase()) ||
+      p.trxId?.toLowerCase().includes(search.toLowerCase()) ||
+      p.method?.toLowerCase().includes(search.toLowerCase());
+    const matchesStatus = statusFilter === 'ALL' || p.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto pb-10 font-sans">
       
-      {/* Header */}
-      <div className="bg-[#111827]/80 backdrop-blur-xl border border-slate-800/80 rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
-        <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 rounded-2xl bg-brand-red/10 text-brand-red flex items-center justify-center border border-brand-red/20 shadow-sm">
-            <CreditCard className="w-6 h-6" />
-          </div>
+      {/* 1. Header & KPI Cards */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-[28px] sm:text-[32px] font-bold text-[#0F172A] tracking-tight leading-tight">
+            Deposit Verification Queue
+          </h1>
+          <p className="text-[13px] text-[#64748B] font-normal mt-1">
+            Review and verify manual bKash, Nagad, and Rocket mobile deposits.
+          </p>
+        </div>
+
+        <button
+          onClick={refreshPayments}
+          disabled={loading}
+          className="flex items-center gap-2 px-4 py-2 rounded-[12px] bg-white border border-[#E2E8F0] hover:bg-[#F8FAFC] text-[#475569] text-xs font-semibold shadow-xs self-start sm:self-auto transition-all"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-[#2563EB]' : ''}`} />
+          <span>Refresh Queue</span>
+        </button>
+      </div>
+
+      {/* 2. Top Summary KPI Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        <div className="bg-white border border-[#E2E8F0]/80 p-5 rounded-[20px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex items-center justify-between">
           <div>
-            <h1 className="font-heading font-black text-2xl text-white">
-              MOBILE DEPOSIT VERIFICATION QUEUE
-            </h1>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Review and approve manual bKash, Nagad, and Rocket TrxID deposits submitted by players.
-            </p>
+            <div className="text-xs font-medium text-[#64748B]">Pending Verifications</div>
+            <div className="text-2xl font-bold text-amber-600 mt-1">{pendingCount}</div>
+          </div>
+          <div className="w-10 h-10 rounded-[12px] bg-amber-50 text-amber-600 flex items-center justify-center">
+            <Clock className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="flex gap-3">
-          <div className="px-4 py-2 rounded-2xl bg-amber-950/40 border border-amber-800/40 text-xs font-bold text-amber-300">
-            Pending: <span className="font-black text-amber-400">{pendingPayments.length}</span>
+        <div className="bg-white border border-[#E2E8F0]/80 p-5 rounded-[20px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex items-center justify-between">
+          <div>
+            <div className="text-xs font-medium text-[#64748B]">Approved Deposits</div>
+            <div className="text-2xl font-bold text-emerald-600 mt-1">{verifiedCount}</div>
           </div>
-          <div className="px-4 py-2 rounded-2xl bg-emerald-950/40 border border-emerald-800/40 text-xs font-bold text-emerald-300">
-            Verified: <span className="font-black text-emerald-400">{verifiedPayments.length}</span>
+          <div className="w-10 h-10 rounded-[12px] bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <CheckCircle2 className="w-5 h-5" />
           </div>
-          <button
-            onClick={refreshPayments}
-            className="p-2 rounded-2xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
+        </div>
+
+        <div className="bg-white border border-[#E2E8F0]/80 p-5 rounded-[20px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex items-center justify-between">
+          <div>
+            <div className="text-xs font-medium text-[#64748B]">Total Verified Volume</div>
+            <div className="text-2xl font-bold text-[#0F172A] mt-1">৳ {totalDepositAmount.toLocaleString()}</div>
+          </div>
+          <div className="w-10 h-10 rounded-[12px] bg-blue-50 text-[#2563EB] flex items-center justify-center">
+            <CreditCard className="w-5 h-5" />
+          </div>
         </div>
       </div>
 
-      {/* Payments Table */}
-      <div className="bg-[#111827]/80 backdrop-blur-xl border border-slate-800/80 rounded-3xl overflow-hidden shadow-sm">
+      {/* 3. Search and Status Filter */}
+      <div className="bg-white border border-[#E2E8F0]/80 rounded-[20px] p-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="relative w-full sm:w-80">
+          <Search className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Search by player, TrxID, email..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-medium text-[#0F172A] placeholder-[#94A3B8] focus:outline-none focus:border-[#2563EB] transition-colors"
+          />
+        </div>
+
+        <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto">
+          {(['ALL', 'PENDING', 'VERIFIED', 'REJECTED'] as const).map((st) => (
+            <button
+              key={st}
+              onClick={() => setStatusFilter(st)}
+              className={`px-3.5 py-1.5 rounded-[10px] text-xs font-semibold transition-colors ${
+                statusFilter === st
+                  ? 'bg-[#2563EB] text-white shadow-xs'
+                  : 'bg-[#F8FAFC] border border-[#E2E8F0] text-[#64748B] hover:text-[#0F172A]'
+              }`}
+            >
+              {st}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 4. Deposits Table */}
+      <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
         {loading ? (
-          <div className="flex items-center justify-center py-20 text-brand-red">
+          <div className="flex items-center justify-center py-20 text-[#2563EB]">
             <Loader2 className="w-8 h-8 animate-spin" />
           </div>
-        ) : payments.length === 0 ? (
-          <div className="p-12 text-center text-slate-400 space-y-2">
+        ) : filteredPayments.length === 0 ? (
+          <div className="p-16 text-center text-[#64748B] space-y-2">
             <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto" />
-            <div className="font-bold text-slate-200">All Deposits Processed</div>
-            <div className="text-xs">No pending deposit verification requests in the queue.</div>
+            <div className="font-bold text-[#0F172A] text-base">No Deposits Found</div>
+            <div className="text-xs">No payment records matching the selected filter in Supabase.</div>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-slate-900/90 text-slate-400 text-xs uppercase font-bold border-b border-slate-800">
+              <thead className="bg-[#F8FAFC] text-[#64748B] text-[11px] uppercase font-bold border-b border-[#E2E8F0]">
                 <tr>
-                  <th className="p-4">Player Details</th>
-                  <th className="p-4">Tournament / Purpose</th>
-                  <th className="p-4">Method & Amount</th>
-                  <th className="p-4">TrxID</th>
-                  <th className="p-4">Screenshot</th>
-                  <th className="p-4">Status</th>
-                  <th className="p-4 text-right">Verification</th>
+                  <th className="py-3.5 px-5">Player Details</th>
+                  <th className="py-3.5 px-5">Method & Amount</th>
+                  <th className="py-3.5 px-5">TrxID</th>
+                  <th className="py-3.5 px-5">Receipt Proof</th>
+                  <th className="py-3.5 px-5">Status</th>
+                  <th className="py-3.5 px-5">Submitted At</th>
+                  <th className="py-3.5 px-5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/80">
-                {payments.map((p) => (
-                  <tr key={p.id} className="hover:bg-slate-900/40 transition-colors">
-                    <td className="p-4">
-                      <div className="font-bold text-white text-xs">{p.userName}</div>
-                      <div className="text-[11px] text-slate-400">{p.userEmail}</div>
-                      <div className="text-[10px] font-mono text-slate-500">ID: {p.userId}</div>
+              <tbody className="divide-y divide-[#F1F5F9]">
+                {filteredPayments.map((p) => (
+                  <tr key={p.id} className="hover:bg-[#F8FAFC] transition-colors">
+                    <td className="py-4 px-5">
+                      <div className="font-bold text-[#0F172A] text-xs">{p.userName || 'Player'}</div>
+                      <div className="text-[11px] text-[#64748B]">{p.userEmail}</div>
+                      <div className="text-[10px] font-mono text-[#94A3B8]">ID: {p.userId}</div>
                     </td>
 
-                    <td className="p-4 max-w-xs">
-                      <div className="text-xs text-slate-200 font-semibold truncate">
-                        {p.tournamentTitle || 'Wallet Top-Up'}
-                      </div>
-                      <div className="text-[10px] text-slate-500 font-mono">
-                        {new Date(p.createdAt).toLocaleString()}
-                      </div>
-                    </td>
-
-                    <td className="p-4">
+                    <td className="py-4 px-5">
                       <div className="flex items-center space-x-2">
-                        <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono font-bold text-[10px] uppercase">
+                        <span className="px-2 py-0.5 rounded bg-blue-50 text-[#2563EB] font-bold text-[10px] uppercase border border-blue-100">
                           {p.method}
                         </span>
-                        <span className="font-heading font-black text-brand-gold text-base">
-                          ৳ {p.amount}
+                        <span className="font-bold text-[#0F172A] text-sm">
+                          ৳ {Number(p.amount).toLocaleString()}
                         </span>
                       </div>
                     </td>
 
-                    <td className="p-4 font-mono text-xs font-bold text-brand-cyan">
-                      {p.trxId}
+                    <td className="py-4 px-5">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono text-xs font-bold text-[#0F172A] bg-slate-100 px-2 py-0.5 rounded">
+                          {p.trxId}
+                        </span>
+                        <button
+                          onClick={() => copyToClipboard(p.trxId)}
+                          className="text-[#94A3B8] hover:text-[#2563EB] p-1 transition-colors"
+                          title="Copy TrxID"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </button>
+                        {copiedTrx === p.trxId && (
+                          <span className="text-[10px] text-emerald-600 font-bold">Copied!</span>
+                        )}
+                      </div>
                     </td>
 
-                    <td className="p-4">
+                    <td className="py-4 px-5">
                       {p.screenshot ? (
                         <button
                           onClick={() => setSelectedScreenshot(p.screenshot || null)}
-                          className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold flex items-center space-x-1 border border-slate-700"
+                          className="px-2.5 py-1 rounded-lg bg-white border border-[#E2E8F0] hover:bg-[#F8FAFC] text-[#2563EB] text-xs font-semibold flex items-center space-x-1 shadow-2xs"
                         >
-                          <Eye className="w-3 h-3" />
+                          <Eye className="w-3.5 h-3.5" />
                           <span>View Proof</span>
                         </button>
                       ) : (
-                        <span className="text-[11px] text-slate-500 italic">No receipt</span>
+                        <span className="text-[11px] text-[#94A3B8] italic">No receipt</span>
                       )}
                     </td>
 
-                    <td className="p-4">
-                      <span className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase ${
-                        p.status === 'VERIFIED' ? 'bg-emerald-950/50 text-emerald-400 border border-emerald-800/40' :
-                        p.status === 'PENDING' ? 'bg-amber-950/50 text-amber-400 border border-amber-800/40 animate-pulse' :
-                        'bg-red-950/50 text-red-400 border border-red-800/40'
+                    <td className="py-4 px-5">
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
+                        p.status === 'VERIFIED' ? 'bg-[#ECFDF5] text-[#059669] border border-[#A7F3D0]' :
+                        p.status === 'PENDING' ? 'bg-amber-50 text-amber-600 border border-amber-200 animate-pulse' :
+                        'bg-red-50 text-red-600 border border-red-200'
                       }`}>
                         {p.status}
                       </span>
                     </td>
 
-                    <td className="p-4 text-right">
+                    <td className="py-4 px-5 text-xs text-[#64748B] font-mono">
+                      {p.createdAt ? new Date(p.createdAt).toLocaleString() : 'N/A'}
+                    </td>
+
+                    <td className="py-4 px-5 text-right">
                       {p.status === 'PENDING' ? (
                         <div className="flex items-center justify-end gap-2">
                           <button
-                            onClick={() => handleVerify(p.id, 'VERIFIED')}
-                            className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-sm transition-all flex items-center space-x-1"
+                            onClick={() => handleVerify(p.id, 'APPROVE')}
+                            disabled={processingId === p.id}
+                            className="px-3 py-1.5 rounded-[10px] bg-[#059669] hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all flex items-center space-x-1 disabled:opacity-50"
                           >
                             <Check className="w-3.5 h-3.5" />
                             <span>Approve</span>
                           </button>
                           <button
-                            onClick={() => handleVerify(p.id, 'REJECTED')}
-                            className="px-3 py-1.5 rounded-xl bg-red-950 hover:bg-red-900 text-red-300 border border-red-800 font-bold text-xs transition-all flex items-center space-x-1"
+                            onClick={() => handleVerify(p.id, 'REJECT')}
+                            disabled={processingId === p.id}
+                            className="px-3 py-1.5 rounded-[10px] bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-bold text-xs transition-all flex items-center space-x-1 disabled:opacity-50"
                           >
                             <X className="w-3.5 h-3.5" />
                             <span>Reject</span>
                           </button>
                         </div>
                       ) : (
-                        <span className="text-xs text-slate-500 font-mono">
+                        <span className="text-xs text-[#94A3B8] font-mono">
                           {p.status === 'VERIFIED' ? 'Credited' : 'Declined'}
                         </span>
                       )}
@@ -201,20 +308,25 @@ export default function AdminPaymentsPage() {
         )}
       </div>
 
-      {/* Screenshot Viewer Modal */}
+      {/* 5. Screenshot Viewer Modal */}
       {selectedScreenshot && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="bg-[#111827] rounded-3xl p-6 max-w-lg w-full border border-slate-800 space-y-4 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-[24px] p-6 max-w-lg w-full border border-[#E2E8F0] space-y-4 shadow-2xl">
             <div className="flex items-center justify-between">
-              <h3 className="font-heading font-black text-lg text-white">TRANSACTION PROOF SCREENSHOT</h3>
-              <button onClick={() => setSelectedScreenshot(null)} className="text-slate-400 hover:text-white font-bold">✕</button>
+              <h3 className="font-bold text-base text-[#0F172A]">Transaction Proof Screenshot</h3>
+              <button 
+                onClick={() => setSelectedScreenshot(null)} 
+                className="p-1 rounded-lg text-[#94A3B8] hover:text-[#0F172A] hover:bg-slate-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
-            <div className="rounded-2xl overflow-hidden border border-slate-800 max-h-[70vh] flex items-center justify-center bg-black">
+            <div className="rounded-[16px] overflow-hidden border border-[#E2E8F0] max-h-[65vh] flex items-center justify-center bg-slate-50">
               <img src={selectedScreenshot} alt="Payment Receipt" className="max-w-full max-h-full object-contain" />
             </div>
             <button
               onClick={() => setSelectedScreenshot(null)}
-              className="w-full py-2.5 rounded-xl bg-slate-800 text-slate-200 font-bold text-xs"
+              className="w-full py-2.5 rounded-[12px] bg-[#0F172A] text-white font-semibold text-xs hover:bg-slate-800 transition-colors"
             >
               Close Viewer
             </button>

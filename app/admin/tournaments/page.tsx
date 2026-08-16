@@ -391,15 +391,18 @@ export default function AdminTournamentsPage() {
       }
 
       if (response.ok && form.notifyOnPublish && !editingId) {
-        const { db } = await import('@/lib/db');
-        db.createAnnouncement({
-          title: `🔥 New Tournament: ${form.title}`,
-          content: `Registration is now open for ${form.title}. Prize Pool: ৳${form.prizePool}. Join now!`,
-          category: 'TOURNAMENT',
-          isPinned: true,
-          link: `/tournaments/${result.tournament?.id || ''}`,
-          imageUrl: form.bannerImage || undefined,
-        });
+        try {
+          await fetch('/api/admin/notifications', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              title: `🔥 New Tournament: ${form.title}`,
+              message: `Registration is now open for ${form.title}. Prize Pool: ৳${form.prizePool}. Join now!`,
+              targetGroup: 'ALL'
+            }),
+          });
+        } catch {}
       }
 
       setFeedbackTone('success');

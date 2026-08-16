@@ -30,10 +30,23 @@ export default function HomePage() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(playerLeaderboard);
+  const [siteSettings, setSiteSettings] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState<'ALL' | 'SQUAD' | 'SOLO' | 'CS_RANKED'>('ALL');
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const res = await fetch('/api/settings');
+        if (res.ok) {
+          const data = await res.json();
+          setSiteSettings(data.settings || {});
+        }
+      } catch (err) {
+        console.warn('Failed to load site settings:', err);
+      }
+    };
+
     const loadTournaments = async () => {
       try {
         const response = await fetch('/api/tournaments');
@@ -55,9 +68,6 @@ export default function HomePage() {
             return;
           }
         }
-        const { db } = await import('@/lib/db');
-        const loadedAnnouncements = db.getAnnouncements().filter(a => a.category === 'TOURNAMENT');
-        setAnnouncements(loadedAnnouncements);
       } catch (err) {
         console.error('Failed to load announcements:', err);
       }
@@ -77,6 +87,7 @@ export default function HomePage() {
       }
     };
 
+    void loadSettings();
     void loadTournaments();
     void loadAnnouncements();
     void loadLeaderboard();
@@ -131,53 +142,65 @@ export default function HomePage() {
               <div className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-orange-50 border border-brand-orange/20">
                 <Flame className="w-4 h-4 text-brand-red animate-pulse" />
                 <span className="text-xs font-bold text-slate-700 uppercase tracking-widest">
-                  Season 5 Bangladesh Championship Live
+                  {siteSettings.hero_badge || 'Season 5 Bangladesh Championship Live'}
                 </span>
               </div>
 
               <h1 className="font-heading text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-slate-900 leading-none">
-                DOMINATE THE <br />
+                {siteSettings.hero_title_1 || 'DOMINATE THE'} <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold">
-                  FREE FIRE ARENA
+                  {siteSettings.hero_title_2 || 'FREE FIRE ARENA'}
                 </span>
               </h1>
 
               <p className="text-slate-600 text-base sm:text-lg max-w-2xl leading-relaxed">
-                Join Bangladesh's premier automated Free Fire esports platform. Compete in daily BR Squad, Duo & CS 4v4 tournaments, earn instant bKash payouts per kill, and claim the championship trophy.
+                {siteSettings.hero_desc || "Join Bangladesh's premier automated Free Fire esports platform. Compete in daily BR Squad, Duo & CS 4v4 tournaments, earn instant bKash payouts per kill, and claim the championship trophy."}
               </p>
 
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
                 <Link
-                  href="/tournaments"
+                  href={siteSettings.hero_btn_1_link || '/tournaments'}
                   className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold text-white font-heading font-black text-lg shadow-neon-red hover:scale-105 active:scale-95 transition-all flex items-center justify-center space-x-3"
                 >
                   <Trophy className="w-5 h-5 text-white" />
-                  <span>BROWSE TOURNAMENTS</span>
+                  <span>{siteSettings.hero_btn_1_text || 'BROWSE TOURNAMENTS'}</span>
                 </Link>
 
                 <Link
-                  href="/rewards"
+                  href={siteSettings.hero_btn_2_link || '/rewards'}
                   className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-white text-slate-900 font-heading font-bold text-lg border border-slate-200 hover:border-brand-orange/60 hover:bg-slate-50 transition-all flex items-center justify-center space-x-3 shadow-sm"
                 >
                   <Sparkles className="w-5 h-5 text-brand-gold" />
-                  <span>CLAIM FREE REWARDS</span>
+                  <span>{siteSettings.hero_btn_2_text || 'CLAIM FREE REWARDS'}</span>
                 </Link>
               </div>
 
               {/* Trust Badges */}
               <div className="pt-6 grid grid-cols-3 gap-4 border-t border-slate-200 max-w-md mx-auto lg:mx-0 text-center lg:text-left">
                 <div>
-                  <div className="font-heading font-extrabold text-2xl text-brand-gold">৳ 2.5 Lakh+</div>
-                  <div className="text-[11px] font-semibold text-slate-500 uppercase">Prize Pool Paid</div>
+                  <div className="font-heading font-extrabold text-2xl text-brand-gold">
+                    {siteSettings.hero_stat_1_val || '৳ 2.5 Lakh+'}
+                  </div>
+                  <div className="text-[11px] font-semibold text-slate-500 uppercase">
+                    {siteSettings.hero_stat_1_label || 'Prize Pool Paid'}
+                  </div>
                 </div>
                 <div>
-                  <div className="font-heading font-extrabold text-2xl text-brand-cyan">15,000+</div>
-                  <div className="text-[11px] font-semibold text-slate-500 uppercase">Active Players</div>
+                  <div className="font-heading font-extrabold text-2xl text-brand-cyan">
+                    {siteSettings.hero_stat_2_val || '15,000+'}
+                  </div>
+                  <div className="text-[11px] font-semibold text-slate-500 uppercase">
+                    {siteSettings.hero_stat_2_label || 'Active Players'}
+                  </div>
                 </div>
                 <div>
-                  <div className="font-heading font-extrabold text-2xl text-brand-red">100%</div>
-                  <div className="text-[11px] font-semibold text-slate-500 uppercase">Anti-Cheat Safe</div>
+                  <div className="font-heading font-extrabold text-2xl text-brand-red">
+                    {siteSettings.hero_stat_3_val || '100%'}
+                  </div>
+                  <div className="text-[11px] font-semibold text-slate-500 uppercase">
+                    {siteSettings.hero_stat_3_label || 'Anti-Cheat Safe'}
+                  </div>
                 </div>
               </div>
 
@@ -196,30 +219,32 @@ export default function HomePage() {
                 {/* Hero Featured Tournament Preview */}
                 <div className="relative rounded-2xl overflow-hidden h-64 mb-4">
                   <img
-                    src="https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800"
+                    src={siteSettings.featured_image || "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800"}
                     alt="Free Fire Hero Tournament"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent"></div>
                   <span className="absolute top-3 left-3 px-3 py-1 rounded-full bg-brand-red text-white text-xs font-black uppercase shadow-sm animate-pulse">
-                    FEATURED LEAGUE
+                    {siteSettings.featured_badge || 'FEATURED LEAGUE'}
                   </span>
                 </div>
 
                 <h3 className="font-heading font-black text-2xl text-slate-900">
-                  Grand Free Fire BR Squad League #42
+                  {siteSettings.featured_title || 'Grand Free Fire BR Squad League #42'}
                 </h3>
 
                 <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-200">
                   <div>
                     <div className="text-xs text-slate-500">Total Prize Pool</div>
-                    <div className="text-2xl font-heading font-extrabold text-orange-500">৳ 4,000 CASH</div>
+                    <div className="text-2xl font-heading font-extrabold text-orange-500">
+                      {siteSettings.featured_prize || '৳ 4,000 CASH'}
+                    </div>
                   </div>
                   <Link
-                    href="/tournaments/tour_01"
+                    href={siteSettings.featured_link || '/tournaments'}
                     className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-bold text-sm shadow-neon-orange hover:brightness-110 transition-all flex items-center gap-1.5"
                   >
-                    <span>ENTRY ৳100</span>
+                    <span>{siteSettings.featured_entry || 'ENTRY ৳100'}</span>
                     <ArrowRight className="w-4 h-4" />
                   </Link>
                 </div>
@@ -240,30 +265,30 @@ export default function HomePage() {
               <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
             </span>
             <div className="font-heading font-black text-sm uppercase tracking-wider text-brand-gold">
-              LIVE ARENA SLOTS STATUS:
+              {siteSettings.ticker_title || 'LIVE ARENA SLOTS STATUS:'}
             </div>
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-bold">
             <div className="px-3.5 py-1.5 rounded-xl bg-slate-800 border border-slate-700 flex items-center space-x-2">
-              <span className="text-slate-400">AM Slots (Morning):</span>
+              <span className="text-slate-400">{siteSettings.ticker_am_label || 'AM Slots (Morning):'}</span>
               <span className="text-green-400 font-mono">
-                {tournaments.filter(t => t.status === 'UPCOMING' && new Date(t.matchTime).getHours() < 12).length || 4} OPEN
+                {siteSettings.ticker_am_text || `${tournaments.filter(t => t.status === 'UPCOMING' && new Date(t.matchTime).getHours() < 12).length || 4} OPEN`}
               </span>
             </div>
 
             <div className="px-3.5 py-1.5 rounded-xl bg-slate-800 border border-slate-700 flex items-center space-x-2">
-              <span className="text-slate-400">PM Slots (Prime Evening):</span>
+              <span className="text-slate-400">{siteSettings.ticker_pm_label || 'PM Slots (Prime Evening):'}</span>
               <span className="text-orange-400 font-mono">
-                {tournaments.filter(t => t.status === 'UPCOMING' && new Date(t.matchTime).getHours() >= 12).length || 8} OPEN
+                {siteSettings.ticker_pm_text || `${tournaments.filter(t => t.status === 'UPCOMING' && new Date(t.matchTime).getHours() >= 12).length || 8} OPEN`}
               </span>
             </div>
 
             <Link
-              href="/tournaments"
+              href={siteSettings.ticker_btn_link || '/tournaments'}
               className="px-4 py-1.5 rounded-xl bg-brand-red hover:bg-brand-orange text-white font-bold text-xs transition-colors flex items-center gap-1"
             >
-              <span>BOOK SLOT</span>
+              <span>{siteSettings.ticker_btn_text || 'BOOK SLOT'}</span>
               <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
@@ -280,32 +305,32 @@ export default function HomePage() {
               <div className="space-y-2 text-center lg:text-left">
                 <span className="text-[10px] font-black uppercase px-3 py-1 rounded-full bg-brand-red text-white tracking-widest inline-flex items-center gap-1.5">
                   <Flame className="w-3 h-3 animate-pulse" />
-                  <span>MONTHLY EVENT • RESETS 1ST OF EVERY MONTH</span>
+                  <span>{siteSettings.ref_banner_badge || 'MONTHLY EVENT • RESETS 1ST OF EVERY MONTH'}</span>
                 </span>
                 <h2 className="font-heading font-black text-2xl sm:text-3xl text-white">
-                  REFERRAL REWARDS CRUSADE
+                  {siteSettings.ref_banner_title || 'REFERRAL REWARDS CRUSADE'}
                 </h2>
                 <p className="text-xs text-slate-300 max-w-xl">
-                  Invite friends to Black Rock Arena. Rewards credit to your <strong className="text-brand-orange">Promo Wallet</strong> to join tournaments for free!
+                  {siteSettings.ref_banner_desc || 'Invite friends to Black Rock Arena. Rewards credit to your Promo Wallet to join tournaments for free!'}
                 </p>
               </div>
 
               {/* Action */}
               <div className="flex flex-wrap items-center gap-3">
                 <Link
-                  href="/profile"
+                  href={siteSettings.ref_btn_1_link || '/profile'}
                   className="px-6 py-3 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-black text-xs shadow-neon-red hover:brightness-110 transition-all flex items-center space-x-2"
                 >
                   <Users className="w-4 h-4" />
-                  <span>GET REFERRAL LINK</span>
+                  <span>{siteSettings.ref_btn_1_text || 'GET REFERRAL LINK'}</span>
                 </Link>
 
                 <Link
-                  href="/lfg"
+                  href={siteSettings.ref_btn_2_link || '/lfg'}
                   className="px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-heading font-bold text-xs border border-slate-700 transition-all flex items-center space-x-2"
                 >
                   <Users className="w-4 h-4 text-brand-cyan" />
-                  <span>FIND SQUAD (LFG)</span>
+                  <span>{siteSettings.ref_btn_2_text || 'FIND SQUAD (LFG)'}</span>
                 </Link>
               </div>
             </div>

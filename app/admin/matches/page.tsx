@@ -11,9 +11,10 @@ import {
   Target, 
   Crosshair, 
   Loader2,
-  RefreshCw
+  RefreshCw,
+  Search,
+  UserCheck
 } from 'lucide-react';
-import { db } from '@/lib/db';
 import { Tournament, MatchResult } from '@/lib/types';
 
 export default function AdminMatchesPage() {
@@ -27,44 +28,40 @@ export default function AdminMatchesPage() {
   const [placement, setPlacement] = useState(1);
   const [results, setResults] = useState<MatchResult[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [successMsg, setSuccessMsg] = useState('');
 
   const loadMatches = async (tourId: string) => {
+    if (!tourId) return;
     try {
-      const res = await fetch(`/api/admin/matches?tournamentId=${tourId}`);
+      const res = await fetch(`/api/admin/matches?tournamentId=${tourId}`, { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
-        if (data.results) {
-          setResults(data.results);
-          return;
-        }
+        setResults(data.results || []);
       }
     } catch (err) {
       console.warn('Match results load error:', err);
     }
-    setResults(db.getMatchResults(tourId));
   };
 
   useEffect(() => {
     async function init() {
+      setLoading(true);
       try {
-        const res = await fetch('/api/tournaments');
+        const res = await fetch('/api/tournaments', { credentials: 'include' });
         if (res.ok) {
           const data = await res.json();
-          if (data.tournaments && data.tournaments.length > 0) {
-            setTournaments(data.tournaments);
-            setSelectedTourId(data.tournaments[0].id);
-            loadMatches(data.tournaments[0].id);
-            return;
+          const list = data.tournaments || [];
+          setTournaments(list);
+          if (list.length > 0) {
+            setSelectedTourId(list[0].id);
+            await loadMatches(list[0].id);
           }
         }
       } catch (err) {
         console.warn('Tournaments load error:', err);
-      }
-      const list = db.getTournaments();
-      setTournaments(list);
-      if (list.length > 0) {
-        setSelectedTourId(list[0].id);
-        setResults(db.getMatchResults(list[0].id));
+      } finally {
+        setLoading(false);
       }
     }
     init();
@@ -84,222 +81,246 @@ export default function AdminMatchesPage() {
 
   const handleAddResult = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedTourId || !teamName) return;
+    if (!selectedTourId || !teamName.trim()) return;
 
     setSubmitting(true);
     const totalPts = calculatePoints(placement, kills);
 
     try {
-      await fetch('/api/admin/matches', {
+      const res = await fetch('/api/admin/matches', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           tournamentId: selectedTourId,
-          playerName: teamName,
-          ffUid: ffUid || '1029384756',
+          playerName: teamName.trim(),
+          ffUid: ffUid.trim() || undefined,
           kills,
           placement,
           points: totalPts,
         }),
       });
+
+      if (res.ok) {
+        await loadMatches(selectedTourId);
+        setTeamName('');
+        setFfUid('');
+        setKills(0);
+        setPlacement(1);
+        setSuccessMsg('Match result saved to database & player stats updated!');
+        setTimeout(() => setSuccessMsg(''), 4000);
+      } else {
+        const errData = await res.json();
+        alert(errData.message || 'Failed to save match result.');
+      }
     } catch (err) {
-      console.warn('Match result save error:', err);
+      console.error('Match result save error:', err);
+      alert('Network error while saving match result.');
+    } finally {
+      setSubmitting(false);
     }
-
-    db.addMatchResult({
-      tournamentId: selectedTourId,
-      teamOrPlayerName: teamName,
-      ffUid: ffUid || '1029384756',
-      kills,
-      placement,
-      points: totalPts,
-    });
-
-    await loadMatches(selectedTourId);
-    setTeamName('');
-    setKills(0);
-    setSubmitting(false);
   };
 
+  const selectedTournament = tournaments.find((t) => t.id === selectedTourId);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto pb-10 font-sans">
       
-      {/* Header */}
-      <div className="bg-[#111827]/80 backdrop-blur-xl border border-slate-800/80 rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
-        <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 rounded-2xl bg-brand-orange/10 text-brand-orange flex items-center justify-center border border-brand-orange/20 shadow-sm">
-            <Gamepad2 className="w-6 h-6" />
-          </div>
-          <div>
-            <h1 className="font-heading font-black text-2xl text-white">
-              MATCH RESULTS & SCORECARD ENTRY
-            </h1>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Submit kill points and Booyah standings. Stats update player profiles and leaderboards automatically.
-            </p>
-          </div>
+      {/* 1. Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-[28px] sm:text-[32px] font-bold text-[#0F172A] tracking-tight leading-tight">
+            Match Results & Scorecard Entry
+          </h1>
+          <p className="text-[13px] text-[#64748B] font-normal mt-1">
+            Submit kill points and Booyah standings. Player kills, wins, and leaderboard points sync directly with Supabase.
+          </p>
         </div>
 
-        {/* Tournament Switcher */}
-        <div className="w-full sm:w-72">
+        {/* Tournament Selector */}
+        <div className="flex items-center gap-2 self-start sm:self-auto">
           <select
             value={selectedTourId}
             onChange={(e) => handleTourChange(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-800 rounded-2xl px-4 py-2.5 text-xs text-white font-bold focus:outline-none focus:border-brand-orange shadow-sm"
+            className="px-4 py-2 rounded-[12px] bg-white border border-[#E2E8F0] text-xs font-semibold text-[#0F172A] focus:outline-none focus:border-[#2563EB] shadow-xs"
           >
             {tournaments.map((t) => (
               <option key={t.id} value={t.id}>
-                {t.title} ({t.mode})
+                {t.title} ({t.mode} • {t.status})
               </option>
             ))}
           </select>
+
+          <button
+            onClick={() => loadMatches(selectedTourId)}
+            className="p-2 rounded-[12px] bg-white border border-[#E2E8F0] text-[#64748B] hover:text-[#0F172A] shadow-xs"
+            title="Refresh"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
+      {successMsg && (
+        <div className="p-4 rounded-[16px] bg-[#ECFDF5] border border-[#A7F3D0] text-[#047857] text-xs font-semibold flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-[#059669]" />
+          <span>{successMsg}</span>
+        </div>
+      )}
+
+      {/* 2. Grid (Left: Score Input Form, Right: Live Leaderboard/Results) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* Scorecard Input Form */}
-        <div className="lg:col-span-5 bg-[#111827]/80 backdrop-blur-xl border border-slate-800/80 rounded-3xl p-6 space-y-5 shadow-sm">
-          <div className="flex items-center space-x-2 pb-3 border-b border-slate-800">
-            <Target className="w-5 h-5 text-brand-red" />
-            <h3 className="font-heading font-black text-lg text-white">RECORD SQUAD / PLAYER SCORE</h3>
+        {/* Scorecard Form (5 cols) */}
+        <div className="lg:col-span-5 bg-white border border-[#E2E8F0]/80 rounded-[24px] p-6 space-y-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+          <div className="flex items-center space-x-2 border-b border-[#F1F5F9] pb-4">
+            <PlusCircle className="w-5 h-5 text-[#2563EB]" />
+            <div>
+              <h2 className="text-[17px] font-bold text-[#0F172A]">Enter Player / Team Score</h2>
+              <p className="text-[12px] text-[#64748B]">Score will be logged to Supabase</p>
+            </div>
           </div>
 
-          <form onSubmit={handleAddResult} className="space-y-4 text-xs">
+          <form onSubmit={handleAddResult} className="space-y-4 text-xs font-medium">
             <div>
-              <label className="font-bold text-slate-300 block mb-1">Squad or Player IGN *</label>
+              <label className="block text-[#475569] mb-1.5 font-semibold">Player In-Game Name / Team Name *</label>
               <input
                 type="text"
+                required
+                placeholder="e.g. VORTEX_GAMER"
                 value={teamName}
                 onChange={(e) => setTeamName(e.target.value)}
-                required
-                placeholder="e.g. BRK_PHANTOM"
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-white font-bold focus:outline-none focus:border-brand-orange"
+                className="w-full px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-semibold text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
               />
             </div>
 
             <div>
-              <label className="font-bold text-slate-300 block mb-1">Free Fire UID (Optional)</label>
+              <label className="block text-[#475569] mb-1.5 font-semibold">Free Fire UID (Optional for sync)</label>
               <input
                 type="text"
+                placeholder="e.g. 1029384756"
                 value={ffUid}
                 onChange={(e) => setFfUid(e.target.value)}
-                placeholder="1092837465"
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-white font-mono focus:outline-none"
+                className="w-full px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-mono font-semibold text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="font-bold text-slate-300 block mb-1">Match Placement</label>
+                <label className="block text-[#475569] mb-1.5 font-semibold">Placement Rank</label>
                 <select
                   value={placement}
                   onChange={(e) => setPlacement(Number(e.target.value))}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2.5 text-white font-bold focus:outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-semibold text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
                 >
-                  <option value={1}>#1 Booyah (12 pts)</option>
-                  <option value={2}>#2 Runner-Up (9 pts)</option>
-                  <option value={3}>#3 Third Place (8 pts)</option>
-                  <option value={4}>#4 4th Place (7 pts)</option>
-                  <option value={5}>#5 5th Place (6 pts)</option>
-                  <option value={6}>#6 6th Place (5 pts)</option>
-                  <option value={7}>#7 7th Place (4 pts)</option>
-                  <option value={8}>#8 8th Place (3 pts)</option>
-                  <option value={9}>#9 9th Place (2 pts)</option>
-                  <option value={10}>#10 10th Place (1 pt)</option>
-                  <option value={11}>#11-12 (0 pts)</option>
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((pos) => (
+                    <option key={pos} value={pos}>
+                      #{pos} {pos === 1 ? '🏆 (Booyah!)' : ''}
+                    </option>
+                  ))}
                 </select>
               </div>
 
               <div>
-                <label className="font-bold text-slate-300 block mb-1">Kills Count</label>
+                <label className="block text-[#475569] mb-1.5 font-semibold">Kill Count</label>
                 <input
                   type="number"
-                  min={0}
+                  min="0"
+                  max="40"
                   value={kills}
-                  onChange={(e) => setKills(Number(e.target.value) || 0)}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-white font-bold"
+                  onChange={(e) => setKills(Number(e.target.value))}
+                  className="w-full px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-semibold text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
                 />
               </div>
             </div>
 
             {/* Calculated Points Preview */}
-            <div className="p-3.5 rounded-2xl bg-brand-orange/10 border border-brand-orange/20 flex items-center justify-between">
-              <span className="text-slate-300 font-bold">Total Points Earned:</span>
-              <span className="font-heading font-black text-xl text-brand-gold">
-                {calculatePoints(placement, kills)} PTS
-              </span>
+            <div className="p-3.5 rounded-[14px] bg-[#EFF6FF] border border-[#BFDBFE] flex items-center justify-between text-xs">
+              <span className="text-[#1E40AF] font-semibold">Calculated Total Points:</span>
+              <span className="font-bold text-[#2563EB] text-sm">{calculatePoints(placement, kills)} PTS</span>
             </div>
 
             <button
               type="submit"
               disabled={submitting}
-              className="w-full py-3 rounded-2xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-black text-sm shadow-neon-red hover:brightness-110 transition-all flex items-center justify-center space-x-1.5 disabled:opacity-50"
+              className="w-full py-2.5 rounded-[12px] bg-[#2563EB] hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center space-x-1.5 disabled:opacity-50"
             >
-              {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>SUBMIT SCORECARD</span>}
+              {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Award className="w-4 h-4" />}
+              <span>{submitting ? 'Saving to Database...' : 'Submit & Sync Match Score'}</span>
             </button>
           </form>
         </div>
 
-        {/* Match Standings Table */}
-        <div className="lg:col-span-7 bg-[#111827]/80 backdrop-blur-xl border border-slate-800/80 rounded-3xl p-6 space-y-4 shadow-sm">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-            <h3 className="font-heading font-black text-lg text-white flex items-center gap-2">
-              <Award className="w-5 h-5 text-brand-gold" />
-              <span>LIVE MATCH STANDINGS ({results.length})</span>
-            </h3>
+        {/* Results Standings Table (7 cols) */}
+        <div className="lg:col-span-7 bg-white border border-[#E2E8F0]/80 rounded-[24px] overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col">
+          <div className="p-5 border-b border-[#F1F5F9] flex items-center justify-between">
+            <div>
+              <h2 className="text-[17px] font-bold text-[#0F172A]">
+                {selectedTournament?.title || 'Tournament'} Results
+              </h2>
+              <p className="text-[12px] text-[#64748B] font-normal">
+                Live scoreboard & point distribution
+              </p>
+            </div>
+
+            <span className="px-3 py-1 rounded-full bg-[#EFF6FF] text-[#2563EB] text-xs font-bold border border-blue-100">
+              {results.length} Recorded
+            </span>
           </div>
 
-          {results.length === 0 ? (
-            <div className="p-12 text-center text-slate-500 space-y-2">
-              <Crosshair className="w-10 h-10 mx-auto text-slate-600" />
-              <div className="font-bold text-slate-300">No Match Scores Recorded Yet</div>
-              <div className="text-xs">Submit scores using the form to populate the tournament results.</div>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
+          <div className="flex-1 overflow-x-auto">
+            {loading ? (
+              <div className="flex items-center justify-center py-20 text-[#2563EB]">
+                <Loader2 className="w-8 h-8 animate-spin" />
+              </div>
+            ) : results.length === 0 ? (
+              <div className="p-16 text-center text-[#64748B] space-y-2">
+                <Crosshair className="w-10 h-10 text-slate-300 mx-auto" />
+                <div className="font-bold text-[#0F172A] text-base">No Scores Submitted Yet</div>
+                <div className="text-xs">Use the scorecard form to enter kill points for this tournament.</div>
+              </div>
+            ) : (
               <table className="w-full text-left text-sm">
-                <thead className="bg-slate-900/90 text-slate-400 text-xs uppercase font-bold border-b border-slate-800">
+                <thead className="bg-[#F8FAFC] text-[#64748B] text-[11px] uppercase font-bold border-b border-[#E2E8F0]">
                   <tr>
-                    <th className="p-3">Rank</th>
-                    <th className="p-3">Squad / Player</th>
-                    <th className="p-3 text-center">Placement</th>
-                    <th className="p-3 text-center">Kills</th>
-                    <th className="p-3 text-right">Total Points</th>
+                    <th className="py-3.5 px-5">Rank</th>
+                    <th className="py-3.5 px-5">Player / Team</th>
+                    <th className="py-3.5 px-5">Kills</th>
+                    <th className="py-3.5 px-5 text-right">Total Points</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/80">
-                  {results.sort((a, b) => b.points - a.points).map((res, idx) => (
-                    <tr key={res.id} className="hover:bg-slate-900/40 transition-colors">
-                      <td className="p-3 font-heading font-black text-sm">
-                        <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs ${
-                          idx === 0 ? 'bg-brand-gold text-black shadow-neon-gold' :
-                          idx === 1 ? 'bg-slate-300 text-black' :
-                          idx === 2 ? 'bg-amber-700 text-white' :
-                          'bg-slate-800 text-slate-400'
-                        }`}>
-                          {idx + 1}
-                        </span>
-                      </td>
-                      <td className="p-3">
-                        <div className="font-bold text-white text-xs">{res.teamOrPlayerName}</div>
-                        <div className="text-[10px] font-mono text-slate-500">UID: {res.ffUid}</div>
-                      </td>
-                      <td className="p-3 text-center font-bold text-xs text-slate-300">
-                        #{res.placement}
-                      </td>
-                      <td className="p-3 text-center font-bold text-xs text-brand-red font-mono">
-                        {res.kills}
-                      </td>
-                      <td className="p-3 text-right font-heading font-black text-brand-gold text-base">
-                        {res.points} PTS
-                      </td>
-                    </tr>
-                  ))}
+                <tbody className="divide-y divide-[#F1F5F9]">
+                  {results
+                    .slice()
+                    .sort((a, b) => (b.points || 0) - (a.points || 0))
+                    .map((r, idx) => (
+                      <tr key={r.id || idx} className="hover:bg-[#F8FAFC] transition-colors">
+                        <td className="py-3.5 px-5">
+                          <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                            r.placement === 1 ? 'bg-amber-100 text-amber-800' :
+                            r.placement === 2 ? 'bg-slate-200 text-slate-700' :
+                            r.placement === 3 ? 'bg-amber-50 text-amber-700' :
+                            'bg-slate-100 text-slate-600'
+                          }`}>
+                            #{r.placement}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-5">
+                          <div className="font-bold text-[#0F172A] text-xs">{(r as any).playerName || (r as any).teamOrPlayerName}</div>
+                          {r.ffUid && <div className="text-[10px] font-mono text-[#94A3B8]">UID: {r.ffUid}</div>}
+                        </td>
+                        <td className="py-3.5 px-5 font-bold text-[#0F172A] text-xs">
+                          {r.kills} Kills
+                        </td>
+                        <td className="py-3.5 px-5 text-right font-black text-[#2563EB] text-sm">
+                          {r.points} PTS
+                        </td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
       </div>

@@ -2,8 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Shield, Eye, EyeOff, User as UserIcon, Lock, AlertCircle } from 'lucide-react';
-import { db } from '@/lib/db';
+import { Shield, Eye, EyeOff, User as UserIcon, Lock, AlertCircle, Loader2 } from 'lucide-react';
 
 const DEFAULT_ADMIN_EMAIL = '';
 const DEFAULT_ADMIN_PASSWORD = '';
@@ -24,7 +23,7 @@ export default function AdminLoginPage() {
           router.replace('/admin');
         }
       } catch {
-        // Ignore and allow the user to log in manually.
+        // Allow user to login manually
       }
     };
 
@@ -36,37 +35,26 @@ export default function AdminLoginPage() {
     setLoading(true);
     setError('');
 
-    // First check local DB for mock users (Moderator/Admin created in UI)
-    const localUser = db.loginWithEmailAndPassword(email, password);
-    let requestBody: any = { email, password };
-    
-    if (localUser && (localUser.role === 'MODERATOR' || localUser.role === 'ADMIN' || localUser.role === 'SUPER_ADMIN')) {
-      requestBody = {
-        email,
-        password,
-        clientVerifiedRole: localUser.role,
-        clientVerifiedId: localUser.id
-      };
-      
-      // Update the current user in db so AdminShell knows who is logged in
-      db.setCurrentUser(localUser);
+    try {
+      const response = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        setError(data.message || 'Login failed. Please verify your credentials.');
+        setLoading(false);
+        return;
+      }
+
+      router.replace('/admin');
+    } catch {
+      setError('Network connection error. Please try again.');
+      setLoading(false);
     }
-
-    const response = await fetch('/api/admin/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody),
-    });
-
-    const data = await response.json().catch(() => ({}));
-    setLoading(false);
-
-    if (!response.ok) {
-      setError(data.message || 'Authentication failed.');
-      return;
-    }
-
-    router.replace('/admin');
   };
 
   return (

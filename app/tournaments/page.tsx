@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, Trophy, Filter, Flame, SlidersHorizontal } from 'lucide-react';
+import { Search, Trophy, Filter, Flame, SlidersHorizontal, ArrowUpDown } from 'lucide-react';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import TournamentCard from '@/components/tournaments/TournamentCard';
@@ -49,43 +49,43 @@ export default function TournamentsPage() {
   });
 
   return (
-    <div className="min-h-screen bg-background text-gray-100 flex flex-col font-body">
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 flex flex-col font-body">
       <Navbar />
 
       {/* Header Banner */}
-      <div className="bg-surface/60 border-b border-surface-border py-12 relative overflow-hidden">
-        <div className="absolute -top-20 left-1/4 w-96 h-96 bg-brand-red/10 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-          <span className="text-xs font-bold text-brand-orange uppercase tracking-widest flex items-center justify-center gap-1.5 mb-2">
-            <Trophy className="w-4 h-4 text-brand-orange" />
+      <div className="bg-white border-b border-slate-200 py-12 sm:py-16 relative overflow-hidden">
+        <div className="absolute -top-20 left-1/4 w-96 h-96 bg-gradient-to-r from-brand-red/10 to-brand-orange/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center space-y-2">
+          <span className="text-xs font-bold text-brand-orange uppercase tracking-widest inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 border border-brand-orange/20">
+            <Trophy className="w-3.5 h-3.5 text-brand-orange" />
             <span>Competitive Esports Arena</span>
           </span>
-          <h1 className="font-heading font-black text-4xl sm:text-5xl text-white">
+          <h1 className="font-heading font-black text-3xl sm:text-5xl text-slate-900 tracking-tight">
             FREE FIRE TOURNAMENTS
           </h1>
-          <p className="text-gray-400 text-sm mt-2 max-w-xl mx-auto">
+          <p className="text-slate-600 text-xs sm:text-sm mt-2 max-w-xl mx-auto leading-relaxed">
             Browse active Solo, Duo, and Squad tournaments. Enter room credentials, eliminate enemies, and earn real cash payouts.
           </p>
         </div>
       </div>
 
       {/* Main Content Area */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex-1 w-full space-y-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-6">
         
         {/* Search & Filter Controls Bar */}
-        <div className="glass-card rounded-2xl p-5 border border-surface-border space-y-4">
+        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
           
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
             
             {/* Search Input */}
             <div className="md:col-span-6 relative">
-              <Search className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Search tournament title or game mode..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-surface-light border border-surface-border rounded-xl pl-12 pr-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-orange transition-colors"
+                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl pl-11 pr-4 py-2.5 text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-orange focus:bg-white transition-all"
               />
             </div>
 
@@ -94,7 +94,7 @@ export default function TournamentsPage() {
               <select
                 value={selectedMode}
                 onChange={(e) => setSelectedMode(e.target.value)}
-                className="w-full bg-surface-light border border-surface-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-brand-orange"
+                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-medium text-slate-800 focus:outline-none focus:border-brand-orange focus:bg-white"
               >
                 <option value="ALL">All Modes (Solo/Duo/Squad)</option>
                 <option value="SOLO">Solo (1v1)</option>
@@ -108,7 +108,7 @@ export default function TournamentsPage() {
               <select
                 value={selectedFormat}
                 onChange={(e) => setSelectedFormat(e.target.value)}
-                className="w-full bg-surface-light border border-surface-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-brand-orange"
+                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-medium text-slate-800 focus:outline-none focus:border-brand-orange focus:bg-white"
               >
                 <option value="ALL">All Formats (BR & CS)</option>
                 <option value="BR_RANKED">BR Ranked (Battle Royale)</option>
@@ -119,11 +119,11 @@ export default function TournamentsPage() {
           </div>
 
           {/* Secondary Quick Filter Pills */}
-          <div className="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-surface-border">
+          <div className="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-slate-100">
             
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-bold text-gray-400 mr-2 flex items-center gap-1">
-                <SlidersHorizontal className="w-3.5 h-3.5 text-brand-orange" /> Filter By:
+              <span className="text-xs font-bold text-slate-500 mr-1 flex items-center gap-1">
+                <SlidersHorizontal className="w-3.5 h-3.5 text-brand-orange" /> Filter:
               </span>
 
               {/* Status Pills */}
@@ -131,8 +131,8 @@ export default function TournamentsPage() {
                 onClick={() => setSelectedStatus('ALL')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   selectedStatus === 'ALL'
-                    ? 'bg-brand-red text-white'
-                    : 'bg-surface-light text-gray-400 hover:text-white'
+                    ? 'bg-brand-red text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
                 All Status
@@ -141,8 +141,8 @@ export default function TournamentsPage() {
                 onClick={() => setSelectedStatus('UPCOMING')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   selectedStatus === 'UPCOMING'
-                    ? 'bg-brand-orange text-white'
-                    : 'bg-surface-light text-gray-400 hover:text-white'
+                    ? 'bg-brand-orange text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
                 Upcoming
@@ -151,8 +151,8 @@ export default function TournamentsPage() {
                 onClick={() => setSelectedStatus('LIVE')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   selectedStatus === 'LIVE'
-                    ? 'bg-brand-red text-white animate-pulse'
-                    : 'bg-surface-light text-gray-400 hover:text-white'
+                    ? 'bg-brand-red text-white animate-pulse shadow-xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
                 Live Now
@@ -161,8 +161,8 @@ export default function TournamentsPage() {
                 onClick={() => setSelectedStatus('COMPLETED')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   selectedStatus === 'COMPLETED'
-                    ? 'bg-gray-700 text-white'
-                    : 'bg-surface-light text-gray-400 hover:text-white'
+                    ? 'bg-slate-800 text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
                 Completed
@@ -174,7 +174,9 @@ export default function TournamentsPage() {
               <button
                 onClick={() => setSelectedType('ALL')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  selectedType === 'ALL' ? 'bg-brand-purple text-white' : 'bg-surface-light text-gray-400'
+                  selectedType === 'ALL' 
+                    ? 'bg-indigo-600 text-white shadow-xs' 
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
                 All Entries
@@ -182,7 +184,9 @@ export default function TournamentsPage() {
               <button
                 onClick={() => setSelectedType('FREE')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  selectedType === 'FREE' ? 'bg-brand-cyan text-black font-extrabold' : 'bg-surface-light text-gray-400'
+                  selectedType === 'FREE' 
+                    ? 'bg-emerald-600 text-white shadow-xs' 
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
                 FREE Entry
@@ -190,7 +194,9 @@ export default function TournamentsPage() {
               <button
                 onClick={() => setSelectedType('PAID')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  selectedType === 'PAID' ? 'bg-brand-gold text-black font-extrabold' : 'bg-surface-light text-gray-400'
+                  selectedType === 'PAID' 
+                    ? 'bg-amber-500 text-white shadow-xs' 
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
                 Paid Tournaments
@@ -202,8 +208,8 @@ export default function TournamentsPage() {
         </div>
 
         {/* Results Info */}
-        <div className="flex items-center justify-between text-xs text-gray-400 font-semibold px-1">
-          <span>Showing <strong className="text-white">{filteredTournaments.length}</strong> active tournaments</span>
+        <div className="flex items-center justify-between text-xs text-slate-500 font-semibold px-1">
+          <span>Showing <strong className="text-slate-900 font-bold">{filteredTournaments.length}</strong> active tournaments</span>
           {(searchQuery || selectedMode !== 'ALL' || selectedFormat !== 'ALL' || selectedStatus !== 'ALL' || selectedType !== 'ALL') && (
             <button
               onClick={() => {
@@ -213,7 +219,7 @@ export default function TournamentsPage() {
                 setSelectedStatus('ALL');
                 setSelectedType('ALL');
               }}
-              className="text-brand-orange hover:underline"
+              className="text-brand-orange hover:underline font-bold"
             >
               Reset Filters
             </button>
@@ -228,10 +234,10 @@ export default function TournamentsPage() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-20 glass-card rounded-3xl p-8 border border-surface-border">
-            <Trophy className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-            <h3 className="font-heading font-bold text-xl text-white">No Tournaments Found</h3>
-            <p className="text-gray-400 text-xs mt-1">Try clearing your search query or selecting a different filter.</p>
+          <div className="text-center py-20 bg-white rounded-3xl p-8 border border-slate-200 shadow-sm space-y-2">
+            <Trophy className="w-12 h-12 text-slate-300 mx-auto" />
+            <h3 className="font-heading font-bold text-xl text-slate-900">No Tournaments Found</h3>
+            <p className="text-slate-500 text-xs mt-1">Try clearing your search query or selecting a different filter.</p>
           </div>
         )}
 

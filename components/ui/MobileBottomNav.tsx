@@ -3,16 +3,19 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Flame, Trophy, Gift, Wallet, User, Users, PlusSquare } from 'lucide-react';
+import { Flame, Trophy, Gift, Wallet, User, Users, PlusSquare, Award } from 'lucide-react';
 
 export default function MobileBottomNav() {
   const pathname = usePathname();
 
+  if (pathname?.startsWith('/admin')) {
+    return null;
+  }
+
   const tabs: { name: string; href: string; icon: React.ElementType; isLive?: boolean }[] = [
     { name: 'Home', href: '/', icon: Flame },
     { name: 'Tournaments', href: '/tournaments', icon: Trophy },
-    { name: 'Squads', href: '/lfg', icon: Users },
-    { name: 'Ad', href: '/ads', icon: PlusSquare },
+    { name: 'Leaderboard', href: '/leaderboard', icon: Award },
     { name: 'Wallet', href: '/wallet', icon: Wallet },
   ];
 
