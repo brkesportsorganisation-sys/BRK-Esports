@@ -19,18 +19,51 @@ export default function AdminMatchesPage() {
   const [placement, setPlacement] = useState(1);
   const [results, setResults] = useState<MatchResult[]>([]);
 
-  useEffect(() => {
-    const list = db.getTournaments();
-    setTournaments(list);
-    if (list.length > 0) {
-      setSelectedTourId(list[0].id);
-      setResults(db.getMatchResults(list[0].id));
+  const loadMatches = async (tourId: string) => {
+    try {
+      const res = await fetch(`/api/admin/matches?tournamentId=${tourId}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.results) {
+          setResults(data.results);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('Match results load error:', err);
     }
+    setResults(db.getMatchResults(tourId));
+  };
+
+  useEffect(() => {
+    async function init() {
+      try {
+        const res = await fetch('/api/tournaments');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.tournaments && data.tournaments.length > 0) {
+            setTournaments(data.tournaments);
+            setSelectedTourId(data.tournaments[0].id);
+            loadMatches(data.tournaments[0].id);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Tournaments load error:', err);
+      }
+      const list = db.getTournaments();
+      setTournaments(list);
+      if (list.length > 0) {
+        setSelectedTourId(list[0].id);
+        setResults(db.getMatchResults(list[0].id));
+      }
+    }
+    init();
   }, []);
 
   const handleTourChange = (id: string) => {
     setSelectedTourId(id);
-    setResults(db.getMatchResults(id));
+    loadMatches(id);
   };
 
   // Placement points matrix: 1st=12, 2nd=9, 3rd=8, 4th=7, 5th=6...
@@ -40,13 +73,30 @@ export default function AdminMatchesPage() {
     return placePts + killCount;
   };
 
-  const handleAddResult = (e: React.FormEvent) => {
+  const handleAddResult = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedTourId || !teamName) return;
 
     const totalPts = calculatePoints(placement, kills);
 
-    const newRes = db.addMatchResult({
+    try {
+      await fetch('/api/admin/matches', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tournamentId: selectedTourId,
+          playerName: teamName,
+          ffUid: ffUid || '1029384756',
+          kills,
+          placement,
+          points: totalPts,
+        }),
+      });
+    } catch (err) {
+      console.warn('Match result save error:', err);
+    }
+
+    db.addMatchResult({
       tournamentId: selectedTourId,
       teamOrPlayerName: teamName,
       ffUid: ffUid || '1029384756',
@@ -55,7 +105,7 @@ export default function AdminMatchesPage() {
       points: totalPts,
     });
 
-    setResults(db.getMatchResults(selectedTourId));
+    loadMatches(selectedTourId);
     setTeamName('');
     setKills(0);
   };

@@ -12,13 +12,38 @@ export default function AdminPaymentsPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [selectedScreenshot, setSelectedScreenshot] = useState<string | null>(null);
 
-  useEffect(() => {
+  const refreshPayments = async () => {
+    try {
+      const res = await fetch('/api/admin/registrations');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.registrations) {
+          setPayments(data.registrations);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('Payments load error:', err);
+    }
     setPayments([...db.getPayments()]);
+  };
+
+  useEffect(() => {
+    refreshPayments();
   }, []);
 
-  const handleVerify = (id: string, status: 'VERIFIED' | 'REJECTED') => {
+  const handleVerify = async (id: string, status: 'VERIFIED' | 'REJECTED') => {
+    try {
+      await fetch('/api/admin/registrations', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ registrationId: id, action: status === 'VERIFIED' ? 'APPROVE' : 'REJECT' }),
+      });
+    } catch (err) {
+      console.warn('Verify error:', err);
+    }
     db.verifyPayment(id, status);
-    setPayments([...db.getPayments()]);
+    refreshPayments();
   };
 
   return (

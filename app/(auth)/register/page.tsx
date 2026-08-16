@@ -4,11 +4,10 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
-import { Flame, Lock, Mail, User as UserIcon, Gamepad2, ArrowRight } from 'lucide-react';
+import { Flame, Lock, Mail, User as UserIcon, Gamepad2, ArrowRight, Loader2 } from 'lucide-react';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import { db } from '@/lib/db';
-import { User } from '@/lib/types';
 
 function RegisterContent() {
   const router = useRouter();
@@ -20,35 +19,37 @@ function RegisterContent() {
   const [ffUid, setFfUid] = useState('');
   const [ign, setIgn] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newUser: User = {
-      id: `usr_${Date.now()}`,
-      name,
-      email,
-      password,
-      avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150',
-      role: 'USER',
-      freeFireUid: ffUid,
-      inGameName: ign,
-      walletBalance: 100, // Sign up bonus
-      coinBalance: 0,
-      totalKills: 0,
-      totalWins: 0,
-      earnings: 0,
-      isBanned: false,
-      referralCode: `REF_${Math.floor(1000 + Math.random() * 9000)}`,
-      createdAt: new Date().toISOString(),
-    };
+    setErrorMsg('');
+    setLoading(true);
 
-    if (refCode) {
-      db.incrementReferral(refCode);
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password, ffUid, ign, refCode }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setErrorMsg(data.message || 'Registration failed.');
+        setLoading(false);
+        return;
+      }
+
+      // Save user in local state & localStorage
+      db.setCurrentUser(data.user);
+      router.push('/profile');
+    } catch {
+      setErrorMsg('Failed to connect to server. Please try again.');
+    } finally {
+      setLoading(false);
     }
-
-    db.getUsers().push(newUser);
-    db.setCurrentUser(newUser);
-    router.push('/profile');
   };
 
   return (
@@ -59,78 +60,113 @@ function RegisterContent() {
         <div className="glass-card rounded-3xl p-8 max-w-md w-full border-2 border-brand-orange/30 shadow-cyber space-y-6 relative z-10">
           
           <div className="text-center space-y-2">
-            <h2 className="font-heading font-black text-3xl text-white">PLAYER REGISTRATION</h2>
-            <p className="text-xs text-gray-400">Join Black Rock Tournaments & get ৳100 signup bonus!</p>
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-red to-brand-orange p-0.5 mx-auto shadow-neon-red">
+              <div className="w-full h-full bg-background rounded-[14px] flex items-center justify-center">
+                <Flame className="w-6 h-6 text-brand-red animate-pulse" />
+              </div>
+            </div>
+            <h2 className="font-heading font-black text-3xl text-white">JOIN ARENA</h2>
+            <p className="text-xs text-gray-400">Register & Get <span className="text-brand-gold font-bold">100 BDT Sign-up Bonus</span></p>
           </div>
+
+          {errorMsg && (
+            <div className="p-3.5 rounded-xl bg-brand-red/10 border border-brand-red/30 text-brand-red text-xs font-semibold text-center">
+              {errorMsg}
+            </div>
+          )}
 
           <form onSubmit={handleRegister} className="space-y-4">
             <div>
               <label className="text-xs font-bold text-gray-300 uppercase block mb-1">Full Name</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                className="w-full bg-surface-light border border-surface-border rounded-xl px-4 py-2.5 text-xs text-white"
-                placeholder="e.g. Tanvir Hossain"
-              />
+              <div className="relative">
+                <UserIcon className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Tanvir Ashik"
+                  required
+                  className="w-full bg-surface-light border border-surface-border rounded-xl pl-10 pr-4 py-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-brand-orange"
+                />
+              </div>
             </div>
 
             <div>
               <label className="text-xs font-bold text-gray-300 uppercase block mb-1">Email Address</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full bg-surface-light border border-surface-border rounded-xl px-4 py-2.5 text-xs text-white"
-                placeholder="e.g. player@gmail.com"
-              />
+              <div className="relative">
+                <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="player@example.com"
+                  required
+                  className="w-full bg-surface-light border border-surface-border rounded-xl pl-10 pr-4 py-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-brand-orange"
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-bold text-gray-300 uppercase block mb-1">In-Game Name (IGN)</label>
+                <div className="relative">
+                  <Gamepad2 className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={ign}
+                    onChange={(e) => setIgn(e.target.value)}
+                    placeholder="BRK_KILLER"
+                    required
+                    className="w-full bg-surface-light border border-surface-border rounded-xl pl-10 pr-4 py-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-brand-orange"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="text-xs font-bold text-gray-300 uppercase block mb-1">Free Fire UID</label>
                 <input
                   type="text"
                   value={ffUid}
                   onChange={(e) => setFfUid(e.target.value)}
+                  placeholder="1234567890"
                   required
-                  className="w-full bg-surface-light border border-surface-border rounded-xl px-3 py-2.5 text-xs text-white font-mono"
-                  placeholder="1029384756"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-gray-300 uppercase block mb-1">In-Game Name</label>
-                <input
-                  type="text"
-                  value={ign}
-                  onChange={(e) => setIgn(e.target.value)}
-                  required
-                  className="w-full bg-surface-light border border-surface-border rounded-xl px-3 py-2.5 text-xs text-white"
-                  placeholder="VIP_TANVIR_FF"
+                  className="w-full bg-surface-light border border-surface-border rounded-xl px-4 py-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-brand-orange"
                 />
               </div>
             </div>
 
             <div>
               <label className="text-xs font-bold text-gray-300 uppercase block mb-1">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full bg-surface-light border border-surface-border rounded-xl px-4 py-2.5 text-xs text-white"
-                placeholder="••••••••"
-              />
+              <div className="relative">
+                <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Min 6 characters"
+                  required
+                  minLength={6}
+                  className="w-full bg-surface-light border border-surface-border rounded-xl pl-10 pr-4 py-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-brand-orange"
+                />
+              </div>
             </div>
 
             <button
               type="submit"
-              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold text-white font-heading font-black text-sm shadow-neon-red hover:brightness-110 transition-all flex items-center justify-center space-x-2"
+              disabled={loading}
+              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold text-white font-heading font-black text-sm shadow-neon-red hover:brightness-110 transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
             >
-              <span>CREATE ACCOUNT</span>
-              <ArrowRight className="w-4 h-4" />
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>CREATING ACCOUNT...</span>
+                </>
+              ) : (
+                <>
+                  <span>CLAIM BONUS & REGISTER</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
             </button>
           </form>
 

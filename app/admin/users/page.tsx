@@ -43,26 +43,76 @@ export default function AdminUsersPage() {
     adminPermissions: []
   });
 
-  useEffect(() => {
+  const refreshUsers = async () => {
+    try {
+      const res = await fetch('/api/admin/users');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.users) {
+          setUsers(data.users);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('Live users load error:', err);
+    }
     setUsers([...db.getUsers()]);
+  };
+
+  useEffect(() => {
+    refreshUsers();
   }, []);
 
-  const refreshUsers = () => setUsers([...db.getUsers()]);
-
-  const handleBanToggle = (id: string) => {
+  const handleBanToggle = async (id: string) => {
+    const target = users.find(u => u.id === id);
+    if (!target) return;
+    try {
+      await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, isBanned: !target.isBanned }),
+      });
+    } catch (err) {
+      console.warn('Ban toggle error:', err);
+    }
     db.toggleBanUser(id);
     refreshUsers();
   };
 
-  const handleRoleChange = (id: string, role: Role) => {
+  const handleRoleChange = async (id: string, role: Role) => {
+    try {
+      await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, role }),
+      });
+    } catch (err) {
+      console.warn('Role change error:', err);
+    }
     db.updateUser(id, { role });
     refreshUsers();
   };
 
-  const handleAddFunds = (e: React.FormEvent) => {
+  const handleAddFunds = async (e: React.FormEvent) => {
     e.preventDefault();
     const targetUser = users.find(u => u.id === fundModal.userId);
     if (!targetUser) return;
+
+    try {
+      const updates: Record<string, any> = { id: fundModal.userId };
+      if (fundModal.type === 'WALLET') {
+        updates.walletBalance = targetUser.walletBalance + fundModal.amount;
+      } else {
+        updates.coinBalance = (targetUser.coinBalance || 0) + fundModal.amount;
+      }
+      await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+    } catch (err) {
+      console.warn('Funds update error:', err);
+    }
 
     if (fundModal.type === 'WALLET') {
       db.updateUser(fundModal.userId, { walletBalance: targetUser.walletBalance + fundModal.amount });
@@ -85,10 +135,24 @@ export default function AdminUsersPage() {
     });
   };
 
-  const handleSavePermissions = (e: React.FormEvent) => {
+  const handleSavePermissions = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!permissionsModal.user) return;
     
+    try {
+      await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: permissionsModal.user.id,
+          role: permissionsModal.role,
+          adminPermissions: permissionsModal.adminPermissions,
+        }),
+      });
+    } catch (err) {
+      console.warn('Permissions save error:', err);
+    }
+
     db.updateUser(permissionsModal.user.id, {
       role: permissionsModal.role,
       password: permissionsModal.password,
@@ -99,7 +163,7 @@ export default function AdminUsersPage() {
     refreshUsers();
   };
 
-  const handleVendorSubmit = (e: React.FormEvent) => {
+  const handleVendorSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const name = vendorForm.name.trim();
@@ -112,29 +176,57 @@ export default function AdminUsersPage() {
     }
 
     if (editingVendorId) {
-      const updated = db.updateUser(editingVendorId, {
+      try {
+        const res = await fetch('/api/admin/users', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: editingVendorId,
+            name,
+            inGameName: vendorForm.inGameName.trim() || name,
+          }),
+        });
+        if (res.ok) {
+          setVendorMessage('Vendor account updated successfully.');
+        }
+      } catch (err) {
+        console.warn('Vendor edit error:', err);
+      }
+
+      db.updateUser(editingVendorId, {
         name,
         email,
         password,
         inGameName: vendorForm.inGameName.trim() || name,
       });
-      if (!updated) {
-        setVendorMessage('Unable to update this vendor.');
-        return;
-      }
-      setVendorMessage('Vendor account updated successfully.');
     } else {
-      const created = db.createVendor({
+      try {
+        const res = await fetch('/api/admin/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name,
+            email,
+            password,
+            inGameName: vendorForm.inGameName.trim() || name,
+          }),
+        });
+        if (res.ok) {
+          setVendorMessage('New vendor account created successfully.');
+        } else {
+          const data = await res.json();
+          setVendorMessage(data.message || 'Failed to create vendor.');
+        }
+      } catch (err) {
+        console.warn('Vendor create error:', err);
+      }
+
+      db.createVendor({
         name,
         email,
         password,
         inGameName: vendorForm.inGameName.trim() || name,
       });
-      if (!created) {
-        setVendorMessage('This vendor email already exists.');
-        return;
-      }
-      setVendorMessage('New vendor account created successfully.');
     }
 
     setVendorForm({ name: '', email: '', password: '', inGameName: '' });

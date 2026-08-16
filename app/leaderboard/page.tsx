@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Award, Trophy, Users, Search, Flame, Shield } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Award, Trophy, Users, Search, Flame, Shield, Loader2 } from 'lucide-react';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import { playerLeaderboard, teamLeaderboard } from '@/lib/mock-data';
@@ -9,8 +9,33 @@ import { playerLeaderboard, teamLeaderboard } from '@/lib/mock-data';
 export default function LeaderboardPage() {
   const [activeTab, setActiveTab] = useState<'PLAYERS' | 'TEAMS'>('PLAYERS');
   const [searchQuery, setSearchQuery] = useState('');
+  const [players, setPlayers] = useState(playerLeaderboard);
+  const [teams, setTeams] = useState(teamLeaderboard);
+  const [loading, setLoading] = useState(true);
 
-  const currentList = activeTab === 'PLAYERS' ? playerLeaderboard : teamLeaderboard;
+  useEffect(() => {
+    async function loadLeaderboard() {
+      try {
+        const res = await fetch('/api/leaderboard');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.players && data.players.length > 0) {
+            setPlayers(data.players);
+          }
+          if (data.teams && data.teams.length > 0) {
+            setTeams(data.teams);
+          }
+        }
+      } catch (err) {
+        console.warn('Using cached leaderboard data:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadLeaderboard();
+  }, []);
+
+  const currentList = activeTab === 'PLAYERS' ? players : teams;
 
   const filteredList = currentList.filter(item =>
     item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||

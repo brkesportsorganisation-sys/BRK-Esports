@@ -34,12 +34,42 @@ export default function Navbar() {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    setCurrentUser(db.getCurrentUser());
+    const cur = db.getCurrentUser();
+    setCurrentUser(cur);
     
-    // Load announcements
+    async function loadLiveNavbarData() {
+      try {
+        const [annRes, userRes] = await Promise.all([
+          fetch('/api/announcements'),
+          cur ? fetch(`/api/auth/me?id=${cur.id}`) : Promise.resolve(null)
+        ]);
+
+        if (annRes.ok) {
+          const annData = await annRes.json();
+          if (annData.announcements) {
+            setAnnouncements(annData.announcements);
+            setUnreadCount(annData.announcements.length);
+          }
+        }
+
+        if (userRes && userRes.ok) {
+          const uData = await userRes.json();
+          if (uData.user) {
+            setCurrentUser(uData.user);
+            db.setCurrentUser(uData.user);
+          }
+        }
+      } catch (err) {
+        console.warn('Navbar live load error:', err);
+      }
+    }
+
+    // Load local fallback
     const loadedAnnouncements = db.getAnnouncements();
     setAnnouncements(loadedAnnouncements);
-    setUnreadCount(loadedAnnouncements.length); // Dummy unread count
+    setUnreadCount(loadedAnnouncements.length);
+
+    loadLiveNavbarData();
   }, []);
 
   const handleRoleSwitch = (role: 'ADMIN' | 'MODERATOR' | 'USER') => {

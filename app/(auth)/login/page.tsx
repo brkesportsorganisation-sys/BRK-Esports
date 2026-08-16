@@ -3,37 +3,66 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Flame, Lock, Mail, ArrowRight, ShieldCheck, Gamepad2 } from 'lucide-react';
+import { Flame, Lock, Mail, ArrowRight, Loader2 } from 'lucide-react';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import { db } from '@/lib/db';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('admin@helian.gg');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const found = db.loginWithEmailAndPassword(email, password);
-    if (found) {
-      db.setCurrentUser(found);
+    setErrorMsg('');
+    setLoading(true);
 
-      if (found.role === 'ADMIN') {
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        // Fallback check in local db if offline
+        const localFound = db.loginWithEmailAndPassword(email, password);
+        if (localFound) {
+          db.setCurrentUser(localFound);
+          if (localFound.role === 'ADMIN' || localFound.role === 'SUPER_ADMIN') {
+            router.push('/admin');
+          } else if (localFound.role === 'VENDOR') {
+            router.push('/vendor');
+          } else {
+            router.push('/profile');
+          }
+          return;
+        }
+        setErrorMsg(data.message || 'Invalid email or password.');
+        setLoading(false);
+        return;
+      }
+
+      // Save user in local state & localStorage
+      db.setCurrentUser(data.user);
+
+      if (data.user.role === 'ADMIN' || data.user.role === 'SUPER_ADMIN') {
         router.push('/admin');
-        return;
-      }
-
-      if (found.role === 'VENDOR') {
+      } else if (data.user.role === 'VENDOR') {
         router.push('/vendor');
-        return;
+      } else {
+        router.push('/profile');
       }
-
-      router.push('/profile');
-      return;
+    } catch {
+      setErrorMsg('Failed to connect to server. Please try again.');
+    } finally {
+      setLoading(false);
     }
-
-    alert('Invalid email or password.');
   };
 
   return (
@@ -55,13 +84,11 @@ export default function LoginPage() {
             <p className="text-xs text-gray-400">Welcome back to Black Rock Championship Arena</p>
           </div>
 
-          {/* Quick Demo Credentials Banner */}
-          <div className="p-3 rounded-xl bg-surface-light border border-surface-border text-xs space-y-1 text-gray-300">
-            <div className="font-bold text-brand-gold">Demo Quick Login:</div>
-            <div>Admin: <code className="text-brand-cyan">admin@helian.gg / admin123</code></div>
-            <div>Vendor: <code className="text-brand-cyan">vendor@helian.gg / vendor123</code></div>
-            <div>Player: <code className="text-brand-orange">tanvir@gmail.com / player123</code></div>
-          </div>
+          {errorMsg && (
+            <div className="p-3.5 rounded-xl bg-brand-red/10 border border-brand-red/30 text-brand-red text-xs font-semibold text-center">
+              {errorMsg}
+            </div>
+          )}
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
@@ -72,6 +99,7 @@ export default function LoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your.email@example.com"
                   required
                   className="w-full bg-surface-light border border-surface-border rounded-xl pl-10 pr-4 py-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-brand-orange"
                 />
@@ -86,6 +114,7 @@ export default function LoginPage() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
                   required
                   className="w-full bg-surface-light border border-surface-border rounded-xl pl-10 pr-4 py-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-brand-orange"
                 />
@@ -94,15 +123,25 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold text-white font-heading font-black text-sm shadow-neon-red hover:brightness-110 transition-all flex items-center justify-center space-x-2"
+              disabled={loading}
+              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold text-white font-heading font-black text-sm shadow-neon-red hover:brightness-110 transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
             >
-              <span>SIGN IN TO PLAY</span>
-              <ArrowRight className="w-4 h-4" />
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>SIGNING IN...</span>
+                </>
+              ) : (
+                <>
+                  <span>SIGN IN TO PLAY</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
             </button>
           </form>
 
           <div className="text-center pt-2 border-t border-surface-border text-xs text-gray-400">
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <Link href="/register" className="text-brand-orange font-bold hover:underline">
               Create Account
             </Link>

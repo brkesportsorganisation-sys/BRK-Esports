@@ -5,13 +5,8 @@ import {
   Wallet as WalletIcon, 
   ArrowDownLeft, 
   ArrowUpRight, 
-  Check, 
-  Clock, 
-  AlertCircle,
-  CreditCard,
-  Building2,
-  DollarSign,
-  Coins
+  Coins,
+  Loader2
 } from 'lucide-react';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
@@ -22,6 +17,7 @@ import { User, Payment, PaymentMethod } from '@/lib/types';
 export default function WalletPage() {
   const [user, setUser] = useState<User | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [loading, setLoading] = useState(false);
 
   // Deposit Modal State
   const [isDepositOpen, setIsDepositOpen] = useState(false);
@@ -35,34 +31,83 @@ export default function WalletPage() {
   const [withdrawAmount, setWithdrawAmount] = useState(500);
   const [accountNumber, setAccountNumber] = useState('');
 
-  useEffect(() => {
-    setUser(db.getCurrentUser());
+  const refreshUserData = async (currentUser: User) => {
+    try {
+      const [userRes, payRes] = await Promise.all([
+        fetch(`/api/auth/me?id=${currentUser.id}`),
+        fetch(`/api/wallet/history?userId=${currentUser.id}`)
+      ]);
+
+      if (userRes.ok) {
+        const uData = await userRes.json();
+        if (uData.user) {
+          setUser(uData.user);
+          db.setCurrentUser(uData.user);
+        }
+      }
+
+      if (payRes.ok) {
+        const pData = await payRes.json();
+        if (pData.payments) {
+          setPayments(pData.payments);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('Using cached wallet data:', err);
+    }
     setPayments([...db.getPayments()]);
+  };
+
+  useEffect(() => {
+    const cur = db.getCurrentUser();
+    if (cur) {
+      setUser(cur);
+      refreshUserData(cur);
+    }
   }, []);
 
   if (!user) return null;
 
-  const handleDepositSubmit = (e: React.FormEvent) => {
+  const handleDepositSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!trxId) return;
+    setLoading(true);
 
-    db.submitPayment({
-      userId: user.id,
-      userName: user.name,
-      userEmail: user.email,
-      method: depositMethod,
-      amount: depositAmount,
-      trxId: trxId,
-      screenshot: 'https://images.unsplash.com/photo-1556742049-0a67d2685718?w=500',
-    });
+    try {
+      const res = await fetch('/api/wallet/deposit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          userName: user.name,
+          userEmail: user.email,
+          method: depositMethod,
+          amount: depositAmount,
+          trxId: trxId.trim(),
+        }),
+      });
 
-    setPayments([...db.getPayments()]);
-    setIsDepositOpen(false);
-    setTrxId('');
-    alert('Deposit request submitted! Admin will verify your transaction.');
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.message || 'Deposit submission failed.');
+        setLoading(false);
+        return;
+      }
+
+      alert('Deposit request submitted! Admin will verify your transaction.');
+      setIsDepositOpen(false);
+      setTrxId('');
+      await refreshUserData(user);
+    } catch {
+      alert('Failed to submit deposit. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleWithdrawSubmit = (e: React.FormEvent) => {
+  const handleWithdrawSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (withdrawAmount > user.walletBalance) {
       alert('Insufficient wallet balance!');
@@ -163,25 +208,31 @@ export default function WalletPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-700/60">
-                {payments.map((p) => (
-                  <tr key={p.id} className="hover:bg-slate-800/50">
-                    <td className="p-3 font-mono text-xs text-brand-cyan">{p.trxId}</td>
-                    <td className="p-3 font-bold text-white uppercase">{p.method}</td>
-                    <td className="p-3 font-heading font-extrabold text-brand-gold text-base">৳ {p.amount}</td>
-                    <td className="p-3">
-                      <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${
-                        p.status === 'VERIFIED' ? 'bg-green-900/30 text-green-400 border border-green-500/30' :
-                        p.status === 'PENDING' ? 'bg-yellow-900/30 text-yellow-400 border border-yellow-500/30' :
-                        'bg-red-900/30 text-red-400 border border-red-500/30'
-                      }`}>
-                        {p.status}
-                      </span>
-                    </td>
-                    <td className="p-3 text-right text-xs text-slate-400">
-                      {new Date(p.createdAt).toLocaleDateString()}
-                    </td>
+                {payments.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="p-6 text-center text-slate-400">No transactions recorded yet.</td>
                   </tr>
-                ))}
+                ) : (
+                  payments.map((p) => (
+                    <tr key={p.id} className="hover:bg-slate-800/50">
+                      <td className="p-3 font-mono text-xs text-brand-cyan">{p.trxId}</td>
+                      <td className="p-3 font-bold text-white uppercase">{p.method}</td>
+                      <td className="p-3 font-heading font-extrabold text-brand-gold text-base">৳ {p.amount}</td>
+                      <td className="p-3">
+                        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${
+                          p.status === 'VERIFIED' ? 'bg-green-900/30 text-green-400 border border-green-500/30' :
+                          p.status === 'PENDING' ? 'bg-yellow-900/30 text-yellow-400 border border-yellow-500/30' :
+                          'bg-red-900/30 text-red-400 border border-red-500/30'
+                        }`}>
+                          {p.status}
+                        </span>
+                      </td>
+                      <td className="p-3 text-right text-xs text-slate-400">
+                        {new Date(p.createdAt).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -226,6 +277,7 @@ export default function WalletPage() {
                   value={depositAmount}
                   onChange={(e) => setDepositAmount(Number(e.target.value))}
                   required
+                  min={50}
                   className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white font-bold"
                 />
               </div>
@@ -252,9 +304,10 @@ export default function WalletPage() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-bold"
+                  disabled={loading}
+                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-bold flex items-center justify-center space-x-1 disabled:opacity-50"
                 >
-                  SUBMIT DEPOSIT
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>SUBMIT DEPOSIT</span>}
                 </button>
               </div>
             </form>
@@ -306,6 +359,7 @@ export default function WalletPage() {
                   value={withdrawAmount}
                   onChange={(e) => setWithdrawAmount(Number(e.target.value))}
                   required
+                  min={100}
                   className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white font-bold"
                 />
               </div>

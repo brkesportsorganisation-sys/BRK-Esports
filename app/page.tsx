@@ -29,6 +29,7 @@ import { playerLeaderboard } from '@/lib/mock-data';
 export default function HomePage() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(playerLeaderboard);
   const [activeTab, setActiveTab] = useState<'ALL' | 'SQUAD' | 'SOLO' | 'CS_RANKED'>('ALL');
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
@@ -46,6 +47,14 @@ export default function HomePage() {
 
     const loadAnnouncements = async () => {
       try {
+        const res = await fetch('/api/announcements?category=TOURNAMENT');
+        if (res.ok) {
+          const payload = await res.json();
+          if (payload.announcements && payload.announcements.length > 0) {
+            setAnnouncements(payload.announcements);
+            return;
+          }
+        }
         const { db } = await import('@/lib/db');
         const loadedAnnouncements = db.getAnnouncements().filter(a => a.category === 'TOURNAMENT');
         setAnnouncements(loadedAnnouncements);
@@ -54,8 +63,23 @@ export default function HomePage() {
       }
     };
 
+    const loadLeaderboard = async () => {
+      try {
+        const res = await fetch('/api/leaderboard');
+        if (res.ok) {
+          const payload = await res.json();
+          if (payload.players && payload.players.length > 0) {
+            setLeaderboard(payload.players);
+          }
+        }
+      } catch (err) {
+        console.warn('Using cached leaderboard for homepage:', err);
+      }
+    };
+
     void loadTournaments();
     void loadAnnouncements();
+    void loadLeaderboard();
   }, []);
 
   const filteredTournaments = tournaments.filter(t => {
@@ -376,7 +400,7 @@ export default function HomePage() {
 
           <div className="lg:col-span-7">
             <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-2">
-              {playerLeaderboard.slice(0, 4).map((player) => (
+              {leaderboard.slice(0, 4).map((player) => (
                 <div
                   key={player.id}
                   className="flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors"

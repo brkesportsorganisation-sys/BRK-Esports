@@ -62,6 +62,43 @@ function ProfilePageContent() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
 
+  const refreshProfile = async (currentUser: User) => {
+    try {
+      const [uRes, tRes, pRes] = await Promise.all([
+        fetch(`/api/auth/me?id=${currentUser.id}`),
+        fetch(`/api/teams?userId=${currentUser.id}`),
+        fetch(`/api/wallet/history?userId=${currentUser.id}`)
+      ]);
+
+      if (uRes.ok) {
+        const uData = await uRes.json();
+        if (uData.user) {
+          setUser(uData.user);
+          setFfUid(uData.user.freeFireUid || '');
+          setIgn(uData.user.inGameName || '');
+          setAvatar(uData.user.avatar || '');
+          db.setCurrentUser(uData.user);
+        }
+      }
+
+      if (tRes.ok) {
+        const tData = await tRes.json();
+        if (tData.teams && tData.teams.length > 0) {
+          setTeams(tData.teams);
+        }
+      }
+
+      if (pRes.ok) {
+        const pData = await pRes.json();
+        if (pData.payments) {
+          setPayments(pData.payments);
+        }
+      }
+    } catch (err) {
+      console.warn('Profile load error:', err);
+    }
+  };
+
   useEffect(() => {
     const curUser = db.getCurrentUser();
     if (curUser) {
@@ -69,6 +106,7 @@ function ProfilePageContent() {
       setFfUid(curUser.freeFireUid || '');
       setIgn(curUser.inGameName || '');
       setAvatar(curUser.avatar || '');
+      refreshProfile(curUser);
     }
     setTeams(db.getTeams());
     setPayments(db.getPayments());
@@ -99,8 +137,31 @@ function ProfilePageContent() {
     setTimeout(() => setCopiedRef(false), 2000);
   };
 
-  const handleProfileUpdate = (e: React.FormEvent) => {
+  const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
+    try {
+      const res = await fetch('/api/user/update', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          freeFireUid: ffUid,
+          inGameName: ign,
+          avatar: avatar || user.avatar,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setUser(data.user);
+        db.setCurrentUser(data.user);
+        setIsEditModalOpen(false);
+        return;
+      }
+    } catch (err) {
+      console.warn('Profile update API error:', err);
+    }
+
     const updated = db.updateUser(user.id, {
       freeFireUid: ffUid,
       inGameName: ign,
@@ -112,9 +173,34 @@ function ProfilePageContent() {
     }
   };
 
-  const handleCreateTeam = (e: React.FormEvent) => {
+  const handleCreateTeam = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!teamName || !teamTag) return;
+
+    try {
+      const res = await fetch('/api/teams', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: teamName,
+          tag: teamTag,
+          captainId: user.id,
+          captainName: user.inGameName || user.name,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setTeams([data.team, ...teams]);
+        setIsTeamModalOpen(false);
+        setTeamName('');
+        setTeamTag('');
+        return;
+      }
+    } catch (err) {
+      console.warn('Team create API error:', err);
+    }
+
     db.createTeam(teamName, teamTag);
     setTeams([...db.getTeams()]);
     setIsTeamModalOpen(false);
@@ -122,7 +208,29 @@ function ProfilePageContent() {
     setTeamTag('');
   };
 
-  const handleClaimMilestone = (milestoneId: number, rewardType: 'COIN' | 'WALLET', rewardAmount: number) => {
+  const handleClaimMilestone = async (milestoneId: number, rewardType: 'COIN' | 'WALLET', rewardAmount: number) => {
+    try {
+      const res = await fetch('/api/user/milestone', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          milestoneId,
+          rewardType,
+          rewardAmount,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setUser(data.user);
+        db.setCurrentUser(data.user);
+        return;
+      }
+    } catch (err) {
+      console.warn('Milestone claim API error:', err);
+    }
+
     const updated = db.claimReferralMilestone(user.id, milestoneId, rewardType, rewardAmount);
     if (updated) {
       setUser({ ...updated });

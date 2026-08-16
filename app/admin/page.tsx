@@ -23,16 +23,40 @@ export default function AdminDashboardPage() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [overview, setOverview] = useState<any>(null);
 
   useEffect(() => {
     setCurrentUser(db.getCurrentUser());
     setTournaments(db.getTournaments());
     setPayments(db.getPayments());
     setUsers(db.getUsers());
+
+    async function loadLiveOverview() {
+      try {
+        const [ovRes, tRes] = await Promise.all([
+          fetch('/api/admin/overview'),
+          fetch('/api/tournaments')
+        ]);
+        if (ovRes.ok) {
+          const ovData = await ovRes.json();
+          setOverview(ovData);
+          if (ovData.recentPayments) setPayments(ovData.recentPayments);
+        }
+        if (tRes.ok) {
+          const tData = await tRes.json();
+          if (tData.tournaments) setTournaments(tData.tournaments);
+        }
+      } catch (err) {
+        console.warn('Admin overview fetch error:', err);
+      }
+    }
+    loadLiveOverview();
   }, []);
 
-  const pendingPayments = payments.filter(p => p.status === 'PENDING');
-  const activeTournaments = tournaments.filter(t => t.status === 'LIVE' || t.status === 'UPCOMING');
+  const pendingPayments = overview ? overview.pendingPayments : payments.filter(p => p.status === 'PENDING').length;
+  const activeTournaments = overview ? overview.activeTournaments : tournaments.filter(t => t.status === 'LIVE' || t.status === 'UPCOMING').length;
+  const totalUsersCount = overview ? overview.totalUsers : users.length;
+  const totalRevenueAmount = overview ? overview.totalRevenue : payments.filter(p => p.status === 'VERIFIED').reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
 
   const chartData = [
     { day: 'Mon', revenue: 12000, players: 450 },
