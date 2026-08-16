@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
-import { Flame, Lock, Mail, User as UserIcon, Gamepad2, ArrowRight, Loader2, CheckCircle2, Sparkles, RefreshCw } from 'lucide-react';
+import { Flame, Lock, Mail, User as UserIcon, Gamepad2, ArrowRight, Loader2, CheckCircle2, Sparkles, AlertCircle } from 'lucide-react';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import { db } from '@/lib/db';
@@ -22,32 +22,41 @@ function RegisterContent() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   
-  // UID Auto IGN Fetch State
+  // Real-time UID to Player Name Fetch State
   const [isFetchingIgn, setIsFetchingIgn] = useState(false);
-  const [ignFetchedSuccess, setIgnFetchedSuccess] = useState(false);
+  const [fetchStatus, setFetchStatus] = useState<{ status: 'idle' | 'loading' | 'success' | 'failed'; message?: string }>({ status: 'idle' });
 
-  const fetchIgnFromUid = async (uidToFetch: string) => {
-    const cleanUid = uidToFetch.trim();
-    if (cleanUid.length < 8) return;
-
-    setIsFetchingIgn(true);
-    try {
-      const res = await fetch(`/api/freefire/lookup?uid=${encodeURIComponent(cleanUid)}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && data.nickname) {
-          setIgn(data.nickname);
-          setIgnFetchedSuccess(true);
-        } else {
-          setIgnFetchedSuccess(false);
-        }
-      }
-    } catch {
-      setIgnFetchedSuccess(false);
-    } finally {
-      setIsFetchingIgn(false);
+  // Debounced auto-fetch when UID is 8+ digits
+  useEffect(() => {
+    const cleanUid = ffUid.trim();
+    if (cleanUid.length < 8) {
+      setFetchStatus({ status: 'idle' });
+      return;
     }
-  };
+
+    const timer = setTimeout(async () => {
+      setIsFetchingIgn(true);
+      setFetchStatus({ status: 'loading', message: 'Loading...' });
+
+      try {
+        const res = await fetch(`/api/get-player-name/${encodeURIComponent(cleanUid)}`);
+        const data = await res.json();
+
+        if (res.ok && data.success && data.nickname) {
+          setIgn(data.nickname);
+          setFetchStatus({ status: 'success', message: `Player Name: ${data.nickname}` });
+        } else {
+          setFetchStatus({ status: 'failed', message: 'Player ID পাওয়া যায়নি / ম্যানুয়ালি লিখুন' });
+        }
+      } catch (err) {
+        setFetchStatus({ status: 'failed', message: 'Error fetching player name' });
+      } finally {
+        setIsFetchingIgn(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [ffUid]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,7 +158,7 @@ function RegisterContent() {
               </div>
             </div>
 
-            {/* Free Fire UID & IGN Fields */}
+            {/* Free Fire UID & Auto-Fetched IGN */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-bold text-slate-800 uppercase block mb-1">
@@ -159,23 +168,23 @@ function RegisterContent() {
                   <input
                     type="text"
                     value={ffUid}
-                    onChange={(e) => {
-                      setFfUid(e.target.value);
-                      if (e.target.value.length >= 8) {
-                        fetchIgnFromUid(e.target.value);
-                      }
-                    }}
+                    onChange={(e) => setFfUid(e.target.value)}
                     placeholder="e.g. 2172143722"
                     required
                     className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-3 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-orange focus:bg-white transition-all font-mono font-bold"
                   />
+                  {isFetchingIgn && (
+                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-brand-orange" />
+                    </div>
+                  )}
                 </div>
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-xs font-bold text-slate-800 uppercase">In-Game Name (IGN) *</label>
-                  {ignFetchedSuccess && (
+                  {fetchStatus.status === 'success' && (
                     <span className="text-[9px] font-bold text-emerald-600 flex items-center gap-0.5 font-mono">
                       <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" /> Verified
                     </span>
@@ -186,22 +195,34 @@ function RegisterContent() {
                   <input
                     type="text"
                     value={ign}
-                    onChange={(e) => {
-                      setIgn(e.target.value);
-                      setIgnFetchedSuccess(false);
-                    }}
-                    placeholder={isFetchingIgn ? "Fetching from Garena..." : "Enter your game name"}
+                    onChange={(e) => setIgn(e.target.value)}
+                    placeholder={isFetchingIgn ? "Loading..." : "Enter player IGN"}
                     required
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-10 pr-4 py-3 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-orange focus:bg-white transition-all font-bold"
+                    className={`w-full border rounded-xl pl-10 pr-4 py-3 text-xs text-slate-900 placeholder-slate-400 focus:outline-none transition-all font-bold ${
+                      fetchStatus.status === 'success' 
+                        ? 'bg-emerald-50 border-emerald-500 text-emerald-950 font-black' 
+                        : 'bg-slate-50 border-slate-300 focus:border-brand-orange focus:bg-white'
+                    }`}
                   />
-                  {isFetchingIgn && (
-                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-brand-orange" />
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
+
+            {/* Fetch Status Message Indicator */}
+            {fetchStatus.message && (
+              <div className={`text-[11px] font-semibold px-2 py-1 rounded-lg flex items-center gap-1.5 ${
+                fetchStatus.status === 'success' 
+                  ? 'text-emerald-700 bg-emerald-50 border border-emerald-200' 
+                  : fetchStatus.status === 'loading'
+                  ? 'text-orange-700 bg-orange-50 border border-orange-200 animate-pulse'
+                  : 'text-slate-600 bg-slate-100 border border-slate-200'
+              }`}>
+                {fetchStatus.status === 'success' && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />}
+                {fetchStatus.status === 'loading' && <Loader2 className="w-3.5 h-3.5 text-orange-600 animate-spin flex-shrink-0" />}
+                {fetchStatus.status === 'failed' && <AlertCircle className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />}
+                <span>{fetchStatus.message}</span>
+              </div>
+            )}
 
             {/* Password */}
             <div>

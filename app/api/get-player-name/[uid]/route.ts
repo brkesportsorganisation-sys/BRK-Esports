@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(request: NextRequest) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ uid: string }> }
+) {
   try {
-    const { searchParams } = new URL(request.url);
-    const uid = searchParams.get('uid')?.trim();
+    const { uid } = await params;
+    const cleanUid = uid?.trim();
 
-    if (!uid || uid.length < 6) {
-      return NextResponse.json({ success: false, message: 'Valid Free Fire UID is required.' }, { status: 400 });
+    if (!cleanUid || cleanUid.length < 6) {
+      return NextResponse.json({ success: false, message: 'Valid Free Fire UID is required (min 6-8 digits).' }, { status: 400 });
     }
 
     const garenaEndpoints = [
@@ -37,7 +40,7 @@ export async function GET(request: NextRequest) {
           },
           body: JSON.stringify({
             app_id: 100067,
-            login_id: uid,
+            login_id: cleanUid,
             app_server_id: 0
           }),
           signal: controller.signal
@@ -60,10 +63,10 @@ export async function GET(request: NextRequest) {
     // 2. Fallback to Open Free Fire Lookup Aggregator Gateways
     if (!foundNickname) {
       const aggregatorEndpoints = [
-        `https://free-fire-api.vercel.app/api/player/${uid}`,
-        `https://api-player-info-ff.vercel.app/api/player?uid=${uid}`,
-        `https://ff-api-gamma.vercel.app/api/player?uid=${uid}`,
-        `https://api.zoneff.com/api/player?uid=${uid}`
+        `https://free-fire-api.vercel.app/api/player/${cleanUid}`,
+        `https://api-player-info-ff.vercel.app/api/player?uid=${cleanUid}`,
+        `https://ff-api-gamma.vercel.app/api/player?uid=${cleanUid}`,
+        `https://api.zoneff.com/api/player?uid=${cleanUid}`
       ];
 
       for (const endpoint of aggregatorEndpoints) {
@@ -92,7 +95,7 @@ export async function GET(request: NextRequest) {
     if (foundNickname) {
       return NextResponse.json({
         success: true,
-        uid,
+        uid: cleanUid,
         nickname: foundNickname,
         region: foundRegion
       });
@@ -104,7 +107,7 @@ export async function GET(request: NextRequest) {
     }, { status: 404 });
 
   } catch (error: any) {
-    console.error('[API /api/freefire/lookup]', error);
+    console.error('[API /api/get-player-name/:uid]', error);
     return NextResponse.json({ success: false, message: 'Server error fetching player name.' }, { status: 500 });
   }
 }
