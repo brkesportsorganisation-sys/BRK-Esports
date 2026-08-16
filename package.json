@@ -12,6 +12,7 @@
     "@neondatabase/serverless": "^1.1.0",
     "@prisma/adapter-neon": "^7.9.1",
     "@prisma/client": "^7.9.1",
+    "@supabase/supabase-js": "^2.49.1",
     "bcryptjs": "^3.0.3",
     "canvas-confetti": "^1.9.3",
     "clsx": "^2.1.1",
