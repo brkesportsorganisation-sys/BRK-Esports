@@ -12,8 +12,12 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     authenticated: true,
     user: {
+      id: session.sub,
       email: session.email,
+      username: session.username || session.email,
+      displayName: session.displayName || session.email,
       role: session.role,
+      permissions: session.permissions || [],
     },
     exp: session.exp,
   });

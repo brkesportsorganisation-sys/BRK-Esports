@@ -233,6 +233,32 @@ CREATE TABLE IF NOT EXISTS "LFGPost" (
     "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- 14. AdminAccount Table (Discord-style custom credentials)
+CREATE TABLE IF NOT EXISTS "AdminAccount" (
+    "id" TEXT PRIMARY KEY,
+    "username" TEXT UNIQUE NOT NULL,
+    "passwordHash" TEXT NOT NULL,
+    "displayName" TEXT NOT NULL,
+    "role" TEXT NOT NULL DEFAULT 'SUB_ADMIN',
+    "permissions" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdBy" TEXT NOT NULL,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 15. AdminActivityLog Table (Audit Trail)
+CREATE TABLE IF NOT EXISTS "AdminActivityLog" (
+    "id" TEXT PRIMARY KEY,
+    "adminUsername" TEXT NOT NULL,
+    "action" TEXT NOT NULL,
+    "targetType" TEXT,
+    "targetId" TEXT,
+    "details" TEXT,
+    "ipAddress" TEXT,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
 -- Disable Row Level Security (RLS) or add open access policy so the app API keys can query freely
 ALTER TABLE "User" DISABLE ROW LEVEL SECURITY;
 ALTER TABLE "Team" DISABLE ROW LEVEL SECURITY;
@@ -247,6 +273,8 @@ ALTER TABLE "SpinHistory" DISABLE ROW LEVEL SECURITY;
 ALTER TABLE "SiteSetting" DISABLE ROW LEVEL SECURITY;
 ALTER TABLE "DeleteRequest" DISABLE ROW LEVEL SECURITY;
 ALTER TABLE "LFGPost" DISABLE ROW LEVEL SECURITY;
+ALTER TABLE "AdminAccount" DISABLE ROW LEVEL SECURITY;
+ALTER TABLE "AdminActivityLog" DISABLE ROW LEVEL SECURITY;
 
 -- =========================================================
 -- Storage Bucket Setup

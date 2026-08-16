@@ -113,6 +113,7 @@ export interface Payment {
   screenshot?: string;
   status: PaymentStatus;
   walletType?: 'PROMO' | 'WINNING';
+  notes?: string;
   communityAccessUnlocked?: boolean;
   communityAccessRevoked?: boolean;
   createdAt: string;
@@ -190,5 +191,48 @@ export interface LFGPost {
   squadName?: string;
   winRate?: number;
   kills?: number;
+  createdAt: string;
+}
+
+export type AdminPermissionKey = 
+  | 'view_dashboard'
+  | 'manage_tournaments'
+  | 'enter_results'
+  | 'manage_users'
+  | 'manage_bans'
+  | 'moderate_lfg'
+  | 'manage_deposits'
+  | 'manage_withdrawals'
+  | 'adjust_wallets'
+  | 'view_financial_reports'
+  | 'manage_referrals'
+  | 'manage_watch_earn'
+  | 'manage_roles' // Owner-only
+  | 'approve_deletes' // Owner-only
+  | 'send_notifications'
+  | 'manage_settings'; // Owner-only
+
+export interface AdminAccount {
+  id: string;
+  username: string;
+  password?: string;
+  passwordHash?: string;
+  displayName: string;
+  role: 'OWNER' | 'SUB_ADMIN';
+  permissions: AdminPermissionKey[];
+  isActive: boolean;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminActivityLog {
+  id: string;
+  adminUsername: string;
+  action: string;
+  targetType?: string;
+  targetId?: string;
+  details?: string;
+  ipAddress?: string;
   createdAt: string;
 }
