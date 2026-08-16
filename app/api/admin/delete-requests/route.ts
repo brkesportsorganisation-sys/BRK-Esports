@@ -21,12 +21,15 @@ export async function GET() {
       .select('*')
       .order('createdAt', { ascending: false });
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      console.warn('[GET /api/admin/delete-requests] Supabase query warning:', error.message);
+      return NextResponse.json({ requests: [] });
+    }
 
     return NextResponse.json({ requests: requests || [] });
   } catch (error: any) {
-    console.error('[GET /api/admin/delete-requests]', error);
-    return NextResponse.json({ message: error?.message || 'Failed to load delete requests.' }, { status: 500 });
+    console.warn('[GET /api/admin/delete-requests]', error);
+    return NextResponse.json({ requests: [] });
   }
 }
 

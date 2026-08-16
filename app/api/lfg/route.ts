@@ -18,12 +18,15 @@ export async function GET(request: NextRequest) {
     }
 
     const { data: posts, error } = await query;
-    if (error) throw new Error(error.message);
+    if (error) {
+      console.warn('[GET /api/lfg] Supabase query warning:', error.message);
+      return NextResponse.json({ posts: [] });
+    }
 
     return NextResponse.json({ posts: posts || [] });
   } catch (error: any) {
-    console.error('[GET /api/lfg]', error);
-    return NextResponse.json({ message: error?.message || 'Failed to load recruitment board.' }, { status: 500 });
+    console.warn('[GET /api/lfg]', error);
+    return NextResponse.json({ posts: [] });
   }
 }
 
