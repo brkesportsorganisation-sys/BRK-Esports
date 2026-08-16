@@ -40,10 +40,10 @@ export async function POST(request: NextRequest) {
       accountNumber,
       freeFireUid: ffUid?.trim() || null,
       inGameName: ign?.trim() || name.trim(),
-      walletBalance: 100, // Total
-      promoBalance: 100, // Sign-up bonus promo wallet (tournaments only)
-      winningBalance: 0, // Winning wallet (withdrawable)
-      coinBalance: 0,
+      walletBalance: 0, // Starts at 0, must be earned/deposited
+      promoBalance: 0, // Starts at 0
+      winningBalance: 0, // Starts at 0
+      coinBalance: 0, // Starts at 0
       totalKills: 0,
       totalWins: 0,
       earnings: 0,

@@ -117,9 +117,9 @@ function RegisterContent() {
               JOIN <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-red to-brand-orange">ARENA</span>
             </h1>
             
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-xs font-bold text-orange-700">
-              <Sparkles className="w-3.5 h-3.5 text-brand-orange" />
-              <span>Register & Get ৳100 Sign-Up Bonus</span>
+            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-900 text-white text-xs font-bold shadow-sm">
+              <Sparkles className="w-3.5 h-3.5 text-brand-gold" />
+              <span>Official Free Fire Esports Arena</span>
             </div>
           </div>
 
@@ -260,7 +260,7 @@ function RegisterContent() {
                 </>
               ) : (
                 <>
-                  <span>CLAIM BONUS & REGISTER</span>
+                  <span>CREATE ACCOUNT & JOIN</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}

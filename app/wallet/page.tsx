@@ -72,9 +72,10 @@ export default function WalletPage() {
     setPayments(db.getPayments());
   }, []);
 
-  const winningBalance = Number(user?.winningBalance || user?.walletBalance || 0);
-  const promoBalance = Number(user?.coinBalance ? Math.floor(user.coinBalance / 2) : 0);
-  const totalBalance = winningBalance + promoBalance;
+  const winningBalance = Number(user?.winningBalance ?? 0);
+  const promoBalance = Number(user?.promoBalance ?? 0);
+  const coinBalance = Number(user?.coinBalance ?? 0);
+  const totalBalance = Number(user?.walletBalance ?? (winningBalance + promoBalance));
 
   const handleDepositSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
