@@ -13,7 +13,6 @@ import {
   Unlock,
   Copy,
   Check,
-  Check,
   ArrowLeft,
   AlertCircle,
   Wallet,

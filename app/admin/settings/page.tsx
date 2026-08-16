@@ -1,8 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import Link from 'next/link';
-import { Settings, Save, CheckCircle2, ShieldCheck, Phone, CreditCard } from 'lucide-react';
 import { Settings, Save, CheckCircle2, ShieldCheck, Phone, CreditCard, PlaySquare } from 'lucide-react';
 import { db } from '@/lib/db';
 
