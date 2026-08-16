@@ -202,7 +202,7 @@ class LocalDatabase {
       return { canAccess: false, reason: 'community-disabled' };
     }
 
-    if (user?.role === 'ADMIN' || user?.role === 'MODERATOR') {
+    if (user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'MODERATOR') {
       return { canAccess: true, reason: 'admin' };
     }
 

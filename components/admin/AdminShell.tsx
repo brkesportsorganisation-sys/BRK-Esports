@@ -97,7 +97,7 @@ export default function AdminShell({ children }: AdminShellProps) {
   let filteredLinks = links;
   if (currentUser?.role === 'MODERATOR' && currentUser.adminPermissions) {
     filteredLinks = links.filter(link => currentUser.adminPermissions?.includes(link.href));
-  } else if (currentUser?.role === 'ADMIN') {
+  } else if (currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN') {
     filteredLinks = links;
   } else {
     // Only show limited or nothing if they aren't admin/moderator, but fallback to all if currentUser is null to avoid layout shift before mount

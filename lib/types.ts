@@ -1,4 +1,4 @@
-export type Role = 'USER' | 'MODERATOR' | 'ADMIN' | 'VENDOR';
+export type Role = 'USER' | 'MODERATOR' | 'ADMIN' | 'SUPER_ADMIN' | 'VENDOR';
 export type Mode = 'SOLO' | 'DUO' | 'SQUAD';
 export type Format = 'BR_RANKED' | 'CS_RANKED';
 export type TournamentStatus = 'DRAFT' | 'UPCOMING' | 'LIVE' | 'FINISHED' | 'CANCELLED';

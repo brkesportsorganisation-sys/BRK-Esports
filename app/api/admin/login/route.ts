@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authenticateAdmin, createAdminSessionCookie, createCsrfCookie } from '@/lib/admin-auth';
+import { authenticateAdmin, createAdminSessionCookie, createCsrfCookie, createSessionToken } from '@/lib/admin-auth';
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
@@ -15,8 +15,6 @@ export async function POST(request: NextRequest) {
       exp: Math.floor((Date.now() + 10 * 60 * 1000) / 1000),
     };
     
-    // We import createSessionToken inline or use it if available
-    const { createSessionToken } = require('@/lib/admin-auth');
     const token = createSessionToken(payload);
     
     const response = NextResponse.json({ ok: true, user: { email, role: clientVerifiedRole } });

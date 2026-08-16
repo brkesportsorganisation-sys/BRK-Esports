@@ -59,7 +59,7 @@ export default function Navbar() {
     { name: 'Community', href: '/community', icon: Users },
   ];
 
-  const isAdminOrMod = currentUser?.role === 'ADMIN' || currentUser?.role === 'MODERATOR';
+  const isAdminOrMod = currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'MODERATOR';
 
   return (
     <nav className="sticky top-0 z-50 glass-panel border-b border-slate-200/60 backdrop-blur-2xl bg-white/80">
