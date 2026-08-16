@@ -264,8 +264,8 @@ export default function Navbar() {
                         <div className="p-3 border-b border-slate-100 mb-2 bg-slate-50 rounded-xl">
                           <div className="font-bold text-slate-900 text-sm">{currentUser.name}</div>
                           <div className="text-xs text-slate-500 truncate">{currentUser.email}</div>
-                          <div className="text-xs font-mono text-indigo-600 mt-1 font-bold">
-                            {currentUser.accountNumber || 'BRE-XXXXXX'}
+                          <div className="text-xs font-mono text-orange-600 mt-1 font-bold">
+                            Player ID: {currentUser.accountNumber || 'BRK-MEMBER'}
                           </div>
                         </div>
 

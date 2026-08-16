@@ -24,7 +24,10 @@ export async function GET() {
 
     if (error) throw new Error(error.message);
 
-    const sanitized = (users || []).map(({ password: _, ...rest }) => rest);
+    const sanitized = (users || []).map(({ password: _, ...rest }) => ({
+      ...rest,
+      accountNumber: rest.accountNumber || `BRK-${(rest.id || '').replace(/[^a-zA-Z0-9]/g, '').slice(-6).toUpperCase() || Math.floor(100000 + Math.random() * 900000)}`,
+    }));
     return NextResponse.json({ users: sanitized });
   } catch (error: any) {
     console.error('[GET /api/admin/users]', error);

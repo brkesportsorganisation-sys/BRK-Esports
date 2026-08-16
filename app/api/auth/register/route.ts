@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(password, 10);
     const userId = `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const referralCode = `REF_${Math.floor(1000 + Math.random() * 9000)}`;
-    const accountNumber = `BRE-${Math.floor(100000 + Math.random() * 900000)}`;
+    const accountNumber = `BRK-${Math.floor(100000 + Math.random() * 900000)}`;
 
     const userPayload: Record<string, any> = {
       id: userId,

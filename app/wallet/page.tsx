@@ -264,7 +264,7 @@ export default function WalletPage() {
               <span>{user?.coinBalance?.toLocaleString() || 0} Coins</span>
             </div>
             <div className="text-slate-500">
-              Account No: <span className="text-slate-900 font-mono font-bold">{user?.accountNumber || 'BRE-109283'}</span>
+              Player ID: <span className="text-slate-900 font-mono font-bold">{user?.accountNumber || 'BRK-MEMBER'}</span>
             </div>
           </div>
         </div>

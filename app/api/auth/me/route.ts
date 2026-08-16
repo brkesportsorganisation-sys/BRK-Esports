@@ -24,7 +24,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: 'User not found.' }, { status: 404 });
     }
 
-    const { password: _, ...sanitizedUser } = user;
+    const { password: _, ...rest } = user;
+    const sanitizedUser = {
+      ...rest,
+      accountNumber: rest.accountNumber || `BRK-${(rest.id || '').replace(/[^a-zA-Z0-9]/g, '').slice(-6).toUpperCase() || Math.floor(100000 + Math.random() * 900000)}`,
+    };
     return NextResponse.json({ user: sanitizedUser });
   } catch (error: any) {
     console.error('[GET /api/auth/me]', error);
