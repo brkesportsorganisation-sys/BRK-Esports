@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     };
 
     let insertedData: any = null;
-    let retries = 10;
+    let retries = 15;
     const workingPayload = { ...userPayload };
 
     while (retries > 0) {
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
         .from('User')
         .insert([workingPayload])
         .select()
-        .single();
+        .maybeSingle();
 
       if (!error && data) {
         insertedData = data;
@@ -75,14 +75,42 @@ export async function POST(request: NextRequest) {
       }
 
       if (error) {
-        // Detect missing column error from PostgREST: "Could not find the 'xyz' column of 'User' in the schema cache"
-        const match = error.message?.match(/Could not find the '([^']+)' column/i);
-        if (match && match[1] && workingPayload[match[1]] !== undefined) {
+        const fullErrStr = `${error.message || ''} ${error.details || ''} ${error.hint || ''}`;
+        
+        // Detect missing column error from PostgREST or PostgreSQL
+        const match = fullErrStr.match(/Could not find the '([^']+)' column/i) ||
+                      fullErrStr.match(/column '([^']+)' does not exist/i) ||
+                      fullErrStr.match(/column "([^"]+)" does not exist/i);
+
+        if (match && match[1]) {
           const missingCol = match[1];
-          console.warn(`[POST /api/auth/register] Omission of column '${missingCol}' due to schema cache mismatch.`);
+          console.warn(`[POST /api/auth/register] Omission of column '${missingCol}' due to database schema mismatch.`);
           delete workingPayload[missingCol];
           retries--;
           continue;
+        }
+
+        // Ultimate fallback: minimal payload if multiple columns mismatch
+        if (retries === 1) {
+          const minimalPayload = {
+            id: userId,
+            name: name.trim(),
+            email: trimmedEmail,
+            password: hashedPassword,
+            role: 'USER',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          const { data: minData, error: minErr } = await supabaseAdmin
+            .from('User')
+            .insert([minimalPayload])
+            .select()
+            .maybeSingle();
+
+          if (!minErr && minData) {
+            insertedData = minData;
+            break;
+          }
         }
 
         console.error('[POST /api/auth/register] Supabase error:', error);
