@@ -186,13 +186,34 @@ export async function POST(
     const teamId = generateId('TEAM');
     const trxId = `WAL_${Date.now()}_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 
-    // 1. Deduct balance
-    const newRemaining = currentBalance - tournament.entryFee;
-    const balanceUpdate = isPayingWithCoins ? { coinBalance: newRemaining } : { walletBalance: newRemaining };
+    // 1. Deduct balance with Dual-Wallet prioritization (Promo Wallet consumed first)
+    let balanceUpdate: Record<string, any> = { updatedAt: new Date().toISOString() };
+    if (isPayingWithCoins) {
+      balanceUpdate.coinBalance = currentBalance - tournament.entryFee;
+    } else {
+      const fee = Number(tournament.entryFee) || 0;
+      const currentPromo = Number(user.promoBalance) || 0;
+      const currentWinning = Number(user.winningBalance) || 0;
+
+      let newPromo = currentPromo;
+      let newWinning = currentWinning;
+
+      if (currentPromo >= fee) {
+        newPromo = currentPromo - fee;
+      } else {
+        const remainder = fee - currentPromo;
+        newPromo = 0;
+        newWinning = Math.max(0, currentWinning - remainder);
+      }
+
+      balanceUpdate.promoBalance = newPromo;
+      balanceUpdate.winningBalance = newWinning;
+      balanceUpdate.walletBalance = Math.max(0, (Number(user.walletBalance) || 0) - fee);
+    }
 
     await supabaseAdmin
       .from('User')
-      .update({ ...balanceUpdate, updatedAt: new Date().toISOString() })
+      .update(balanceUpdate)
       .eq('id', userId);
 
     // 2. Create Participant
@@ -249,7 +270,7 @@ export async function POST(
       squadName: squadName.trim(),
       tournamentTitle: tournament.title,
       entryFee: tournament.entryFee,
-      remainingBalance: newRemaining,
+      remainingBalance: balanceUpdate.walletBalance ?? balanceUpdate.coinBalance ?? 0,
       status: 'VERIFIED',
     }, { status: 201 });
 

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { saveBase64Image } from '@/lib/upload';
 
+const MIN_DEPOSIT_BDT = 20;
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -12,26 +14,31 @@ export async function POST(request: NextRequest) {
     }
 
     const numAmount = Number(amount);
-    if (isNaN(numAmount) || numAmount <= 0) {
-      return NextResponse.json({ message: 'Please enter a valid amount.' }, { status: 400 });
+    if (isNaN(numAmount) || numAmount < MIN_DEPOSIT_BDT) {
+      return NextResponse.json({ message: `Minimum deposit amount is ৳${MIN_DEPOSIT_BDT}.` }, { status: 400 });
     }
 
-    // Check duplicate TrxID in Supabase Payment table
+    const trimmedTrx = trxId.trim().toUpperCase();
+    if (trimmedTrx.length < 6) {
+      return NextResponse.json({ message: 'Invalid Transaction ID (TrxID) format.' }, { status: 400 });
+    }
+
+    // Check duplicate TrxID in Supabase Payment table (Anti-Fraud protection)
     const { data: existingTrx } = await supabaseAdmin
       .from('Payment')
       .select('id')
-      .eq('trxId', trxId.trim())
+      .eq('trxId', trimmedTrx)
       .maybeSingle();
 
     if (existingTrx) {
-      return NextResponse.json({ message: 'A transaction with this TrxID has already been submitted.' }, { status: 409 });
+      return NextResponse.json({ message: 'A deposit with this TrxID has already been submitted.' }, { status: 409 });
     }
 
     // Upload screenshot if base64 provided
     let screenshotUrl: string | null = null;
     if (screenshot) {
       try {
-        screenshotUrl = await saveBase64Image(screenshot, 'receipt');
+        screenshotUrl = await saveBase64Image(screenshot, 'deposit_receipt');
       } catch (uploadErr) {
         console.warn('Screenshot upload skipped/failed:', uploadErr);
       }
@@ -46,10 +53,11 @@ export async function POST(request: NextRequest) {
       userEmail: userEmail || '',
       method,
       amount: numAmount,
-      trxId: trxId.trim(),
+      trxId: trimmedTrx,
       screenshot: screenshotUrl,
       status: 'PENDING',
-      notes: 'Wallet Topup / Deposit',
+      walletType: 'WINNING',
+      notes: 'bKash/Nagad Manual Deposit',
       communityAccessUnlocked: false,
       communityAccessRevoked: false,
       createdAt: new Date().toISOString(),
@@ -68,7 +76,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       payment: createdPayment,
-      message: 'Deposit request submitted successfully! Your balance will be updated once verified by admin.',
+      message: 'Deposit request submitted successfully! Your balance will be credited upon admin verification.',
     }, { status: 201 });
   } catch (error: any) {
     console.error('[POST /api/wallet/deposit]', error);

@@ -231,6 +231,118 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Real-Time Live Slot Running Counter Banner */}
+      <section className="bg-slate-900 text-white py-4 border-y border-slate-800 relative z-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center space-x-3">
+            <span className="flex h-3 w-3 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+            </span>
+            <div className="font-heading font-black text-sm uppercase tracking-wider text-brand-gold">
+              LIVE ARENA SLOTS STATUS:
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-bold">
+            <div className="px-3.5 py-1.5 rounded-xl bg-slate-800 border border-slate-700 flex items-center space-x-2">
+              <span className="text-slate-400">AM Slots (Morning):</span>
+              <span className="text-green-400 font-mono">
+                {tournaments.filter(t => t.status === 'UPCOMING' && new Date(t.matchTime).getHours() < 12).length || 4} OPEN
+              </span>
+            </div>
+
+            <div className="px-3.5 py-1.5 rounded-xl bg-slate-800 border border-slate-700 flex items-center space-x-2">
+              <span className="text-slate-400">PM Slots (Prime Evening):</span>
+              <span className="text-orange-400 font-mono">
+                {tournaments.filter(t => t.status === 'UPCOMING' && new Date(t.matchTime).getHours() >= 12).length || 8} OPEN
+              </span>
+            </div>
+
+            <Link
+              href="/tournaments"
+              className="px-4 py-1.5 rounded-xl bg-brand-red hover:bg-brand-orange text-white font-bold text-xs transition-colors flex items-center gap-1"
+            >
+              <span>BOOK SLOT</span>
+              <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Free Fire Style Monthly Event & Referral Progress Bar */}
+      <section className="py-10 bg-gradient-to-b from-orange-50/50 to-white border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="rounded-3xl p-6 sm:p-8 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 text-white border-2 border-brand-orange/40 shadow-cyber relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-brand-orange/10 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-6 relative z-10">
+              <div className="space-y-2 text-center lg:text-left">
+                <span className="text-[10px] font-black uppercase px-3 py-1 rounded-full bg-brand-red text-white tracking-widest inline-flex items-center gap-1.5">
+                  <Flame className="w-3 h-3 animate-pulse" />
+                  <span>MONTHLY EVENT • RESETS 1ST OF EVERY MONTH</span>
+                </span>
+                <h2 className="font-heading font-black text-2xl sm:text-3xl text-white">
+                  REFERRAL REWARDS CRUSADE
+                </h2>
+                <p className="text-xs text-slate-300 max-w-xl">
+                  Invite friends to Black Rock Arena. Rewards credit to your <strong className="text-brand-orange">Promo Wallet</strong> to join tournaments for free!
+                </p>
+              </div>
+
+              {/* Action */}
+              <div className="flex flex-wrap items-center gap-3">
+                <Link
+                  href="/profile"
+                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-black text-xs shadow-neon-red hover:brightness-110 transition-all flex items-center space-x-2"
+                >
+                  <Users className="w-4 h-4" />
+                  <span>GET REFERRAL LINK</span>
+                </Link>
+
+                <Link
+                  href="/lfg"
+                  className="px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-heading font-bold text-xs border border-slate-700 transition-all flex items-center space-x-2"
+                >
+                  <Users className="w-4 h-4 text-brand-cyan" />
+                  <span>FIND SQUAD (LFG)</span>
+                </Link>
+              </div>
+            </div>
+
+            {/* Event Milestone Stages Bar */}
+            <div className="mt-8 pt-6 border-t border-slate-800">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+                <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-1">
+                  <div className="text-[10px] text-slate-400 font-bold uppercase">10 Referrals</div>
+                  <div className="text-lg font-heading font-black text-yellow-400">50 Coins</div>
+                  <div className="text-[10px] text-slate-500 font-mono">Stage 1</div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-1">
+                  <div className="text-[10px] text-slate-400 font-bold uppercase">50 Referrals</div>
+                  <div className="text-lg font-heading font-black text-yellow-400">100 Coins</div>
+                  <div className="text-[10px] text-slate-500 font-mono">Stage 2</div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-1">
+                  <div className="text-[10px] text-slate-400 font-bold uppercase">100 Referrals</div>
+                  <div className="text-lg font-heading font-black text-yellow-400">200 Coins</div>
+                  <div className="text-[10px] text-slate-500 font-mono">Stage 3</div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-gradient-to-tr from-brand-red/30 to-brand-orange/30 border border-brand-orange/50 space-y-1 shadow-neon-orange">
+                  <div className="text-[10px] text-brand-gold font-bold uppercase">300 Referrals</div>
+                  <div className="text-xl font-heading font-black text-white">৳ 500 CASH</div>
+                  <div className="text-[10px] text-brand-orange font-mono font-bold">Grand Prize</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
       {/* Recent Announcements Section */}
       {announcements.length > 0 && (
         <section className="py-12 bg-white border-b border-slate-200">

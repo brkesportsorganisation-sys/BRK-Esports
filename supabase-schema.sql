@@ -1,6 +1,6 @@
 -- =========================================================
--- BRK Esports - Supabase PostgreSQL Schema
--- Run this script in your Supabase SQL Editor to create all tables
+-- Blackrock Esports - Supabase PostgreSQL Schema
+-- Run this script in your Supabase SQL Editor to create/update all tables
 -- =========================================================
 
 -- Enable UUID extension if needed
@@ -14,13 +14,18 @@ CREATE TABLE IF NOT EXISTS "User" (
     "password" TEXT,
     "avatar" TEXT,
     "role" TEXT NOT NULL DEFAULT 'USER',
+    "accountNumber" TEXT UNIQUE,
     "freeFireUid" TEXT UNIQUE,
     "inGameName" TEXT,
     "walletBalance" DOUBLE PRECISION NOT NULL DEFAULT 0.0,
+    "promoBalance" DOUBLE PRECISION NOT NULL DEFAULT 0.0,
+    "winningBalance" DOUBLE PRECISION NOT NULL DEFAULT 0.0,
     "coinBalance" DOUBLE PRECISION NOT NULL DEFAULT 0.0,
     "totalKills" INTEGER NOT NULL DEFAULT 0,
     "totalWins" INTEGER NOT NULL DEFAULT 0,
     "earnings" DOUBLE PRECISION NOT NULL DEFAULT 0.0,
+    "winRate" DOUBLE PRECISION NOT NULL DEFAULT 0.0,
+    "playerStatus" TEXT NOT NULL DEFAULT 'AVAILABLE',
     "isBanned" BOOLEAN NOT NULL DEFAULT false,
     "referralCode" TEXT UNIQUE NOT NULL,
     "totalReferrals" INTEGER NOT NULL DEFAULT 0,
@@ -135,6 +140,7 @@ CREATE TABLE IF NOT EXISTS "Payment" (
     "trxId" TEXT UNIQUE NOT NULL,
     "screenshot" TEXT,
     "status" TEXT NOT NULL DEFAULT 'PENDING',
+    "walletType" TEXT DEFAULT 'WINNING',
     "notes" TEXT,
     "communityAccessUnlocked" BOOLEAN NOT NULL DEFAULT false,
     "communityAccessRevoked" BOOLEAN NOT NULL DEFAULT false,
@@ -193,6 +199,40 @@ CREATE TABLE IF NOT EXISTS "SiteSetting" (
     "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- 12. DeleteRequest Table (Owner-approval workflow)
+CREATE TABLE IF NOT EXISTS "DeleteRequest" (
+    "id" TEXT PRIMARY KEY,
+    "requestedBy" TEXT NOT NULL,
+    "requestedByName" TEXT,
+    "targetTable" TEXT NOT NULL,
+    "targetId" TEXT NOT NULL,
+    "targetTitle" TEXT,
+    "reason" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'PENDING',
+    "approvedBy" TEXT,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 13. LFGPost Table (Player & Squad Finder)
+CREATE TABLE IF NOT EXISTS "LFGPost" (
+    "id" TEXT PRIMARY KEY,
+    "userId" TEXT NOT NULL REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    "authorName" TEXT NOT NULL,
+    "accountNumber" TEXT,
+    "avatar" TEXT,
+    "type" TEXT NOT NULL DEFAULT 'PLAYER_LOOKING_FOR_SQUAD',
+    "gameMode" TEXT NOT NULL DEFAULT 'BR_SQUAD',
+    "roleNeeded" TEXT DEFAULT 'RUSHER',
+    "contactWhatsApp" TEXT,
+    "description" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'OPEN',
+    "squadName" TEXT,
+    "winRate" DOUBLE PRECISION NOT NULL DEFAULT 0.0,
+    "kills" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
 -- Disable Row Level Security (RLS) or add open access policy so the app API keys can query freely
 ALTER TABLE "User" DISABLE ROW LEVEL SECURITY;
 ALTER TABLE "Team" DISABLE ROW LEVEL SECURITY;
@@ -205,28 +245,26 @@ ALTER TABLE "Notification" DISABLE ROW LEVEL SECURITY;
 ALTER TABLE "Announcement" DISABLE ROW LEVEL SECURITY;
 ALTER TABLE "SpinHistory" DISABLE ROW LEVEL SECURITY;
 ALTER TABLE "SiteSetting" DISABLE ROW LEVEL SECURITY;
+ALTER TABLE "DeleteRequest" DISABLE ROW LEVEL SECURITY;
+ALTER TABLE "LFGPost" DISABLE ROW LEVEL SECURITY;
 
 -- =========================================================
 -- Storage Bucket Setup
 -- Create the tournament-images bucket for image uploads
 -- =========================================================
 
--- Insert the storage bucket (run this in Supabase SQL Editor or via the Storage dashboard)
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('tournament-images', 'tournament-images', true)
 ON CONFLICT (id) DO NOTHING;
 
--- Allow public read access to all files in the bucket
 CREATE POLICY IF NOT EXISTS "Public Read Access"
 ON storage.objects FOR SELECT
 USING ( bucket_id = 'tournament-images' );
 
--- Allow service_role to upload (handled by server-side API with service key)
 CREATE POLICY IF NOT EXISTS "Service Role Upload"
 ON storage.objects FOR INSERT
 WITH CHECK ( bucket_id = 'tournament-images' );
 
--- Allow service_role to delete
 CREATE POLICY IF NOT EXISTS "Service Role Delete"
 ON storage.objects FOR DELETE
 USING ( bucket_id = 'tournament-images' );

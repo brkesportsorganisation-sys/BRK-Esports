@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(password, 10);
     const userId = `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const referralCode = `REF_${Math.floor(1000 + Math.random() * 9000)}`;
+    const accountNumber = `BRE-${Math.floor(100000 + Math.random() * 900000)}`;
 
     const newUser = {
       id: userId,
@@ -36,13 +37,18 @@ export async function POST(request: NextRequest) {
       password: hashedPassword,
       avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150',
       role: 'USER',
+      accountNumber,
       freeFireUid: ffUid?.trim() || null,
       inGameName: ign?.trim() || name.trim(),
-      walletBalance: 100, // Sign-up bonus
+      walletBalance: 100, // Total
+      promoBalance: 100, // Sign-up bonus promo wallet (tournaments only)
+      winningBalance: 0, // Winning wallet (withdrawable)
       coinBalance: 0,
       totalKills: 0,
       totalWins: 0,
       earnings: 0,
+      winRate: 0.0,
+      playerStatus: 'AVAILABLE',
       isBanned: false,
       referralCode,
       totalReferrals: 0,
@@ -63,11 +69,11 @@ export async function POST(request: NextRequest) {
       throw new Error(error.message);
     }
 
-    // Handle referral increment if refCode was provided
+    // Handle referral increment and promo bonus for referrer
     if (refCode) {
       const { data: referrer } = await supabaseAdmin
         .from('User')
-        .select('id, totalReferrals')
+        .select('id, totalReferrals, promoBalance, walletBalance')
         .eq('referralCode', refCode.trim())
         .maybeSingle();
 

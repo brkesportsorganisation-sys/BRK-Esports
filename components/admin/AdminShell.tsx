@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ShieldCheck, LogOut, LayoutGrid, Trophy, Users, CreditCard, Settings, Menu, ClipboardList, Bell, PlaySquare, Clock } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, LogOut, LayoutGrid, Trophy, Users, CreditCard, Settings, Menu, ClipboardList, Bell, PlaySquare, Clock } from 'lucide-react';
 import { db } from '@/lib/db';
 import { User } from '@/lib/types';
 
@@ -87,6 +87,7 @@ export default function AdminShell({ children }: AdminShellProps) {
     { href: '/admin', label: 'Overview', icon: LayoutGrid },
     { href: '/admin/tournaments', label: 'Tournaments', icon: Trophy },
     { href: '/admin/registrations', label: 'Registrations', icon: ClipboardList, badge: pendingCount },
+    { href: '/admin/delete-requests', label: 'Delete Approvals', icon: ShieldAlert },
     { href: '/admin/notifications', label: 'Notifications', icon: Bell },
     { href: '/admin/users', label: 'Users', icon: Users },
     { href: '/admin/payments', label: 'Payments', icon: CreditCard },

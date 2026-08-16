@@ -1,4 +1,4 @@
-export type Role = 'USER' | 'MODERATOR' | 'ADMIN' | 'SUPER_ADMIN' | 'VENDOR';
+export type Role = 'OWNER' | 'ADMIN' | 'MANAGER' | 'SUPER_ADMIN' | 'MODERATOR' | 'VENDOR' | 'USER';
 export type Mode = 'SOLO' | 'DUO' | 'SQUAD';
 export type Format = 'BR_RANKED' | 'CS_RANKED';
 export type TournamentStatus = 'DRAFT' | 'UPCOMING' | 'LIVE' | 'FINISHED' | 'CANCELLED';
@@ -6,6 +6,8 @@ export type PaymentMethod = 'BKASH' | 'NAGAD' | 'ROCKET' | 'WALLET';
 export type PaymentStatus = 'PENDING' | 'VERIFIED' | 'REJECTED';
 export type CommunityAccessType = 'WHATSAPP' | 'DISCORD' | 'TELEGRAM' | 'FACEBOOK_GROUP' | 'MESSENGER_GROUP' | 'CUSTOM_LINK';
 export type CommunityUnlockMode = 'SLOT_PURCHASE_ONLY' | 'PAYMENT_VERIFICATION_ONLY' | 'ADMIN_APPROVAL_ONLY';
+export type PlayerStatus = 'AVAILABLE' | 'PENDING' | 'IN_MATCH';
+export type LFGType = 'PLAYER_LOOKING_FOR_SQUAD' | 'SQUAD_LOOKING_FOR_PLAYER';
 
 export interface TournamentCommunityConfig {
   enabled: boolean;
@@ -25,13 +27,18 @@ export interface User {
   password?: string;
   avatar: string;
   role: Role;
+  accountNumber?: string; // e.g. BRE-891024 (Bank-style public app ID)
   freeFireUid: string;
   inGameName: string;
-  walletBalance: number;
+  walletBalance: number; // Total balance
+  promoBalance?: number; // Promo/Referral Wallet — only for slot purchases
+  winningBalance?: number; // Winning Wallet — withdrawable via bKash
   coinBalance?: number;
   totalKills: number;
   totalWins: number;
   earnings: number;
+  winRate?: number; // % Win Rate calculated from match stats
+  playerStatus?: PlayerStatus;
   isBanned: boolean;
   referralCode: string;
   totalReferrals?: number;
@@ -105,6 +112,7 @@ export interface Payment {
   trxId: string;
   screenshot?: string;
   status: PaymentStatus;
+  walletType?: 'PROMO' | 'WINNING';
   communityAccessUnlocked?: boolean;
   communityAccessRevoked?: boolean;
   createdAt: string;
@@ -127,9 +135,11 @@ export interface LeaderboardEntry {
   tag?: string;
   avatar?: string;
   ffUid?: string;
+  accountNumber?: string;
   kills: number;
   wins: number;
   earnings: number;
+  winRate?: number;
 }
 
 export interface Announcement {
@@ -149,4 +159,36 @@ export interface SpinReward {
   type: 'DIAMONDS' | 'WALLET' | 'ROOM_CARD' | 'TRY_AGAIN';
   value: number;
   color: string;
+}
+
+export interface DeleteRequest {
+  id: string;
+  requestedBy: string;
+  requestedByName?: string;
+  targetTable: 'Tournament' | 'User' | 'Payment' | 'Announcement' | 'Team';
+  targetId: string;
+  targetTitle?: string;
+  reason?: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  approvedBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LFGPost {
+  id: string;
+  userId: string;
+  authorName: string;
+  accountNumber?: string;
+  avatar?: string;
+  type: LFGType;
+  gameMode: string;
+  roleNeeded: string; // e.g. 'RUSHER', 'SNIPER', 'IGL', 'SUPPORT'
+  contactWhatsApp?: string;
+  description: string;
+  status: 'OPEN' | 'PENDING' | 'CLOSED';
+  squadName?: string;
+  winRate?: number;
+  kills?: number;
+  createdAt: string;
 }

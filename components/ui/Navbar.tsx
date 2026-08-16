@@ -19,7 +19,8 @@ import {
   ChevronDown,
   Gift,
   PlusSquare,
-  Coins
+  Coins,
+  MessageSquare
 } from 'lucide-react';
 import { db } from '@/lib/db';
 import { User as UserType, Announcement } from '@/lib/types';
@@ -84,9 +85,10 @@ export default function Navbar() {
   const navLinks: { name: string; href: string; icon: React.ElementType; isLive?: boolean }[] = [
     { name: 'Home', href: '/', icon: Flame },
     { name: 'Tournaments', href: '/tournaments', icon: Trophy },
+    { name: 'Squad Finder', href: '/lfg', icon: Users },
     { name: 'Ad', href: '/ads', icon: PlusSquare },
     { name: 'Leaderboard', href: '/leaderboard', icon: Award },
-    { name: 'Community', href: '/community', icon: Users },
+    { name: 'Community', href: '/community', icon: MessageSquare },
   ];
 
   const isAdminOrMod = currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'MODERATOR';

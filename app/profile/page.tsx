@@ -281,7 +281,14 @@ function ProfilePageContent() {
                 </h1>
 
                 <div className="text-xs text-slate-500 font-mono flex items-center gap-2 justify-center sm:justify-start">
-                  <span>FF UID: <strong className="text-cyan-600">{user.freeFireUid || 'Not Verified'}</strong></span>
+                  <span>App ID: <strong className="text-orange-600 font-bold">{user.accountNumber || 'BRE-104928'}</strong></span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 font-bold">
+                    {user.winRate || (user.totalWins > 0 ? Math.min(100, Math.round((user.totalWins / Math.max(1, user.totalWins + 5)) * 100)) : 0)}% Win Rate
+                  </span>
+                </div>
+
+                <div className="text-xs text-slate-500 font-mono flex items-center gap-2 justify-center sm:justify-start">
+                  <span>FF UID: <strong className="text-cyan-600">{user.freeFireUid || 'Not Set'}</strong></span>
                   {user.freeFireUid && (
                     <span className="flex items-center text-green-600 text-[10px] font-bold gap-0.5">
                       <CheckCircle2 className="w-3 h-3" /> VERIFIED
@@ -296,14 +303,14 @@ function ProfilePageContent() {
             {/* Wallet & Referral Quick Actions */}
             <div className="flex flex-wrap items-center justify-center gap-4">
               
-              {/* Wallet Box */}
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-center sm:text-right min-w-[160px]">
-                <div className="text-[10px] text-slate-500 font-bold uppercase">Wallet Balance</div>
-                <div className="text-2xl font-heading font-black text-amber-500">
-                  ৳ {user.walletBalance.toLocaleString()}
+              {/* Dual Wallet Box */}
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-center sm:text-right min-w-[170px] space-y-1">
+                <div className="text-[10px] text-slate-500 font-bold uppercase">Winning Wallet (Cashout)</div>
+                <div className="text-xl font-heading font-black text-amber-500">
+                  ৳ {(user.winningBalance || 0).toLocaleString()}
                 </div>
-                <div className="text-[10px] text-cyan-600 font-semibold mt-0.5">
-                  Earnings: ৳{user.earnings.toLocaleString()}
+                <div className="text-[10px] text-orange-600 font-bold border-t border-slate-200 pt-1">
+                  Promo Wallet: ৳{(user.promoBalance || user.walletBalance || 0).toLocaleString()}
                 </div>
               </div>
 
