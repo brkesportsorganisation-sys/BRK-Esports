@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
-import { Flame, Lock, Mail, User as UserIcon, Gamepad2, ArrowRight, Loader2, CheckCircle2, Sparkles, Search } from 'lucide-react';
+import { Flame, Lock, Mail, User as UserIcon, Gamepad2, ArrowRight, Loader2, CheckCircle2, Sparkles, AlertCircle } from 'lucide-react';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import { db } from '@/lib/db';
@@ -40,13 +40,16 @@ function RegisterContent() {
         const res = await fetch(`/api/freefire/lookup?uid=${encodeURIComponent(cleanUid)}`);
         if (res.ok) {
           const data = await res.json();
-          if (data.nickname) {
+          if (data.success && data.nickname) {
             setIgn(data.nickname);
             setIgnFetchedSuccess(true);
+          } else {
+            setIgnFetchedSuccess(false);
           }
         }
       } catch (err) {
         console.warn('Auto IGN lookup error:', err);
+        setIgnFetchedSuccess(false);
       } finally {
         setIsFetchingIgn(false);
       }
@@ -166,7 +169,7 @@ function RegisterContent() {
                     type="text"
                     value={ffUid}
                     onChange={(e) => setFfUid(e.target.value)}
-                    placeholder="e.g. 1029384756"
+                    placeholder="e.g. 2172143722"
                     required
                     className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-3 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-cyan focus:bg-white transition-all font-mono font-bold"
                   />
@@ -182,8 +185,8 @@ function RegisterContent() {
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-xs font-bold text-slate-800 uppercase">In-Game Name (IGN)</label>
                   {ignFetchedSuccess && (
-                    <span className="text-[9px] font-bold text-emerald-600 flex items-center gap-0.5">
-                      <CheckCircle2 className="w-2.5 h-2.5" /> Auto-Fetched
+                    <span className="text-[9px] font-bold text-emerald-600 flex items-center gap-0.5 font-mono">
+                      <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" /> FF Verified
                     </span>
                   )}
                 </div>
@@ -192,11 +195,14 @@ function RegisterContent() {
                   <input
                     type="text"
                     value={ign}
-                    onChange={(e) => setIgn(e.target.value)}
-                    placeholder={isFetchingIgn ? "Fetching from Free Fire..." : "Auto-fills from UID"}
+                    onChange={(e) => {
+                      setIgn(e.target.value);
+                      setIgnFetchedSuccess(false);
+                    }}
+                    placeholder={isFetchingIgn ? "Fetching from Garena..." : "Enter Free Fire IGN"}
                     required
                     className={`w-full border rounded-xl pl-10 pr-4 py-3 text-xs text-slate-900 placeholder-slate-400 focus:outline-none transition-all font-bold ${
-                      ignFetchedSuccess ? 'bg-emerald-50/50 border-emerald-400 text-emerald-900' : 'bg-slate-50 border-slate-300 focus:border-brand-orange focus:bg-white'
+                      ignFetchedSuccess ? 'bg-emerald-50/70 border-emerald-500 text-emerald-950 font-black shadow-sm' : 'bg-slate-50 border-slate-300 focus:border-brand-orange focus:bg-white'
                     }`}
                   />
                 </div>
