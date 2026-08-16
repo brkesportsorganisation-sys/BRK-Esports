@@ -1,16 +1,21 @@
-import fs from 'fs';
-import path from 'path';
+import { supabaseAdmin } from '@/lib/supabase';
 import crypto from 'crypto';
 
 /**
- * Decodes a base64 image and saves it to the public/uploads directory.
- * Returns the public relative URL of the saved file.
- * If the input is not a base64 string, returns it as-is.
+ * Uploads a base64-encoded image to Supabase Storage.
+ * Returns the public URL of the uploaded file.
+ * If the input is already a URL (not base64), returns it as-is.
+ *
+ * NOTE: Requires a Supabase Storage bucket named "tournament-images" to exist
+ * with public access enabled.
  */
-export async function saveBase64Image(base64Data: string | undefined | null, prefix: string): Promise<string | null> {
+export async function saveBase64Image(
+  base64Data: string | undefined | null,
+  prefix: string
+): Promise<string | null> {
   if (!base64Data) return null;
 
-  // If it's already a URL or path, just return it
+  // If it's already a URL or path, return it unchanged
   if (!base64Data.startsWith('data:image/')) {
     return base64Data;
   }
@@ -27,28 +32,33 @@ export async function saveBase64Image(base64Data: string | undefined | null, pre
 
   // Determine file extension
   let extension = 'webp';
-  if (mimeType.includes('png')) {
-    extension = 'png';
-  } else if (mimeType.includes('jpeg') || mimeType.includes('jpg')) {
-    extension = 'jpg';
-  } else if (mimeType.includes('gif')) {
-    extension = 'gif';
-  }
-
-  // Ensure public/uploads directory exists
-  const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-  }
+  if (mimeType.includes('png')) extension = 'png';
+  else if (mimeType.includes('jpeg') || mimeType.includes('jpg')) extension = 'jpg';
+  else if (mimeType.includes('gif')) extension = 'gif';
 
   // Generate unique filename
   const uniqueId = crypto.randomBytes(8).toString('hex');
   const filename = `${prefix}_${uniqueId}.${extension}`;
-  const filepath = path.join(uploadsDir, filename);
+  const bucketName = 'tournament-images';
 
-  // Write file to disk
-  fs.writeFileSync(filepath, buffer);
+  // Upload to Supabase Storage
+  const { data, error } = await supabaseAdmin.storage
+    .from(bucketName)
+    .upload(filename, buffer, {
+      contentType: mimeType,
+      upsert: false,
+    });
 
-  console.info(`[UPLOAD] Image saved successfully to ${filepath}`);
-  return `/uploads/${filename}`;
+  if (error) {
+    console.error(`[UPLOAD] Supabase Storage upload failed:`, error.message);
+    throw new Error(`Image upload failed: ${error.message}`);
+  }
+
+  // Get public URL
+  const { data: publicUrlData } = supabaseAdmin.storage
+    .from(bucketName)
+    .getPublicUrl(data.path);
+
+  console.info(`[UPLOAD] Image uploaded successfully: ${publicUrlData.publicUrl}`);
+  return publicUrlData.publicUrl;
 }

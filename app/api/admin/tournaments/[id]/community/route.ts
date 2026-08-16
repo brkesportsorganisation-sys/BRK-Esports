@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyAdminSession, requireAdminRole, logAdminAction } from '@/lib/admin-auth';
-import { db } from '@/lib/db';
+import { supabaseAdmin } from '@/lib/supabase';
 
 async function getSessionFromCookies() {
   const cookieStore = await cookies();
@@ -20,18 +20,26 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   const { id } = await params;
-  const payments = db.getTournamentCommunityUsers(id);
-  const users = payments.map((payment) => {
-    const user = db.getUsers().find((entry) => entry.id === payment.userId);
-    return {
-      id: payment.id,
-      userId: payment.userId,
-      userName: user?.name || payment.userName,
-      userEmail: user?.email || payment.userEmail,
-      status: payment.status,
-      unlockedAt: payment.createdAt,
-    };
-  });
+
+  const { data: payments, error } = await supabaseAdmin
+    .from('Payment')
+    .select('*')
+    .eq('tournamentId', id)
+    .eq('communityAccessUnlocked', true)
+    .neq('communityAccessRevoked', true);
+
+  if (error) {
+    return NextResponse.json({ message: error.message }, { status: 500 });
+  }
+
+  const users = (payments || []).map((payment: any) => ({
+    id: payment.id,
+    userId: payment.userId,
+    userName: payment.userName,
+    userEmail: payment.userEmail,
+    status: payment.status,
+    unlockedAt: payment.createdAt,
+  }));
 
   return NextResponse.json({ count: users.length, users });
 }
@@ -58,19 +66,29 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ message: 'Invalid request' }, { status: 400 });
   }
 
-  if (action === 'grant') {
-    const payment = db.grantCommunityAccess(id, userId);
-    if (!payment) {
-      return NextResponse.json({ message: 'Payment not found' }, { status: 404 });
-    }
-    logAdminAction(session!.email, 'COMMUNITY_ACCESS_GRANT', `Granted community access for ${userId}`);
-    return NextResponse.json({ ok: true, payment });
+  const isGrant = action === 'grant';
+
+  const { data: payment, error } = await supabaseAdmin
+    .from('Payment')
+    .update({
+      communityAccessUnlocked: isGrant,
+      communityAccessRevoked: !isGrant,
+      updatedAt: new Date().toISOString(),
+    })
+    .eq('tournamentId', id)
+    .eq('userId', userId)
+    .select()
+    .single();
+
+  if (error || !payment) {
+    return NextResponse.json({ message: error?.message || 'Payment not found' }, { status: error ? 500 : 404 });
   }
 
-  const payment = db.revokeCommunityAccess(id, userId);
-  if (!payment) {
-    return NextResponse.json({ message: 'Payment not found' }, { status: 404 });
-  }
-  logAdminAction(session!.email, 'COMMUNITY_ACCESS_REVOKE', `Revoked community access for ${userId}`);
+  logAdminAction(
+    session!.email,
+    isGrant ? 'COMMUNITY_ACCESS_GRANT' : 'COMMUNITY_ACCESS_REVOKE',
+    `${isGrant ? 'Granted' : 'Revoked'} community access for user ${userId} in tournament ${id}`
+  );
+
   return NextResponse.json({ ok: true, payment });
 }

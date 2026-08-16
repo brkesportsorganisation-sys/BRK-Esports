@@ -1,14 +1,33 @@
+# Dependencies
 node_modules/
+
+# Next.js build output
 .next/
 out/
 dist/
 build/
+
+# Environment files (NEVER commit these)
 .env
 .env.*
-.env.local
-*.log
+!.env.example
+
+# Local development database
 dev.db
 *.db
 *.db-journal
-tsconfig.tsbuildinfo
 
+# Build info & logs
+tsconfig.tsbuildinfo
+*.log
+next-error.log
+next.log
+
+# OS & editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Vercel
+.vercel

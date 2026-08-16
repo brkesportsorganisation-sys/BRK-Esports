@@ -27,7 +27,7 @@ interface LoginAttemptRecord {
   firstAttempt: number;
 }
 
-const SESSION_TTL_MS = 10 * 60 * 1000;
+const SESSION_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOCKOUT_MS = 15 * 60 * 1000;
 const SESSION_SECRET = process.env.ADMIN_SESSION_SECRET || 'change-me-in-production';
@@ -70,8 +70,9 @@ function verifySignature(token: string) {
   const actualBuffer = Buffer.from(signature);
   if (expectedBuffer.length !== actualBuffer.length) return null;
   try {
-    timingSafeEqual(expectedBuffer, actualBuffer);
-    return encoded;
+    // FIX: Must check the boolean return value of timingSafeEqual
+    const isValid = timingSafeEqual(expectedBuffer, actualBuffer);
+    return isValid ? encoded : null;
   } catch {
     return null;
   }
@@ -186,7 +187,7 @@ export function createAdminSessionCookie(token: string) {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax' as const,
     path: '/',
-    maxAge: 60 * 10,
+    maxAge: 60 * 60 * 4, // 4 hours
   };
 }
 
@@ -198,7 +199,7 @@ export function createCsrfCookie(token: string) {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax' as const,
     path: '/',
-    maxAge: 60 * 10,
+    maxAge: 60 * 60 * 4, // 4 hours
   };
 }
 

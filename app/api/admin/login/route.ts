@@ -1,27 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authenticateAdmin, createAdminSessionCookie, createCsrfCookie, createSessionToken } from '@/lib/admin-auth';
+import { authenticateAdmin, createAdminSessionCookie, createCsrfCookie } from '@/lib/admin-auth';
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
-  const { email, password, clientVerifiedRole, clientVerifiedId } = body;
-
-  if (clientVerifiedRole) {
-    // Mock bypass for client-side verified users (Moderators/Admins stored in localStorage)
-    const payload = {
-      sub: clientVerifiedId || 'mock-id',
-      email: email,
-      role: clientVerifiedRole,
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor((Date.now() + 10 * 60 * 1000) / 1000),
-    };
-    
-    const token = createSessionToken(payload);
-    
-    const response = NextResponse.json({ ok: true, user: { email, role: clientVerifiedRole } });
-    response.cookies.set(createAdminSessionCookie(token));
-    response.cookies.set(createCsrfCookie('mock-csrf-token'));
-    return response;
-  }
+  const { email, password } = body;
 
   if (!email || !password) {
     return NextResponse.json({ message: 'Email and password are required.' }, { status: 400 });

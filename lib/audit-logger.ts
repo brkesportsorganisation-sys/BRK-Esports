@@ -1,51 +1,32 @@
-import { db } from './db';
+// Audit logger — server-safe, no client-only imports
 
 export interface AuditLogEntry {
   id: string;
   adminId: string;
   adminEmail: string;
-  action: string; // e.g. "CREATE_TOURNAMENT", "VERIFY_PAYMENT", "BAN_USER", "UPDATE_ROOM_CREDENTIALS"
+  action: string;
   details: string;
   timestamp: string;
   ipAddress: string;
 }
 
+// In-memory audit log (resets on cold start — acceptable for a lightweight audit trail)
 class AuditLogger {
-  private logs: AuditLogEntry[] = [
-    {
-      id: 'log_101',
-      adminId: 'usr_admin',
-      adminEmail: 'admin@helian.gg',
-      action: 'LOGIN_SUCCESS',
-      details: 'Super Admin logged in from 192.168.1.1',
-      timestamp: new Date(Date.now() - 3600000).toISOString(),
-      ipAddress: '192.168.1.1',
-    },
-    {
-      id: 'log_102',
-      adminId: 'usr_admin',
-      adminEmail: 'admin@helian.gg',
-      action: 'UPDATE_ROOM_CREDENTIALS',
-      details: 'Published Room ID [7789123] for BR Squad Championship #42',
-      timestamp: new Date(Date.now() - 1800000).toISOString(),
-      ipAddress: '192.168.1.1',
-    },
-  ];
+  private logs: AuditLogEntry[] = [];
 
   getLogs(): AuditLogEntry[] {
     return this.logs;
   }
 
-  logAction(action: string, details: string) {
-    const currentUser = db.getCurrentUser();
+  logAction(adminId: string, adminEmail: string, action: string, details: string, ipAddress = 'unknown') {
     const newEntry: AuditLogEntry = {
       id: `log_${Date.now()}`,
-      adminId: currentUser?.id || 'sys_admin',
-      adminEmail: currentUser?.email || 'admin@helian.gg',
+      adminId,
+      adminEmail,
       action,
       details,
       timestamp: new Date().toISOString(),
-      ipAddress: '192.168.68.101',
+      ipAddress,
     };
     this.logs.unshift(newEntry);
   }

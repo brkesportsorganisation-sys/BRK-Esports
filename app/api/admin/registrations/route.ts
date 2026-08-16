@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyAdminSession, requireAdminRole } from '@/lib/admin-auth';
+import { supabaseAdmin } from '@/lib/supabase';
 
 async function getSession() {
   const cookieStore = await cookies();
@@ -15,8 +16,16 @@ export async function GET() {
   }
 
   try {
-    // Return empty array for now since we are using mock data and Prisma is crashing
-    return NextResponse.json({ registrations: [] });
+    const { data: registrations, error } = await supabaseAdmin
+      .from('Payment')
+      .select('*')
+      .order('createdAt', { ascending: false });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return NextResponse.json({ registrations: registrations || [] });
   } catch (error: any) {
     console.error('[GET /api/admin/registrations]', error?.message);
     return NextResponse.json({ message: 'Failed to load registrations.' }, { status: 500 });
@@ -38,19 +47,58 @@ export async function PATCH(request: NextRequest) {
 
   const { registrationId, action } = body; // action: 'APPROVE' | 'REJECT'
   if (!registrationId || !['APPROVE', 'REJECT'].includes(action)) {
-    return NextResponse.json({ message: 'Invalid request: registrationId and action (APPROVE|REJECT) are required.' }, { status: 400 });
+    return NextResponse.json(
+      { message: 'Invalid request: registrationId and action (APPROVE|REJECT) are required.' },
+      { status: 400 }
+    );
   }
 
   try {
-    // Mock success response
+    const newStatus = action === 'APPROVE' ? 'VERIFIED' : 'REJECTED';
+
+    const { data: payment, error } = await supabaseAdmin
+      .from('Payment')
+      .update({ status: newStatus, updatedAt: new Date().toISOString() })
+      .eq('id', registrationId)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    // If approved, increment registeredCount on the tournament
+    if (action === 'APPROVE' && payment?.tournamentId) {
+      const { data: tournament } = await supabaseAdmin
+        .from('Tournament')
+        .select('registeredCount')
+        .eq('id', payment.tournamentId)
+        .single();
+
+      if (tournament) {
+        await supabaseAdmin
+          .from('Tournament')
+          .update({
+            registeredCount: (tournament.registeredCount || 0) + 1,
+            updatedAt: new Date().toISOString(),
+          })
+          .eq('id', payment.tournamentId);
+      }
+    }
+
     return NextResponse.json({
       ok: true,
-      message: action === 'APPROVE'
-        ? 'Registration approved successfully.'
-        : `Registration rejected. Refund issued.`,
+      message:
+        action === 'APPROVE'
+          ? 'Registration approved successfully.'
+          : 'Registration rejected.',
+      payment,
     });
   } catch (error: any) {
     console.error('[PATCH /api/admin/registrations]', error?.message);
-    return NextResponse.json({ message: error?.message || 'Failed to update registration.' }, { status: 500 });
+    return NextResponse.json(
+      { message: error?.message || 'Failed to update registration.' },
+      { status: 500 }
+    );
   }
 }

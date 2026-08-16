@@ -23,6 +23,8 @@ CREATE TABLE IF NOT EXISTS "User" (
     "earnings" DOUBLE PRECISION NOT NULL DEFAULT 0.0,
     "isBanned" BOOLEAN NOT NULL DEFAULT false,
     "referralCode" TEXT UNIQUE NOT NULL,
+    "totalReferrals" INTEGER NOT NULL DEFAULT 0,
+    "claimedMilestones" INTEGER[] DEFAULT ARRAY[]::INTEGER[],
     "adminPermissions" TEXT[] DEFAULT ARRAY[]::TEXT[],
     "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
@@ -125,12 +127,17 @@ CREATE TABLE IF NOT EXISTS "Payment" (
     "id" TEXT PRIMARY KEY,
     "userId" TEXT NOT NULL REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE,
     "tournamentId" TEXT REFERENCES "Tournament"("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    "userName" TEXT,
+    "userEmail" TEXT,
+    "tournamentTitle" TEXT,
     "method" TEXT NOT NULL,
     "amount" DOUBLE PRECISION NOT NULL,
     "trxId" TEXT UNIQUE NOT NULL,
     "screenshot" TEXT,
     "status" TEXT NOT NULL DEFAULT 'PENDING',
     "notes" TEXT,
+    "communityAccessUnlocked" BOOLEAN NOT NULL DEFAULT false,
+    "communityAccessRevoked" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -198,3 +205,28 @@ ALTER TABLE "Notification" DISABLE ROW LEVEL SECURITY;
 ALTER TABLE "Announcement" DISABLE ROW LEVEL SECURITY;
 ALTER TABLE "SpinHistory" DISABLE ROW LEVEL SECURITY;
 ALTER TABLE "SiteSetting" DISABLE ROW LEVEL SECURITY;
+
+-- =========================================================
+-- Storage Bucket Setup
+-- Create the tournament-images bucket for image uploads
+-- =========================================================
+
+-- Insert the storage bucket (run this in Supabase SQL Editor or via the Storage dashboard)
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('tournament-images', 'tournament-images', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Allow public read access to all files in the bucket
+CREATE POLICY IF NOT EXISTS "Public Read Access"
+ON storage.objects FOR SELECT
+USING ( bucket_id = 'tournament-images' );
+
+-- Allow service_role to upload (handled by server-side API with service key)
+CREATE POLICY IF NOT EXISTS "Service Role Upload"
+ON storage.objects FOR INSERT
+WITH CHECK ( bucket_id = 'tournament-images' );
+
+-- Allow service_role to delete
+CREATE POLICY IF NOT EXISTS "Service Role Delete"
+ON storage.objects FOR DELETE
+USING ( bucket_id = 'tournament-images' );
