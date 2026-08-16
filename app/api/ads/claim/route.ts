@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { supabaseAdmin } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,16 +9,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Invalid payload.' }, { status: 400 });
     }
 
-    // Attempt to update the user in the Prisma database
-    // We increment the coinBalance by the specified amount
-    const updatedUser = await prisma.user.update({
-      where: { id: userId },
-      data: {
-        coinBalance: {
-          increment: amount
-        }
-      }
-    });
+    // Get current user coin balance
+    const { data: user, error: userError } = await supabaseAdmin
+      .from('User')
+      .select('coinBalance')
+      .eq('id', userId)
+      .single();
+
+    if (userError || !user) {
+      return NextResponse.json({ message: 'User not found in database.' }, { status: 404 });
+    }
+
+    const newBalance = (Number(user.coinBalance) || 0) + Number(amount);
+
+    const { data: updatedUser, error: updateError } = await supabaseAdmin
+      .from('User')
+      .update({ coinBalance: newBalance, updatedAt: new Date().toISOString() })
+      .eq('id', userId)
+      .select('coinBalance')
+      .single();
+
+    if (updateError) {
+      throw new Error(updateError.message);
+    }
 
     return NextResponse.json({ 
       success: true, 
@@ -27,12 +40,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('[POST /api/ads/claim]', error?.message);
-    
-    // Check if the error is related to Prisma finding the user
-    if (error.code === 'P2025') {
-      return NextResponse.json({ message: 'User not found in database.' }, { status: 404 });
-    }
-    
     return NextResponse.json({ message: 'Failed to claim coins.' }, { status: 500 });
   }
 }

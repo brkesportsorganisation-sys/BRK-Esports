@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getTournamentByIdFromDb } from '@/lib/tournament-store';
-import { prisma } from '@/lib/prisma';
+import { supabaseAdmin } from '@/lib/supabase';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -15,10 +15,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   let userRegistrations: any[] = [];
   if (userId) {
     try {
-      userRegistrations = await prisma.participant.findMany({
-        where: { tournamentId: id, userId },
-        orderBy: { joinedAt: 'desc' }
-      });
+      const { data } = await supabaseAdmin
+        .from('Participant')
+        .select('*')
+        .eq('tournamentId', id)
+        .eq('userId', userId)
+        .order('joinedAt', { ascending: false });
+      userRegistrations = data || [];
     } catch (e) {
       console.error('Failed to fetch user registrations:', e);
     }

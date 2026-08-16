@@ -1,7 +1,7 @@
 import React from 'react';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
-import { prisma } from '@/lib/prisma';
+import { supabaseAdmin } from '@/lib/supabase';
 import { Youtube, Flame, Trophy, Users, Calendar, Banknote } from 'lucide-react';
 import { Metadata } from 'next';
 import Link from 'next/link';
@@ -14,9 +14,11 @@ export const metadata: Metadata = {
 export const revalidate = 10; // revalidate every 10 seconds
 
 export default async function LivePage() {
-  const liveSetting = await prisma.siteSetting.findUnique({
-    where: { key: 'YOUTUBE_LIVE_URL' },
-  });
+  const { data: liveSetting } = await supabaseAdmin
+    .from('SiteSetting')
+    .select('value')
+    .eq('key', 'YOUTUBE_LIVE_URL')
+    .single();
 
   const savedUrl = liveSetting?.value || '';
   
@@ -39,9 +41,14 @@ export default async function LivePage() {
   }
 
   const tournamentIds = [...new Set(streams.map(s => s.tournamentId).filter(Boolean))];
-  const tournaments = await prisma.tournament.findMany({
-    where: { id: { in: tournamentIds } }
-  });
+  let tournaments: any[] = [];
+  if (tournamentIds.length > 0) {
+    const { data } = await supabaseAdmin
+      .from('Tournament')
+      .select('*')
+      .in('id', tournamentIds);
+    tournaments = data || [];
+  }
   
   const tournamentMap = new Map(tournaments.map(t => [t.id, t]));
 

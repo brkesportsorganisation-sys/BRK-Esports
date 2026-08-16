@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyAdminSession, requireAdminRole } from '@/lib/admin-auth';
-import { prisma } from '@/lib/prisma';
+import { supabaseAdmin } from '@/lib/supabase';
 
 async function getSession() {
   const cookieStore = await cookies();
@@ -22,37 +22,39 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Missing title or message' }, { status: 400 });
     }
 
-    let users = [];
+    let userIds: string[] = [];
 
     if (targetGroup === 'ALL') {
-      users = await prisma.user.findMany({ select: { id: true } });
+      const { data: users } = await supabaseAdmin.from('User').select('id');
+      userIds = (users || []).map(u => u.id);
     } else if (targetGroup === 'TOURNAMENT_PLAYERS') {
-      const participants = await prisma.participant.findMany({
-        select: { userId: true },
-        distinct: ['userId'],
-      });
-      users = participants.map(p => ({ id: p.userId }));
+      const { data: participants } = await supabaseAdmin.from('Participant').select('userId');
+      userIds = [...new Set((participants || []).map(p => p.userId).filter(Boolean))];
     } else {
       return NextResponse.json({ message: 'Invalid target group' }, { status: 400 });
     }
 
-    if (users.length === 0) {
+    if (userIds.length === 0) {
       return NextResponse.json({ message: 'No users found for target group' }, { status: 404 });
     }
 
-    const notificationsData = users.map(user => ({
-      userId: user.id,
+    const notificationsData = userIds.map(uid => ({
+      id: `notif_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      userId: uid,
       title,
       message,
+      isRead: false,
+      createdAt: new Date().toISOString()
     }));
 
-    await prisma.notification.createMany({
-      data: notificationsData,
-    });
+    const { error } = await supabaseAdmin.from('Notification').insert(notificationsData);
+    if (error) {
+      throw new Error(error.message);
+    }
 
-    return NextResponse.json({ success: true, count: users.length });
-  } catch (error) {
+    return NextResponse.json({ success: true, count: userIds.length });
+  } catch (error: any) {
     console.error('Error sending notifications:', error);
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ message: error?.message || 'Internal Server Error' }, { status: 500 });
   }
 }

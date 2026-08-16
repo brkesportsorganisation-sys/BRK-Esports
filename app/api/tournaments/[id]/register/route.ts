@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import type { Prisma } from '@prisma/client';
-import { prisma } from '@/lib/prisma';
+import { supabaseAdmin } from '@/lib/supabase';
 import { getTournamentByIdFromDb } from '@/lib/tournament-store';
 
 function generateId(prefix: string): string {
@@ -84,11 +83,9 @@ export async function POST(
   const p4NameErr = validateText(player4Name, 'Player 4 Name');
   if (p4NameErr) errors.player4Name = p4NameErr;
 
-
   const whatsappErr = validateWhatsApp(captainWhatsApp);
   if (whatsappErr) errors.captainWhatsApp = whatsappErr;
 
-  // Backup player validation (optional but must be valid format if provided)
   if (backupPlayerName && backupPlayerName.trim()) {
     const backupNameErr = validateText(backupPlayerName, 'Backup Player Name', false);
     if (backupNameErr) errors.backupPlayerName = backupNameErr;
@@ -98,9 +95,7 @@ export async function POST(
     return NextResponse.json({ message: 'Validation failed.', errors }, { status: 422 });
   }
 
-
   try {
-    // Load tournament
     const tournament = await getTournamentByIdFromDb(tournamentId);
     if (!tournament) {
       return NextResponse.json({ message: 'Tournament not found.' }, { status: 404 });
@@ -112,45 +107,56 @@ export async function POST(
       return NextResponse.json({ message: 'This tournament is full. No more slots available.' }, { status: 400 });
     }
 
-    // Ensure user exists in DB, auto-create if not (syncing from localStorage-based frontend)
-    let user = await prisma.user.findUnique({ where: { id: userId } });
+    // Fetch user or auto-create in Supabase
+    let { data: user } = await supabaseAdmin
+      .from('User')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
     if (!user) {
-      user = await prisma.user.create({
-        data: {
+      const { data: newUser, error: createErr } = await supabaseAdmin
+        .from('User')
+        .insert([{
           id: userId,
           name: userName || 'Player',
           email: userEmail || `${userId}@helian.gg`,
           walletBalance: typeof userWalletBalance === 'number' ? userWalletBalance : 0,
           coinBalance: typeof userCoinBalance === 'number' ? userCoinBalance : 0,
           referralCode: `REF_${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-        },
-      });
+        }])
+        .select()
+        .single();
+
+      if (createErr) throw new Error(createErr.message);
+      user = newUser;
     } else {
-      // Sync balances if frontend reports a higher value
-      let updatedWallet = user.walletBalance;
-      let updatedCoin = user.coinBalance;
+      let updatedWallet = Number(user.walletBalance) || 0;
+      let updatedCoin = Number(user.coinBalance) || 0;
       let needsUpdate = false;
-      if (typeof userWalletBalance === 'number' && user.walletBalance < userWalletBalance) {
+
+      if (typeof userWalletBalance === 'number' && updatedWallet < userWalletBalance) {
         updatedWallet = userWalletBalance;
         needsUpdate = true;
       }
-      if (typeof userCoinBalance === 'number' && user.coinBalance < userCoinBalance) {
+      if (typeof userCoinBalance === 'number' && updatedCoin < userCoinBalance) {
         updatedCoin = userCoinBalance;
         needsUpdate = true;
       }
 
       if (needsUpdate) {
-        await prisma.user.update({
-          where: { id: userId },
-          data: { walletBalance: updatedWallet, coinBalance: updatedCoin },
-        });
-        user = { ...user, walletBalance: updatedWallet, coinBalance: updatedCoin };
+        await supabaseAdmin
+          .from('User')
+          .update({ walletBalance: updatedWallet, coinBalance: updatedCoin, updatedAt: new Date().toISOString() })
+          .eq('id', userId);
+        user.walletBalance = updatedWallet;
+        user.coinBalance = updatedCoin;
       }
     }
 
-    // Check balance - must have enough to register
+    // Balance check
     const isPayingWithCoins = paymentType === 'COINS';
-    const currentBalance = isPayingWithCoins ? user.coinBalance : user.walletBalance;
+    const currentBalance = isPayingWithCoins ? (Number(user.coinBalance) || 0) : (Number(user.walletBalance) || 0);
     const currencyName = isPayingWithCoins ? 'Coins' : 'Wallet balance';
     const currencyUnit = isPayingWithCoins ? 'Coins' : 'BDT';
 
@@ -163,11 +169,14 @@ export async function POST(
       }, { status: 400 });
     }
 
-
     // Check duplicate squad name in tournament
-    const existingSquad = await prisma.participant.findFirst({
-      where: { tournamentId, squadName: squadName.trim() },
-    });
+    const { data: existingSquad } = await supabaseAdmin
+      .from('Participant')
+      .select('id')
+      .eq('tournamentId', tournamentId)
+      .eq('squadName', squadName.trim())
+      .maybeSingle();
+
     if (existingSquad) {
       return NextResponse.json({ message: 'Validation failed.', errors: { squadName: 'This squad name is already registered in this tournament. Choose a different name.' } }, { status: 422 });
     }
@@ -177,57 +186,61 @@ export async function POST(
     const teamId = generateId('TEAM');
     const trxId = `WAL_${Date.now()}_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 
-    // Execute all DB changes in one transaction
-    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      // 1. Deduct balance immediately
-      const updateData = isPayingWithCoins 
-        ? { coinBalance: { decrement: tournament.entryFee } }
-        : { walletBalance: { decrement: tournament.entryFee } };
+    // 1. Deduct balance
+    const newRemaining = currentBalance - tournament.entryFee;
+    const balanceUpdate = isPayingWithCoins ? { coinBalance: newRemaining } : { walletBalance: newRemaining };
 
-      const updatedUser = await tx.user.update({
-        where: { id: userId },
-        data: updateData,
-      });
+    await supabaseAdmin
+      .from('User')
+      .update({ ...balanceUpdate, updatedAt: new Date().toISOString() })
+      .eq('id', userId);
 
-      // 2. Create participation record (auto-verified)
-      const participant = await tx.participant.create({
-        data: {
-          tournamentId,
-          userId,
-          status: 'VERIFIED',
-          registrationId,
-          squadName: squadName.trim(),
-          iglName: iglName.trim(),
-          captainWhatsApp: captainWhatsApp.trim(),
-          player1Name: player1Name.trim(),
-          player2Name: player2Name.trim(),
-          player3Name: player3Name.trim(),
-          player4Name: player4Name.trim(),
-          backupPlayerName: backupPlayerName?.trim() || null,
-        },
-      });
+    // 2. Create Participant
+    const participantId = `part_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    await supabaseAdmin
+      .from('Participant')
+      .insert([{
+        id: participantId,
+        tournamentId,
+        userId,
+        status: 'VERIFIED',
+        registrationId,
+        squadName: squadName.trim(),
+        iglName: iglName.trim(),
+        captainWhatsApp: captainWhatsApp.trim(),
+        player1Name: player1Name.trim(),
+        player2Name: player2Name.trim(),
+        player3Name: player3Name.trim(),
+        player4Name: player4Name.trim(),
+        backupPlayerName: backupPlayerName?.trim() || null,
+        joinedAt: new Date().toISOString(),
+      }]);
 
-      // 3. Create payment record (completed)
-      await tx.payment.create({
-        data: {
-          userId,
-          tournamentId,
-          method: 'WALLET', // We just keep 'WALLET' method to track internal payments. Since we don't have 'COINS' in PaymentMethod enum yet, WALLET denotes internal balance deduction.
-          amount: tournament.entryFee,
-          trxId,
-          status: 'VERIFIED',
-          notes: `Squad registration (${isPayingWithCoins ? 'Paid via Coins' : 'Paid via Wallet'}): ${squadName.trim()} | ${registrationId}`,
-        },
-      });
+    // 3. Create Payment record
+    const paymentId = `pay_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    await supabaseAdmin
+      .from('Payment')
+      .insert([{
+        id: paymentId,
+        userId,
+        tournamentId,
+        method: 'WALLET',
+        amount: tournament.entryFee,
+        trxId,
+        status: 'VERIFIED',
+        notes: `Squad registration (${isPayingWithCoins ? 'Paid via Coins' : 'Paid via Wallet'}): ${squadName.trim()} | ${registrationId}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }]);
 
-      // 4. Increment registered count
-      await tx.tournament.update({
-        where: { id: tournamentId },
-        data: { registeredCount: { increment: 1 } },
-      });
-
-      return { participant, updatedUser };
-    });
+    // 4. Increment registeredCount
+    await supabaseAdmin
+      .from('Tournament')
+      .update({ 
+        registeredCount: (tournament.registeredCount || 0) + 1,
+        updatedAt: new Date().toISOString()
+      })
+      .eq('id', tournamentId);
 
     return NextResponse.json({
       message: `Registration successful! ${tournament.entryFee} ${currencyUnit} has been deducted.`,
@@ -236,7 +249,7 @@ export async function POST(
       squadName: squadName.trim(),
       tournamentTitle: tournament.title,
       entryFee: tournament.entryFee,
-      remainingBalance: isPayingWithCoins ? result.updatedUser.coinBalance : result.updatedUser.walletBalance,
+      remainingBalance: newRemaining,
       status: 'VERIFIED',
     }, { status: 201 });
 

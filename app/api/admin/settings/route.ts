@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { prisma } from '@/lib/prisma';
+import { supabaseAdmin } from '@/lib/supabase';
 import { verifyAdminSession, requireAdminRole } from '@/lib/admin-auth';
 
 async function getSession() {
@@ -16,10 +16,16 @@ export async function GET() {
   }
 
   try {
-    const settings = await prisma.siteSetting.findMany();
+    const { data: settings, error } = await supabaseAdmin
+      .from('SiteSetting')
+      .select('*');
+
+    if (error) {
+      throw new Error(error.message);
+    }
     
     // Convert array to object { key: value }
-    const settingsMap = settings.reduce((acc: any, setting: any) => {
+    const settingsMap = (settings || []).reduce((acc: any, setting: any) => {
       acc[setting.key] = setting.value;
       return acc;
     }, {});
@@ -45,12 +51,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Key is required' }, { status: 400 });
     }
 
-    // Upsert the setting
-    const setting = await prisma.siteSetting.upsert({
-      where: { key },
-      update: { value: value || '' },
-      create: { key, value: value || '' },
-    });
+    const { data: setting, error } = await supabaseAdmin
+      .from('SiteSetting')
+      .upsert({
+        id: `setting_${key}`,
+        key,
+        value: value || '',
+        updatedAt: new Date().toISOString()
+      }, { onConflict: 'key' })
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(error.message);
+    }
 
     return NextResponse.json({ message: 'Setting updated successfully', setting });
   } catch (error: any) {

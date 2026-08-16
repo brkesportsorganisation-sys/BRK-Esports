@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { listTournamentsFromDb } from '@/lib/tournament-store';
 
 export async function GET() {
