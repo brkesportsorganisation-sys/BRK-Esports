@@ -102,7 +102,7 @@ export default function AdminDashboardPage() {
       ];
 
   // Real database game mode distribution
-  const donutData = overview?.categoryStats && overview.categoryStats.length > 0
+  const donutData: Array<{ name: string; count: number; color: string }> = overview?.categoryStats && overview.categoryStats.length > 0
     ? overview.categoryStats
     : [
         { name: 'BR Squad 4v4', count: 0, color: '#2563EB' },
@@ -312,7 +312,7 @@ export default function AdminDashboardPage() {
                   dataKey="count"
                   stroke="none"
                 >
-                  {donutData.map((entry, index) => (
+                  {donutData.map((entry: { name: string; count: number; color: string }, index: number) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
@@ -322,7 +322,7 @@ export default function AdminDashboardPage() {
 
           {/* Legends at Bottom matching exact reference screenshot */}
           <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 pt-3 border-t border-[#F1F5F9] text-[12px]">
-            {donutData.map((item) => (
+            {donutData.map((item: { name: string; count: number; color: string }) => (
               <div key={item.name} className="flex items-center gap-2 truncate">
                 <span 
                   className="w-2.5 h-2.5 rounded-full flex-shrink-0" 
