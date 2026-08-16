@@ -1,0 +1,21 @@
+{
+  "name": "Helian Tournaments - Free Fire Esports",
+  "short_name": "Helian",
+  "description": "Premier Free Fire Esports & Tournament Platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0F172A",
+  "theme_color": "#FF1E42",
+  "icons": [
+    {
+      "src": "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=192",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=512",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

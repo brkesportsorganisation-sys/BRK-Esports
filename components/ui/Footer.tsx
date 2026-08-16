@@ -1,0 +1,108 @@
+import React from 'react';
+import Link from 'next/link';
+import { Flame, ShieldCheck, Zap, Headphones, MessageSquare } from 'lucide-react';
+
+export default function Footer() {
+  return (
+    <footer className="bg-white border-t border-slate-200 mt-20 relative overflow-hidden">
+      {/* Glow highlight */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-px bg-gradient-to-r from-transparent via-brand-red to-transparent opacity-30"></div>
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10">
+          
+          {/* Brand Info */}
+          <div className="lg:col-span-2 space-y-4">
+            <Link href="/" className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-red to-brand-orange p-0.5 shadow-sm">
+                <div className="w-full h-full bg-white rounded-[10px] flex items-center justify-center">
+                  <Flame className="w-5 h-5 text-brand-red" />
+                </div>
+              </div>
+              <span className="font-heading font-extrabold text-2xl tracking-wider text-slate-900">
+                BLACK ROCK <span className="text-brand-orange">TOURNAMENTS</span>
+              </span>
+            </Link>
+            <p className="text-slate-600 text-sm leading-relaxed max-w-sm">
+              The ultimate competitive esports platform for Free Fire players in South Asia. Compete in daily BR & CS ranked tournaments and build your legacy.
+            </p>
+            <div className="flex items-center space-x-3 pt-2">
+              <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs text-brand-cyan">
+                <ShieldCheck className="w-4 h-4 text-brand-cyan" />
+                <span className="font-semibold text-slate-700">Anti-Cheat Secured</span>
+              </div>
+              <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs text-brand-gold">
+                <Zap className="w-4 h-4 text-brand-gold" />
+                <span className="font-semibold text-slate-700">Instant Payouts</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Links */}
+          <div>
+            <h4 className="font-heading font-bold text-lg text-slate-900 mb-4 uppercase tracking-wider border-l-2 border-brand-red pl-3">
+              Platform
+            </h4>
+            <ul className="space-y-2.5 text-sm text-slate-600">
+              <li><Link href="/tournaments" className="hover:text-brand-orange transition-colors">BR Tournaments</Link></li>
+              <li><Link href="/tournaments" className="hover:text-brand-orange transition-colors">CS 4v4 Knockouts</Link></li>
+              <li><Link href="/leaderboard" className="hover:text-brand-orange transition-colors">Global Ranking</Link></li>
+
+              <li><Link href="/community" className="hover:text-brand-orange transition-colors">Community Announcements</Link></li>
+            </ul>
+          </div>
+
+          {/* Legal & Help */}
+          <div>
+            <h4 className="font-heading font-bold text-lg text-slate-900 mb-4 uppercase tracking-wider border-l-2 border-brand-orange pl-3">
+              Support & Legal
+            </h4>
+            <ul className="space-y-2.5 text-sm text-slate-600">
+              <li><Link href="/contact" className="hover:text-brand-orange transition-colors">Contact Support</Link></li>
+              <li><Link href="/faq" className="hover:text-brand-orange transition-colors">Rules & FAQ</Link></li>
+              <li><Link href="/terms" className="hover:text-brand-orange transition-colors">Terms of Service</Link></li>
+              <li><Link href="/privacy" className="hover:text-brand-orange transition-colors">Privacy Policy</Link></li>
+              <li><Link href="/anti-cheat" className="hover:text-brand-orange transition-colors">Anti-Cheat Policy</Link></li>
+            </ul>
+          </div>
+
+          {/* Payment Methods */}
+          <div>
+            <h4 className="font-heading font-bold text-lg text-slate-900 mb-4 uppercase tracking-wider border-l-2 border-brand-gold pl-3">
+              Supported Banking
+            </h4>
+            <p className="text-xs text-slate-600 mb-4">Instant deposit and fast automated withdrawal via trusted local payment partners.</p>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2 text-center text-xs font-bold text-pink-600">
+                bKash
+              </div>
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2 text-center text-xs font-bold text-orange-600">
+                Nagad
+              </div>
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2 text-center text-xs font-bold text-purple-600">
+                Rocket
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Bottom Banner */}
+        <div className="pt-12 mt-12 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+          <div>
+            © {new Date().getFullYear()} Black Rock Tournaments. All rights reserved. Not affiliated with Garena Free Fire.
+          </div>
+          <div className="flex items-center space-x-6">
+            <span className="hover:text-slate-900 cursor-pointer transition-colors flex items-center gap-1">
+              <MessageSquare className="w-4 h-4 text-brand-orange" /> Discord Community
+            </span>
+            <span className="hover:text-slate-900 cursor-pointer transition-colors flex items-center gap-1">
+              <Headphones className="w-4 h-4 text-brand-cyan" /> 24/7 Live Support
+            </span>
+          </div>
+        </div>
+
+      </div>
+    </footer>
+  );
+}
