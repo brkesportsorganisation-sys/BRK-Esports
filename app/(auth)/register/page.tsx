@@ -84,7 +84,7 @@ function RegisterContent() {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Tanvir Ashik"
+                  placeholder="Enter your full name"
                   required
                   className="w-full bg-surface-light border border-surface-border rounded-xl pl-10 pr-4 py-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-brand-orange"
                 />
@@ -99,7 +99,7 @@ function RegisterContent() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="player@example.com"
+                  placeholder="Enter your email address"
                   required
                   className="w-full bg-surface-light border border-surface-border rounded-xl pl-10 pr-4 py-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-brand-orange"
                 />
@@ -115,7 +115,7 @@ function RegisterContent() {
                     type="text"
                     value={ign}
                     onChange={(e) => setIgn(e.target.value)}
-                    placeholder="BRK_KILLER"
+                    placeholder="Enter FF IGN"
                     required
                     className="w-full bg-surface-light border border-surface-border rounded-xl pl-10 pr-4 py-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-brand-orange"
                   />
@@ -128,7 +128,7 @@ function RegisterContent() {
                   type="text"
                   value={ffUid}
                   onChange={(e) => setFfUid(e.target.value)}
-                  placeholder="1234567890"
+                  placeholder="Enter FF UID (e.g. 123456789)"
                   required
                   className="w-full bg-surface-light border border-surface-border rounded-xl px-4 py-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-brand-orange"
                 />
@@ -143,7 +143,7 @@ function RegisterContent() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Min 6 characters"
+                  placeholder="Enter password (min 6 chars)"
                   required
                   minLength={6}
                   className="w-full bg-surface-light border border-surface-border rounded-xl pl-10 pr-4 py-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-brand-orange"
