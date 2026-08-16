@@ -8,7 +8,7 @@ class LocalDatabase {
   private payments: Payment[] = [...initialPayments];
   private announcements: Announcement[] = [...initialAnnouncements];
   private matchResults: MatchResult[] = [];
-  private currentUser: User = initialUsers[0]; // Admin by default for full preview
+  private currentUser: User | null = null;
   private adSettings: { isActive: boolean, ads: { id: string, videoId: string, rewardAmount: number, isActive: boolean }[] } = {
     isActive: true,
     ads: [
@@ -28,7 +28,15 @@ class LocalDatabase {
       if (savedPayments) this.payments = JSON.parse(savedPayments);
 
       const savedUser = localStorage.getItem('helian_current_user');
-      if (savedUser) this.currentUser = JSON.parse(savedUser);
+      if (savedUser) {
+        try {
+          this.currentUser = JSON.parse(savedUser);
+        } catch {
+          this.currentUser = null;
+        }
+      } else {
+        this.currentUser = null;
+      }
       
       const savedAnn = localStorage.getItem('helian_announcements');
       if (savedAnn) this.announcements = JSON.parse(savedAnn);
@@ -56,19 +64,30 @@ class LocalDatabase {
       localStorage.setItem('helian_users', JSON.stringify(this.users));
       localStorage.setItem('helian_tournaments', JSON.stringify(this.tournaments));
       localStorage.setItem('helian_payments', JSON.stringify(this.payments));
-      localStorage.setItem('helian_current_user', JSON.stringify(this.currentUser));
+      if (this.currentUser) {
+        localStorage.setItem('helian_current_user', JSON.stringify(this.currentUser));
+      } else {
+        localStorage.removeItem('helian_current_user');
+      }
       localStorage.setItem('helian_ad_settings', JSON.stringify(this.adSettings));
     }
   }
 
   // User Auth & Management
-  getCurrentUser(): User {
+  getCurrentUser(): User | null {
     return this.currentUser;
   }
 
-  setCurrentUser(user: User) {
+  setCurrentUser(user: User | null) {
     this.currentUser = user;
     this.save();
+  }
+
+  logout() {
+    this.currentUser = null;
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('helian_current_user');
+    }
   }
 
   loginWithEmailAndPassword(email: string, password: string): User | null {
@@ -123,7 +142,7 @@ class LocalDatabase {
     const idx = this.users.findIndex(u => u.id === id);
     if (idx === -1) return null;
     this.users[idx] = { ...this.users[idx], ...updates };
-    if (this.currentUser.id === id) {
+    if (this.currentUser && this.currentUser.id === id) {
       this.currentUser = this.users[idx];
     }
     this.save();
@@ -319,8 +338,8 @@ class LocalDatabase {
       name,
       tag: tag.toUpperCase(),
       logo: logo || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150',
-      captainId: this.currentUser.id,
-      captainName: this.currentUser.inGameName || this.currentUser.name,
+      captainId: this.currentUser?.id || 'usr_guest',
+      captainName: this.currentUser?.inGameName || this.currentUser?.name || 'Captain',
       membersCount: 1,
       wins: 0,
       inviteCode: `${tag.toUpperCase()}${Math.floor(1000 + Math.random() * 9000)}`,
