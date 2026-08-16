@@ -105,6 +105,7 @@ class LocalDatabase {
       freeFireUid: `VENDOR_${Math.floor(1000000000 + Math.random() * 9000000000)}`,
       inGameName: (details.inGameName || name).toUpperCase().replace(/\s+/g, '_'),
       walletBalance: 0,
+      coinBalance: 0,
       totalKills: 0,
       totalWins: 0,
       earnings: 0,

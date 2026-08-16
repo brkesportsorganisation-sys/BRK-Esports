@@ -28,7 +28,7 @@ export interface User {
   freeFireUid: string;
   inGameName: string;
   walletBalance: number;
-  coinBalance: number;
+  coinBalance?: number;
   totalKills: number;
   totalWins: number;
   earnings: number;

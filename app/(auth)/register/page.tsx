@@ -8,6 +8,7 @@ import { Flame, Lock, Mail, User as UserIcon, Gamepad2, ArrowRight } from 'lucid
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import { db } from '@/lib/db';
+import { User } from '@/lib/types';
 
 function RegisterContent() {
   const router = useRouter();
@@ -22,15 +23,17 @@ function RegisterContent() {
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
-    const newUser = {
+    const newUser: User = {
       id: `usr_${Date.now()}`,
       name,
       email,
+      password,
       avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150',
-      role: 'USER' as const,
+      role: 'USER',
       freeFireUid: ffUid,
       inGameName: ign,
       walletBalance: 100, // Sign up bonus
+      coinBalance: 0,
       totalKills: 0,
       totalWins: 0,
       earnings: 0,
