@@ -20,7 +20,9 @@ import {
   Gift,
   PlusSquare,
   Coins,
-  MessageSquare
+  MessageSquare,
+  Radio,
+  Youtube
 } from 'lucide-react';
 import { db } from '@/lib/db';
 import { User as UserType, Announcement } from '@/lib/types';
@@ -34,6 +36,7 @@ export default function Navbar() {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isLiveActive, setIsLiveActive] = useState(false);
 
   useEffect(() => {
     const cur = db.getCurrentUser();
@@ -41,9 +44,10 @@ export default function Navbar() {
     
     async function loadLiveNavbarData() {
       try {
-        const [annRes, userRes] = await Promise.all([
+        const [annRes, userRes, setRes] = await Promise.all([
           fetch('/api/announcements'),
-          cur ? fetch(`/api/auth/me?id=${cur.id}`) : Promise.resolve(null)
+          cur ? fetch(`/api/auth/me?id=${cur.id}`) : Promise.resolve(null),
+          fetch('/api/settings')
         ]);
 
         if (annRes.ok) {
@@ -52,6 +56,13 @@ export default function Navbar() {
             setAnnouncements(annData.announcements);
             setUnreadCount(annData.announcements.length);
           }
+        }
+
+        if (setRes && setRes.ok) {
+          const setData = await setRes.json();
+          const s = setData.settings || {};
+          const isLive = s.YOUTUBE_LIVE_IS_ACTIVE === 'true' || s.YOUTUBE_LIVE_IS_ACTIVE === true || Boolean(s.YOUTUBE_LIVE_URL);
+          setIsLiveActive(Boolean(isLive));
         }
 
         if (userRes) {
@@ -93,6 +104,7 @@ export default function Navbar() {
     { name: 'Tournaments', href: '/tournaments', icon: Trophy },
     { name: 'Leaderboard', href: '/leaderboard', icon: Award },
     { name: 'Community', href: '/community', icon: MessageSquare },
+    { name: 'Live', href: '/live', icon: Radio, isLive: isLiveActive },
   ];
 
   return (
@@ -353,10 +365,17 @@ export default function Navbar() {
                   key={link.name}
                   href={link.href}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center space-x-3 px-4 py-3 rounded-2xl text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                  className="flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors"
                 >
-                  <Icon className="w-5 h-5 text-brand-orange" />
-                  <span>{link.name}</span>
+                  <div className="flex items-center space-x-3">
+                    <Icon className={`w-5 h-5 ${link.isLive ? 'text-red-600 animate-pulse' : 'text-brand-orange'}`} />
+                    <span>{link.name}</span>
+                  </div>
+                  {link.isLive && (
+                    <span className="px-2 py-0.5 rounded-full bg-red-600 text-white font-bold text-[10px] animate-pulse">
+                      LIVE
+                    </span>
+                  )}
                 </Link>
               );
             })}

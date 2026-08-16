@@ -2,55 +2,32 @@ import React from 'react';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import { supabaseAdmin } from '@/lib/supabase';
-import { Youtube, Flame, Trophy, Users, Calendar, Banknote } from 'lucide-react';
+import { Youtube, Flame, Trophy, Users, Calendar, Banknote, Radio, ExternalLink, MessageSquare, Share2, Sparkles, CheckCircle2 } from 'lucide-react';
 import { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Live Tournament | Black Rock Esports',
-  description: 'Watch live Free Fire tournaments and matches on Black Rock Esports.',
+  title: 'Live Tournament Broadcast | BRK Esports',
+  description: 'Watch live Free Fire tournaments and championship matches on Black Rock Esports.',
 };
 
-export const revalidate = 10; // revalidate every 10 seconds
+export const revalidate = 5; // revalidate every 5 seconds for live stream updates
 
 export default async function LivePage() {
-  const { data: liveSetting } = await supabaseAdmin
+  const { data: settings } = await supabaseAdmin
     .from('SiteSetting')
-    .select('value')
-    .eq('key', 'YOUTUBE_LIVE_URL')
-    .single();
+    .select('key, value');
 
-  const savedUrl = liveSetting?.value || '';
-  
-  interface StreamData { url: string; tournamentId: string; }
-  let streams: StreamData[] = [];
-  
-  try {
-    const parsed = JSON.parse(savedUrl);
-    if (Array.isArray(parsed)) {
-      if (parsed.length > 0 && typeof parsed[0] === 'string') {
-        streams = parsed.map(u => ({ url: u, tournamentId: '' }));
-      } else {
-        streams = parsed;
-      }
-    } else if (savedUrl && !savedUrl.startsWith('[')) {
-      streams = [{ url: savedUrl, tournamentId: '' }];
-    }
-  } catch {
-    streams = savedUrl ? [{ url: savedUrl, tournamentId: '' }] : [];
-  }
+  const settingsMap = (settings || []).reduce((acc: Record<string, string>, setting: any) => {
+    acc[setting.key] = setting.value;
+    return acc;
+  }, {});
 
-  const tournamentIds = [...new Set(streams.map(s => s.tournamentId).filter(Boolean))];
-  let tournaments: any[] = [];
-  if (tournamentIds.length > 0) {
-    const { data } = await supabaseAdmin
-      .from('Tournament')
-      .select('*')
-      .in('id', tournamentIds);
-    tournaments = data || [];
-  }
-  
-  const tournamentMap = new Map(tournaments.map(t => [t.id, t]));
+  const liveUrl = settingsMap.YOUTUBE_LIVE_URL || settingsMap.YOUTUBE_URL || '';
+  const isLive = settingsMap.YOUTUBE_LIVE_IS_ACTIVE === 'true' || Boolean(liveUrl);
+  const streamTitle = settingsMap.YOUTUBE_LIVE_TITLE || 'BRK Esports Free Fire Championship - Live Match';
+  const streamDesc = settingsMap.YOUTUBE_LIVE_DESCRIPTION || 'Watch Bangladesh top Free Fire squads battle live for the championship trophy!';
+  const channelUrl = settingsMap.YOUTUBE_CHANNEL_URL || 'https://youtube.com/@BRKEsports';
 
   // Extract YouTube ID
   const getYoutubeId = (url: string) => {
@@ -59,83 +36,186 @@ export default async function LivePage() {
     return match && match[1].length === 11 ? match[1] : null;
   };
 
+  const videoId = getYoutubeId(liveUrl);
+
+  // Fetch active upcoming tournaments
+  const { data: tournaments } = await supabaseAdmin
+    .from('Tournament')
+    .select('*')
+    .in('status', ['UPCOMING', 'LIVE'])
+    .limit(4);
+
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 flex flex-col font-sans">
+    <div className="min-h-screen bg-[#0B0F19] text-white flex flex-col font-sans selection:bg-red-600 selection:text-white">
       <Navbar />
 
-      <main className="flex-grow pt-10 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-        <div className="mb-8 text-center space-y-3">
-          <div className="inline-flex items-center justify-center space-x-2 px-4 py-1.5 rounded-full bg-red-50 border border-brand-red/20 text-brand-red font-bold uppercase tracking-widest text-xs animate-pulse">
-            <Flame className="w-3.5 h-3.5" />
-            <span>Official Live Broadcast Stream</span>
+      <main className="flex-grow pt-8 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full space-y-8">
+        
+        {/* Stream Broadcast Banner Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+          <div className="space-y-2">
+            <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-red-500/10 border border-red-500/30 text-red-500 font-bold uppercase tracking-widest text-xs">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+              </span>
+              <Radio className="w-3.5 h-3.5 animate-pulse" />
+              <span>{isLive ? 'Live YouTube Stream' : 'Official Broadcast Channel'}</span>
+            </div>
+
+            <h1 className="text-2xl sm:text-4xl font-black font-heading text-white tracking-tight leading-tight">
+              {streamTitle}
+            </h1>
+
+            <p className="text-slate-400 text-xs sm:text-sm max-w-3xl">
+              {streamDesc}
+            </p>
           </div>
-          <h1 className="text-2xl md:text-4xl font-black text-slate-900 font-heading tracking-tight">
-            WATCH LIVE FREE FIRE TOURNAMENTS
-          </h1>
-          <p className="text-slate-600 text-xs sm:text-sm max-w-2xl mx-auto">
-            Cheer for your favorite squads, watch high-tier tactical plays, and don't miss the intense Booyah action.
-          </p>
+
+          <div className="flex items-center gap-3 self-start md:self-center flex-shrink-0">
+            <a
+              href={channelUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-lg shadow-red-600/30 hover:brightness-110 transition-all cursor-pointer"
+            >
+              <Youtube className="w-4 h-4" />
+              <span>Subscribe on YouTube</span>
+              <ExternalLink className="w-3.5 h-3.5 opacity-80" />
+            </a>
+          </div>
         </div>
 
-        <div className={`grid gap-8 ${streams.length > 1 ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
-          {streams.length > 0 ? (
-            streams.map((stream, index) => {
-              const id = getYoutubeId(stream.url);
-              if (!id) return null;
-              
-              const t = stream.tournamentId ? tournamentMap.get(stream.tournamentId) : null;
-              
-              return (
-                <div key={index} className="flex flex-col space-y-4">
-                  {t && (
-                    <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm relative overflow-hidden">
-                      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                        <div className="space-y-1.5 flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-brand-red text-white rounded-md whitespace-nowrap">Live Match</span>
-                            <span className="text-xs text-slate-500 font-semibold truncate">{t.mode} • {t.format.replace('_', ' ')}</span>
-                          </div>
-                          <h2 className="text-base md:text-lg font-black text-slate-900 font-heading uppercase truncate w-full" title={t.title}>
-                            {t.title}
-                          </h2>
-                          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 font-semibold">
-                            <div className="flex items-center gap-1"><Banknote className="w-3.5 h-3.5 text-orange-600" /> ৳{t.prizePool}</div>
-                            <div className="flex items-center gap-1"><Users className="w-3.5 h-3.5 text-blue-600" /> Teams: {t.maxTeams}</div>
-                          </div>
-                        </div>
-                        <Link href={`/tournaments/${t.id}`} className="shrink-0">
-                          <button className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-xs">
-                            <Trophy className="w-3.5 h-3.5" /> View Match
-                          </button>
-                        </Link>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black relative group shadow-md border border-slate-200">
-                    <iframe
-                      width="100%"
-                      height="100%"
-                      src={`https://www.youtube-nocookie.com/embed/${id}?autoplay=${index === 0 ? '1' : '0'}`}
-                      title={`YouTube video player ${index + 1}`}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                      allowFullScreen
-                      className="absolute inset-0 border-0"
-                    ></iframe>
+        {/* Video Player & Match Side-by-Side Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* Main 16:9 Video Embed Player */}
+          <div className="lg:col-span-2 space-y-4">
+            <div className="aspect-video w-full rounded-3xl overflow-hidden bg-black relative group shadow-2xl border border-slate-800 shadow-red-950/20">
+              {videoId ? (
+                <iframe
+                  width="100%"
+                  height="100%"
+                  src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`}
+                  title={streamTitle}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  className="absolute inset-0 border-0 w-full h-full"
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center space-y-4 bg-slate-900/60">
+                  <div className="w-16 h-16 rounded-3xl bg-red-500/10 text-red-500 flex items-center justify-center border border-red-500/20">
+                    <Youtube className="w-8 h-8" />
                   </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-white">Broadcast Offline</h3>
+                    <p className="text-xs text-slate-400 max-w-sm mt-1">
+                      No live stream is currently active. Click below to check our official YouTube channel for match replays.
+                    </p>
+                  </div>
+                  <a
+                    href={channelUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition-all flex items-center gap-2 border border-slate-700"
+                  >
+                    <span>Visit YouTube Channel</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
                 </div>
-              );
-            })
-          ) : (
-            <div className="aspect-video w-full rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col items-center justify-center text-center p-8 space-y-3 col-span-full">
-              <Youtube className="w-16 h-16 text-slate-300 mx-auto" />
-              <div>
-                <h3 className="text-xl font-heading font-bold text-slate-900">STREAM CURRENTLY OFFLINE</h3>
-                <p className="text-slate-500 text-xs mt-1 max-w-md mx-auto">There is no live tournament broadcasting at the moment. Please check back later or view our tournament schedule.</p>
+              )}
+            </div>
+
+            {/* Video Controls & Social Info Bar */}
+            <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2 text-emerald-400 font-bold">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>1080p 60FPS Low-Latency Feed</span>
+              </div>
+
+              <div className="flex items-center gap-4 text-slate-400">
+                <span className="flex items-center gap-1">
+                  <Users className="w-3.5 h-3.5 text-blue-400" />
+                  <span>BRK Arena Spectator</span>
+                </span>
+                <span className="flex items-center gap-1">
+                  <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Official Tournament Feed</span>
+                </span>
               </div>
             </div>
-          )}
+          </div>
+
+          {/* Right Sidebar: Active Match Rooms & Arena Links */}
+          <div className="space-y-5">
+            <div className="p-5 rounded-3xl bg-slate-900/80 border border-slate-800 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 className="font-heading font-black text-sm text-white flex items-center gap-2">
+                  <Trophy className="w-4 h-4 text-amber-500" />
+                  <span>FEATURED ARENA MATCHES</span>
+                </h3>
+                <Link href="/tournaments" className="text-[11px] font-bold text-orange-400 hover:underline">
+                  All Matches →
+                </Link>
+              </div>
+
+              {tournaments && tournaments.length > 0 ? (
+                <div className="space-y-3">
+                  {tournaments.map((t: any) => (
+                    <Link
+                      key={t.id}
+                      href={`/tournaments/${t.id}`}
+                      className="block p-3.5 rounded-2xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-orange-500/40 transition-all group"
+                    >
+                      <div className="flex items-center justify-between text-[11px] mb-1">
+                        <span className="px-2 py-0.5 rounded-md bg-orange-500/20 text-orange-400 font-bold uppercase">
+                          {t.mode}
+                        </span>
+                        <span className="text-emerald-400 font-bold">৳ {t.prizePool} PRIZE</span>
+                      </div>
+                      <div className="font-bold text-xs text-white group-hover:text-orange-400 transition-colors truncate">
+                        {t.title}
+                      </div>
+                      <div className="text-[11px] text-slate-400 mt-1 flex items-center justify-between">
+                        <span>Entry: ৳{t.entryFee}</span>
+                        <span className="text-slate-300 font-semibold group-hover:translate-x-0.5 transition-transform">
+                          Join Slot →
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-slate-500 text-xs">
+                  No active tournament slots right now.
+                </div>
+              )}
+            </div>
+
+            {/* Support & Channel Card */}
+            <div className="p-5 rounded-3xl bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 space-y-3">
+              <div className="font-bold text-xs text-white flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-brand-gold" />
+                <span>Never Miss A Stream</span>
+              </div>
+              <p className="text-slate-400 text-xs leading-relaxed">
+                Subscribe to our YouTube channel and turn on all notifications so you are alerted the exact second tournament custom rooms go live!
+              </p>
+              <a
+                href={channelUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center justify-center gap-2 border border-slate-700 transition-colors"
+              >
+                <Youtube className="w-4 h-4 text-red-500" />
+                <span>Open YouTube Channel</span>
+              </a>
+            </div>
+
+          </div>
+
         </div>
+
       </main>
 
       <Footer />
