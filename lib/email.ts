@@ -101,8 +101,11 @@ async function dispatchEmail(params: {
         },
       });
 
+      const senderDisplayName = (settings.fromEmail || 'Black Rock Esports').replace(/<.*>/, '').trim() || 'Black Rock Esports';
+      const formattedSmtpFrom = `"${senderDisplayName}" <${settings.smtpUser}>`;
+
       const info = await transporter.sendMail({
-        from: fromAddress.includes('@') ? fromAddress : `"${fromAddress}" <${settings.smtpUser}>`,
+        from: formattedSmtpFrom,
         to: params.to,
         subject: params.subject,
         html: params.html,
