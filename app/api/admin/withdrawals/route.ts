@@ -68,6 +68,19 @@ export async function PATCH(request: NextRequest) {
         })
         .eq('id', withdrawalId);
 
+      // Send in-app Notification to player
+      const notifId = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      await supabaseAdmin.from('Notification').insert([{
+        id: notifId,
+        userId: payment.userId,
+        title: 'Withdrawal Processed! 💸',
+        message: `Your payout of ৳${payment.amount} via ${payment.method} has been sent successfully! Check your mobile banking account.`,
+        type: 'PAYOUT',
+        link: '/wallet',
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      }]);
+
       logAdminAction(
         session.username || session.email,
         'WITHDRAWAL_APPROVED',
@@ -97,14 +110,28 @@ export async function PATCH(request: NextRequest) {
         .eq('id', user.id);
     }
 
+    const reasonText = rejectionReason || 'Account number error or verification issue';
     await supabaseAdmin
       .from('Payment')
       .update({
         status: 'REJECTED',
-        notes: `${payment.notes || ''} [Rejected: ${rejectionReason || 'Declined by admin'}]`,
+        notes: `${payment.notes || ''} [Rejected: ${reasonText}]`,
         updatedAt: new Date().toISOString(),
       })
       .eq('id', withdrawalId);
+
+    // Send in-app Notification to player
+    const notifId = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    await supabaseAdmin.from('Notification').insert([{
+      id: notifId,
+      userId: payment.userId,
+      title: 'Withdrawal Declined & Refunded 🔄',
+      message: `Your payout request of ৳${payment.amount} was rejected (${reasonText}). ৳${payment.amount} has been safely refunded to your Winning Wallet.`,
+      type: 'WARNING',
+      link: '/wallet',
+      isRead: false,
+      createdAt: new Date().toISOString(),
+    }]);
 
     logAdminAction(
       session.username || session.email,

@@ -59,10 +59,10 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (action === 'APPROVE') {
-      // 1. Credit player balance in Supabase User table
+      // 1. Credit player balance in Supabase User table (both walletBalance and winningBalance)
       const { data: user } = await supabaseAdmin
         .from('User')
-        .select('id, walletBalance')
+        .select('id, walletBalance, winningBalance')
         .eq('id', payment.userId)
         .single();
 
@@ -71,6 +71,7 @@ export async function PATCH(request: NextRequest) {
           .from('User')
           .update({
             walletBalance: Number(user.walletBalance || 0) + Number(payment.amount),
+            winningBalance: Number(user.winningBalance || 0) + Number(payment.amount),
             updatedAt: new Date().toISOString(),
           })
           .eq('id', user.id);
@@ -86,6 +87,19 @@ export async function PATCH(request: NextRequest) {
         })
         .eq('id', paymentId);
 
+      // 3. Send in-app Notification to player
+      const notifId = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      await supabaseAdmin.from('Notification').insert([{
+        id: notifId,
+        userId: payment.userId,
+        title: 'Deposit Approved! 🎉',
+        message: `Your deposit of ৳${payment.amount} via ${payment.method} (TrxID: ${payment.trxId}) has been verified and added to your wallet!`,
+        type: 'PAYOUT',
+        link: '/wallet',
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      }]);
+
       logAdminAction(
         session.username || session.email,
         'DEPOSIT_VERIFIED',
@@ -98,14 +112,28 @@ export async function PATCH(request: NextRequest) {
     }
 
     // If REJECTED
+    const reasonText = rejectionReason || 'Invalid Transaction ID, number mismatch, or receipt verification failed';
     await supabaseAdmin
       .from('Payment')
       .update({
         status: 'REJECTED',
-        notes: `${payment.notes || ''} [Rejected: ${rejectionReason || 'Invalid TrxID or receipt'}]`,
+        notes: `${payment.notes || ''} [Rejected: ${reasonText}]`,
         updatedAt: new Date().toISOString(),
       })
       .eq('id', paymentId);
+
+    // Send Rejection Notification to player
+    const notifId = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    await supabaseAdmin.from('Notification').insert([{
+      id: notifId,
+      userId: payment.userId,
+      title: 'Deposit Declined ⚠️',
+      message: `Your deposit of ৳${payment.amount} (TrxID: ${payment.trxId}) was rejected. Reason: ${reasonText}. Contact helpline if you believe this is an error.`,
+      type: 'WARNING',
+      link: '/wallet',
+      isRead: false,
+      createdAt: new Date().toISOString(),
+    }]);
 
     logAdminAction(
       session.username || session.email,

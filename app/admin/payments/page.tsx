@@ -50,17 +50,25 @@ export default function AdminPaymentsPage() {
     refreshPayments();
   }, []);
 
-  const handleVerify = async (id: string, action: 'APPROVE' | 'REJECT') => {
+  const [rejectModalPayment, setRejectModalPayment] = useState<Payment | null>(null);
+  const [rejectReason, setRejectReason] = useState('Invalid Transaction ID (TrxID) or payment not received');
+
+  const handleVerify = async (id: string, action: 'APPROVE' | 'REJECT', customReason?: string) => {
     setProcessingId(id);
     try {
       const res = await fetch('/api/admin/payments', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ paymentId: id, action }),
+        body: JSON.stringify({ 
+          paymentId: id, 
+          action, 
+          rejectionReason: customReason 
+        }),
       });
       if (res.ok) {
         await refreshPayments();
+        setRejectModalPayment(null);
       } else {
         const errData = await res.json();
         alert(errData.message || 'Action failed.');
@@ -286,7 +294,7 @@ export default function AdminPaymentsPage() {
                             <span>Approve</span>
                           </button>
                           <button
-                            onClick={() => handleVerify(p.id, 'REJECT')}
+                            onClick={() => setRejectModalPayment(p)}
                             disabled={processingId === p.id}
                             className="px-3 py-1.5 rounded-[10px] bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-bold text-xs transition-all flex items-center space-x-1 disabled:opacity-50"
                           >
@@ -330,6 +338,81 @@ export default function AdminPaymentsPage() {
             >
               Close Viewer
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* 6. Reject Deposit Reason Modal */}
+      {rejectModalPayment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-[24px] p-6 max-w-md w-full border border-[#E2E8F0] space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-base text-red-600 flex items-center gap-1.5">
+                <AlertCircle className="w-5 h-5 text-red-600" />
+                <span>Reject Deposit Request</span>
+              </h3>
+              <button 
+                onClick={() => setRejectModalPayment(null)} 
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1">
+              <div className="font-bold text-slate-900">{rejectModalPayment.userName} (৳{rejectModalPayment.amount})</div>
+              <div className="font-mono text-slate-500 text-[11px]">TrxID: {rejectModalPayment.trxId} • {rejectModalPayment.method}</div>
+            </div>
+
+            <div className="space-y-2 text-xs">
+              <label className="font-bold text-slate-700 block">Select or Enter Rejection Reason:</label>
+              
+              <div className="space-y-1">
+                {[
+                  'Invalid Transaction ID (TrxID) or payment not received',
+                  'Amount mismatch (deposited amount is lower)',
+                  'Fake or duplicate receipt submission',
+                  'Transaction ID already claimed by another user'
+                ].map((reason) => (
+                  <button
+                    key={reason}
+                    type="button"
+                    onClick={() => setRejectReason(reason)}
+                    className={`w-full text-left p-2 rounded-lg text-[11px] font-medium transition-colors ${
+                      rejectReason === reason ? 'bg-red-50 text-red-700 border border-red-200 font-bold' : 'bg-slate-50 hover:bg-slate-100 text-slate-700'
+                    }`}
+                  >
+                    {reason}
+                  </button>
+                ))}
+              </div>
+
+              <input
+                type="text"
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="Custom reason..."
+                className="w-full px-3 py-2 rounded-xl bg-[#F8FAFC] border border-slate-200 text-xs text-slate-900 font-medium focus:outline-none focus:border-red-500"
+              />
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setRejectModalPayment(null)}
+                className="flex-1 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs hover:bg-slate-200"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={processingId === rejectModalPayment.id}
+                onClick={() => handleVerify(rejectModalPayment.id, 'REJECT', rejectReason)}
+                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center justify-center gap-1 shadow-sm disabled:opacity-50"
+              >
+                {processingId === rejectModalPayment.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>Confirm Reject</span>}
+              </button>
+            </div>
           </div>
         </div>
       )}
