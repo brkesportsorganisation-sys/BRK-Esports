@@ -41,7 +41,9 @@ import {
   Gift,
   Mail,
   Globe,
-  ShoppingCart
+  ShoppingCart,
+  Diamond,
+  Swords
 } from 'lucide-react';
 import { AdminPermissionKey } from '@/lib/types';
 
@@ -168,6 +170,8 @@ export default function AdminShell({ children }: AdminShellProps) {
         { href: '/admin/tournaments', label: 'All Tournaments', icon: Trophy, colorClass: 'text-pink-500', permission: 'manage_tournaments' },
         { href: '/admin/registrations', label: 'Slot Registrations', icon: ClipboardList, colorClass: 'text-purple-500', badge: pendingCount, permission: 'manage_tournaments' },
         { href: '/admin/matches', label: 'Match Results & Rooms', icon: Gamepad2, colorClass: 'text-amber-600', permission: 'enter_results' },
+        { href: '/admin/shop', label: 'Diamond Orders (💎)', icon: Diamond, colorClass: 'text-cyan-500', permission: 'manage_deposits' },
+        { href: '/admin/arena', label: '1v1 Arena Duels (⚔️)', icon: Swords, colorClass: 'text-red-500', permission: 'manage_tournaments' },
         { href: '/admin/lfg', label: 'LFG Recruitment Board', icon: Crosshair, colorClass: 'text-blue-500', permission: 'moderate_lfg' },
         { href: '/admin', label: 'Revenue Analytics', icon: BarChart3, colorClass: 'text-teal-500', permission: 'view_dashboard' },
         { href: '/admin/withdrawals', label: 'Winning Payouts', icon: Coins, colorClass: 'text-amber-500', permission: 'manage_withdrawals' },
@@ -178,6 +182,7 @@ export default function AdminShell({ children }: AdminShellProps) {
       title: 'PLAYERS & COMMUNITY',
       links: [
         { href: '/admin/users', label: 'Player Accounts', icon: Users, colorClass: 'text-purple-600', permission: 'manage_users' },
+        { href: '/admin/teams', label: 'Squad Clans Directory', icon: Swords, colorClass: 'text-orange-500', permission: 'manage_tournaments' },
         { href: '/admin/notifications', label: 'Announcements & Alerts', icon: Bell, colorClass: 'text-pink-400', permission: 'send_notifications' },
         { href: '/admin/moderation', label: 'Chat Moderation', icon: ShieldAlert, colorClass: 'text-red-500', permission: 'moderate_messages' },
         { href: '/admin/unlocks', label: 'Contact Unlocks (৳)', icon: DollarSign, colorClass: 'text-emerald-500', permission: 'view_financial_reports' },
@@ -187,6 +192,7 @@ export default function AdminShell({ children }: AdminShellProps) {
     {
       title: 'OWNER SECURITY & SETTINGS',
       links: [
+        { href: '/admin/anti-cheat', label: 'Anti-Cheat Shield (🛡️)', icon: ShieldAlert, colorClass: 'text-red-600', permission: 'manage_users', ownerOnly: true },
         { href: '/admin/roles', label: 'Sub-Admin Roles', icon: KeyRound, colorClass: 'text-indigo-500', permission: 'manage_roles', ownerOnly: true },
         { href: '/admin/delete-requests', label: 'Delete Approvals', icon: ShieldAlert, colorClass: 'text-red-500', permission: 'approve_deletes', ownerOnly: true },
         { href: '/admin/activity-log', label: 'Activity Audit Log', icon: History, colorClass: 'text-teal-600', permission: 'manage_roles', ownerOnly: true },
