@@ -135,14 +135,14 @@ function RegisterContent() {
             <div>
               <label className="text-xs font-bold text-slate-800 uppercase block mb-1">Full Name</label>
               <div className="relative">
-                <UserIcon className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <UserIcon className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Enter your full name"
                   required
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-10 pr-4 py-3 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-orange focus:bg-white transition-all font-semibold"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-10 pr-4 py-3 text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:border-brand-orange focus:bg-white transition-all font-semibold"
                 />
               </div>
             </div>
@@ -151,14 +151,14 @@ function RegisterContent() {
             <div>
               <label className="text-xs font-bold text-slate-800 uppercase block mb-1">Email Address</label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email address"
                   required
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-10 pr-4 py-3 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-orange focus:bg-white transition-all font-semibold"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-10 pr-4 py-3 text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:border-brand-orange focus:bg-white transition-all font-semibold"
                 />
               </div>
             </div>
@@ -176,7 +176,7 @@ function RegisterContent() {
                     onChange={(e) => setFfUid(e.target.value)}
                     placeholder="e.g. 2172143722"
                     required
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-3 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-orange focus:bg-white transition-all font-mono font-bold"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-3 text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:border-brand-orange focus:bg-white transition-all font-mono font-bold"
                   />
                   {isFetchingIgn && (
                     <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
@@ -196,7 +196,7 @@ function RegisterContent() {
                   )}
                 </div>
                 <div className="relative">
-                  <Gamepad2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <Gamepad2 className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     ref={ignRef}
                     type="text"
@@ -204,7 +204,7 @@ function RegisterContent() {
                     onChange={(e) => setIgn(e.target.value)}
                     placeholder={isFetchingIgn ? "Loading..." : "Enter player IGN"}
                     required
-                    className={`w-full border rounded-xl pl-10 pr-4 py-3 text-xs text-slate-900 placeholder-slate-400 focus:outline-none transition-all font-bold ${
+                    className={`w-full border rounded-xl pl-10 pr-4 py-3 text-xs text-slate-900 placeholder-slate-500 focus:outline-none transition-all font-bold ${
                       fetchStatus.status === 'success' 
                         ? 'bg-emerald-50 border-emerald-500 text-emerald-950 font-black' 
                         : 'bg-slate-50 border-slate-300 focus:border-brand-orange focus:bg-white'
@@ -221,11 +221,11 @@ function RegisterContent() {
                   ? 'text-emerald-700 bg-emerald-50 border border-emerald-200' 
                   : fetchStatus.status === 'loading'
                   ? 'text-orange-700 bg-orange-50 border border-orange-200 animate-pulse'
-                  : 'text-slate-600 bg-slate-100 border border-slate-200'
+                  : 'text-slate-700 bg-slate-100 border border-slate-200'
               }`}>
                 {fetchStatus.status === 'success' && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />}
                 {fetchStatus.status === 'loading' && <Loader2 className="w-3.5 h-3.5 text-orange-600 animate-spin flex-shrink-0" />}
-                {fetchStatus.status === 'failed' && <AlertCircle className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />}
+                {fetchStatus.status === 'failed' && <AlertCircle className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />}
                 <span>{fetchStatus.message}</span>
               </div>
             )}
@@ -234,7 +234,7 @@ function RegisterContent() {
             <div>
               <label className="text-xs font-bold text-slate-800 uppercase block mb-1">Password</label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="password"
                   value={password}
@@ -242,7 +242,7 @@ function RegisterContent() {
                   placeholder="Enter password (min 6 chars)"
                   required
                   minLength={6}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-10 pr-4 py-3 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-orange focus:bg-white transition-all font-semibold"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-10 pr-4 py-3 text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:border-brand-orange focus:bg-white transition-all font-semibold"
                 />
               </div>
             </div>

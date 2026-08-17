@@ -211,13 +211,13 @@ export default function AdminUsersPage() {
       {/* 3. Search and Role Filter */}
       <div className="bg-white border border-[#E2E8F0]/80 rounded-[20px] p-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="relative w-full sm:w-96">
-          <Search className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Search by Player ID (BRK-...), Name, IGN, UID, or Email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-medium text-[#0F172A] placeholder-[#94A3B8] focus:outline-none focus:border-[#2563EB] transition-colors"
+            className="w-full pl-10 pr-4 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-medium text-[#0F172A] placeholder-slate-500 focus:outline-none focus:border-[#2563EB] transition-colors"
           />
         </div>
 
@@ -229,7 +229,7 @@ export default function AdminUsersPage() {
               className={`px-3.5 py-1.5 rounded-[10px] text-xs font-semibold transition-colors cursor-pointer ${
                 roleFilter === r
                   ? 'bg-[#2563EB] text-white shadow-xs'
-                  : 'bg-[#F8FAFC] border border-[#E2E8F0] text-[#64748B] hover:text-[#0F172A]'
+                  : 'bg-[#F8FAFC] border border-[#E2E8F0] text-[#475569] hover:text-[#0F172A]'
               }`}
             >
               {r}
@@ -245,7 +245,7 @@ export default function AdminUsersPage() {
             <Loader2 className="w-8 h-8 animate-spin" />
           </div>
         ) : filteredUsers.length === 0 ? (
-          <div className="p-16 text-center text-[#64748B] space-y-2">
+          <div className="p-16 text-center text-[#475569] space-y-2">
             <Users className="w-10 h-10 text-slate-300 mx-auto" />
             <div className="font-bold text-[#0F172A] text-base">No Players Found</div>
             <div className="text-xs">No player matches "{searchQuery}". Try searching by BRK Player ID or UID.</div>
@@ -253,7 +253,7 @@ export default function AdminUsersPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-[#F8FAFC] text-[#64748B] text-[11px] uppercase font-bold border-b border-[#E2E8F0]">
+              <thead className="bg-[#F8FAFC] text-slate-700 text-[11px] uppercase font-bold border-b border-[#E2E8F0]">
                 <tr>
                   <th className="py-3.5 px-5">Player Unique ID</th>
                   <th className="py-3.5 px-5">Player Profile</th>
@@ -303,7 +303,7 @@ export default function AdminUsersPage() {
                                 <span className="px-1.5 py-0.2 rounded bg-purple-50 text-purple-600 text-[9px] font-bold border border-purple-100">MOD</span>
                               )}
                             </div>
-                            <div className="text-[11px] text-[#64748B] truncate">{u.email}</div>
+                            <div className="text-[11px] text-slate-600 truncate">{u.email}</div>
                           </div>
                         </div>
                       </td>
@@ -336,7 +336,7 @@ export default function AdminUsersPage() {
                       </td>
 
                       {/* Game Stats */}
-                      <td className="py-4 px-5 text-xs text-[#64748B]">
+                      <td className="py-4 px-5 text-xs text-slate-600 font-medium">
                         <div>Kills: <strong className="text-[#0F172A]">{u.totalKills || 0}</strong></div>
                         <div>Wins: <strong className="text-[#059669]">{u.totalWins || 0}</strong></div>
                       </td>

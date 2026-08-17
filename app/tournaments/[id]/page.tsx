@@ -430,7 +430,7 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
 
           <div className="bg-surface-light/90 backdrop-blur-md p-4 rounded-2xl border border-surface-border flex items-center space-x-4 shrink-0">
             <div>
-              <div className="text-[10px] text-gray-400 font-bold uppercase">Prize Pool</div>
+              <div className="text-[10px] text-gray-300 font-bold uppercase">Prize Pool</div>
               <div className="text-2xl font-heading font-extrabold text-brand-gold">৳ {tournament.prizePool.toLocaleString()}</div>
             </div>
 
@@ -440,11 +440,11 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                 <span>MATCH IS LIVE</span>
               </button>
             ) : isFinished ? (
-              <button className="px-6 py-3 rounded-xl bg-gray-800 text-gray-400 font-heading font-bold text-sm cursor-not-allowed">
+              <button className="px-6 py-3 rounded-xl bg-gray-800 text-gray-300 font-heading font-bold text-sm cursor-not-allowed">
                 FINISHED
               </button>
             ) : isFull ? (
-              <button className="px-6 py-3 rounded-xl bg-gray-800 text-gray-400 font-heading font-bold text-sm cursor-not-allowed">SLOTS FULL</button>
+              <button className="px-6 py-3 rounded-xl bg-gray-800 text-gray-300 font-heading font-bold text-sm cursor-not-allowed">SLOTS FULL</button>
             ) : (
               <button
                 onClick={openJoinModal}
@@ -474,7 +474,7 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                     : 'bg-gradient-to-r from-brand-red to-brand-orange text-white shadow-neon-red'
                   : tab === 'ROOM'
                     ? 'text-brand-cyan hover:bg-brand-purple/20'
-                    : 'text-gray-400 hover:text-white'
+                    : 'text-gray-300 hover:text-white'
               }`}
             >
               {tab === 'ROOM' && <Lock className="w-4 h-4 inline mr-1" />}
@@ -501,19 +501,19 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                 <h3 className="font-heading font-bold text-lg text-white border-b border-surface-border pb-3">Match Details</h3>
                 <div className="space-y-3 text-xs">
                   <div className="flex items-center justify-between p-2.5 rounded-xl bg-surface-light">
-                    <span className="text-gray-400 font-bold uppercase">Format</span>
+                    <span className="text-gray-300 font-bold uppercase">Format</span>
                     <span className="font-bold text-brand-cyan">{tournament.format.replace('_', ' ')}</span>
                   </div>
                   <div className="flex items-center justify-between p-2.5 rounded-xl bg-surface-light">
-                    <span className="text-gray-400 font-bold uppercase">Mode</span>
+                    <span className="text-gray-300 font-bold uppercase">Mode</span>
                     <span className="font-bold text-brand-orange">{tournament.mode}</span>
                   </div>
                   <div className="flex items-center justify-between p-2.5 rounded-xl bg-surface-light">
-                    <span className="text-gray-400 font-bold uppercase">Match Schedule</span>
+                    <span className="text-gray-300 font-bold uppercase">Match Schedule</span>
                     <span className="font-bold text-white">{new Date(tournament.tournamentStart || tournament.matchTime).toLocaleString()}</span>
                   </div>
                   <div className="flex items-center justify-between p-2.5 rounded-xl bg-surface-light">
-                    <span className="text-gray-400 font-bold uppercase">Slots Registered</span>
+                    <span className="text-gray-300 font-bold uppercase">Slots Registered</span>
                     <span className="font-bold text-brand-gold">{tournament.registeredCount} / {tournament.maxTeams} Teams</span>
                   </div>
                 </div>
@@ -533,7 +533,7 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                       >
                         <div>
                           <div className="font-bold text-white text-sm">{reg.squadName}</div>
-                          <div className="text-[10px] text-gray-400 font-mono mt-0.5">ID: {reg.registrationId}</div>
+                          <div className="text-[10px] text-gray-300 font-mono mt-0.5">ID: {reg.registrationId}</div>
                         </div>
                         <div className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
                           reg.status === 'VERIFIED' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
@@ -584,16 +584,16 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
             </div>
             <div>
               <h2 className="font-heading font-black text-3xl text-white">CUSTOM ROOM CREDENTIALS</h2>
-              <p className="text-gray-400 text-xs mt-1">Room credentials are visible only to verified joined participants and admins.</p>
+              <p className="text-gray-300 text-xs mt-1">Room credentials are visible only to verified joined participants and admins.</p>
             </div>
             {!tournament.roomEnabled ? (
-              <div className="p-4 rounded-2xl bg-surface-light border border-surface-border text-sm font-bold text-gray-400">Room is Locked</div>
+              <div className="p-4 rounded-2xl bg-surface-light border border-surface-border text-sm font-bold text-gray-300">Room is Locked</div>
             ) : !(isJoined || currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN') ? (
-              <div className="p-6 rounded-2xl bg-surface-light border border-surface-border space-y-4"><div className="text-brand-red font-heading font-bold text-lg">Room is Locked</div><p className="text-xs text-gray-400">You must register for this tournament to view the Room ID and Password.</p><button onClick={openJoinModal} className="px-6 py-3 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-bold text-sm">JOIN TOURNAMENT NOW</button></div>
+              <div className="p-6 rounded-2xl bg-surface-light border border-surface-border space-y-4"><div className="text-brand-red font-heading font-bold text-lg">Room is Locked</div><p className="text-xs text-gray-300">You must register for this tournament to view the Room ID and Password.</p><button onClick={openJoinModal} className="px-6 py-3 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-bold text-sm">JOIN TOURNAMENT NOW</button></div>
             ) : tournament.roomReleaseTime && new Date() < new Date(tournament.roomReleaseTime) && currentUser?.role !== 'ADMIN' && currentUser?.role !== 'SUPER_ADMIN' ? (
-              <div className="p-4 rounded-2xl bg-surface-light border border-brand-orange/40 text-center space-y-2"><Lock className="w-8 h-8 text-brand-orange mx-auto" /><div className="text-sm font-bold text-gray-300">Room is Locked</div><div className="text-sm text-gray-400">Room information will be available at the scheduled release time.</div><div className="text-xs text-gray-400">Release Time: {new Date(tournament.roomReleaseTime).toLocaleString()}</div></div>
+              <div className="p-4 rounded-2xl bg-surface-light border border-brand-orange/40 text-center space-y-2"><Lock className="w-8 h-8 text-brand-orange mx-auto" /><div className="text-sm font-bold text-gray-200">Room is Locked</div><div className="text-sm text-gray-300">Room information will be available at the scheduled release time.</div><div className="text-xs text-gray-300">Release Time: {new Date(tournament.roomReleaseTime).toLocaleString()}</div></div>
             ) : (
-              <div className="space-y-4 pt-4 text-left"><div className="p-4 rounded-2xl bg-surface-light border border-surface-border flex items-center justify-between"><div><div className="text-[10px] text-gray-400 font-bold uppercase">Room ID</div><div className="text-2xl font-mono font-extrabold text-brand-gold tracking-widest">{tournament.roomId || '?'}</div></div><button disabled={!tournament.roomId} onClick={() => tournament.roomId && handleCopy(tournament.roomId, 'Room ID')} className="px-4 py-2 rounded-xl bg-brand-orange/20 text-brand-orange border border-brand-orange/40 text-xs font-bold disabled:opacity-40">COPY ID</button></div><div className="p-4 rounded-2xl bg-surface-light border border-surface-border flex items-center justify-between"><div><div className="text-[10px] text-gray-400 font-bold uppercase">Room Password</div><div className="text-2xl font-mono font-extrabold text-brand-cyan tracking-widest">{tournament.roomPassword || '?'}</div></div><button disabled={!tournament.roomPassword} onClick={() => tournament.roomPassword && handleCopy(tournament.roomPassword, 'Password')} className="px-4 py-2 rounded-xl bg-brand-cyan/20 text-brand-cyan border border-brand-cyan/40 text-xs font-bold disabled:opacity-40">COPY PASS</button></div></div>
+              <div className="space-y-4 pt-4 text-left"><div className="p-4 rounded-2xl bg-surface-light border border-surface-border flex items-center justify-between"><div><div className="text-[10px] text-gray-300 font-bold uppercase">Room ID</div><div className="text-2xl font-mono font-extrabold text-brand-gold tracking-widest">{tournament.roomId || '?'}</div></div><button disabled={!tournament.roomId} onClick={() => tournament.roomId && handleCopy(tournament.roomId, 'Room ID')} className="px-4 py-2 rounded-xl bg-brand-orange/20 text-brand-orange border border-brand-orange/40 text-xs font-bold disabled:opacity-40">COPY ID</button></div><div className="p-4 rounded-2xl bg-surface-light border border-surface-border flex items-center justify-between"><div><div className="text-[10px] text-gray-300 font-bold uppercase">Room Password</div><div className="text-2xl font-mono font-extrabold text-brand-cyan tracking-widest">{tournament.roomPassword || '?'}</div></div><button disabled={!tournament.roomPassword} onClick={() => tournament.roomPassword && handleCopy(tournament.roomPassword, 'Password')} className="px-4 py-2 rounded-xl bg-brand-cyan/20 text-brand-cyan border border-brand-cyan/40 text-xs font-bold disabled:opacity-40">COPY PASS</button></div></div>
             )}
           </div>
         )}
@@ -695,7 +695,7 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                         className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${
                           paymentMethod === 'WALLET'
                             ? 'border-brand-orange bg-brand-orange/10 text-brand-orange'
-                            : 'border-surface-border bg-surface hover:bg-surface-light text-gray-400'
+                            : 'border-surface-border bg-surface hover:bg-surface-light text-gray-300'
                         }`}
                       >
                         <Wallet className="w-6 h-6" />
@@ -709,7 +709,7 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                         className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${
                           paymentMethod === 'COINS'
                             ? 'border-yellow-500 bg-yellow-500/10 text-yellow-500'
-                            : 'border-surface-border bg-surface hover:bg-surface-light text-gray-400'
+                            : 'border-surface-border bg-surface hover:bg-surface-light text-gray-300'
                         }`}
                       >
                         <Coins className="w-6 h-6" />
@@ -720,19 +720,19 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
 
                     <div className="grid grid-cols-3 gap-3 text-center pt-2 border-t border-surface-border/50">
                       <div className="p-3 rounded-xl bg-surface/80 border border-surface-border">
-                        <div className="text-[10px] text-gray-400 uppercase font-bold mb-1">Your Balance</div>
+                        <div className="text-[10px] text-gray-300 uppercase font-bold mb-1">Your Balance</div>
                         <div className={`font-heading font-extrabold text-lg ${paymentMethod === 'WALLET' ? 'text-brand-orange' : 'text-yellow-500'}`}>
                           {paymentMethod === 'WALLET' ? `৳ ${walletBalance.toLocaleString()}` : coinBalance.toLocaleString()}
                         </div>
                       </div>
                       <div className="p-3 rounded-xl bg-surface/80 border border-surface-border">
-                        <div className="text-[10px] text-gray-400 uppercase font-bold mb-1">Entry Fee</div>
+                        <div className="text-[10px] text-gray-300 uppercase font-bold mb-1">Entry Fee</div>
                         <div className="font-heading font-extrabold text-brand-red text-lg">
                           {paymentMethod === 'WALLET' ? `৳ ${tournament.entryFee.toLocaleString()}` : tournament.entryFee.toLocaleString()}
                         </div>
                       </div>
                       <div className={`p-3 rounded-xl border ${hasSufficientBalance ? 'bg-surface/80 border-surface-border' : 'bg-red-500/10 border-red-500/30'}`}>
-                        <div className="text-[10px] text-gray-400 uppercase font-bold mb-1">After Payment</div>
+                        <div className="text-[10px] text-gray-300 uppercase font-bold mb-1">After Payment</div>
                         <div className={`font-heading font-extrabold text-lg ${hasSufficientBalance ? 'text-emerald-400' : 'text-red-400'}`}>
                           {paymentMethod === 'WALLET' 
                             ? `৳ ${Math.max(0, walletBalance - tournament.entryFee).toLocaleString()}`
@@ -846,7 +846,7 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
               <div className="p-6 space-y-4">
                 <div className="flex justify-between items-center pb-4 border-b border-surface-border">
                   <div>
-                    <div className="text-xs text-gray-400 font-bold uppercase tracking-wider">Squad Name</div>
+                    <div className="text-xs text-gray-300 font-bold uppercase tracking-wider">Squad Name</div>
                     <div className="text-xl font-heading font-black text-white">{selectedRegistration.squadName}</div>
                   </div>
                   <div className={`px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider ${
@@ -860,36 +860,36 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                 
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <div className="text-[10px] text-gray-400 font-bold uppercase">Registration ID</div>
+                    <div className="text-[10px] text-gray-300 font-bold uppercase">Registration ID</div>
                     <div className="font-mono text-white">{selectedRegistration.registrationId}</div>
                   </div>
                   <div>
-                    <div className="text-[10px] text-gray-400 font-bold uppercase">Captain WhatsApp</div>
+                    <div className="text-[10px] text-gray-300 font-bold uppercase">Captain WhatsApp</div>
                     <div className="font-mono text-white">{selectedRegistration.captainWhatsApp}</div>
                   </div>
                   <div className="col-span-2">
-                    <div className="text-[10px] text-gray-400 font-bold uppercase">In-Game Leader (IGL)</div>
+                    <div className="text-[10px] text-gray-300 font-bold uppercase">In-Game Leader (IGL)</div>
                     <div className="text-brand-cyan font-bold">{selectedRegistration.iglName}</div>
                   </div>
                   <div>
-                    <div className="text-[10px] text-gray-400 font-bold uppercase">Player 1</div>
+                    <div className="text-[10px] text-gray-300 font-bold uppercase">Player 1</div>
                     <div className="text-white">{selectedRegistration.player1Name}</div>
                   </div>
                   <div>
-                    <div className="text-[10px] text-gray-400 font-bold uppercase">Player 2</div>
+                    <div className="text-[10px] text-gray-300 font-bold uppercase">Player 2</div>
                     <div className="text-white">{selectedRegistration.player2Name}</div>
                   </div>
                   <div>
-                    <div className="text-[10px] text-gray-400 font-bold uppercase">Player 3</div>
+                    <div className="text-[10px] text-gray-300 font-bold uppercase">Player 3</div>
                     <div className="text-white">{selectedRegistration.player3Name}</div>
                   </div>
                   <div>
-                    <div className="text-[10px] text-gray-400 font-bold uppercase">Player 4</div>
+                    <div className="text-[10px] text-gray-300 font-bold uppercase">Player 4</div>
                     <div className="text-white">{selectedRegistration.player4Name}</div>
                   </div>
                   {selectedRegistration.backupPlayerName && (
                     <div className="col-span-2">
-                      <div className="text-[10px] text-gray-400 font-bold uppercase">Backup Player</div>
+                      <div className="text-[10px] text-gray-300 font-bold uppercase">Backup Player</div>
                       <div className="text-brand-orange">{selectedRegistration.backupPlayerName}</div>
                     </div>
                   )}

@@ -99,13 +99,13 @@ export default function LeaderboardPage() {
 
           {/* Search Box */}
           <div className="relative w-full sm:w-80">
-            <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-slate-500 absolute left-4 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Search player, tag, or FF UID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded-xl pl-11 pr-4 py-2.5 text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-orange shadow-xs transition-colors"
+              className="w-full bg-white border border-slate-200 rounded-xl pl-11 pr-4 py-2.5 text-xs sm:text-sm text-slate-900 placeholder-slate-500 focus:outline-none focus:border-brand-orange shadow-xs transition-colors"
             />
           </div>
         </div>
@@ -126,7 +126,7 @@ export default function LeaderboardPage() {
                 <h3 className="font-heading font-black text-lg text-slate-900">{top2.name}</h3>
                 {top2.tag && <div className="text-xs text-brand-orange font-bold font-mono">[{top2.tag}]</div>}
                 <div className="text-xl font-heading font-extrabold text-orange-600 mt-2">৳ {top2.earnings.toLocaleString()}</div>
-                <div className="text-xs text-slate-500 mt-1">{top2.kills} Kills • {top2.wins} Wins</div>
+                <div className="text-xs text-slate-600 font-medium mt-1">{top2.kills} Kills • {top2.wins} Wins</div>
               </div>
             )}
 
@@ -158,7 +158,7 @@ export default function LeaderboardPage() {
                 <h3 className="font-heading font-black text-lg text-slate-900">{top3.name}</h3>
                 {top3.tag && <div className="text-xs text-brand-orange font-bold font-mono">[{top3.tag}]</div>}
                 <div className="text-xl font-heading font-extrabold text-orange-600 mt-2">৳ {top3.earnings.toLocaleString()}</div>
-                <div className="text-xs text-slate-500 mt-1">{top3.kills} Kills • {top3.wins} Wins</div>
+                <div className="text-xs text-slate-600 font-medium mt-1">{top3.kills} Kills • {top3.wins} Wins</div>
               </div>
             )}
 
@@ -169,7 +169,7 @@ export default function LeaderboardPage() {
         <div className="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-[#F8FAFC] border-b border-slate-200 text-xs uppercase font-bold text-slate-500">
+              <thead className="bg-[#F8FAFC] border-b border-slate-200 text-xs uppercase font-bold text-slate-700">
                 <tr>
                   <th className="py-3.5 px-5 text-center">Rank</th>
                   <th className="py-3.5 px-5">{activeTab === 'PLAYERS' ? 'Player Name' : 'Team Name'}</th>
@@ -187,7 +187,7 @@ export default function LeaderboardPage() {
                         item.rank === 1 ? 'bg-amber-100 text-amber-800' :
                         item.rank === 2 ? 'bg-slate-200 text-slate-800' :
                         item.rank === 3 ? 'bg-amber-50 text-amber-700' :
-                        'bg-slate-100 text-slate-600'
+                        'bg-slate-100 text-slate-700 font-bold'
                       }`}>
                         #{item.rank}
                       </span>

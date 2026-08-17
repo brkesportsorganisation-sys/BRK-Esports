@@ -208,19 +208,19 @@ export default function CommunityPage() {
             
             {/* Search Input */}
             <div className="relative w-full md:w-80">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Search players, clans, managers, sponsors..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-xs font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-orange"
+                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-xs font-medium text-slate-900 placeholder-slate-500 focus:outline-none focus:border-brand-orange"
               />
             </div>
 
             {/* Post Count Info */}
-            <div className="text-xs text-slate-500 font-semibold self-end md:self-auto">
-              Total <strong>{filteredPosts.length + filteredAnnouncements.length}</strong> posts in arena
+            <div className="text-xs text-slate-600 font-semibold self-end md:self-auto">
+              Total <strong className="text-slate-900 font-bold">{filteredPosts.length + filteredAnnouncements.length}</strong> posts in arena
             </div>
           </div>
 
@@ -241,7 +241,7 @@ export default function CommunityPage() {
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                   activeTab === tab.id
                     ? 'bg-slate-900 text-white shadow-xs'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
                 {tab.label}
@@ -259,7 +259,7 @@ export default function CommunityPage() {
           <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 shadow-sm space-y-3 max-w-md mx-auto">
             <Users className="w-12 h-12 text-slate-300 mx-auto" />
             <h3 className="font-heading font-black text-xl text-slate-900">No Posts in this Category</h3>
-            <p className="text-xs text-slate-500">Be the first to post your player form, clan recruitment, or manager/sponsor request!</p>
+            <p className="text-xs text-slate-600 font-medium">Be the first to post your player form, clan recruitment, or manager/sponsor request!</p>
             <button
               onClick={() => setIsModalOpen(true)}
               className="px-5 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition-colors shadow-xs"
@@ -273,7 +273,7 @@ export default function CommunityPage() {
             {/* Announcements Section */}
             {filteredAnnouncements.length > 0 && (
               <div className="space-y-3">
-                <div className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                <div className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
                   <Megaphone className="w-4 h-4 text-brand-red" />
                   <span>Official Announcements</span>
                 </div>
@@ -287,7 +287,7 @@ export default function CommunityPage() {
                       )}
                       <h3 className="font-bold text-base text-slate-900">{ann.title}</h3>
                       <p className="text-slate-600 text-xs leading-relaxed">{ann.content}</p>
-                      <div className="text-[10px] text-slate-400 font-mono pt-1">
+                      <div className="text-[10px] text-slate-500 font-mono pt-1">
                         {ann.createdAt ? new Date(ann.createdAt).toLocaleDateString() : 'Official'}
                       </div>
                     </div>
@@ -299,7 +299,7 @@ export default function CommunityPage() {
             {/* Recruitment / Community Posts Grid */}
             {filteredPosts.length > 0 && (
               <div className="space-y-3">
-                <div className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                <div className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
                   <Users className="w-4 h-4 text-brand-orange" />
                   <span>Community Recruitment & Offers</span>
                 </div>

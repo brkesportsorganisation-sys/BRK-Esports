@@ -239,19 +239,19 @@ export default function AdminRegistrationsPage() {
         {/* Search + Filters */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-slate-500 absolute left-4 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Search squad, IGL, player name, WhatsApp, ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white border border-slate-200 shadow-sm rounded-xl pl-11 pr-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-red-300 focus:ring-1 focus:ring-red-300"
+              className="w-full bg-white border border-slate-200 shadow-sm rounded-xl pl-11 pr-4 py-2.5 text-sm text-slate-900 placeholder-slate-500 focus:outline-none focus:border-red-300 focus:ring-1 focus:ring-red-300 font-medium"
             />
           </div>
           <select
             value={tournamentFilter}
             onChange={(e) => setTournamentFilter(e.target.value)}
-            className="bg-white border border-slate-200 shadow-sm rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-red-300 focus:ring-1 focus:ring-red-300 min-w-[200px]"
+            className="bg-white border border-slate-200 shadow-sm rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-red-300 focus:ring-1 focus:ring-red-300 min-w-[200px] font-semibold"
           >
             {tournaments.map((t) => (
               <option key={t} value={t}>{t === 'ALL' ? 'All Tournaments' : t}</option>
@@ -422,18 +422,18 @@ function RegistrationTable({
               )}
 
               <div className="hidden sm:flex flex-col items-end text-right shrink-0">
-                <div className="text-xs text-slate-500 flex items-center gap-1 font-medium">
+                <div className="text-xs text-slate-600 flex items-center gap-1 font-semibold">
                   <Phone className="w-3 h-3" /> {reg.captainWhatsApp}
                 </div>
-                <div className="text-[10px] text-slate-400 mt-0.5 font-medium">
+                <div className="text-[10px] text-slate-600 mt-0.5 font-medium">
                   {new Date(reg.joinedAt).toLocaleDateString()} {new Date(reg.joinedAt).toLocaleTimeString()}
                 </div>
               </div>
 
               <div className="shrink-0 ml-1">
                 {expandedId === reg.id
-                  ? <ChevronDown className="w-4 h-4 text-slate-400" />
-                  : <ChevronRight className="w-4 h-4 text-slate-400" />}
+                  ? <ChevronDown className="w-4 h-4 text-slate-600" />
+                  : <ChevronRight className="w-4 h-4 text-slate-600" />}
               </div>
             </div>
 

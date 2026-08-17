@@ -123,7 +123,7 @@ export default function Navbar() {
               <div className="font-heading font-black text-xl sm:text-2xl tracking-wider text-slate-900 leading-none">
                 BLACKROCK <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-red to-brand-orange">ESPORTS</span>
               </div>
-              <div className="text-[9px] sm:text-[10px] text-slate-500 font-semibold uppercase tracking-widest mt-1">
+              <div className="text-[9px] sm:text-[10px] text-slate-600 font-semibold uppercase tracking-widest mt-1">
                 Free Fire Championship Hub
               </div>
             </div>
@@ -173,7 +173,7 @@ export default function Navbar() {
                     <Wallet className="w-3.5 h-3.5 text-brand-orange" />
                   </div>
                   <div className="text-left">
-                    <div className="text-[9px] text-slate-500 font-bold uppercase leading-none">Wallet</div>
+                    <div className="text-[9px] text-slate-600 font-bold uppercase leading-none">Wallet</div>
                     <div className="text-xs font-heading font-black text-orange-500">
                       ৳ {(currentUser.walletBalance || 0).toLocaleString()}
                     </div>
@@ -189,7 +189,7 @@ export default function Navbar() {
                     <Coins className="w-3.5 h-3.5 text-yellow-600" />
                   </div>
                   <div className="text-left">
-                    <div className="text-[9px] text-slate-500 font-bold uppercase leading-none">Coins</div>
+                    <div className="text-[9px] text-slate-600 font-bold uppercase leading-none">Coins</div>
                     <div className="text-xs font-heading font-black text-yellow-600">
                       {(currentUser.coinBalance || 0).toLocaleString()}
                     </div>
@@ -227,13 +227,13 @@ export default function Navbar() {
                         </div>
                         <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
                           {announcements.length === 0 ? (
-                            <div className="text-xs text-slate-500 text-center py-4">No new announcements</div>
+                            <div className="text-xs text-slate-600 font-medium text-center py-4">No new announcements</div>
                           ) : (
                             announcements.map((ann, idx) => (
                               <div key={idx} className="p-3 rounded-xl bg-slate-50 border-l-4 border-brand-orange text-xs space-y-0.5">
                                 <div className="font-bold text-slate-900">{ann.title}</div>
                                 <div className="text-slate-600 leading-snug">{ann.content}</div>
-                                <div className="text-[9px] text-slate-400 font-mono mt-1">{new Date(ann.createdAt).toLocaleString()}</div>
+                                <div className="text-[9px] text-slate-500 font-mono mt-1">{new Date(ann.createdAt).toLocaleString()}</div>
                               </div>
                             ))
                           )}
@@ -275,7 +275,7 @@ export default function Navbar() {
                       >
                         <div className="p-3 border-b border-slate-100 mb-2 bg-slate-50 rounded-xl">
                           <div className="font-bold text-slate-900 text-sm">{currentUser.name}</div>
-                          <div className="text-xs text-slate-500 truncate">{currentUser.email}</div>
+                          <div className="text-xs text-slate-600 truncate">{currentUser.email}</div>
                           <div className="text-xs font-mono text-orange-600 mt-1 font-bold">
                             Player ID: {currentUser.accountNumber || 'BRK-MEMBER'}
                           </div>

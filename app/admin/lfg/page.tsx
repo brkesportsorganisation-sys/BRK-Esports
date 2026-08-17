@@ -139,18 +139,18 @@ export default function AdminLFGModerationPage() {
       {/* Filter and Search Controls */}
       <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
         <div className="relative w-full md:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Search author, clan, phone, bio..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-orange"
+            className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:border-brand-orange font-medium"
           />
         </div>
 
         <div className="flex items-center gap-2 w-full md:w-auto">
-          <Filter className="w-4 h-4 text-slate-400" />
+          <Filter className="w-4 h-4 text-slate-500" />
           <select
             value={selectedType}
             onChange={(e) => setSelectedType(e.target.value)}
@@ -173,15 +173,15 @@ export default function AdminLFGModerationPage() {
             <Loader2 className="w-8 h-8 animate-spin" />
           </div>
         ) : filteredPosts.length === 0 ? (
-          <div className="p-12 text-center text-slate-400 space-y-2">
+          <div className="p-12 text-center text-slate-600 space-y-2">
             <CheckCircle2 className="w-10 h-10 text-green-500 mx-auto" />
-            <div className="font-bold text-slate-700">No Recruitment / Community Posts Found</div>
-            <div className="text-xs">All community posts are clean and up to date.</div>
+            <div className="font-bold text-slate-900 text-base">No Recruitment / Community Posts Found</div>
+            <div className="text-xs font-medium">All community posts are clean and up to date.</div>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-[#F8FAFC] text-xs uppercase font-bold text-slate-500 border-b border-slate-200">
+              <thead className="bg-[#F8FAFC] text-xs uppercase font-bold text-slate-700 border-b border-slate-200">
                 <tr>
                   <th className="p-4">Author / Clan</th>
                   <th className="p-4">Category & Role</th>
@@ -200,7 +200,7 @@ export default function AdminLFGModerationPage() {
                         {post.squadName && (
                           <div className="text-xs font-bold text-orange-600">[{post.squadName}]</div>
                         )}
-                        <div className="text-[10px] font-mono text-slate-400">Account: {post.accountNumber || 'N/A'}</div>
+                        <div className="text-[10px] font-mono text-slate-600 font-bold">Account: {post.accountNumber || 'N/A'}</div>
                       </td>
                       <td className="p-4">
                         <span className={`inline-block px-2 py-0.5 rounded-lg text-[10px] font-bold border ${badge.bg}`}>

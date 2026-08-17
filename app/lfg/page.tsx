@@ -220,13 +220,13 @@ export default function LFGPage() {
 
             {/* Search Box */}
             <div className="relative flex-1 md:w-64">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Search player, clan, BRE-ID..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-orange shadow-xs"
+                className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-xs sm:text-sm text-slate-900 placeholder-slate-500 focus:outline-none focus:border-brand-orange shadow-xs"
               />
             </div>
           </div>
@@ -241,7 +241,7 @@ export default function LFGPage() {
           <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 shadow-sm max-w-md mx-auto space-y-3">
             <Users className="w-12 h-12 text-slate-300 mx-auto" />
             <h3 className="font-heading font-black text-xl text-slate-900">No Active Recruitment Posts</h3>
-            <p className="text-xs text-slate-500">Be the first player or clan to post a recruitment ad in the arena!</p>
+            <p className="text-xs text-slate-600 font-medium">Be the first player or clan to post a recruitment ad in the arena!</p>
             <button
               onClick={() => setIsModalOpen(true)}
               className="px-6 py-2.5 rounded-xl bg-[#2563EB] text-white font-bold text-xs hover:bg-blue-700 transition-colors shadow-xs"

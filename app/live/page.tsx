@@ -67,7 +67,7 @@ export default async function LivePage() {
               {streamTitle}
             </h1>
 
-            <p className="text-slate-400 text-xs sm:text-sm max-w-3xl">
+            <p className="text-slate-300 text-xs sm:text-sm max-w-3xl">
               {streamDesc}
             </p>
           </div>
@@ -109,7 +109,7 @@ export default async function LivePage() {
                   </div>
                   <div>
                     <h3 className="text-lg font-bold text-white">Broadcast Offline</h3>
-                    <p className="text-xs text-slate-400 max-w-sm mt-1">
+                    <p className="text-xs text-slate-300 max-w-sm mt-1">
                       No live stream is currently active. Click below to check our official YouTube channel for match replays.
                     </p>
                   </div>
@@ -133,7 +133,7 @@ export default async function LivePage() {
                 <span>1080p 60FPS Low-Latency Feed</span>
               </div>
 
-              <div className="flex items-center gap-4 text-slate-400">
+              <div className="flex items-center gap-4 text-slate-300">
                 <span className="flex items-center gap-1">
                   <Users className="w-3.5 h-3.5 text-blue-400" />
                   <span>BRK Arena Spectator</span>
@@ -176,9 +176,9 @@ export default async function LivePage() {
                       <div className="font-bold text-xs text-white group-hover:text-orange-400 transition-colors truncate">
                         {t.title}
                       </div>
-                      <div className="text-[11px] text-slate-400 mt-1 flex items-center justify-between">
+                      <div className="text-[11px] text-slate-300 mt-1 flex items-center justify-between">
                         <span>Entry: ৳{t.entryFee}</span>
-                        <span className="text-slate-300 font-semibold group-hover:translate-x-0.5 transition-transform">
+                        <span className="text-slate-200 font-semibold group-hover:translate-x-0.5 transition-transform">
                           Join Slot →
                         </span>
                       </div>
@@ -186,7 +186,7 @@ export default async function LivePage() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-6 text-slate-500 text-xs">
+                <div className="text-center py-6 text-slate-400 text-xs">
                   No active tournament slots right now.
                 </div>
               )}
@@ -198,7 +198,7 @@ export default async function LivePage() {
                 <Sparkles className="w-4 h-4 text-brand-gold" />
                 <span>Never Miss A Stream</span>
               </div>
-              <p className="text-slate-400 text-xs leading-relaxed">
+              <p className="text-slate-300 text-xs leading-relaxed">
                 Subscribe to our YouTube channel and turn on all notifications so you are alerted the exact second tournament custom rooms go live!
               </p>
               <a

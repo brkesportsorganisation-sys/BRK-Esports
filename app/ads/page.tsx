@@ -185,7 +185,7 @@ export default function AdsPage() {
       <div className="min-h-[90vh] bg-[#fdfaf6] flex flex-col items-center justify-center p-4 text-center">
         <VideoOff className="w-16 h-16 text-slate-300 mb-4" />
         <h2 className="text-2xl font-bold text-slate-900">Ads Currently Disabled</h2>
-        <p className="text-slate-500 mt-2">Check back later for opportunities to earn free coins!</p>
+        <p className="text-slate-600 font-medium mt-2">Check back later for opportunities to earn free coins!</p>
       </div>
     );
   }
@@ -203,12 +203,12 @@ export default function AdsPage() {
             </div>
             <h1 className="text-3xl font-heading font-black text-slate-900">Watch & Earn</h1>
             {status !== 'FINISHED_ALL' && currentAd ? (
-                <p className="text-slate-500 mt-2 text-sm md:text-base">
+                <p className="text-slate-600 font-medium mt-2 text-sm md:text-base">
                   Watch the full video without skipping to earn <span className="font-bold text-brand-orange">{currentAd.rewardAmount} Coins</span>!
-                  <span className="block mt-1 text-xs font-bold text-slate-400">Ad {currentAdIndex + 1} of {activeAds.length}</span>
+                  <span className="block mt-1 text-xs font-bold text-slate-600">Ad {currentAdIndex + 1} of {activeAds.length}</span>
                 </p>
             ) : (
-                <p className="text-slate-500 mt-2 text-sm md:text-base">
+                <p className="text-slate-600 font-medium mt-2 text-sm md:text-base">
                   You've caught up!
                 </p>
             )}
@@ -225,7 +225,7 @@ export default function AdsPage() {
              <div className="py-12 flex flex-col items-center text-center">
                  <CheckCircle2 className="w-16 h-16 text-emerald-400 mb-4" />
                  <h2 className="text-2xl font-bold text-slate-800">You're all caught up!</h2>
-                 <p className="text-slate-500 mt-2 max-w-md">
+                 <p className="text-slate-600 font-medium mt-2 max-w-md">
                      You have watched all available ads for now. Please check back later for more opportunities to earn coins.
                  </p>
              </div>
@@ -246,7 +246,7 @@ export default function AdsPage() {
 
                   <div className="flex flex-col items-center justify-center min-h-[60px]">
                     {status === 'IDLE' && (
-                      <p className="text-slate-500 font-medium">Play the video above to start earning.</p>
+                      <p className="text-slate-600 font-medium">Play the video above to start earning.</p>
                     )}
                     
                     {status === 'WATCHING' && (

@@ -14,7 +14,6 @@ import {
   ChevronRight, 
   Gamepad2, 
   ArrowRight,
-  HelpCircle,
   CheckCircle2,
   Lock,
   Wallet,
@@ -32,7 +31,6 @@ export default function HomePage() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(playerLeaderboard);
   const [siteSettings, setSiteSettings] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState<'ALL' | 'SQUAD' | 'SOLO' | 'CS_RANKED'>('ALL');
-  const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -101,25 +99,6 @@ export default function HomePage() {
     return true;
   });
 
-  const faqs = [
-    {
-      q: 'How do I join a Free Fire tournament on Black Rock?',
-      a: 'Create an account, verify your Free Fire UID in your profile, select any open tournament, pay the entry fee using bKash/Nagad/Rocket (or join FREE tournaments), and copy your Room ID & Password 15 minutes before match start.'
-    },
-    {
-      q: 'When and where will I get the Custom Room ID and Password?',
-      a: 'The Room ID and Password will be automatically unlocked inside your joined tournament details page 15 to 20 minutes before the scheduled match time.'
-    },
-    {
-      q: 'How are prize payouts calculated and distributed?',
-      a: 'After match completion, admins verify kill points and Booyah standings. Winnings are directly deposited to your Black Rock Wallet, which you can withdraw anytime to your bKash or Nagad account.'
-    },
-    {
-      q: 'Are emulators or modified APKs allowed?',
-      a: 'No modified APKs, scripts, or auto-headshot hacks are permitted. Emulator slots are limited per tournament rules. Using cheats will result in a permanent hardware ban.'
-    }
-  ];
-
   return (
     <div className="flex flex-col font-body w-full">
       <Navbar />
@@ -182,7 +161,7 @@ export default function HomePage() {
                   <div className="font-heading font-extrabold text-2xl text-brand-gold">
                     {siteSettings.hero_stat_1_val || '৳ 2.5 Lakh+'}
                   </div>
-                  <div className="text-[11px] font-semibold text-slate-500 uppercase">
+                  <div className="text-[11px] font-semibold text-slate-600 uppercase">
                     {siteSettings.hero_stat_1_label || 'Prize Pool Paid'}
                   </div>
                 </div>
@@ -190,7 +169,7 @@ export default function HomePage() {
                   <div className="font-heading font-extrabold text-2xl text-brand-cyan">
                     {siteSettings.hero_stat_2_val || '15,000+'}
                   </div>
-                  <div className="text-[11px] font-semibold text-slate-500 uppercase">
+                  <div className="text-[11px] font-semibold text-slate-600 uppercase">
                     {siteSettings.hero_stat_2_label || 'Active Players'}
                   </div>
                 </div>
@@ -198,7 +177,7 @@ export default function HomePage() {
                   <div className="font-heading font-extrabold text-2xl text-brand-red">
                     {siteSettings.hero_stat_3_val || '100%'}
                   </div>
-                  <div className="text-[11px] font-semibold text-slate-500 uppercase">
+                  <div className="text-[11px] font-semibold text-slate-600 uppercase">
                     {siteSettings.hero_stat_3_label || 'Anti-Cheat Safe'}
                   </div>
                 </div>
@@ -235,7 +214,7 @@ export default function HomePage() {
 
                 <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-200">
                   <div>
-                    <div className="text-xs text-slate-500">Total Prize Pool</div>
+                    <div className="text-xs text-slate-600 font-medium">Total Prize Pool</div>
                     <div className="text-2xl font-heading font-extrabold text-orange-500">
                       {siteSettings.featured_prize || '৳ 4,000 CASH'}
                     </div>
@@ -271,14 +250,14 @@ export default function HomePage() {
 
           <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-bold">
             <div className="px-3.5 py-1.5 rounded-xl bg-slate-800 border border-slate-700 flex items-center space-x-2">
-              <span className="text-slate-400">{siteSettings.ticker_am_label || 'AM Slots (Morning):'}</span>
+              <span className="text-slate-300">{siteSettings.ticker_am_label || 'AM Slots (Morning):'}</span>
               <span className="text-green-400 font-mono">
                 {siteSettings.ticker_am_text || `${tournaments.filter(t => t.status === 'UPCOMING' && new Date(t.matchTime).getHours() < 12).length || 4} OPEN`}
               </span>
             </div>
 
             <div className="px-3.5 py-1.5 rounded-xl bg-slate-800 border border-slate-700 flex items-center space-x-2">
-              <span className="text-slate-400">{siteSettings.ticker_pm_label || 'PM Slots (Prime Evening):'}</span>
+              <span className="text-slate-300">{siteSettings.ticker_pm_label || 'PM Slots (Prime Evening):'}</span>
               <span className="text-orange-400 font-mono">
                 {siteSettings.ticker_pm_text || `${tournaments.filter(t => t.status === 'UPCOMING' && new Date(t.matchTime).getHours() >= 12).length || 8} OPEN`}
               </span>
@@ -339,21 +318,21 @@ export default function HomePage() {
             <div className="mt-8 pt-6 border-t border-slate-800">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
                 <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-1">
-                  <div className="text-[10px] text-slate-400 font-bold uppercase">10 Referrals</div>
+                  <div className="text-[10px] text-slate-300 font-bold uppercase">10 Referrals</div>
                   <div className="text-lg font-heading font-black text-yellow-400">50 Coins</div>
-                  <div className="text-[10px] text-slate-500 font-mono">Stage 1</div>
+                  <div className="text-[10px] text-slate-300 font-mono">Stage 1</div>
                 </div>
 
                 <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-1">
-                  <div className="text-[10px] text-slate-400 font-bold uppercase">50 Referrals</div>
+                  <div className="text-[10px] text-slate-300 font-bold uppercase">50 Referrals</div>
                   <div className="text-lg font-heading font-black text-yellow-400">100 Coins</div>
-                  <div className="text-[10px] text-slate-500 font-mono">Stage 2</div>
+                  <div className="text-[10px] text-slate-300 font-mono">Stage 2</div>
                 </div>
 
                 <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-1">
-                  <div className="text-[10px] text-slate-400 font-bold uppercase">100 Referrals</div>
+                  <div className="text-[10px] text-slate-300 font-bold uppercase">100 Referrals</div>
                   <div className="text-lg font-heading font-black text-yellow-400">200 Coins</div>
-                  <div className="text-[10px] text-slate-500 font-mono">Stage 3</div>
+                  <div className="text-[10px] text-slate-300 font-mono">Stage 3</div>
                 </div>
 
                 <div className="p-3.5 rounded-2xl bg-gradient-to-tr from-brand-red/30 to-brand-orange/30 border border-brand-orange/50 space-y-1 shadow-neon-orange">
@@ -425,7 +404,7 @@ export default function HomePage() {
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                   activeTab === tab
                     ? 'bg-gradient-to-r from-brand-red to-brand-orange text-white shadow-sm'
-                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                 }`}
               >
                 {tab.replace('_', ' ')}
@@ -545,9 +524,9 @@ export default function HomePage() {
                   <div className="flex items-center space-x-3">
                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-heading font-black text-sm ${
                       player.rank === 1 ? 'bg-brand-gold text-white shadow-sm' :
-                      player.rank === 2 ? 'bg-slate-300 text-slate-700' :
+                      player.rank === 2 ? 'bg-slate-300 text-slate-800' :
                       player.rank === 3 ? 'bg-amber-700 text-white' :
-                      'bg-slate-200 text-slate-500'
+                      'bg-slate-200 text-slate-700 font-bold'
                     }`}>
                       #{player.rank}
                     </div>
@@ -567,7 +546,7 @@ export default function HomePage() {
                           </span>
                         )}
                       </div>
-                      <div className="text-xs text-slate-500 font-mono">FF UID: {player.ffUid}</div>
+                      <div className="text-xs text-slate-600 font-mono">FF UID: {player.ffUid}</div>
                     </div>
                   </div>
 
@@ -575,7 +554,7 @@ export default function HomePage() {
                     <div className="font-heading font-black text-orange-500 text-lg">
                       ৳ {player.earnings.toLocaleString()}
                     </div>
-                    <div className="text-[11px] text-slate-500 font-semibold">
+                    <div className="text-[11px] text-slate-600 font-semibold">
                       {player.kills} Kills • {player.wins} Booyahs
                     </div>
                   </div>
@@ -584,44 +563,6 @@ export default function HomePage() {
             </div>
           </div>
 
-        </div>
-      </section>
-
-      {/* FAQ Section */}
-      <section className="py-16 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-        <div className="text-center mb-10">
-          <span className="text-xs font-bold text-brand-orange uppercase tracking-widest flex items-center justify-center gap-1.5">
-            <HelpCircle className="w-4 h-4 text-brand-orange" />
-            <span>Got Questions?</span>
-          </span>
-          <h2 className="font-heading font-black text-4xl text-slate-900 mt-1">
-            FREQUENTLY ASKED QUESTIONS
-          </h2>
-        </div>
-
-        <div className="space-y-4">
-          {faqs.map((faq, index) => {
-            const isOpen = openFaq === index;
-            return (
-              <div
-                key={index}
-                className="bg-white rounded-2xl overflow-hidden border border-slate-200 transition-all shadow-sm"
-              >
-                <button
-                  onClick={() => setOpenFaq(isOpen ? null : index)}
-                  className="w-full p-5 text-left font-heading font-bold text-lg text-slate-900 flex items-center justify-between gap-4 hover:bg-slate-50"
-                >
-                  <span>{faq.q}</span>
-                  <ChevronRight className={`w-5 h-5 text-brand-orange transition-transform duration-300 ${isOpen ? 'rotate-90' : ''}`} />
-                </button>
-                {isOpen && (
-                  <div className="p-5 pt-0 text-sm text-slate-600 leading-relaxed border-t border-slate-200 mt-1">
-                    {faq.a}
-                  </div>
-                )}
-              </div>
-            );
-          })}
         </div>
       </section>
 

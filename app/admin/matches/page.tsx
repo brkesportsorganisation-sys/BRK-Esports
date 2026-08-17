@@ -274,14 +274,14 @@ export default function AdminMatchesPage() {
                 <Loader2 className="w-8 h-8 animate-spin" />
               </div>
             ) : results.length === 0 ? (
-              <div className="p-16 text-center text-[#64748B] space-y-2">
+              <div className="p-16 text-center text-slate-600 space-y-2">
                 <Crosshair className="w-10 h-10 text-slate-300 mx-auto" />
                 <div className="font-bold text-[#0F172A] text-base">No Scores Submitted Yet</div>
-                <div className="text-xs">Use the scorecard form to enter kill points for this tournament.</div>
+                <div className="text-xs font-medium">Use the scorecard form to enter kill points for this tournament.</div>
               </div>
             ) : (
               <table className="w-full text-left text-sm">
-                <thead className="bg-[#F8FAFC] text-[#64748B] text-[11px] uppercase font-bold border-b border-[#E2E8F0]">
+                <thead className="bg-[#F8FAFC] text-slate-700 text-[11px] uppercase font-bold border-b border-[#E2E8F0]">
                   <tr>
                     <th className="py-3.5 px-5">Rank</th>
                     <th className="py-3.5 px-5">Player / Team</th>
@@ -298,16 +298,16 @@ export default function AdminMatchesPage() {
                         <td className="py-3.5 px-5">
                           <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
                             r.placement === 1 ? 'bg-amber-100 text-amber-800' :
-                            r.placement === 2 ? 'bg-slate-200 text-slate-700' :
+                            r.placement === 2 ? 'bg-slate-200 text-slate-800' :
                             r.placement === 3 ? 'bg-amber-50 text-amber-700' :
-                            'bg-slate-100 text-slate-600'
+                            'bg-slate-100 text-slate-700 font-bold'
                           }`}>
                             #{r.placement}
                           </span>
                         </td>
                         <td className="py-3.5 px-5">
                           <div className="font-bold text-[#0F172A] text-xs">{(r as any).playerName || (r as any).teamOrPlayerName}</div>
-                          {r.ffUid && <div className="text-[10px] font-mono text-[#94A3B8]">UID: {r.ffUid}</div>}
+                          {r.ffUid && <div className="text-[10px] font-mono text-slate-600 font-bold">UID: {r.ffUid}</div>}
                         </td>
                         <td className="py-3.5 px-5 font-bold text-[#0F172A] text-xs">
                           {r.kills} Kills

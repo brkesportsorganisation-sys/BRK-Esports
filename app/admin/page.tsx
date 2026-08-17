@@ -120,17 +120,17 @@ export default function AdminDashboardPage() {
           <h1 className="text-[28px] sm:text-[32px] font-bold text-[#0F172A] tracking-tight leading-tight">
             Dashboard Overview
           </h1>
-          <p className="text-[13px] text-[#64748B] font-normal mt-1">
+          <p className="text-[13px] text-slate-600 font-medium mt-1">
             Welcome back! Here's your tournament & operations analytics.
           </p>
         </div>
 
         {/* Live Clock Badge */}
-        <div className="flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white border border-[#E2E8F0] text-[12px] font-medium text-[#475569] self-start sm:self-auto shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+        <div className="flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white border border-[#E2E8F0] text-[12px] font-semibold text-[#475569] self-start sm:self-auto shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
           <RefreshCw className="w-3.5 h-3.5 text-[#3B82F6] animate-spin" />
-          <span className="font-medium text-[#3B82F6]">Live</span>
+          <span className="font-semibold text-[#3B82F6]">Live</span>
           <span className="text-[#CBD5E1]">•</span>
-          <span className="text-[#475569]">{currentTime || '4:46:04 PM'}</span>
+          <span className="text-slate-700 font-mono">{currentTime || '4:46:04 PM'}</span>
         </div>
       </div>
 
@@ -149,7 +149,7 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           <div>
-            <div className="text-[13px] font-medium text-[#64748B] mt-5">Verified Players</div>
+            <div className="text-[13px] font-semibold text-slate-600 mt-5">Verified Players</div>
             <div className="text-[36px] font-bold text-[#0F172A] leading-none mt-2 tracking-tight">
               {totalUsersCount}
             </div>
@@ -168,7 +168,7 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           <div>
-            <div className="text-[13px] font-medium text-[#64748B] mt-5">Active Tournaments</div>
+            <div className="text-[13px] font-semibold text-slate-600 mt-5">Active Tournaments</div>
             <div className="text-[36px] font-bold text-[#0F172A] leading-none mt-2 tracking-tight">
               {activeTournaments}
             </div>
@@ -187,7 +187,7 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           <div>
-            <div className="text-[13px] font-medium text-[#64748B] mt-5">Categories & Modes</div>
+            <div className="text-[13px] font-semibold text-slate-600 mt-5">Categories & Modes</div>
             <div className="text-[36px] font-bold text-[#0F172A] leading-none mt-2 tracking-tight">
               {totalCategoriesCount}
             </div>
@@ -206,7 +206,7 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           <div>
-            <div className="text-[13px] font-medium text-[#64748B] mt-5">Orders & Deposits</div>
+            <div className="text-[13px] font-semibold text-slate-600 mt-5">Orders & Deposits</div>
             <div className="text-[36px] font-bold text-[#0F172A] leading-none mt-2 tracking-tight">
               {pendingPayments}
             </div>
@@ -223,7 +223,7 @@ export default function AdminDashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-[18px] font-bold text-[#0F172A]">Sales Analytics</h2>
-              <p className="text-[13px] text-[#64748B] font-normal mt-0.5">Monthly sales growth overview</p>
+              <p className="text-[13px] text-slate-600 font-medium mt-0.5">Monthly sales growth overview</p>
             </div>
             <span className="bg-[#ECFDF5] text-[#10B981] border border-[#D1FAE5] rounded-[8px] px-2.5 py-0.5 text-[12px] font-semibold">
               0.0%
@@ -242,13 +242,13 @@ export default function AdminDashboardPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
                 <XAxis 
                   dataKey="month" 
-                  stroke="#94A3B8" 
+                  stroke="#64748B" 
                   fontSize={11} 
                   tickLine={false} 
                   axisLine={false} 
                 />
                 <YAxis 
-                  stroke="#94A3B8" 
+                  stroke="#64748B" 
                   fontSize={11} 
                   tickLine={false} 
                   axisLine={false}

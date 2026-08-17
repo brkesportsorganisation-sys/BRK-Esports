@@ -49,7 +49,7 @@ export default function MobileBottomNav() {
               className={`flex flex-col items-center py-1 px-2.5 rounded-2xl transition-all duration-200 ${
                 isActive
                   ? 'text-brand-orange scale-105 font-bold'
-                  : 'text-slate-400 hover:text-white'
+                  : 'text-slate-300 hover:text-white'
               }`}
             >
               <div className={`relative p-1.5 rounded-xl transition-all ${

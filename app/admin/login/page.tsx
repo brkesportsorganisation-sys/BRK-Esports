@@ -74,13 +74,13 @@ export default function AdminLoginPage() {
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-slate-700">Username or Email</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
                   <UserIcon className="h-4 w-4" />
                 </div>
                 <input
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-800 outline-none transition focus:border-[#244bb5] focus:ring-1 focus:ring-[#244bb5]"
+                  className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-800 outline-none transition focus:border-[#244bb5] focus:ring-1 focus:ring-[#244bb5] placeholder-slate-500"
                   type="text"
                   placeholder="Enter your username or email"
                   required
@@ -91,13 +91,13 @@ export default function AdminLoginPage() {
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-slate-700">Password</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
                   <Lock className="h-4 w-4" />
                 </div>
                 <input
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-10 pr-10 text-sm text-slate-800 outline-none transition focus:border-[#244bb5] focus:ring-1 focus:ring-[#244bb5]"
+                  className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-10 pr-10 text-sm text-slate-800 outline-none transition focus:border-[#244bb5] focus:ring-1 focus:ring-[#244bb5] placeholder-slate-500"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Enter your password"
                   required
@@ -105,7 +105,7 @@ export default function AdminLoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-700"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -129,11 +129,11 @@ export default function AdminLoginPage() {
 
         {/* Footer Area */}
         <div className="border-t border-slate-100 bg-slate-50/50 py-4 px-6 text-center flex flex-col items-center justify-center gap-1.5">
-          <div className="flex items-center gap-1 text-[10px] text-red-500 font-medium">
-            <AlertCircle className="h-3 w-3" />
+          <div className="flex items-center gap-1 text-[10px] text-red-600 font-bold">
+            <AlertCircle className="h-3.5 w-3.5" />
             <span>Your session will auto-logout after 10 minutes of login</span>
           </div>
-          <p className="text-[10px] text-slate-500">For security reasons, you must login fresh each time</p>
+          <p className="text-[10px] text-slate-600 font-medium">For security reasons, you must login fresh each time</p>
         </div>
       </div>
       

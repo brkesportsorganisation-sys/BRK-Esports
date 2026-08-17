@@ -214,7 +214,7 @@ export default function AdminShell({ children }: AdminShellProps) {
                   <span>BLACKROCK</span>
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-brand-red/10 text-brand-red font-mono font-bold">PRO</span>
                 </div>
-                <div className="text-[11px] text-[#94A3B8] font-bold uppercase tracking-wider mt-1">ADMIN DASHBOARD</div>
+                <div className="text-[11px] text-slate-600 font-bold uppercase tracking-wider mt-1">ADMIN DASHBOARD</div>
               </div>
             </Link>
 
@@ -271,13 +271,13 @@ export default function AdminShell({ children }: AdminShellProps) {
                 <button
                   type="button"
                   onClick={() => toggleSection(section.title)}
-                  className="w-full flex items-center justify-between text-[12px] font-bold text-[#64748B] uppercase tracking-wider px-3.5 py-1.5 hover:text-slate-900 transition-colors"
+                  className="w-full flex items-center justify-between text-[12px] font-bold text-[#475569] uppercase tracking-wider px-3.5 py-1.5 hover:text-slate-900 transition-colors"
                 >
                   <span>{section.title}</span>
                   {isCollapsed ? (
-                    <ChevronRight className="w-4 h-4 text-[#94A3B8]" />
+                    <ChevronRight className="w-4 h-4 text-slate-500" />
                   ) : (
-                    <ChevronDown className="w-4 h-4 text-[#94A3B8]" />
+                    <ChevronDown className="w-4 h-4 text-slate-500" />
                   )}
                 </button>
 

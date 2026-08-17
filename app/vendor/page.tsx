@@ -53,7 +53,7 @@ export default function VendorDashboardPage() {
             <div className="flex items-center gap-3">
               <div className="rounded-xl bg-violet-500/10 p-2 text-violet-300"><Trophy className="h-5 w-5" /></div>
               <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Active tournaments</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-300">Active tournaments</p>
                 <p className="mt-2 text-2xl font-black text-white">{tournaments.length}</p>
               </div>
             </div>
@@ -63,7 +63,7 @@ export default function VendorDashboardPage() {
             <div className="flex items-center gap-3">
               <div className="rounded-xl bg-violet-500/10 p-2 text-violet-300"><Users className="h-5 w-5" /></div>
               <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Registered teams</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-300">Registered teams</p>
                 <p className="mt-2 text-2xl font-black text-white">{tournaments.reduce((sum, t) => sum + t.registeredCount, 0)}</p>
               </div>
             </div>
@@ -73,7 +73,7 @@ export default function VendorDashboardPage() {
             <div className="flex items-center gap-3">
               <div className="rounded-xl bg-violet-500/10 p-2 text-violet-300"><Settings className="h-5 w-5" /></div>
               <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Access</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-300">Access</p>
                 <p className="mt-2 text-lg font-bold text-white">Tournament Settings</p>
               </div>
             </div>
@@ -96,7 +96,7 @@ export default function VendorDashboardPage() {
               <div key={tournament.id} className="flex items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
                 <div>
                   <p className="text-lg font-bold text-white">{tournament.title}</p>
-                  <p className="text-sm text-slate-400">{tournament.format.replace('_', ' ')} • {tournament.mode}</p>
+                  <p className="text-sm text-slate-300">{tournament.format.replace('_', ' ')} • {tournament.mode}</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">

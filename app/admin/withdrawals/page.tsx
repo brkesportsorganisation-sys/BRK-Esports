@@ -110,15 +110,15 @@ export default function AdminWithdrawalsPage() {
             <Loader2 className="w-8 h-8 animate-spin" />
           </div>
         ) : withdrawals.length === 0 ? (
-          <div className="p-12 text-center text-slate-400 space-y-2">
+          <div className="p-12 text-center text-slate-600 space-y-2">
             <CheckCircle2 className="w-10 h-10 text-green-500 mx-auto" />
-            <div className="font-bold text-slate-700">No Withdrawal Requests Pending</div>
-            <div className="text-xs">All player winning payouts are fully settled.</div>
+            <div className="font-bold text-slate-900 text-base">No Withdrawal Requests Pending</div>
+            <div className="text-xs font-medium">All player winning payouts are fully settled.</div>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase font-bold text-slate-500 border-b border-slate-200">
+              <thead className="bg-slate-50 text-xs uppercase font-bold text-slate-700 border-b border-slate-200">
                 <tr>
                   <th className="p-4">Player Details</th>
                   <th className="p-4">Payout Method & Details</th>
@@ -132,8 +132,8 @@ export default function AdminWithdrawalsPage() {
                   <tr key={w.id} className="hover:bg-slate-50 transition-colors">
                     <td className="p-4">
                       <div className="font-bold text-slate-900">{w.userName}</div>
-                      <div className="text-xs text-slate-400">{w.userEmail}</div>
-                      <div className="text-[10px] font-mono text-slate-400 mt-0.5">ID: {w.userId}</div>
+                      <div className="text-xs text-slate-600 font-medium">{w.userEmail}</div>
+                      <div className="text-[10px] font-mono text-slate-500 mt-0.5 font-bold">ID: {w.userId}</div>
                     </td>
                     <td className="p-4">
                       <div className="flex items-center space-x-2">
@@ -142,7 +142,7 @@ export default function AdminWithdrawalsPage() {
                         </span>
                         <span className="font-mono text-xs font-bold text-slate-700">{w.trxId}</span>
                       </div>
-                      <div className="text-xs text-slate-600 mt-1 font-mono font-medium">
+                      <div className="text-xs text-slate-700 mt-1 font-mono font-medium">
                         {w.notes || 'No account notes'}
                       </div>
                     </td>
@@ -150,7 +150,7 @@ export default function AdminWithdrawalsPage() {
                       <div className="font-heading font-black text-amber-600 text-lg">
                         ৳ {w.amount.toLocaleString()}
                       </div>
-                      <div className="text-[10px] text-slate-400 font-mono">
+                      <div className="text-[10px] text-slate-600 font-mono font-medium">
                         {new Date(w.createdAt).toLocaleString()}
                       </div>
                     </td>
@@ -184,7 +184,7 @@ export default function AdminWithdrawalsPage() {
                           </button>
                         </div>
                       ) : (
-                        <span className="text-xs text-slate-400 font-bold">
+                        <span className="text-xs text-slate-600 font-bold">
                           {w.status === 'VERIFIED' ? 'Completed' : 'Refunded'}
                         </span>
                       )}

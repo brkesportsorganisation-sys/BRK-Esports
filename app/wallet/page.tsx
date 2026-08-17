@@ -201,7 +201,7 @@ export default function WalletPage() {
               <div className="text-3xl sm:text-4xl font-heading font-black text-amber-600">
                 ৳ {winningBalance.toLocaleString()}
               </div>
-              <div className="text-xs text-slate-500">
+              <div className="text-xs text-slate-600 font-medium">
                 Prize money won from tournament matches
               </div>
             </div>
@@ -235,7 +235,7 @@ export default function WalletPage() {
               <div className="text-3xl sm:text-4xl font-heading font-black text-orange-600">
                 ৳ {promoBalance.toLocaleString()}
               </div>
-              <div className="text-xs text-slate-500">
+              <div className="text-xs text-slate-600 font-medium">
                 Usable exclusively for tournament slot entries
               </div>
             </div>
@@ -263,7 +263,7 @@ export default function WalletPage() {
               <Coins className="w-4 h-4" />
               <span>{user?.coinBalance?.toLocaleString() || 0} Coins</span>
             </div>
-            <div className="text-slate-500">
+            <div className="text-slate-600 font-medium">
               Player ID: <span className="text-slate-900 font-mono font-bold">{user?.accountNumber || 'BRK-MEMBER'}</span>
             </div>
           </div>
@@ -275,7 +275,7 @@ export default function WalletPage() {
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-[#F8FAFC] text-xs font-bold uppercase text-slate-500 border-b border-slate-200">
+              <thead className="bg-[#F8FAFC] text-xs font-bold uppercase text-slate-700 border-b border-slate-200">
                 <tr>
                   <th className="py-3 px-4">TrxID</th>
                   <th className="py-3 px-4">Method</th>
@@ -288,7 +288,7 @@ export default function WalletPage() {
               <tbody className="divide-y divide-slate-100">
                 {payments.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="p-8 text-center text-slate-400">No transactions recorded yet.</td>
+                    <td colSpan={6} className="p-8 text-center text-slate-600 font-medium">No transactions recorded yet.</td>
                   </tr>
                 ) : (
                   payments.map((p) => (
@@ -296,7 +296,7 @@ export default function WalletPage() {
                       <td className="py-3 px-4 font-mono text-xs font-bold text-blue-600">{p.trxId}</td>
                       <td className="py-3 px-4 font-bold text-slate-900 uppercase text-xs">{p.method}</td>
                       <td className="py-3 px-4 font-heading font-extrabold text-slate-900 text-sm">৳ {p.amount}</td>
-                      <td className="py-3 px-4 text-xs font-bold text-slate-600 uppercase">{p.walletType || 'WINNING'}</td>
+                      <td className="py-3 px-4 text-xs font-bold text-slate-700 uppercase">{p.walletType || 'WINNING'}</td>
                       <td className="py-3 px-4">
                         <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
                           p.status === 'VERIFIED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
@@ -306,7 +306,7 @@ export default function WalletPage() {
                           {p.status}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-right text-xs text-slate-500">
+                      <td className="py-3 px-4 text-right text-xs text-slate-600 font-medium">
                         {new Date(p.createdAt).toLocaleDateString()}
                       </td>
                     </tr>
@@ -335,7 +335,7 @@ export default function WalletPage() {
                       type="button"
                       onClick={() => setDepositMethod(m)}
                       className={`p-2.5 rounded-xl border font-bold text-center transition-all ${
-                        depositMethod === m ? 'bg-brand-red text-white border-brand-red shadow-xs' : 'bg-slate-50 border-slate-200 text-slate-600'
+                        depositMethod === m ? 'bg-brand-red text-white border-brand-red shadow-xs' : 'bg-slate-50 border-slate-200 text-slate-700'
                       }`}
                     >
                       {m}
@@ -345,9 +345,9 @@ export default function WalletPage() {
               </div>
 
               <div className="p-3.5 rounded-xl bg-orange-50/70 border border-orange-200 space-y-1 text-xs">
-                <div className="text-slate-600 font-semibold">Send Money (Personal) to Number:</div>
+                <div className="text-slate-700 font-semibold">Send Money (Personal) to Number:</div>
                 <div className="font-mono font-bold text-orange-600 text-sm">01712-998877</div>
-                <div className="text-[10px] text-slate-500 font-bold">Minimum Deposit: ৳20</div>
+                <div className="text-[10px] text-slate-600 font-bold">Minimum Deposit: ৳20</div>
               </div>
 
               <div>

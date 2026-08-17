@@ -79,13 +79,13 @@ export default function TournamentsPage() {
             
             {/* Search Input */}
             <div className="md:col-span-6 relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-slate-500 absolute left-4 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Search tournament title or game mode..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl pl-11 pr-4 py-2.5 text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-orange focus:bg-white transition-all"
+                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl pl-11 pr-4 py-2.5 text-xs sm:text-sm text-slate-900 placeholder-slate-500 focus:outline-none focus:border-brand-orange focus:bg-white transition-all"
               />
             </div>
 
@@ -122,7 +122,7 @@ export default function TournamentsPage() {
           <div className="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-slate-100">
             
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-bold text-slate-500 mr-1 flex items-center gap-1">
+              <span className="text-xs font-bold text-slate-700 mr-1 flex items-center gap-1">
                 <SlidersHorizontal className="w-3.5 h-3.5 text-brand-orange" /> Filter:
               </span>
 
@@ -132,7 +132,7 @@ export default function TournamentsPage() {
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   selectedStatus === 'ALL'
                     ? 'bg-brand-red text-white shadow-xs'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
                 All Status
@@ -142,7 +142,7 @@ export default function TournamentsPage() {
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   selectedStatus === 'UPCOMING'
                     ? 'bg-brand-orange text-white shadow-xs'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
                 Upcoming
@@ -152,7 +152,7 @@ export default function TournamentsPage() {
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   selectedStatus === 'LIVE'
                     ? 'bg-brand-red text-white animate-pulse shadow-xs'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
                 Live Now
@@ -162,7 +162,7 @@ export default function TournamentsPage() {
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   selectedStatus === 'COMPLETED'
                     ? 'bg-slate-800 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
                 Completed
@@ -176,7 +176,7 @@ export default function TournamentsPage() {
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   selectedType === 'ALL' 
                     ? 'bg-indigo-600 text-white shadow-xs' 
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
                 All Entries
@@ -186,7 +186,7 @@ export default function TournamentsPage() {
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   selectedType === 'FREE' 
                     ? 'bg-emerald-600 text-white shadow-xs' 
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
                 FREE Entry
@@ -196,7 +196,7 @@ export default function TournamentsPage() {
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   selectedType === 'PAID' 
                     ? 'bg-amber-500 text-white shadow-xs' 
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
                 Paid Tournaments
@@ -208,7 +208,7 @@ export default function TournamentsPage() {
         </div>
 
         {/* Results Info */}
-        <div className="flex items-center justify-between text-xs text-slate-500 font-semibold px-1">
+        <div className="flex items-center justify-between text-xs text-slate-600 font-semibold px-1">
           <span>Showing <strong className="text-slate-900 font-bold">{filteredTournaments.length}</strong> active tournaments</span>
           {(searchQuery || selectedMode !== 'ALL' || selectedFormat !== 'ALL' || selectedStatus !== 'ALL' || selectedType !== 'ALL') && (
             <button
@@ -237,7 +237,7 @@ export default function TournamentsPage() {
           <div className="text-center py-20 bg-white rounded-3xl p-8 border border-slate-200 shadow-sm space-y-2">
             <Trophy className="w-12 h-12 text-slate-300 mx-auto" />
             <h3 className="font-heading font-bold text-xl text-slate-900">No Tournaments Found</h3>
-            <p className="text-slate-500 text-xs mt-1">Try clearing your search query or selecting a different filter.</p>
+            <p className="text-slate-600 text-xs mt-1">Try clearing your search query or selecting a different filter.</p>
           </div>
         )}
 

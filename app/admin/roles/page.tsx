@@ -250,10 +250,10 @@ export default function AdminRolesPage() {
             <Loader2 className="w-8 h-8 animate-spin" />
           </div>
         ) : accounts.length === 0 ? (
-          <div className="p-12 text-center text-slate-400 space-y-2">
+          <div className="p-12 text-center text-slate-600 space-y-2">
             <KeyRound className="w-10 h-10 text-slate-400 mx-auto" />
-            <div className="font-bold text-slate-700">No Sub-Admin Credentials Created Yet</div>
-            <div className="text-xs">Create dedicated logins for moderators, tournament hosts, and payment handlers.</div>
+            <div className="font-bold text-slate-900 text-base">No Sub-Admin Credentials Created Yet</div>
+            <div className="text-xs font-medium">Create dedicated logins for moderators, tournament hosts, and payment handlers.</div>
             <button
               onClick={openCreateModal}
               className="mt-3 px-5 py-2.5 rounded-xl bg-indigo-600 text-white font-bold text-xs"
@@ -264,7 +264,7 @@ export default function AdminRolesPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase font-bold text-slate-500 border-b border-slate-200">
+              <thead className="bg-slate-50 text-xs uppercase font-bold text-slate-700 border-b border-slate-200">
                 <tr>
                   <th className="p-4">Sub-Admin</th>
                   <th className="p-4">Username</th>
@@ -283,7 +283,7 @@ export default function AdminRolesPage() {
                         </div>
                         <div>
                           <div>{acc.displayName}</div>
-                          <div className="text-[10px] text-slate-400 font-normal">Created: {new Date(acc.createdAt).toLocaleDateString()}</div>
+                          <div className="text-[10px] text-slate-600 font-medium">Created: {new Date(acc.createdAt).toLocaleDateString()}</div>
                         </div>
                       </div>
                     </td>
@@ -294,12 +294,12 @@ export default function AdminRolesPage() {
                       <div className="flex flex-wrap gap-1 max-w-md">
                         {acc.permissions && acc.permissions.length > 0 ? (
                           acc.permissions.slice(0, 3).map((p) => (
-                            <span key={p} className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[10px] font-bold">
+                            <span key={p} className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-800 text-[10px] font-bold">
                               {p.replace(/_/g, ' ')}
                             </span>
                           ))
                         ) : (
-                          <span className="text-[10px] text-slate-400">No permissions</span>
+                          <span className="text-[10px] text-slate-500 font-medium">No permissions</span>
                         )}
                         {acc.permissions && acc.permissions.length > 3 && (
                           <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-600 text-[10px] font-bold">

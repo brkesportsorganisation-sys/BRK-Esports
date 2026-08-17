@@ -155,13 +155,13 @@ export default function AdminPaymentsPage() {
       {/* 3. Search and Status Filter */}
       <div className="bg-white border border-[#E2E8F0]/80 rounded-[20px] p-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Search by player, TrxID, email..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-medium text-[#0F172A] placeholder-[#94A3B8] focus:outline-none focus:border-[#2563EB] transition-colors"
+            className="w-full pl-10 pr-4 py-2 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-medium text-[#0F172A] placeholder-slate-500 focus:outline-none focus:border-[#2563EB] transition-colors"
           />
         </div>
 
@@ -173,7 +173,7 @@ export default function AdminPaymentsPage() {
               className={`px-3.5 py-1.5 rounded-[10px] text-xs font-semibold transition-colors ${
                 statusFilter === st
                   ? 'bg-[#2563EB] text-white shadow-xs'
-                  : 'bg-[#F8FAFC] border border-[#E2E8F0] text-[#64748B] hover:text-[#0F172A]'
+                  : 'bg-[#F8FAFC] border border-[#E2E8F0] text-[#475569] hover:text-[#0F172A]'
               }`}
             >
               {st}
@@ -189,7 +189,7 @@ export default function AdminPaymentsPage() {
             <Loader2 className="w-8 h-8 animate-spin" />
           </div>
         ) : filteredPayments.length === 0 ? (
-          <div className="p-16 text-center text-[#64748B] space-y-2">
+          <div className="p-16 text-center text-[#475569] space-y-2">
             <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto" />
             <div className="font-bold text-[#0F172A] text-base">No Deposits Found</div>
             <div className="text-xs">No payment records matching the selected filter in Supabase.</div>
@@ -197,7 +197,7 @@ export default function AdminPaymentsPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-[#F8FAFC] text-[#64748B] text-[11px] uppercase font-bold border-b border-[#E2E8F0]">
+              <thead className="bg-[#F8FAFC] text-slate-700 text-[11px] uppercase font-bold border-b border-[#E2E8F0]">
                 <tr>
                   <th className="py-3.5 px-5">Player Details</th>
                   <th className="py-3.5 px-5">Method & Amount</th>
@@ -213,8 +213,8 @@ export default function AdminPaymentsPage() {
                   <tr key={p.id} className="hover:bg-[#F8FAFC] transition-colors">
                     <td className="py-4 px-5">
                       <div className="font-bold text-[#0F172A] text-xs">{p.userName || 'Player'}</div>
-                      <div className="text-[11px] text-[#64748B]">{p.userEmail}</div>
-                      <div className="text-[10px] font-mono text-[#94A3B8]">ID: {p.userId}</div>
+                      <div className="text-[11px] text-slate-600 font-medium">{p.userEmail}</div>
+                      <div className="text-[10px] font-mono text-slate-500 font-bold">ID: {p.userId}</div>
                     </td>
 
                     <td className="py-4 px-5">
@@ -235,7 +235,7 @@ export default function AdminPaymentsPage() {
                         </span>
                         <button
                           onClick={() => copyToClipboard(p.trxId)}
-                          className="text-[#94A3B8] hover:text-[#2563EB] p-1 transition-colors"
+                          className="text-slate-500 hover:text-[#2563EB] p-1 transition-colors"
                           title="Copy TrxID"
                         >
                           <Copy className="w-3.5 h-3.5" />

@@ -76,20 +76,20 @@ export default function AdminActivityLogPage() {
       {/* Filter Bar */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Search by admin username, action, or target item..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-white border border-slate-200 rounded-2xl pl-10 pr-4 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-500 font-medium shadow-sm"
+            className="w-full bg-white border border-slate-200 rounded-2xl pl-10 pr-4 py-2.5 text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-medium shadow-sm"
           />
         </div>
 
         <select
           value={selectedAction}
           onChange={(e) => setSelectedAction(e.target.value)}
-          className="bg-white border border-slate-200 rounded-2xl px-4 py-2.5 text-xs text-slate-700 font-bold shadow-sm focus:outline-none"
+          className="bg-white border border-slate-200 rounded-2xl px-4 py-2.5 text-xs text-slate-800 font-bold shadow-sm focus:outline-none"
         >
           <option value="ALL">All Actions ({logs.length})</option>
           {uniqueActions.map((act) => (
@@ -105,15 +105,15 @@ export default function AdminActivityLogPage() {
             <Loader2 className="w-8 h-8 animate-spin" />
           </div>
         ) : filteredLogs.length === 0 ? (
-          <div className="p-12 text-center text-slate-400 space-y-2">
+          <div className="p-12 text-center text-slate-600 space-y-2">
             <ShieldCheck className="w-10 h-10 text-emerald-500 mx-auto" />
-            <div className="font-bold text-slate-700">No Activity Logs Found</div>
-            <div className="text-xs">All administrative events will be recorded here in real time.</div>
+            <div className="font-bold text-slate-900 text-base">No Activity Logs Found</div>
+            <div className="text-xs font-medium">All administrative events will be recorded here in real time.</div>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase font-bold text-slate-500 border-b border-slate-200">
+              <thead className="bg-slate-50 text-xs uppercase font-bold text-slate-700 border-b border-slate-200">
                 <tr>
                   <th className="p-4">Admin Actor</th>
                   <th className="p-4">Action</th>
@@ -127,7 +127,7 @@ export default function AdminActivityLogPage() {
                   <tr key={log.id} className="hover:bg-slate-50 transition-colors">
                     <td className="p-4 font-mono font-bold text-indigo-600 text-xs">
                       <div className="flex items-center space-x-2">
-                        <UserCheck className="w-4 h-4 text-slate-400" />
+                        <UserCheck className="w-4 h-4 text-slate-500" />
                         <span>@{log.adminUsername}</span>
                       </div>
                     </td>
@@ -136,19 +136,19 @@ export default function AdminActivityLogPage() {
                         {log.action}
                       </span>
                     </td>
-                    <td className="p-4 text-xs font-medium text-slate-700">
+                    <td className="p-4 text-xs font-medium text-slate-800">
                       {log.targetType ? (
-                        <span className="font-mono text-slate-600 font-bold">
+                        <span className="font-mono text-slate-700 font-bold">
                           {log.targetType} {log.targetId ? `#${log.targetId}` : ''}
                         </span>
                       ) : (
                         <span className="text-slate-400">—</span>
                       )}
                     </td>
-                    <td className="p-4 text-xs text-slate-600 max-w-md">
+                    <td className="p-4 text-xs text-slate-700 font-medium max-w-md">
                       {log.details || '—'}
                     </td>
-                    <td className="p-4 text-right text-xs text-slate-400 font-mono">
+                    <td className="p-4 text-right text-xs text-slate-600 font-mono font-medium">
                       {new Date(log.createdAt).toLocaleString()}
                     </td>
                   </tr>

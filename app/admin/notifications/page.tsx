@@ -221,7 +221,7 @@ export default function AdminNotificationsPage() {
               <Bell className="w-5 h-5 text-[#2563EB]" />
               <h2 className="text-[17px] font-bold text-[#0F172A]">Recent Broadcasts</h2>
             </div>
-            <span className="text-xs font-bold text-[#64748B] bg-slate-100 px-2.5 py-0.5 rounded-full">
+            <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-full">
               {notifications.length} Sent
             </span>
           </div>
@@ -232,10 +232,10 @@ export default function AdminNotificationsPage() {
                 <Loader2 className="w-8 h-8 animate-spin" />
               </div>
             ) : notifications.length === 0 ? (
-              <div className="p-12 text-center text-[#64748B] space-y-2">
+              <div className="p-12 text-center text-slate-600 space-y-2">
                 <MessageSquare className="w-10 h-10 text-slate-300 mx-auto" />
                 <div className="font-bold text-[#0F172A]">No Broadcasts Yet</div>
-                <div className="text-xs">Sent alerts will appear here in real-time.</div>
+                <div className="text-xs font-medium">Sent alerts will appear here in real-time.</div>
               </div>
             ) : (
               notifications.map((n) => (
@@ -245,15 +245,15 @@ export default function AdminNotificationsPage() {
                 >
                   <div className="space-y-1 min-w-0">
                     <div className="font-bold text-xs text-[#0F172A] truncate">{n.title}</div>
-                    <div className="text-[11px] text-[#64748B] line-clamp-2">{n.message}</div>
-                    <div className="text-[10px] text-[#94A3B8] font-mono">
+                    <div className="text-[11px] text-slate-700 font-medium line-clamp-2">{n.message}</div>
+                    <div className="text-[10px] text-slate-500 font-mono font-medium">
                       {n.createdAt ? new Date(n.createdAt).toLocaleString() : 'Just now'}
                     </div>
                   </div>
 
                   <button
                     onClick={() => handleDelete(n.id)}
-                    className="p-1 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors flex-shrink-0"
+                    className="p-1 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors flex-shrink-0"
                     title="Delete Notice"
                   >
                     <Trash2 className="w-4 h-4" />

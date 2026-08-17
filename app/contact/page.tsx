@@ -31,7 +31,7 @@ export default function ContactPage() {
               <MessageSquare className="w-6 h-6" />
             </div>
             <h3 className="font-heading font-bold text-lg text-slate-900">Discord Community</h3>
-            <p className="text-xs text-slate-500">Join 10,000+ gamers on our active server for scrims & chat.</p>
+            <p className="text-xs text-slate-600 font-medium">Join 10,000+ gamers on our active server for scrims & chat.</p>
           </div>
 
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all text-center space-y-3">
@@ -40,7 +40,7 @@ export default function ContactPage() {
             </div>
             <h3 className="font-heading font-bold text-lg text-slate-900">WhatsApp Helpline</h3>
             <p className="text-xs font-mono font-bold text-emerald-600">+880 1712-998877</p>
-            <p className="text-[11px] text-slate-400">Instant deposit & room ID help</p>
+            <p className="text-[11px] text-slate-600 font-medium">Instant deposit & room ID help</p>
           </div>
 
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all text-center space-y-3">
@@ -49,7 +49,7 @@ export default function ContactPage() {
             </div>
             <h3 className="font-heading font-bold text-lg text-slate-900">Email Support</h3>
             <p className="text-xs font-mono font-bold text-slate-700">support@blackrock.esports</p>
-            <p className="text-[11px] text-slate-400">Official business inquiries</p>
+            <p className="text-[11px] text-slate-600 font-medium">Official business inquiries</p>
           </div>
         </div>
       </main>

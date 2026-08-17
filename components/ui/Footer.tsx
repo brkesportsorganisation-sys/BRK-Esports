@@ -88,7 +88,7 @@ export default function Footer() {
         </div>
 
         {/* Bottom Banner */}
-        <div className="pt-12 mt-12 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+        <div className="pt-12 mt-12 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-600">
           <div>
             © {new Date().getFullYear()} Black Rock Tournaments. All rights reserved. Not affiliated with Garena Free Fire.
           </div>

@@ -84,15 +84,15 @@ export default function AdminDeleteRequestsPage() {
             <Loader2 className="w-8 h-8 animate-spin" />
           </div>
         ) : requests.length === 0 ? (
-          <div className="p-12 text-center text-slate-400 space-y-2">
+          <div className="p-12 text-center text-slate-600 space-y-2">
             <CheckCircle2 className="w-10 h-10 text-green-500 mx-auto" />
-            <div className="font-bold text-slate-700">No Pending Delete Requests</div>
-            <div className="text-xs">Your system is clean and all data deletion requests are clear.</div>
+            <div className="font-bold text-slate-900 text-base">No Pending Delete Requests</div>
+            <div className="text-xs font-medium">Your system is clean and all data deletion requests are clear.</div>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase font-bold text-slate-500 border-b border-slate-200">
+              <thead className="bg-slate-50 text-xs uppercase font-bold text-slate-700 border-b border-slate-200">
                 <tr>
                   <th className="p-4">Target Table / Item</th>
                   <th className="p-4">Requested By</th>
@@ -109,22 +109,22 @@ export default function AdminDeleteRequestsPage() {
                         <Trash2 className="w-4 h-4 text-red-500" />
                         <span>{req.targetTitle || `${req.targetTable} #${req.targetId}`}</span>
                       </div>
-                      <div className="text-[11px] font-mono text-slate-400">
+                      <div className="text-[11px] font-mono text-slate-600 font-medium">
                         Table: {req.targetTable} • ID: {req.targetId}
                       </div>
                     </td>
                     <td className="p-4">
-                      <div className="font-bold text-slate-700 text-xs">{req.requestedByName || req.requestedBy}</div>
-                      <div className="text-[11px] text-slate-400">{new Date(req.createdAt).toLocaleString()}</div>
+                      <div className="font-bold text-slate-800 text-xs">{req.requestedByName || req.requestedBy}</div>
+                      <div className="text-[11px] text-slate-600 font-medium">{new Date(req.createdAt).toLocaleString()}</div>
                     </td>
                     <td className="p-4">
-                      <span className="text-xs text-slate-600 italic">&quot;{req.reason || 'No reason provided'}&quot;</span>
+                      <span className="text-xs text-slate-700 font-medium italic">&quot;{req.reason || 'No reason provided'}&quot;</span>
                     </td>
                     <td className="p-4">
                       <span className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase ${
                         req.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
                         req.status === 'APPROVED' ? 'bg-green-50 text-green-700 border border-green-200' :
-                        'bg-slate-100 text-slate-500'
+                        'bg-slate-100 text-slate-700 font-bold'
                       }`}>
                         {req.status}
                       </span>
@@ -150,7 +150,7 @@ export default function AdminDeleteRequestsPage() {
                           </button>
                         </div>
                       ) : (
-                        <span className="text-xs text-slate-400 font-bold">
+                        <span className="text-xs text-slate-600 font-bold">
                           {req.status === 'APPROVED' ? `Deleted by ${req.approvedBy || 'Owner'}` : 'Rejected'}
                         </span>
                       )}

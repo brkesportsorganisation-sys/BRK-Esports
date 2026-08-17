@@ -512,7 +512,7 @@ export default function AdminTournamentsPage() {
           <div>
             <p className="text-xs uppercase tracking-[0.35em] text-brand-red font-bold">Secure Tournament Operations</p>
             <h1 className="mt-1 text-2xl sm:text-3xl font-heading font-black text-white">TOURNAMENT CONTROL CENTER</h1>
-            <p className="mt-1 text-xs text-slate-400">Create, edit, publish, feature, duplicate, and manage tournament slot brackets.</p>
+            <p className="mt-1 text-xs text-slate-300 font-medium">Create, edit, publish, feature, duplicate, and manage tournament slot brackets.</p>
           </div>
           <button onClick={openCreateModal} className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-brand-red to-brand-orange px-5 py-3 font-heading font-black text-xs text-white shadow-neon-red hover:brightness-110 transition-all">
             <PlusCircle className="h-4 w-4" /> CREATE TOURNAMENT
@@ -523,15 +523,15 @@ export default function AdminTournamentsPage() {
 
         <div className="mt-6 grid gap-4 md:grid-cols-3">
           <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
-            <p className="text-xs uppercase tracking-[0.3em] text-slate-400 font-bold">Total Competitions</p>
+            <p className="text-xs uppercase tracking-[0.3em] text-slate-300 font-bold">Total Competitions</p>
             <p className="mt-1 text-2xl font-heading font-black text-white">{tournaments.length}</p>
           </div>
           <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
-            <p className="text-xs uppercase tracking-[0.3em] text-slate-400 font-bold">Live & Published</p>
+            <p className="text-xs uppercase tracking-[0.3em] text-slate-300 font-bold">Live & Published</p>
             <p className="mt-1 text-2xl font-heading font-black text-emerald-400">{tournaments.filter((item) => item.isPublished || item.status === 'LIVE').length}</p>
           </div>
           <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
-            <p className="text-xs uppercase tracking-[0.3em] text-slate-400 font-bold">Featured Hubs</p>
+            <p className="text-xs uppercase tracking-[0.3em] text-slate-300 font-bold">Featured Hubs</p>
             <p className="mt-1 text-2xl font-heading font-black text-brand-gold">{tournaments.filter((item) => item.isFeatured).length}</p>
           </div>
         </div>
@@ -539,7 +539,7 @@ export default function AdminTournamentsPage() {
         <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-center">
           <label className="flex flex-1 items-center gap-2 rounded-2xl border border-slate-800 bg-slate-900 px-4 py-2.5 text-xs text-white shadow-sm focus-within:border-brand-red">
             <Search className="h-4 w-4 text-slate-400" />
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search tournaments..." className="w-full bg-transparent outline-none text-white placeholder-slate-500 font-medium" />
+            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search tournaments..." className="w-full bg-transparent outline-none text-white placeholder-slate-400 font-medium" />
           </label>
           <label className="flex items-center gap-2 rounded-2xl border border-slate-800 bg-slate-900 px-4 py-2.5 text-xs text-white shadow-sm focus-within:border-brand-red">
             <Filter className="h-4 w-4 text-slate-400" />
@@ -555,7 +555,7 @@ export default function AdminTournamentsPage() {
 
         <div className="mt-6 overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/40">
           <table className="min-w-full text-left text-sm">
-            <thead className="bg-slate-900/90 text-slate-400 text-xs uppercase font-bold border-b border-slate-800">
+            <thead className="bg-slate-900/90 text-slate-300 text-xs uppercase font-bold border-b border-slate-800">
               <tr>
                 <th className="px-4 py-4">Tournament</th>
                 <th className="px-4 py-4">Status</th>
@@ -566,9 +566,9 @@ export default function AdminTournamentsPage() {
             </thead>
             <tbody className="divide-y divide-slate-800/80">
               {loading ? (
-                <tr><td colSpan={5} className="px-4 py-8 text-slate-500 text-center">Loading tournament database...</td></tr>
+                <tr><td colSpan={5} className="px-4 py-8 text-slate-400 text-center">Loading tournament database...</td></tr>
               ) : filteredTournaments.length === 0 ? (
-                <tr><td colSpan={5} className="px-4 py-8 text-slate-500 text-center">No tournaments match your search filter.</td></tr>
+                <tr><td colSpan={5} className="px-4 py-8 text-slate-400 text-center">No tournaments match your search filter.</td></tr>
               ) : filteredTournaments.map((item) => (
                 <tr key={item.id} className="hover:bg-slate-900/60 transition-colors">
                   <td className="px-4 py-4">
@@ -578,7 +578,7 @@ export default function AdminTournamentsPage() {
                       </div>
                       <div>
                         <div className="font-bold text-white text-xs">{item.title}</div>
-                        <div className="text-[11px] text-slate-400 mt-0.5 font-mono">{item.mode} • {item.format.replace('_', ' ')}</div>
+                        <div className="text-[11px] text-slate-300 mt-0.5 font-mono font-medium">{item.mode} • {item.format.replace('_', ' ')}</div>
                       </div>
                     </div>
                   </td>

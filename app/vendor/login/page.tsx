@@ -41,11 +41,11 @@ export default function VendorLoginPage() {
           <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.25em] text-violet-300">Demo vendor login</p>
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-3 rounded-xl bg-slate-950/60 px-3 py-2">
-              <span className="text-slate-400">Email</span>
+              <span className="text-slate-300">Email</span>
               <span className="font-semibold text-white">vendor@helian.gg</span>
             </div>
             <div className="flex items-center justify-between gap-3 rounded-xl bg-slate-950/60 px-3 py-2">
-              <span className="text-slate-400">Password</span>
+              <span className="text-slate-300">Password</span>
               <span className="font-semibold text-white">vendor123</span>
             </div>
           </div>
@@ -53,9 +53,9 @@ export default function VendorLoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-2 block text-sm text-slate-300">Vendor Email</label>
+            <label className="mb-2 block text-sm text-slate-200 font-medium">Vendor Email</label>
             <div className="flex items-center rounded-2xl border border-slate-700 bg-slate-950/70 px-4 py-3">
-              <Mail className="mr-2 h-4 w-4 text-slate-400" />
+              <Mail className="mr-2 h-4 w-4 text-slate-300" />
               <input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -67,9 +67,9 @@ export default function VendorLoginPage() {
           </div>
 
           <div>
-            <label className="mb-2 block text-sm text-slate-300">Password</label>
+            <label className="mb-2 block text-sm text-slate-200 font-medium">Password</label>
             <div className="flex items-center rounded-2xl border border-slate-700 bg-slate-950/70 px-4 py-3">
-              <Lock className="mr-2 h-4 w-4 text-slate-400" />
+              <Lock className="mr-2 h-4 w-4 text-slate-300" />
               <input
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

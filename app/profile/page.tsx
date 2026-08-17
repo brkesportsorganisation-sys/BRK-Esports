@@ -375,20 +375,20 @@ function ProfilePageContent() {
                   <span>{user.inGameName || user.name}</span>
                   <button
                     onClick={() => setIsEditModalOpen(true)}
-                    className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 transition-colors"
+                    className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition-colors"
                     title="Edit Profile"
                   >
                     <Edit3 className="w-4 h-4 text-orange-500" />
                   </button>
                 </h1>
 
-                <div className="text-xs text-slate-500 font-mono flex items-center gap-2 justify-center sm:justify-start">
+                <div className="text-xs text-slate-600 font-mono flex items-center gap-2 justify-center sm:justify-start">
                   <span>Full Name: <strong className="text-slate-800 font-semibold">{user.name}</strong></span>
                   <span className="text-slate-300">•</span>
                   <span>App ID: <strong className="text-orange-600 font-bold">{user.accountNumber || 'BRE-MEMBER'}</strong></span>
                 </div>
 
-                <div className="text-xs text-slate-500 font-mono flex items-center gap-2 justify-center sm:justify-start">
+                <div className="text-xs text-slate-600 font-mono flex items-center gap-2 justify-center sm:justify-start">
                   <span>FF UID: <strong className="text-cyan-600">{user.freeFireUid || 'Not Set'}</strong></span>
                   {user.freeFireUid && (
                     <span className="flex items-center text-green-600 text-[10px] font-bold gap-0.5">
@@ -399,7 +399,7 @@ function ProfilePageContent() {
                   <span>Win Rate: <strong className="text-emerald-600 font-bold">{user.winRate || 0}%</strong></span>
                 </div>
 
-                <div className="text-xs text-slate-500">{user.email}</div>
+                <div className="text-xs text-slate-600 font-medium">{user.email}</div>
               </div>
             </div>
 
@@ -408,7 +408,7 @@ function ProfilePageContent() {
               
               {/* Dual Wallet Box */}
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-center sm:text-right min-w-[170px] space-y-1">
-                <div className="text-[10px] text-slate-500 font-bold uppercase">Winning Wallet (Cashout)</div>
+                <div className="text-[10px] text-slate-600 font-bold uppercase">Winning Wallet (Cashout)</div>
                 <div className="text-xl font-heading font-black text-amber-500">
                   ৳ {(user.winningBalance || 0).toLocaleString()}
                 </div>
@@ -420,12 +420,12 @@ function ProfilePageContent() {
 
               {/* Referral Code Box */}
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-center sm:text-left">
-                <div className="text-[10px] text-slate-500 font-bold uppercase">Referral Code</div>
+                <div className="text-[10px] text-slate-600 font-bold uppercase">Referral Code</div>
                 <div className="flex items-center space-x-2 mt-1">
                   <span className="font-mono font-extrabold text-orange-500 text-sm">{user.referralCode || 'BRE99'}</span>
                   <button
                     onClick={handleCopyRef}
-                    className="p-1 rounded-md bg-white border border-slate-200 text-slate-400 hover:text-slate-700 transition-colors text-xs"
+                    className="p-1 rounded-md bg-white border border-slate-200 text-slate-500 hover:text-slate-700 transition-colors text-xs"
                     title="Copy Referral Code"
                   >
                     {copiedRef ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
@@ -447,7 +447,7 @@ function ProfilePageContent() {
               className={`px-5 py-2.5 rounded-xl font-heading font-bold text-sm transition-all ${
                 activeTab === tab
                   ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-md'
-                  : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
               {tab}
@@ -461,30 +461,30 @@ function ProfilePageContent() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-1 relative overflow-hidden">
-                <div className="text-xs text-slate-500 font-bold uppercase relative z-10">Total Kills</div>
+                <div className="text-xs text-slate-600 font-bold uppercase relative z-10">Total Kills</div>
                 <div className="font-heading font-black text-3xl text-red-500 relative z-10">{user.totalKills || 0}</div>
-                <div className="text-[11px] text-slate-400 relative z-10">Career Frags</div>
+                <div className="text-[11px] text-slate-600 font-medium relative z-10">Career Frags</div>
                 <div className="absolute -bottom-4 -right-4 text-slate-50 opacity-50 z-0"><Flame className="w-24 h-24" /></div>
               </div>
 
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-1 relative overflow-hidden">
-                <div className="text-xs text-slate-500 font-bold uppercase relative z-10">Booyah Wins</div>
+                <div className="text-xs text-slate-600 font-bold uppercase relative z-10">Booyah Wins</div>
                 <div className="font-heading font-black text-3xl text-amber-500 relative z-10">{user.totalWins || 0}</div>
-                <div className="text-[11px] text-slate-400 relative z-10">Championship Titles</div>
+                <div className="text-[11px] text-slate-600 font-medium relative z-10">Championship Titles</div>
                 <div className="absolute -bottom-4 -right-4 text-slate-50 opacity-50 z-0"><Trophy className="w-24 h-24" /></div>
               </div>
 
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-1 relative overflow-hidden">
-                <div className="text-xs text-slate-500 font-bold uppercase relative z-10">Total Cash Won</div>
+                <div className="text-xs text-slate-600 font-bold uppercase relative z-10">Total Cash Won</div>
                 <div className="font-heading font-black text-3xl text-orange-500 relative z-10">৳ {user.earnings || 0}</div>
-                <div className="text-[11px] text-slate-400 relative z-10">Withdrawn Payouts</div>
+                <div className="text-[11px] text-slate-600 font-medium relative z-10">Withdrawn Payouts</div>
                 <div className="absolute -bottom-4 -right-4 text-slate-50 opacity-50 z-0"><Wallet className="w-24 h-24" /></div>
               </div>
 
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-1 relative overflow-hidden">
-                <div className="text-xs text-slate-500 font-bold uppercase relative z-10">Win Rate</div>
+                <div className="text-xs text-slate-600 font-bold uppercase relative z-10">Win Rate</div>
                 <div className="font-heading font-black text-3xl text-cyan-600 relative z-10">{user.winRate || 0}%</div>
-                <div className="text-[11px] text-slate-400 relative z-10">Competitive Efficiency</div>
+                <div className="text-[11px] text-slate-600 font-medium relative z-10">Competitive Efficiency</div>
                 <div className="absolute -bottom-4 -right-4 text-slate-50 opacity-50 z-0"><ShieldCheck className="w-24 h-24" /></div>
               </div>
 
@@ -497,7 +497,7 @@ function ProfilePageContent() {
                   <h3 className="font-heading font-black text-2xl text-slate-900 flex items-center gap-2">
                     <Gift className="w-6 h-6 text-red-500" /> Referral Pass
                   </h3>
-                  <p className="text-sm text-slate-500 mt-1 mb-1">Invite friends using your Referral Code to unlock rewards!</p>
+                  <p className="text-sm text-slate-600 mt-1 mb-1">Invite friends using your Referral Code to unlock rewards!</p>
                   <div className="text-xs text-red-600 font-bold flex items-center gap-1.5 bg-red-50 px-2.5 py-1 rounded-lg inline-flex">
                     <Clock className="w-3.5 h-3.5" /> Note: This Referral Pass resets monthly. Ends in: {passTimeLeft}
                   </div>
@@ -591,8 +591,8 @@ function ProfilePageContent() {
                           </div>
                           
                           <div className="mt-3 text-center">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase">{milestone.required} Invites</div>
-                            <div className={`text-xs font-black mt-0.5 ${isUnlocked ? 'text-slate-900' : 'text-slate-500'}`}>
+                            <div className="text-[10px] font-bold text-slate-600 uppercase">{milestone.required} Invites</div>
+                            <div className={`text-xs font-black mt-0.5 ${isUnlocked ? 'text-slate-900' : 'text-slate-600'}`}>
                               {milestone.label}
                             </div>
                           </div>
@@ -631,7 +631,7 @@ function ProfilePageContent() {
             </div>
 
             {tournaments.length === 0 ? (
-              <div className="p-8 text-center bg-slate-50 rounded-2xl border border-slate-200 text-slate-500 text-sm">
+              <div className="p-8 text-center bg-slate-50 rounded-2xl border border-slate-200 text-slate-600 text-sm font-medium">
                 No tournament records found. Join open tournaments from the arena lobby.
               </div>
             ) : (
@@ -640,7 +640,7 @@ function ProfilePageContent() {
                   <div key={t.id} className="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all hover:border-orange-200 hover:shadow-md">
                     <div>
                       <div className="font-bold text-slate-900 text-sm">{t.title}</div>
-                      <div className="text-xs text-slate-500 mt-1">
+                      <div className="text-xs text-slate-600 mt-1 font-medium">
                         Mode: {t.mode} • Entry: ৳{t.entryFee} • Prize: ৳{t.prizePool}
                       </div>
                     </div>
@@ -679,7 +679,7 @@ function ProfilePageContent() {
             </div>
 
             {teams.length === 0 ? (
-              <div className="bg-white p-8 rounded-3xl border border-slate-200 text-center text-slate-500 text-sm">
+              <div className="bg-white p-8 rounded-3xl border border-slate-200 text-center text-slate-600 text-sm font-medium">
                 You have not created or joined any clans yet.
               </div>
             ) : (
@@ -693,13 +693,13 @@ function ProfilePageContent() {
                           <span>{team.name}</span>
                           <span className="text-xs px-2 py-0.5 rounded-lg bg-red-50 text-red-600 border border-red-100 font-mono font-bold">[{team.tag}]</span>
                         </div>
-                        <div className="text-xs text-slate-500">Captain: {team.captainName}</div>
+                        <div className="text-xs text-slate-600 font-medium">Captain: {team.captainName}</div>
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between pt-4 border-t border-slate-100 text-xs">
-                      <span className="text-slate-500 font-mono">Invite Code: <strong className="text-orange-500">{team.inviteCode}</strong></span>
-                      <span className="text-cyan-600 font-bold bg-cyan-50 px-2 py-1 rounded-lg">{team.membersCount || 1} Roster Members</span>
+                      <span className="text-slate-600 font-mono font-medium">Invite Code: <strong className="text-orange-600 font-bold">{team.inviteCode}</strong></span>
+                      <span className="text-cyan-700 font-bold bg-cyan-50 px-2 py-1 rounded-lg">{team.membersCount || 1} Roster Members</span>
                     </div>
                   </div>
                 ))}
@@ -713,7 +713,7 @@ function ProfilePageContent() {
           <div className="bg-white rounded-[2rem] overflow-hidden border border-slate-200 shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm whitespace-nowrap">
-                <thead className="bg-slate-50 text-xs font-bold uppercase text-slate-500 border-b border-slate-200">
+                <thead className="bg-slate-50 text-xs font-bold uppercase text-slate-700 border-b border-slate-200">
                   <tr>
                     <th className="p-4 pl-6">TrxID</th>
                     <th className="p-4">Method</th>
@@ -725,14 +725,14 @@ function ProfilePageContent() {
                 <tbody className="divide-y divide-slate-100">
                   {payments.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="p-8 text-center text-slate-400 text-sm">
+                      <td colSpan={5} className="p-8 text-center text-slate-600 text-sm font-medium">
                         No transactions recorded yet.
                       </td>
                     </tr>
                   ) : (
                     payments.map((p) => (
                       <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="p-4 pl-6 font-mono text-xs text-cyan-600">{p.trxId}</td>
+                        <td className="p-4 pl-6 font-mono text-xs text-cyan-600 font-bold">{p.trxId}</td>
                         <td className="p-4 font-bold text-slate-900">{p.method}</td>
                         <td className="p-4 font-bold text-orange-500">৳ {p.amount}</td>
                         <td className="p-4">
@@ -744,7 +744,7 @@ function ProfilePageContent() {
                             {p.status}
                           </span>
                         </td>
-                        <td className="p-4 pr-6 text-xs text-slate-500">{new Date(p.createdAt).toLocaleDateString()}</td>
+                        <td className="p-4 pr-6 text-xs text-slate-600 font-medium">{new Date(p.createdAt).toLocaleDateString()}</td>
                       </tr>
                     ))
                   )}

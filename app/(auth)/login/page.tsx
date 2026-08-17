@@ -81,7 +81,7 @@ export default function LoginPage() {
               </div>
             </div>
             <h2 className="font-heading font-black text-3xl text-slate-900 tracking-wide">PLAYER LOGIN</h2>
-            <p className="text-xs text-slate-500 font-medium">Welcome back to Black Rock Championship Arena</p>
+            <p className="text-xs text-slate-600 font-medium">Welcome back to Black Rock Championship Arena</p>
           </div>
 
           {errorMsg && (
@@ -94,14 +94,14 @@ export default function LoginPage() {
             <div>
               <label className="text-xs font-bold text-slate-700 uppercase block mb-1">Email Address</label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your registered email"
                   required
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-3 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-orange focus:bg-white transition-all font-medium"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-3 text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:border-brand-orange focus:bg-white transition-all font-medium"
                 />
               </div>
             </div>
@@ -109,14 +109,14 @@ export default function LoginPage() {
             <div>
               <label className="text-xs font-bold text-slate-700 uppercase block mb-1">Password</label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
                   required
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-3 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-orange focus:bg-white transition-all font-medium"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-3 text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:border-brand-orange focus:bg-white transition-all font-medium"
                 />
               </div>
             </div>
@@ -140,7 +140,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="text-center pt-2 border-t border-slate-100 text-xs text-slate-500 font-medium">
+          <div className="text-center pt-2 border-t border-slate-100 text-xs text-slate-600 font-medium">
             Don&apos;t have an account?{' '}
             <Link href="/register" className="text-brand-orange font-bold hover:underline">
               Create Account
