@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
+import SlotGrid from '@/components/tournaments/SlotGrid';
 import { getTournamentByIdFromDb } from '@/lib/tournament-store';
 import { getDynamicTournamentStatus } from '@/lib/tournament-utils';
 import { Tournament, User as UserType } from '@/lib/types';
@@ -576,25 +577,20 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
           </div>
         )}
 
-        {/* ROOM TAB */}
+        {/* ROOM & 12-SLOT GRID TAB */}
         {activeTab === 'ROOM' && (
-          <div className="max-w-2xl mx-auto glass-card rounded-3xl p-8 border-2 border-brand-purple/40 shadow-cyber text-center space-y-6">
-            <div className="w-16 h-16 rounded-2xl bg-brand-purple/20 text-brand-cyan flex items-center justify-center mx-auto border border-brand-purple/40">
-              {isJoined || currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN' ? <Unlock className="w-8 h-8 text-brand-cyan animate-pulse" /> : <Lock className="w-8 h-8 text-brand-red" />}
-            </div>
-            <div>
-              <h2 className="font-heading font-black text-3xl text-white">CUSTOM ROOM CREDENTIALS</h2>
-              <p className="text-gray-300 text-xs mt-1">Room credentials are visible only to verified joined participants and admins.</p>
-            </div>
-            {!tournament.roomEnabled ? (
-              <div className="p-4 rounded-2xl bg-surface-light border border-surface-border text-sm font-bold text-gray-300">Room is Locked</div>
-            ) : !(isJoined || currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN') ? (
-              <div className="p-6 rounded-2xl bg-surface-light border border-surface-border space-y-4"><div className="text-brand-red font-heading font-bold text-lg">Room is Locked</div><p className="text-xs text-gray-300">You must register for this tournament to view the Room ID and Password.</p><button onClick={openJoinModal} className="px-6 py-3 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-bold text-sm">JOIN TOURNAMENT NOW</button></div>
-            ) : tournament.roomReleaseTime && new Date() < new Date(tournament.roomReleaseTime) && currentUser?.role !== 'ADMIN' && currentUser?.role !== 'SUPER_ADMIN' ? (
-              <div className="p-4 rounded-2xl bg-surface-light border border-brand-orange/40 text-center space-y-2"><Lock className="w-8 h-8 text-brand-orange mx-auto" /><div className="text-sm font-bold text-gray-200">Room is Locked</div><div className="text-sm text-gray-300">Room information will be available at the scheduled release time.</div><div className="text-xs text-gray-300">Release Time: {new Date(tournament.roomReleaseTime).toLocaleString()}</div></div>
-            ) : (
-              <div className="space-y-4 pt-4 text-left"><div className="p-4 rounded-2xl bg-surface-light border border-surface-border flex items-center justify-between"><div><div className="text-[10px] text-gray-300 font-bold uppercase">Room ID</div><div className="text-2xl font-mono font-extrabold text-brand-gold tracking-widest">{tournament.roomId || '?'}</div></div><button disabled={!tournament.roomId} onClick={() => tournament.roomId && handleCopy(tournament.roomId, 'Room ID')} className="px-4 py-2 rounded-xl bg-brand-orange/20 text-brand-orange border border-brand-orange/40 text-xs font-bold disabled:opacity-40">COPY ID</button></div><div className="p-4 rounded-2xl bg-surface-light border border-surface-border flex items-center justify-between"><div><div className="text-[10px] text-gray-300 font-bold uppercase">Room Password</div><div className="text-2xl font-mono font-extrabold text-brand-cyan tracking-widest">{tournament.roomPassword || '?'}</div></div><button disabled={!tournament.roomPassword} onClick={() => tournament.roomPassword && handleCopy(tournament.roomPassword, 'Password')} className="px-4 py-2 rounded-xl bg-brand-cyan/20 text-brand-cyan border border-brand-cyan/40 text-xs font-bold disabled:opacity-40">COPY PASS</button></div></div>
-            )}
+          <div className="space-y-6">
+            <SlotGrid
+              tournamentId={tournament.id}
+              tournamentTitle={tournament.title}
+              gameMode={tournament.mode}
+              maxTeams={tournament.maxTeams || 12}
+              participants={(tournament as any).participants || []}
+              roomId={tournament.roomId}
+              roomPassword={tournament.roomPassword}
+              startTime={tournament.matchTime || (tournament.tournamentStart ? String(tournament.tournamentStart) : undefined)}
+              isUserRegistered={isJoined || currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN'}
+            />
           </div>
         )}
 

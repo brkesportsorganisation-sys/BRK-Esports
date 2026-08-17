@@ -7,6 +7,7 @@ import { User, LotteryRewardItem } from '@/lib/types';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import MobileBottomNav from '@/components/ui/MobileBottomNav';
+import DailyQuests from '@/components/rewards/DailyQuests';
 import { 
   PlaySquare, 
   Coins, 
@@ -411,6 +412,9 @@ export default function RewardsHubPage() {
             )}
           </div>
         </div>
+
+        {/* 7-Day Login Streak Rewards */}
+        <DailyQuests />
 
         {/* Tab Navigation */}
         <div className="flex flex-wrap items-center justify-center sm:justify-start bg-slate-900/80 p-1.5 rounded-2xl border border-slate-800 gap-2 max-w-lg mx-auto sm:mx-0">
