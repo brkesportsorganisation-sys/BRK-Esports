@@ -24,17 +24,17 @@ const BAD_USER_AGENTS = [
   /curl\/.*exploit/i,
 ];
 
-// 2. Attack Signatures (SQLi, Path Traversal, XSS, Command Injection)
+// 2. High-Precision Attack Signatures (Zero False-Positive Target)
 const MALICIOUS_PATTERNS = [
-  // Path Traversal
-  /(\.\.[\/\\]|\%2e\%2e[\/\\]|\%252e\%252e)/i,
-  // SQL Injection signatures
-  /(\b(union(\s+all)?\s+select)\b|\bselect\b.*\bfrom\b.*\bwhere\b|\bexec(\s|\+)+(s|x)p\b|\bpg_sleep\b|\bwaitfor\s+delay\b|\bbenchmark\b\s*\(|\bdrop\s+table\b|\bdelete\s+from\b.*\bwhere\b)/i,
-  /('|\%27)\s*(\bor\b|\band\b)\s*('|\%27|\d+)\s*(=|>|<)/i,
-  // XSS & Script Injection
-  /(<script\b[^>]*>|javascript:\s*|data:text\/html|vbscript:|on(load|error|click|mouseover|submit)\s*=)/i,
-  // Remote / Local File Inclusion
-  /(etc\/passwd|win\.ini|boot\.ini|cmd\.exe|\/bin\/sh|\/bin\/bash)/i,
+  // Path Traversal attacks
+  /(\.\.[\/\\]|\%2e\%2e[\/\\]|\%252e\%252e[\/\\])/i,
+  // Strict SQL Injection signatures
+  /(\bunion(\s+all)?\s+select\b|\bdrop\s+table\s+["`']?\w+["`']?|\bdelete\s+from\s+["`']?\w+["`']?\s+where\b|\bexec(\s|\+)+(s|x)p_\w+|\bpg_sleep\s*\(|\bwaitfor\s+delay\s+['"]|\bbenchmark\s*\(\s*\d+)/i,
+  /('|\%27)\s*(\bor\b|\band\b)\s*('|\%27|\d+)\s*=\s*('|\%27|\d+)/i,
+  // XSS & Remote Code Injection (actual executable scripts)
+  /(<script\b[^>]*>|javascript:\s*alert|javascript:\s*eval|data:text\/html;\s*base64|onload\s*=\s*['"]?javascript:|onerror\s*=\s*['"]?javascript:)/i,
+  // Sensitive OS File Access
+  /(\/etc\/passwd|\/etc\/shadow|c:\\windows\\system32|cmd\.exe\s*\/c|\/bin\/sh|\/bin\/bash)/i,
 ];
 
 // 3. Sliding Window In-Memory Rate Limiter
@@ -63,20 +63,26 @@ export function checkRateLimit(
   ip: string, 
   routeType: 'AUTH' | 'WALLET' | 'OTP' | 'GENERAL'
 ): { allowed: boolean; remaining: number; retryAfterSec?: number } {
+  // Allow high throughput for localhost development & testing
+  const isLocal = ip === '127.0.0.1' || ip === '::1' || ip === 'localhost';
+  if (isLocal) {
+    return { allowed: true, remaining: 999 };
+  }
+
   const now = Date.now();
   const key = `${ip}:${routeType}`;
 
-  let maxRequests = 120; // 120 req / minute general
+  let maxRequests = 150; // 150 req / minute general
   let windowMs = 60000;
 
   if (routeType === 'AUTH') {
-    maxRequests = 20; // 20 login/register attempts per minute
+    maxRequests = 30; // 30 login/register attempts per minute
     windowMs = 60000;
   } else if (routeType === 'OTP') {
-    maxRequests = 5; // 5 OTP attempts per 5 minutes
+    maxRequests = 10; // 10 OTP attempts per 5 minutes
     windowMs = 300000;
   } else if (routeType === 'WALLET') {
-    maxRequests = 30; // 30 wallet transactions per minute
+    maxRequests = 40; // 40 wallet transactions per minute
     windowMs = 60000;
   }
 
@@ -100,15 +106,28 @@ export function checkRateLimit(
  * Inspects incoming request headers, query params, and URL for attacks
  */
 export function inspectRequestSecurity(request: NextRequest): { blocked: boolean; reason?: string } {
+  const pathname = request.nextUrl.pathname;
+
+  // Ignore static assets & Next.js internal endpoints
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/static') ||
+    pathname.includes('/favicon.ico') ||
+    pathname.includes('/manifest.json') ||
+    pathname.includes('/icon-') ||
+    pathname.includes('/uploads/')
+  ) {
+    return { blocked: false };
+  }
+
   const userAgent = request.headers.get('user-agent') || '';
   const url = request.nextUrl.toString();
   const search = request.nextUrl.search;
-  const pathname = request.nextUrl.pathname;
 
   // 1. Check Bad Bot / Scanner User Agents
   for (const botPattern of BAD_USER_AGENTS) {
     if (botPattern.test(userAgent)) {
-      return { blocked: true, reason: 'WAF: Malicious crawler or scanner detected.' };
+      return { blocked: true, reason: 'WAF: Malicious crawler or vulnerability scanner detected.' };
     }
   }
 
@@ -121,14 +140,14 @@ export function inspectRequestSecurity(request: NextRequest): { blocked: boolean
 
   // 3. Block Direct Sensitive Config Access
   if (
-    pathname.includes('/.env') ||
-    pathname.includes('/.git') ||
+    pathname.startsWith('/.env') ||
+    pathname.startsWith('/.git') ||
     pathname.includes('/wp-admin') ||
     pathname.includes('/phpmyadmin') ||
     pathname.includes('/eval-stdin') ||
     pathname.includes('/actuator')
   ) {
-    return { blocked: true, reason: 'WAF: Restricted internal path access prohibited.' };
+    return { blocked: true, reason: 'WAF: Restricted internal system path access prohibited.' };
   }
 
   return { blocked: false };
