@@ -34,7 +34,7 @@ You are now ready to compete in daily Free Fire squad, duo, and solo championshi
 
 Login to your account and book your slot today!`,
     };
-  } catch (error) {
+  } catch {
     return {
       apiKey: DEFAULT_RESEND_KEY,
       isEnabled: true,
@@ -164,6 +164,99 @@ export function generateWelcomeHtml(params: {
   `;
 }
 
+export function generatePasswordResetOtpHtml(params: {
+  name: string;
+  email: string;
+  otp: string;
+}) {
+  const { name, otp } = params;
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Password Reset OTP - Black Rock Esports</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f1f5f9; padding: 30px 10px;">
+    <tr>
+      <td align="center">
+        <table width="100%" max-width="600" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.08); border: 1px solid #e2e8f0;">
+          
+          <!-- Header Banner -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); padding: 32px 30px; text-align: center; border-bottom: 3px solid #ff4655;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase;">
+                BLACKROCK <span style="color: #ff4655;">ESPORTS</span>
+              </h1>
+              <p style="margin: 6px 0 0; color: #94a3b8; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px;">
+                Account Security & Password Recovery
+              </p>
+            </td>
+          </tr>
+
+          <!-- Main Content Body -->
+          <tr>
+            <td style="padding: 36px 30px;">
+              <h2 style="margin: 0 0 12px; color: #0f172a; font-size: 20px; font-weight: 800;">
+                Password Reset Request 🔐
+              </h2>
+
+              <p style="color: #475569; font-size: 14px; line-height: 1.6; margin: 0 0 20px;">
+                Hello <strong>${name || 'Player'}</strong>,<br/>
+                We received a request to reset your Black Rock Esports account password. Use the 6-digit verification code below to complete the reset process:
+              </p>
+
+              <!-- OTP Code Display Card -->
+              <div style="background: linear-gradient(135deg, #fff1f2 0%, #fff7ed 100%); border: 2px dashed #f43f5e; border-radius: 16px; padding: 24px 20px; text-align: center; margin: 24px 0;">
+                <div style="font-size: 11px; font-weight: 800; color: #e11d48; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px;">
+                  YOUR 6-DIGIT VERIFICATION CODE
+                </div>
+                <div style="font-family: 'Courier New', Courier, monospace; font-size: 36px; font-weight: 900; color: #be123c; letter-spacing: 8px; margin: 8px 0;">
+                  ${otp}
+                </div>
+                <div style="font-size: 12px; font-weight: 600; color: #9f1239; margin-top: 8px;">
+                  ⏱️ Valid for 10 minutes only
+                </div>
+              </div>
+
+              <!-- Security Tips -->
+              <div style="background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; padding: 16px; margin: 20px 0 24px;">
+                <div style="font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">
+                  🛡️ Security Guidelines:
+                </div>
+                <ul style="margin: 0; padding-left: 18px; color: #64748b; font-size: 12px; line-height: 1.5;">
+                  <li>Never share this code with anyone, including Black Rock tournament moderators.</li>
+                  <li>If you did not request this password reset, please change your password immediately.</li>
+                </ul>
+              </div>
+
+            </td>
+          </tr>
+
+          <!-- Footer Section -->
+          <tr>
+            <td style="background-color: #f8fafc; padding: 20px 30px; text-align: center; border-top: 1px solid #e2e8f0;">
+              <p style="margin: 0 0 6px; color: #64748b; font-size: 11px;">
+                Need help? Reach out on our Discord or WhatsApp support.
+              </p>
+              <p style="margin: 0; color: #94a3b8; font-size: 10px;">
+                &copy; ${new Date().getFullYear()} Black Rock Esports. All rights reserved.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+}
+
 export async function sendWelcomeEmail(params: WelcomeEmailParams) {
   try {
     const emailSettings = await getEmailSettings();
@@ -206,6 +299,36 @@ export async function sendWelcomeEmail(params: WelcomeEmailParams) {
   } catch (error: any) {
     console.error('[Email] Failed to send welcome email:', error?.message || error);
     return { success: false, error: error?.message || 'Failed to send' };
+  }
+}
+
+export async function sendPasswordResetOtpEmail(params: {
+  name: string;
+  email: string;
+  otp: string;
+}) {
+  try {
+    const emailSettings = await getEmailSettings();
+    const resend = new Resend(emailSettings.apiKey);
+
+    const html = generatePasswordResetOtpHtml({
+      name: params.name,
+      email: params.email,
+      otp: params.otp,
+    });
+
+    const data = await resend.emails.send({
+      from: emailSettings.fromEmail,
+      to: params.email,
+      subject: `🔐 Your Password Reset Code: ${params.otp} - Black Rock Esports`,
+      html: html,
+    });
+
+    console.log('[Email] Password reset OTP sent to:', params.email, data);
+    return { success: true, data };
+  } catch (error: any) {
+    console.error('[Email] Failed to send OTP email:', error?.message || error);
+    return { success: false, error: error?.message || 'Failed to send OTP email' };
   }
 }
 
@@ -253,3 +376,4 @@ export async function sendTestEmail(params: {
     return { success: false, error: error?.message || 'Failed to send test email' };
   }
 }
+

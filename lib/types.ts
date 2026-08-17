@@ -56,6 +56,8 @@ export interface User {
   adminPermissions?: string[];
   deviceToken?: string;
   isVerified?: boolean;
+  passwordResetOtp?: string;
+  passwordResetExpires?: string;
   createdAt: string;
   updatedAt?: string;
 }
