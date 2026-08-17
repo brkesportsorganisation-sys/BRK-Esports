@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import AdminShell from '@/components/admin/AdminShell';
 import { 
   ShieldAlert, 
   ShieldCheck, 
@@ -85,7 +84,7 @@ export default function AdminAntiCheatPage() {
   });
 
   return (
-    <AdminShell>
+    <>
       <div className="space-y-6">
         
         {/* Header */}
@@ -263,6 +262,6 @@ export default function AdminAntiCheatPage() {
           </div>
         </div>
       )}
-    </AdminShell>
+    </>
   );
 }

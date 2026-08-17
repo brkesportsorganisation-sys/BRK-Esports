@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import AdminShell from '@/components/admin/AdminShell';
 import { 
   Diamond, 
   Search, 
@@ -115,7 +114,7 @@ export default function AdminDiamondShopPage() {
   });
 
   return (
-    <AdminShell>
+    <>
       <div className="space-y-6">
         
         {/* Header */}
@@ -285,6 +284,6 @@ export default function AdminDiamondShopPage() {
           </div>
         </div>
       )}
-    </AdminShell>
+    </>
   );
 }

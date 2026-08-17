@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import AdminShell from '@/components/admin/AdminShell';
 import { 
   Swords, 
   Search, 
@@ -115,8 +114,7 @@ export default function AdminArenaPage() {
   });
 
   return (
-    <AdminShell>
-      <div className="space-y-6">
+    <div className="space-y-6">
         
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -287,6 +285,5 @@ export default function AdminArenaPage() {
         </div>
 
       </div>
-    </AdminShell>
   );
 }
