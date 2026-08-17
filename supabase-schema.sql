@@ -167,6 +167,8 @@ CREATE TABLE IF NOT EXISTS "Notification" (
     "userId" TEXT NOT NULL REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE,
     "title" TEXT NOT NULL,
     "message" TEXT NOT NULL,
+    "type" TEXT DEFAULT 'GENERAL',
+    "link" TEXT,
     "isRead" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );

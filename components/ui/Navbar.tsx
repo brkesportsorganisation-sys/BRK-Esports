@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -22,10 +22,16 @@ import {
   Coins,
   MessageSquare,
   Radio,
-  Youtube
+  Gamepad2,
+  DollarSign,
+  ShieldAlert,
+  CheckCheck,
+  Trash2,
+  ExternalLink,
+  Sparkles
 } from 'lucide-react';
 import { db } from '@/lib/db';
-import { User as UserType, Announcement } from '@/lib/types';
+import { User as UserType, Notification as NotificationType } from '@/lib/types';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -34,9 +40,27 @@ export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [activeNotifTab, setActiveNotifTab] = useState<'ALL' | 'UNREAD'>('ALL');
+  const [notifications, setNotifications] = useState<NotificationType[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLiveActive, setIsLiveActive] = useState(false);
+  const [loadingNotifs, setLoadingNotifs] = useState(false);
+  const notifDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Load user notifications from API
+  const loadUserNotifications = async (userId: string) => {
+    if (!userId) return;
+    try {
+      const res = await fetch(`/api/notifications?userId=${userId}&limit=30`);
+      if (res.ok) {
+        const data = await res.json();
+        setNotifications(data.notifications || []);
+        setUnreadCount(data.unreadCount || 0);
+      }
+    } catch (err) {
+      console.warn('Failed to load user notifications:', err);
+    }
+  };
 
   useEffect(() => {
     const cur = db.getCurrentUser();
@@ -44,19 +68,10 @@ export default function Navbar() {
     
     async function loadLiveNavbarData() {
       try {
-        const [annRes, userRes, setRes] = await Promise.all([
-          fetch('/api/announcements'),
+        const [userRes, setRes] = await Promise.all([
           cur ? fetch(`/api/auth/me?id=${cur.id}`) : Promise.resolve(null),
           fetch('/api/settings')
         ]);
-
-        if (annRes.ok) {
-          const annData = await annRes.json();
-          if (annData.announcements) {
-            setAnnouncements(annData.announcements);
-            setUnreadCount(annData.announcements.length);
-          }
-        }
 
         if (setRes && setRes.ok) {
           const setData = await setRes.json();
@@ -71,9 +86,9 @@ export default function Navbar() {
             if (uData.user) {
               setCurrentUser(uData.user);
               db.setCurrentUser(uData.user);
+              loadUserNotifications(uData.user.id);
             }
           } else if (userRes.status === 404 || userRes.status === 401) {
-            // User session is invalid or deleted in live DB
             setCurrentUser(null);
             db.setCurrentUser(null);
           }
@@ -83,12 +98,84 @@ export default function Navbar() {
       }
     }
 
-    const loadedAnnouncements = db.getAnnouncements();
-    setAnnouncements(loadedAnnouncements);
-    setUnreadCount(loadedAnnouncements.length);
+    if (cur?.id) {
+      loadUserNotifications(cur.id);
+    }
 
     loadLiveNavbarData();
+
+    // Periodic refresh for notifications every 25 seconds
+    const interval = setInterval(() => {
+      const activeUser = db.getCurrentUser();
+      if (activeUser?.id) {
+        loadUserNotifications(activeUser.id);
+      }
+    }, 25000);
+
+    return () => clearInterval(interval);
   }, []);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (notifDropdownRef.current && !notifDropdownRef.current.contains(event.target as Node)) {
+        setIsNotificationsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Mark all notifications as read
+  const handleMarkAllAsRead = async () => {
+    if (!currentUser?.id) return;
+    try {
+      const res = await fetch('/api/notifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ markAllAsRead: true, userId: currentUser.id })
+      });
+      if (res.ok) {
+        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+        setUnreadCount(0);
+      }
+    } catch (err) {
+      console.error('Mark all as read error:', err);
+    }
+  };
+
+  // Mark single notification as read & handle link
+  const handleNotificationClick = async (notif: NotificationType) => {
+    if (!notif.isRead) {
+      try {
+        await fetch('/api/notifications', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: notif.id, isRead: true })
+        });
+        setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, isRead: true } : n));
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      } catch {}
+    }
+
+    if (notif.link) {
+      setIsNotificationsOpen(false);
+      router.push(notif.link);
+    }
+  };
+
+  // Delete notification
+  const handleDeleteNotification = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    try {
+      const res = await fetch(`/api/notifications?id=${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setNotifications(prev => prev.filter(n => n.id !== id));
+      }
+    } catch (err) {
+      console.error('Delete notification error:', err);
+    }
+  };
 
   const handleSignOut = () => {
     db.logout();
@@ -107,8 +194,31 @@ export default function Navbar() {
     { name: 'Live', href: '/live', icon: Radio, isLive: isLiveActive },
   ];
 
+  // Helper for notification type icons
+  const getNotifIcon = (type?: string) => {
+    switch (type) {
+      case 'ROOM_ID':
+        return <Gamepad2 className="w-4 h-4 text-purple-600" />;
+      case 'PAYOUT':
+        return <DollarSign className="w-4 h-4 text-emerald-600" />;
+      case 'WARNING':
+        return <ShieldAlert className="w-4 h-4 text-red-600" />;
+      case 'MATCH':
+        return <Trophy className="w-4 h-4 text-blue-600" />;
+      case 'REWARD':
+        return <Gift className="w-4 h-4 text-amber-600" />;
+      default:
+        return <Bell className="w-4 h-4 text-brand-orange" />;
+    }
+  };
+
+  const filteredNotifs = notifications.filter(n => {
+    if (activeNotifTab === 'UNREAD') return !n.isRead;
+    return true;
+  });
+
   return (
-    <nav className="sticky top-0 z-50 glass-panel border-b border-slate-200/60 backdrop-blur-2xl bg-white/85">
+    <nav className="sticky top-0 z-50 glass-panel border-b border-slate-200/60 backdrop-blur-2xl bg-white/85 font-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           
@@ -160,21 +270,21 @@ export default function Navbar() {
           </div>
 
           {/* User Right Action Panel */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden md:flex items-center space-x-3.5">
             
             {currentUser ? (
               <>
                 {/* Wallet Balance Badge */}
                 <Link 
                   href="/wallet" 
-                  className="flex items-center space-x-2.5 bg-white hover:bg-slate-50 px-3 py-1.5 rounded-2xl border border-slate-200 transition-all group shadow-sm"
+                  className="flex items-center space-x-2 bg-white hover:bg-slate-50 px-3 py-1.5 rounded-2xl border border-slate-200 transition-all group shadow-2xs"
                 >
                   <div className="w-7 h-7 rounded-xl bg-orange-100 flex items-center justify-center text-orange-500 group-hover:scale-110 transition-transform">
                     <Wallet className="w-3.5 h-3.5 text-brand-orange" />
                   </div>
                   <div className="text-left">
-                    <div className="text-[9px] text-slate-600 font-bold uppercase leading-none">Wallet</div>
-                    <div className="text-xs font-heading font-black text-orange-500">
+                    <div className="text-[9px] text-slate-500 font-bold uppercase leading-none">Wallet</div>
+                    <div className="text-xs font-heading font-black text-orange-600">
                       ৳ {(currentUser.walletBalance || 0).toLocaleString()}
                     </div>
                   </div>
@@ -183,32 +293,34 @@ export default function Navbar() {
                 {/* Coins Badge */}
                 <Link 
                   href="/profile" 
-                  className="flex items-center space-x-2.5 bg-white hover:bg-slate-50 px-3 py-1.5 rounded-2xl border border-slate-200 transition-all group shadow-sm"
+                  className="flex items-center space-x-2 bg-white hover:bg-slate-50 px-3 py-1.5 rounded-2xl border border-slate-200 transition-all group shadow-2xs"
                 >
-                  <div className="w-7 h-7 rounded-xl bg-yellow-100 flex items-center justify-center text-yellow-500 group-hover:scale-110 transition-transform">
+                  <div className="w-7 h-7 rounded-xl bg-yellow-100 flex items-center justify-center text-yellow-600 group-hover:scale-110 transition-transform">
                     <Coins className="w-3.5 h-3.5 text-yellow-600" />
                   </div>
                   <div className="text-left">
-                    <div className="text-[9px] text-slate-600 font-bold uppercase leading-none">Coins</div>
+                    <div className="text-[9px] text-slate-500 font-bold uppercase leading-none">Coins</div>
                     <div className="text-xs font-heading font-black text-yellow-600">
                       {(currentUser.coinBalance || 0).toLocaleString()}
                     </div>
                   </div>
                 </Link>
 
-                {/* Notification Bell */}
-                <div className="relative">
+                {/* Rich In-App Notification Bell & Popover */}
+                <div className="relative" ref={notifDropdownRef}>
                   <button
-                    onClick={() => {
-                      setIsNotificationsOpen(!isNotificationsOpen);
-                      if (!isNotificationsOpen) setUnreadCount(0);
-                    }}
-                    className="w-10 h-10 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:border-brand-red transition-all relative shadow-sm"
+                    onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                    className={`w-10 h-10 rounded-2xl border flex items-center justify-center transition-all relative shadow-2xs ${
+                      isNotificationsOpen
+                        ? 'bg-orange-50 border-brand-orange text-brand-orange'
+                        : 'bg-white border-slate-200 text-slate-700 hover:text-slate-900 hover:border-slate-300'
+                    }`}
+                    title="Notifications"
                   >
-                    <Bell className="w-5 h-5" />
+                    <Bell className="w-4 h-4" />
                     {unreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-brand-red text-white text-[10px] font-extrabold flex items-center justify-center animate-bounce shadow-sm">
-                        {unreadCount}
+                      <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-gradient-to-r from-brand-red to-brand-orange text-white text-[10px] font-black flex items-center justify-center animate-bounce shadow-md shadow-orange-500/30">
+                        {unreadCount > 99 ? '99+' : unreadCount}
                       </span>
                     )}
                   </button>
@@ -216,27 +328,137 @@ export default function Navbar() {
                   <AnimatePresence>
                     {isNotificationsOpen && (
                       <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 10 }}
-                        className="absolute right-0 mt-3 w-80 bg-white rounded-2xl p-4 z-50 border border-slate-200 shadow-lg"
+                        initial={{ opacity: 0, y: 12, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 12, scale: 0.95 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute right-0 mt-3 w-84 sm:w-96 bg-white rounded-3xl p-4 z-50 border border-slate-200/90 shadow-2xl shadow-slate-900/10"
                       >
-                        <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
-                          <h4 className="font-heading font-bold text-lg text-slate-900">Notifications</h4>
-                          <span className="text-xs text-brand-orange font-semibold cursor-pointer" onClick={() => setUnreadCount(0)}>Mark as read</span>
+                        {/* Header */}
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-heading font-extrabold text-base text-slate-900">Notifications</h4>
+                            {unreadCount > 0 && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-orange-100 text-brand-orange">
+                                {unreadCount} new
+                              </span>
+                            )}
+                          </div>
+
+                          {unreadCount > 0 && (
+                            <button
+                              onClick={handleMarkAllAsRead}
+                              className="text-[11px] text-brand-orange hover:text-orange-700 font-bold flex items-center gap-1 transition-colors"
+                            >
+                              <CheckCheck className="w-3.5 h-3.5" />
+                              <span>Mark all read</span>
+                            </button>
+                          )}
                         </div>
-                        <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
-                          {announcements.length === 0 ? (
-                            <div className="text-xs text-slate-600 font-medium text-center py-4">No new announcements</div>
+
+                        {/* Tabs */}
+                        <div className="flex items-center gap-2 pt-2.5 pb-1">
+                          <button
+                            onClick={() => setActiveNotifTab('ALL')}
+                            className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
+                              activeNotifTab === 'ALL'
+                                ? 'bg-slate-900 text-white shadow-2xs'
+                                : 'text-slate-600 hover:bg-slate-100'
+                            }`}
+                          >
+                            All ({notifications.length})
+                          </button>
+                          <button
+                            onClick={() => setActiveNotifTab('UNREAD')}
+                            className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
+                              activeNotifTab === 'UNREAD'
+                                ? 'bg-slate-900 text-white shadow-2xs'
+                                : 'text-slate-600 hover:bg-slate-100'
+                            }`}
+                          >
+                            Unread ({unreadCount})
+                          </button>
+                        </div>
+
+                        {/* Notification List */}
+                        <div className="space-y-2 max-h-[340px] overflow-y-auto pr-1 mt-2 divide-y divide-slate-50">
+                          {filteredNotifs.length === 0 ? (
+                            <div className="text-center py-10 space-y-2">
+                              <Bell className="w-8 h-8 text-slate-200 mx-auto" />
+                              <div className="text-xs font-bold text-slate-700">
+                                {activeNotifTab === 'UNREAD' ? 'No unread notifications' : 'No notifications yet'}
+                              </div>
+                              <div className="text-[11px] text-slate-400">
+                                Match room details and tournament updates will show up here.
+                              </div>
+                            </div>
                           ) : (
-                            announcements.map((ann, idx) => (
-                              <div key={idx} className="p-3 rounded-xl bg-slate-50 border-l-4 border-brand-orange text-xs space-y-0.5">
-                                <div className="font-bold text-slate-900">{ann.title}</div>
-                                <div className="text-slate-600 leading-snug">{ann.content}</div>
-                                <div className="text-[9px] text-slate-500 font-mono mt-1">{new Date(ann.createdAt).toLocaleString()}</div>
+                            filteredNotifs.map((notif) => (
+                              <div
+                                key={notif.id}
+                                onClick={() => handleNotificationClick(notif)}
+                                className={`p-3 rounded-2xl text-xs transition-all cursor-pointer relative group flex items-start gap-3 pt-3 ${
+                                  !notif.isRead
+                                    ? 'bg-orange-50/60 border border-orange-200/70 hover:bg-orange-50'
+                                    : 'bg-white hover:bg-slate-50 border border-transparent hover:border-slate-100'
+                                }`}
+                              >
+                                {/* Icon Badge */}
+                                <div className="w-8 h-8 rounded-xl bg-white border border-slate-200/80 flex items-center justify-center flex-shrink-0 shadow-2xs">
+                                  {getNotifIcon(notif.type)}
+                                </div>
+
+                                {/* Content */}
+                                <div className="flex-1 min-w-0 space-y-0.5">
+                                  <div className="flex items-center justify-between gap-1">
+                                    <span className="font-extrabold text-slate-900 text-xs truncate">
+                                      {notif.title}
+                                    </span>
+                                    {!notif.isRead && (
+                                      <span className="w-2 h-2 rounded-full bg-brand-orange flex-shrink-0 animate-pulse" />
+                                    )}
+                                  </div>
+
+                                  <div className="text-slate-600 text-[11px] leading-snug line-clamp-2">
+                                    {notif.message}
+                                  </div>
+
+                                  <div className="flex items-center justify-between pt-1 text-[10px] text-slate-400 font-mono">
+                                    <span>
+                                      {notif.createdAt ? new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
+                                    </span>
+                                    {notif.link && (
+                                      <span className="text-brand-orange font-bold font-sans flex items-center gap-0.5">
+                                        <span>View</span>
+                                        <ExternalLink className="w-2.5 h-2.5" />
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Delete button on hover */}
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleDeleteNotification(e, notif.id)}
+                                  className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-500 rounded-md hover:bg-red-50 transition-all flex-shrink-0"
+                                  title="Dismiss"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
                               </div>
                             ))
                           )}
+                        </div>
+
+                        {/* Footer Inbox Link */}
+                        <div className="pt-3 border-t border-slate-100 mt-2 flex items-center justify-between text-xs">
+                          <Link
+                            href="/notifications"
+                            onClick={() => setIsNotificationsOpen(false)}
+                            className="w-full py-2 rounded-xl bg-slate-50 hover:bg-orange-50 text-slate-700 hover:text-brand-orange font-bold text-center transition-colors block"
+                          >
+                            Open Notification Center →
+                          </Link>
                         </div>
                       </motion.div>
                     )}
@@ -247,56 +469,74 @@ export default function Navbar() {
                 <div className="relative">
                   <button
                     onClick={() => setIsProfileOpen(!isProfileOpen)}
-                    className="flex items-center space-x-3 bg-white p-1.5 pr-3 rounded-2xl border border-slate-200 hover:border-slate-300 shadow-sm transition-all"
+                    className="flex items-center space-x-2.5 bg-white p-1.5 pr-3 rounded-2xl border border-slate-200 hover:border-slate-300 shadow-2xs transition-all"
                   >
                     <img
                       src={currentUser.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150'}
                       alt={currentUser.name}
-                      className="w-9 h-9 rounded-xl object-cover border border-slate-200"
+                      className="w-8 h-8 rounded-xl object-cover border border-slate-200"
                     />
                     <div className="text-left hidden xl:block">
-                      <div className="text-xs font-bold text-slate-900 truncate max-w-[110px]">
+                      <div className="text-xs font-bold text-slate-900 truncate max-w-[100px]">
                         {currentUser.inGameName || currentUser.name}
                       </div>
-                      <div className="text-[10px] font-bold text-brand-orange uppercase flex items-center gap-1">
-                        <span>{currentUser.role}</span>
+                      <div className="text-[10px] text-slate-500 font-mono leading-none">
+                        {currentUser.freeFireUid ? `UID: ${currentUser.freeFireUid}` : currentUser.role}
                       </div>
                     </div>
-                    <ChevronDown className="w-4 h-4 text-slate-500" />
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
                   </button>
 
                   <AnimatePresence>
                     {isProfileOpen && (
                       <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        className="absolute right-0 mt-3 w-64 bg-white rounded-2xl p-3 z-50 border border-slate-200 shadow-lg"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        className="absolute right-0 mt-3 w-56 bg-white rounded-2xl p-2 z-50 border border-slate-200 shadow-xl"
                       >
-                        <div className="p-3 border-b border-slate-100 mb-2 bg-slate-50 rounded-xl">
-                          <div className="font-bold text-slate-900 text-sm">{currentUser.name}</div>
-                          <div className="text-xs text-slate-600 truncate">{currentUser.email}</div>
-                          <div className="text-xs font-mono text-orange-600 mt-1 font-bold">
-                            Player ID: {currentUser.accountNumber || 'BRK-MEMBER'}
-                          </div>
+                        <div className="p-3 border-b border-slate-100">
+                          <div className="font-bold text-sm text-slate-900">{currentUser.name}</div>
+                          <div className="text-xs text-slate-500 truncate">{currentUser.email}</div>
+                          {currentUser.freeFireUid && (
+                            <div className="text-[11px] font-mono font-bold text-brand-orange mt-1">
+                              UID: {currentUser.freeFireUid}
+                            </div>
+                          )}
                         </div>
 
-                        <div className="space-y-1">
+                        <div className="py-1">
                           <Link
                             href="/profile"
                             onClick={() => setIsProfileOpen(false)}
-                            className="flex items-center space-x-2 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                            className="flex items-center space-x-2 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
                           >
-                            <User className="w-4 h-4 text-brand-orange" />
+                            <User className="w-4 h-4 text-slate-400" />
                             <span>Player Profile</span>
+                          </Link>
+
+                          <Link
+                            href="/notifications"
+                            onClick={() => setIsProfileOpen(false)}
+                            className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <Bell className="w-4 h-4 text-slate-400" />
+                              <span>Notifications</span>
+                            </div>
+                            {unreadCount > 0 && (
+                              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-brand-orange text-white">
+                                {unreadCount}
+                              </span>
+                            )}
                           </Link>
 
                           <Link
                             href="/wallet"
                             onClick={() => setIsProfileOpen(false)}
-                            className="flex items-center space-x-2 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                            className="flex items-center space-x-2 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
                           >
-                            <Wallet className="w-4 h-4 text-brand-gold" />
+                            <Wallet className="w-4 h-4 text-slate-400" />
                             <span>Dual Wallet & Cashouts</span>
                           </Link>
 
@@ -326,23 +566,35 @@ export default function Navbar() {
 
           </div>
 
-          {/* Mobile Hamburger */}
-          <div className="flex lg:hidden items-center space-x-3">
+          {/* Mobile Hamburger & Quick Badges */}
+          <div className="flex lg:hidden items-center space-x-2">
             {currentUser && (
-              <div className="flex items-center gap-2">
-                <Link href="/wallet" className="text-[10px] font-heading font-black text-brand-orange bg-orange-50 px-2 py-1 rounded-lg border border-orange-200 shadow-sm flex items-center gap-1">
-                  <Wallet className="w-3 h-3" /> ৳ {(currentUser.walletBalance || 0).toLocaleString()}
+              <div className="flex items-center gap-1.5">
+                {/* Mobile Notification Bell */}
+                <Link
+                  href="/notifications"
+                  className="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-700 relative shadow-2xs"
+                  title="Notifications"
+                >
+                  <Bell className="w-3.5 h-3.5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-brand-orange text-white text-[9px] font-black flex items-center justify-center">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
                 </Link>
-                <Link href="/profile" className="text-[10px] font-heading font-black text-yellow-600 bg-yellow-50 px-2 py-1 rounded-lg border border-yellow-200 shadow-sm flex items-center gap-1">
-                  <Coins className="w-3 h-3" /> {(currentUser.coinBalance || 0).toLocaleString()}
+
+                <Link href="/wallet" className="text-[10px] font-heading font-black text-brand-orange bg-orange-50 px-2 py-1 rounded-lg border border-orange-200 shadow-2xs flex items-center gap-1">
+                  <Wallet className="w-3 h-3" /> ৳ {(currentUser.walletBalance || 0).toLocaleString()}
                 </Link>
               </div>
             )}
+            
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 shadow-sm"
+              className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 shadow-2xs"
             >
-              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
 
@@ -356,7 +608,7 @@ export default function Navbar() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="lg:hidden bg-white border-b border-slate-200 px-4 pt-2 pb-6 space-y-3 shadow-sm"
+            className="lg:hidden bg-white border-b border-slate-200 px-4 pt-2 pb-6 space-y-2.5 shadow-md"
           >
             {navLinks.map((link) => {
               const Icon = link.icon;
@@ -381,20 +633,37 @@ export default function Navbar() {
             })}
 
             {currentUser ? (
-              <div className="pt-4 border-t border-slate-100 space-y-2">
+              <div className="pt-3 border-t border-slate-100 space-y-2">
+                <Link
+                  href="/notifications"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center justify-between px-4 py-3 rounded-2xl bg-orange-50/70 border border-orange-200/80 text-slate-900 font-semibold text-xs"
+                >
+                  <div className="flex items-center space-x-3">
+                    <Bell className="w-4 h-4 text-brand-orange" />
+                    <span>Notifications Center</span>
+                  </div>
+                  {unreadCount > 0 && (
+                    <span className="px-2 py-0.5 rounded-full bg-brand-orange text-white font-black text-[10px]">
+                      {unreadCount} New
+                    </span>
+                  )}
+                </Link>
+
                 <Link
                   href="/profile"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center space-x-3 px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 font-semibold"
+                  className="flex items-center space-x-3 px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 font-semibold text-xs"
                 >
-                  <User className="w-5 h-5 text-brand-orange" />
+                  <User className="w-4 h-4 text-brand-orange" />
                   <span>Profile ({currentUser.inGameName || currentUser.name})</span>
                 </Link>
+
                 <button
                   onClick={handleSignOut}
-                  className="w-full text-left flex items-center space-x-3 px-4 py-3 rounded-2xl text-sm font-semibold text-brand-red hover:bg-red-50"
+                  className="w-full text-left flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-semibold text-brand-red hover:bg-red-50"
                 >
-                  <LogOut className="w-5 h-5" />
+                  <LogOut className="w-4 h-4" />
                   <span>Sign Out</span>
                 </button>
               </div>

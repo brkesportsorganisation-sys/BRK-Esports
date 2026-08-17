@@ -154,6 +154,20 @@ export interface Announcement {
   imageUrl?: string;
 }
 
+export type NotificationType = 'GENERAL' | 'ROOM_ID' | 'PAYOUT' | 'WARNING' | 'MATCH' | 'SYSTEM' | 'REWARD';
+
+export interface Notification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  type?: NotificationType;
+  link?: string;
+  createdAt: string;
+}
+
+
 export interface SpinReward {
   id: string;
   label: string;

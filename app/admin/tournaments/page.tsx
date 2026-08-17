@@ -129,6 +129,40 @@ export default function AdminTournamentsPage() {
   const [communityUsers, setCommunityUsers] = useState<Array<{ id: string; userId: string; userName: string; userEmail: string; status: string }>>([]);
   const [communityUsersLoading, setCommunityUsersLoading] = useState(false);
   const [descriptionHtmlMode, setDescriptionHtmlMode] = useState(false);
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+
+  const handleGenerateWithAI = async () => {
+    setIsGeneratingAI(true);
+    try {
+      const res = await fetch('/api/ai/generate-tournament', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: form.title,
+          mode: form.mode,
+          format: form.format,
+          prizePool: form.prizePool,
+          entryFee: form.entryFee,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.description) {
+        setForm(prev => ({
+          ...prev,
+          description: `<p>${data.description}</p><br/><h3>Official Rules:</h3><p>${(data.rules || '').replace(/\n/g, '<br/>')}</p>`
+        }));
+        setFeedback('AI successfully generated tournament description & rules!');
+        setFeedbackTone('success');
+      } else {
+        alert(data.message || 'Failed to generate content with AI');
+      }
+    } catch {
+      alert('Error connecting to Gemini AI generator.');
+    } finally {
+      setIsGeneratingAI(false);
+    }
+  };
 
   useEffect(() => {
     const cookie = document.cookie.split('; ').find((item) => item.startsWith('admin_csrf='));
@@ -629,7 +663,25 @@ export default function AdminTournamentsPage() {
                   {validationErrors.title && <p className="mt-1 text-xs text-red-500">{validationErrors.title}</p>}
                 </div>
                 <div>
-                  <div className="mb-2 flex items-center justify-between"><label className="block text-sm font-medium text-slate-700">Tournament Description <span className="text-red-500">*</span></label><button type="button" onClick={() => setDescriptionHtmlMode(value => !value)} className="text-xs font-medium text-blue-600 hover:text-blue-700">{descriptionHtmlMode ? 'Use visual editor' : 'Edit HTML / tables'}</button></div>
+                  <div className="mb-2 flex items-center justify-between">
+                    <label className="block text-sm font-medium text-slate-700">Tournament Description <span className="text-red-500">*</span></label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleGenerateWithAI}
+                        disabled={isGeneratingAI}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-orange-50 hover:bg-orange-100 text-brand-orange border border-orange-200 text-xs font-bold transition-all disabled:opacity-50"
+                        title="Auto-generate description & rules using Gemini AI"
+                      >
+                        <Sparkles className={`w-3.5 h-3.5 ${isGeneratingAI ? 'animate-spin' : 'text-brand-orange'}`} />
+                        <span>{isGeneratingAI ? 'Generating...' : '✨ AI Generate'}</span>
+                      </button>
+                      <button type="button" onClick={() => setDescriptionHtmlMode(value => !value)} className="text-xs font-medium text-blue-600 hover:text-blue-700">
+                        {descriptionHtmlMode ? 'Use visual editor' : 'Edit HTML'}
+                      </button>
+                    </div>
+                  </div>
+
                   <ReactQuill theme="snow" modules={{ toolbar: [[{ header: [1, 2, 3, false] }], ['bold', 'italic', 'underline'], [{ list: 'ordered' }, { list: 'bullet' }], ['link', 'image', 'video']] }} value={form.description} onChange={(val) => setForm((prev) => ({ ...prev, description: val }))} className={`bg-white text-slate-900 [&_.ql-toolbar]:border-slate-300 [&_.ql-container]:border-slate-300 [&_.ql-toolbar]:rounded-t-2xl [&_.ql-container]:rounded-b-2xl ${validationErrors.description ? '[&_.ql-container]:border-red-500' : ''}`} />
                   {validationErrors.description && <p className="mt-1 text-xs text-red-500">{validationErrors.description}</p>}
                 </div>

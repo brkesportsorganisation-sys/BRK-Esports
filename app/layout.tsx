@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import MobileBottomNav from "@/components/ui/MobileBottomNav";
+import AIAssistantWidget from "@/components/ai/AIAssistantWidget";
 
 export const metadata: Metadata = {
   title: "Black Rock Tournaments | Free Fire Esports Platform",
@@ -27,7 +28,9 @@ export default function RootLayout({
       <body className="bg-background text-slate-100 min-h-screen flex flex-col font-body selection:bg-brand-red selection:text-white">
         {children}
         <MobileBottomNav />
+        <AIAssistantWidget />
       </body>
     </html>
   );
 }
+
