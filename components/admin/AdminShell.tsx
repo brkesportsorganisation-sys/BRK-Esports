@@ -157,8 +157,8 @@ export default function AdminShell({ children }: AdminShellProps) {
 
   // Top Standalone Links matching reference design
   const topStandaloneLinks: NavLinkItem[] = [
+    { href: '/admin', label: 'Dashboard Overview', icon: LayoutGrid, colorClass: 'text-blue-500', permission: 'view_dashboard' },
     { href: '/admin/tournaments', label: 'Tournaments & Slots', icon: Trophy, colorClass: 'text-pink-500', permission: 'manage_tournaments' },
-    { href: '/admin/matches', label: 'Match Results & Kills', icon: Gamepad2, colorClass: 'text-orange-500', permission: 'enter_results' },
     { href: '/admin/payments', label: 'Deposit & Revenue', icon: DollarSign, colorClass: 'text-emerald-500', permission: 'manage_deposits' },
   ];
 
@@ -173,9 +173,8 @@ export default function AdminShell({ children }: AdminShellProps) {
         { href: '/admin/shop', label: 'Diamond Orders (💎)', icon: Diamond, colorClass: 'text-cyan-500', permission: 'manage_deposits' },
         { href: '/admin/arena', label: '1v1 Arena Duels (⚔️)', icon: Swords, colorClass: 'text-red-500', permission: 'manage_tournaments' },
         { href: '/admin/lfg', label: 'LFG Recruitment Board', icon: Crosshair, colorClass: 'text-blue-500', permission: 'moderate_lfg' },
-        { href: '/admin', label: 'Revenue Analytics', icon: BarChart3, colorClass: 'text-teal-500', permission: 'view_dashboard' },
+        { href: '/admin/tournament-settings', label: 'Tournament Match Rules', icon: FileText, colorClass: 'text-pink-500', permission: 'manage_settings' },
         { href: '/admin/withdrawals', label: 'Winning Payouts', icon: Coins, colorClass: 'text-amber-500', permission: 'manage_withdrawals' },
-        { href: '/admin/settings', label: 'Tournament Settings', icon: Settings, colorClass: 'text-slate-400', permission: 'manage_settings' },
       ]
     },
     {
@@ -196,7 +195,7 @@ export default function AdminShell({ children }: AdminShellProps) {
         { href: '/admin/roles', label: 'Sub-Admin Roles', icon: KeyRound, colorClass: 'text-indigo-500', permission: 'manage_roles', ownerOnly: true },
         { href: '/admin/delete-requests', label: 'Delete Approvals', icon: ShieldAlert, colorClass: 'text-red-500', permission: 'approve_deletes', ownerOnly: true },
         { href: '/admin/activity-log', label: 'Activity Audit Log', icon: History, colorClass: 'text-teal-600', permission: 'manage_roles', ownerOnly: true },
-        { href: '/admin/settings', label: 'Platform Settings', icon: Settings, colorClass: 'text-slate-400', permission: 'manage_settings', ownerOnly: true },
+        { href: '/admin/settings', label: 'Platform Settings & CMS', icon: Settings, colorClass: 'text-slate-400', permission: 'manage_settings', ownerOnly: true },
       ]
     }
   ];
