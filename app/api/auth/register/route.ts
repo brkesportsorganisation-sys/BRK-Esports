@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
     }).catch((err) => console.warn('[Register Welcome Email Notice]:', err));
 
     // Return sanitized user object merged with client model defaults
-    const { password: _, ...sanitizedUser } = {
+    const { password: _, passwordResetOtp: __, passwordResetExpires: ___, ...sanitizedUser } = {
       ...userPayload,
       ...insertedData,
     };

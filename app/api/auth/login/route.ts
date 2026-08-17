@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Sanitize response
-    const { password: _, ...sanitizedUser } = user;
+    const { password: _, passwordResetOtp: __, passwordResetExpires: ___, ...sanitizedUser } = user;
     return NextResponse.json({ user: sanitizedUser, message: 'Logged in successfully' });
   } catch (error: any) {
     console.error('[POST /api/auth/login]', error);

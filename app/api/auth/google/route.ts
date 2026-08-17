@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
         .update(updates)
         .eq('id', existingUser.id);
 
-      const { password: _, ...sanitized } = { ...existingUser, ...updates };
+      const { password: _, passwordResetOtp: __, passwordResetExpires: ___, ...sanitized } = { ...existingUser, ...updates };
       return NextResponse.json({
         user: sanitized,
         message: 'Logged in successfully with Google!',
@@ -178,7 +178,7 @@ export async function POST(request: NextRequest) {
       inGameName: userPayload.inGameName,
     }).catch((err) => console.warn('[Google Register Welcome Email Notice]:', err));
 
-    const { password: _, ...sanitizedUser } = {
+    const { password: _, passwordResetOtp: __, passwordResetExpires: ___, ...sanitizedUser } = {
       ...userPayload,
       ...insertedData,
     };
