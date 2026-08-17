@@ -227,10 +227,45 @@ export interface NotificationSchedule {
 }
 
 
+export interface LotteryRewardItem {
+  id: string;
+  label: string;
+  type: 'DIAMONDS' | 'WALLET' | 'COINS' | 'ROOM_CARD' | 'TRY_AGAIN';
+  value: number;
+  probabilityPercent: number; // Win chance % (e.g. 10 = 10%)
+  maxWinnersLimit?: number; // Maximum times this reward can ever be won
+  currentWonCount: number; // How many times it has been won so far
+  color: string;
+  icon?: string;
+  isActive: boolean;
+}
+
+export interface AdSettingItem {
+  id: string;
+  title: string;
+  adType: 'YOUTUBE' | 'DIRECT_VIDEO' | 'BANNER' | 'CUSTOM_LINK';
+  videoId: string;
+  rewardAmount: number; // Coins per watch
+  durationSeconds: number; // Minimum watch timer (e.g. 15s)
+  isActive: boolean;
+}
+
+export interface RewardsHubSettings {
+  isWatchEarnActive: boolean;
+  isLotteryActive: boolean;
+  dailyAdLimit: number;
+  dailySpinLimit: number;
+  spinCoinCost: number;
+  coinsToBdtRatio: number;
+  minCoinsToConvert: number;
+  ads: AdSettingItem[];
+  lotteryRewards: LotteryRewardItem[];
+}
+
 export interface SpinReward {
   id: string;
   label: string;
-  type: 'DIAMONDS' | 'WALLET' | 'ROOM_CARD' | 'TRY_AGAIN';
+  type: 'DIAMONDS' | 'WALLET' | 'COINS' | 'ROOM_CARD' | 'TRY_AGAIN';
   value: number;
   color: string;
 }
