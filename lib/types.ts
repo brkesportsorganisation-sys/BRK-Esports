@@ -30,6 +30,12 @@ export interface User {
   accountNumber?: string; // e.g. BRE-891024 (Bank-style public app ID)
   freeFireUid: string;
   inGameName: string;
+  phone?: string;
+  whatsApp?: string;
+  bio?: string;
+  bkashNumber?: string;
+  nagadNumber?: string;
+  rocketNumber?: string;
   walletBalance: number; // Total balance
   promoBalance?: number; // Promo/Referral Wallet — only for slot purchases
   winningBalance?: number; // Winning Wallet — withdrawable via bKash
@@ -40,11 +46,18 @@ export interface User {
   winRate?: number; // % Win Rate calculated from match stats
   playerStatus?: PlayerStatus;
   isBanned: boolean;
+  banReason?: string;
+  bannedAt?: string;
+  bannedBy?: string;
   referralCode: string;
+  referredBy?: string;
   totalReferrals?: number;
   claimedMilestones?: number[];
   adminPermissions?: string[];
+  deviceToken?: string;
+  isVerified?: boolean;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface Team {
@@ -57,6 +70,8 @@ export interface Team {
   membersCount: number;
   wins: number;
   inviteCode: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Tournament {
@@ -92,12 +107,24 @@ export interface Tournament {
   logoImage?: string;
   galleryImages?: string[];
   community?: TournamentCommunityConfig;
+  communityEnabled?: boolean;
+  communityAccessType?: string;
+  communityInviteLink?: string | null;
+  communityName?: string | null;
+  communityDescription?: string | null;
+  hideInviteLinkFromPublic?: boolean;
+  communityUnlockMode?: string;
+  communityIsDisabled?: boolean;
   tournamentStart?: string | Date;
   tournamentEnd?: string | Date;
   registrationStart?: string | Date;
   registrationEnd?: string | Date;
   timeZone?: string;
   isPaused?: boolean;
+  session?: string;
+  serialOrder?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Payment {
@@ -114,9 +141,11 @@ export interface Payment {
   status: PaymentStatus;
   walletType?: 'PROMO' | 'WINNING';
   notes?: string;
+  senderNumber?: string;
   communityAccessUnlocked?: boolean;
   communityAccessRevoked?: boolean;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface MatchResult {

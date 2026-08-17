@@ -1,22 +1,32 @@
 -- =========================================================
--- Blackrock Esports - Supabase PostgreSQL Schema
--- Run this script in your Supabase SQL Editor to create/update all tables
+-- Blackrock Esports - Complete Supabase PostgreSQL Master Schema
+-- Paste and Run this script in your Supabase SQL Editor:
+-- It creates all missing tables AND safely adds all missing columns
+-- to existing tables without deleting or corrupting any data!
 -- =========================================================
 
 -- Enable UUID extension if needed
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- 1. User Table
+-- =========================================================
+-- 1. User Table (Players, Admins, Vendors)
+-- =========================================================
 CREATE TABLE IF NOT EXISTS "User" (
     "id" TEXT PRIMARY KEY,
-    "name" TEXT NOT NULL,
+    "name" TEXT NOT NULL DEFAULT 'Player',
     "email" TEXT UNIQUE NOT NULL,
     "password" TEXT,
     "avatar" TEXT,
     "role" TEXT NOT NULL DEFAULT 'USER',
     "accountNumber" TEXT UNIQUE,
-    "freeFireUid" TEXT UNIQUE,
+    "freeFireUid" TEXT,
     "inGameName" TEXT,
+    "phone" TEXT,
+    "whatsApp" TEXT,
+    "bio" TEXT,
+    "bkashNumber" TEXT,
+    "nagadNumber" TEXT,
+    "rocketNumber" TEXT,
     "walletBalance" DOUBLE PRECISION NOT NULL DEFAULT 0.0,
     "promoBalance" DOUBLE PRECISION NOT NULL DEFAULT 0.0,
     "winningBalance" DOUBLE PRECISION NOT NULL DEFAULT 0.0,
@@ -27,26 +37,80 @@ CREATE TABLE IF NOT EXISTS "User" (
     "winRate" DOUBLE PRECISION NOT NULL DEFAULT 0.0,
     "playerStatus" TEXT NOT NULL DEFAULT 'AVAILABLE',
     "isBanned" BOOLEAN NOT NULL DEFAULT false,
-    "referralCode" TEXT UNIQUE NOT NULL,
+    "banReason" TEXT,
+    "bannedAt" TIMESTAMP WITH TIME ZONE,
+    "bannedBy" TEXT,
+    "referralCode" TEXT,
+    "referredBy" TEXT,
     "totalReferrals" INTEGER NOT NULL DEFAULT 0,
     "claimedMilestones" INTEGER[] DEFAULT ARRAY[]::INTEGER[],
     "adminPermissions" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "deviceToken" TEXT,
+    "isVerified" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- Safe migrations for User table if already exists
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "accountNumber" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "freeFireUid" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "inGameName" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "phone" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "whatsApp" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "bio" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "bkashNumber" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "nagadNumber" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "rocketNumber" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "walletBalance" DOUBLE PRECISION NOT NULL DEFAULT 0.0;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "promoBalance" DOUBLE PRECISION NOT NULL DEFAULT 0.0;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "winningBalance" DOUBLE PRECISION NOT NULL DEFAULT 0.0;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "coinBalance" DOUBLE PRECISION NOT NULL DEFAULT 0.0;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "totalKills" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "totalWins" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "earnings" DOUBLE PRECISION NOT NULL DEFAULT 0.0;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "winRate" DOUBLE PRECISION NOT NULL DEFAULT 0.0;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "playerStatus" TEXT NOT NULL DEFAULT 'AVAILABLE';
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "isBanned" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "banReason" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "bannedAt" TIMESTAMP WITH TIME ZONE;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "bannedBy" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "referralCode" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "referredBy" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "totalReferrals" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "claimedMilestones" INTEGER[] DEFAULT ARRAY[]::INTEGER[];
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "adminPermissions" TEXT[] DEFAULT ARRAY[]::TEXT[];
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "deviceToken" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "isVerified" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL;
+
+
+-- =========================================================
 -- 2. Team Table
+-- =========================================================
 CREATE TABLE IF NOT EXISTS "Team" (
     "id" TEXT PRIMARY KEY,
     "name" TEXT NOT NULL,
-    "tag" TEXT UNIQUE NOT NULL,
+    "tag" TEXT NOT NULL,
     "logo" TEXT,
     "captainId" TEXT NOT NULL REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    "inviteCode" TEXT UNIQUE NOT NULL,
-    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    "captainName" TEXT,
+    "inviteCode" TEXT NOT NULL,
+    "membersCount" INTEGER NOT NULL DEFAULT 1,
+    "wins" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+ALTER TABLE "Team" ADD COLUMN IF NOT EXISTS "captainName" TEXT;
+ALTER TABLE "Team" ADD COLUMN IF NOT EXISTS "membersCount" INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE "Team" ADD COLUMN IF NOT EXISTS "wins" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "Team" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL;
+
+
+-- =========================================================
 -- 3. TeamMember Table
+-- =========================================================
 CREATE TABLE IF NOT EXISTS "TeamMember" (
     "id" TEXT PRIMARY KEY,
     "teamId" TEXT NOT NULL REFERENCES "Team"("id") ON DELETE CASCADE ON UPDATE CASCADE,
@@ -56,11 +120,14 @@ CREATE TABLE IF NOT EXISTS "TeamMember" (
     UNIQUE("teamId", "userId")
 );
 
+
+-- =========================================================
 -- 4. Tournament Table
+-- =========================================================
 CREATE TABLE IF NOT EXISTS "Tournament" (
     "id" TEXT PRIMARY KEY,
     "title" TEXT NOT NULL,
-    "description" TEXT NOT NULL,
+    "description" TEXT NOT NULL DEFAULT '',
     "banner" TEXT,
     "bannerImage" TEXT,
     "thumbnailImage" TEXT,
@@ -76,14 +143,22 @@ CREATE TABLE IF NOT EXISTS "Tournament" (
     "perKillPrize" DOUBLE PRECISION NOT NULL DEFAULT 0.0,
     "maxTeams" INTEGER NOT NULL DEFAULT 12,
     "registeredCount" INTEGER NOT NULL DEFAULT 0,
-    "matchTime" TIMESTAMP WITH TIME ZONE NOT NULL,
-    "registrationDeadline" TIMESTAMP WITH TIME ZONE NOT NULL,
+    "matchTime" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT timezone('utc'::text, now()),
+    "registrationDeadline" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT timezone('utc'::text, now()),
+    "tournamentStart" TIMESTAMP WITH TIME ZONE,
+    "tournamentEnd" TIMESTAMP WITH TIME ZONE,
+    "registrationStart" TIMESTAMP WITH TIME ZONE,
+    "registrationEnd" TIMESTAMP WITH TIME ZONE,
+    "timeZone" TEXT NOT NULL DEFAULT 'Asia/Dhaka',
+    "isPaused" BOOLEAN NOT NULL DEFAULT false,
+    "session" TEXT DEFAULT 'AM',
+    "serialOrder" INTEGER DEFAULT 0,
     "status" TEXT NOT NULL DEFAULT 'DRAFT',
     "roomId" TEXT,
     "roomPassword" TEXT,
     "roomEnabled" BOOLEAN NOT NULL DEFAULT false,
     "roomReleaseTime" TIMESTAMP WITH TIME ZONE,
-    "rules" TEXT,
+    "rules" TEXT DEFAULT 'Standard tournament rules apply.',
     "isPublished" BOOLEAN NOT NULL DEFAULT false,
     "isFeatured" BOOLEAN NOT NULL DEFAULT false,
     "showOnHomepage" BOOLEAN NOT NULL DEFAULT true,
@@ -97,17 +172,45 @@ CREATE TABLE IF NOT EXISTS "Tournament" (
     "hideInviteLinkFromPublic" BOOLEAN NOT NULL DEFAULT true,
     "communityUnlockMode" TEXT NOT NULL DEFAULT 'SLOT_PURCHASE_ONLY',
     "communityIsDisabled" BOOLEAN NOT NULL DEFAULT false,
-    "tournamentStart" TIMESTAMP WITH TIME ZONE,
-    "tournamentEnd" TIMESTAMP WITH TIME ZONE,
-    "registrationStart" TIMESTAMP WITH TIME ZONE,
-    "registrationEnd" TIMESTAMP WITH TIME ZONE,
-    "timeZone" TEXT NOT NULL DEFAULT 'Asia/Dhaka',
-    "isPaused" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 5. Participant Table
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "bannerImage" TEXT;
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "thumbnailImage" TEXT;
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "logoImage" TEXT;
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "galleryImages" TEXT;
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "firstPrize" DOUBLE PRECISION NOT NULL DEFAULT 0.0;
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "secondPrize" DOUBLE PRECISION NOT NULL DEFAULT 0.0;
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "thirdPrize" DOUBLE PRECISION NOT NULL DEFAULT 0.0;
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "perKillPrize" DOUBLE PRECISION NOT NULL DEFAULT 0.0;
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "tournamentStart" TIMESTAMP WITH TIME ZONE;
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "tournamentEnd" TIMESTAMP WITH TIME ZONE;
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "registrationStart" TIMESTAMP WITH TIME ZONE;
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "registrationEnd" TIMESTAMP WITH TIME ZONE;
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "timeZone" TEXT NOT NULL DEFAULT 'Asia/Dhaka';
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "isPaused" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "session" TEXT DEFAULT 'AM';
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "serialOrder" INTEGER DEFAULT 0;
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "roomReleaseTime" TIMESTAMP WITH TIME ZONE;
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "isPublished" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "isFeatured" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "showOnHomepage" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "registrationOpen" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "liveMatchToggle" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "communityEnabled" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "communityAccessType" TEXT NOT NULL DEFAULT 'WHATSAPP';
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "communityInviteLink" TEXT;
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "communityName" TEXT;
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "communityDescription" TEXT;
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "hideInviteLinkFromPublic" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "communityUnlockMode" TEXT NOT NULL DEFAULT 'SLOT_PURCHASE_ONLY';
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "communityIsDisabled" BOOLEAN NOT NULL DEFAULT false;
+
+
+-- =========================================================
+-- 5. Participant Table (Registrations & Squad Rosters)
+-- =========================================================
 CREATE TABLE IF NOT EXISTS "Participant" (
     "id" TEXT PRIMARY KEY,
     "tournamentId" TEXT NOT NULL REFERENCES "Tournament"("id") ON DELETE CASCADE ON UPDATE CASCADE,
@@ -115,7 +218,7 @@ CREATE TABLE IF NOT EXISTS "Participant" (
     "teamId" TEXT REFERENCES "Team"("id") ON DELETE SET NULL ON UPDATE CASCADE,
     "status" TEXT NOT NULL DEFAULT 'PENDING',
     "joinedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    "registrationId" TEXT UNIQUE,
+    "registrationId" TEXT,
     "squadName" TEXT,
     "iglName" TEXT,
     "captainWhatsApp" TEXT,
@@ -127,7 +230,21 @@ CREATE TABLE IF NOT EXISTS "Participant" (
     "backupPlayerName" TEXT
 );
 
--- 6. Payment Table
+ALTER TABLE "Participant" ADD COLUMN IF NOT EXISTS "registrationId" TEXT;
+ALTER TABLE "Participant" ADD COLUMN IF NOT EXISTS "squadName" TEXT;
+ALTER TABLE "Participant" ADD COLUMN IF NOT EXISTS "iglName" TEXT;
+ALTER TABLE "Participant" ADD COLUMN IF NOT EXISTS "captainWhatsApp" TEXT;
+ALTER TABLE "Participant" ADD COLUMN IF NOT EXISTS "captainDiscord" TEXT;
+ALTER TABLE "Participant" ADD COLUMN IF NOT EXISTS "player1Name" TEXT;
+ALTER TABLE "Participant" ADD COLUMN IF NOT EXISTS "player2Name" TEXT;
+ALTER TABLE "Participant" ADD COLUMN IF NOT EXISTS "player3Name" TEXT;
+ALTER TABLE "Participant" ADD COLUMN IF NOT EXISTS "player4Name" TEXT;
+ALTER TABLE "Participant" ADD COLUMN IF NOT EXISTS "backupPlayerName" TEXT;
+
+
+-- =========================================================
+-- 6. Payment Table (Deposits, Withdrawals, Slot Purchases)
+-- =========================================================
 CREATE TABLE IF NOT EXISTS "Payment" (
     "id" TEXT PRIMARY KEY,
     "userId" TEXT NOT NULL REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE,
@@ -135,25 +252,41 @@ CREATE TABLE IF NOT EXISTS "Payment" (
     "userName" TEXT,
     "userEmail" TEXT,
     "tournamentTitle" TEXT,
-    "method" TEXT NOT NULL,
-    "amount" DOUBLE PRECISION NOT NULL,
-    "trxId" TEXT UNIQUE NOT NULL,
+    "method" TEXT NOT NULL DEFAULT 'BKASH',
+    "amount" DOUBLE PRECISION NOT NULL DEFAULT 0.0,
+    "trxId" TEXT NOT NULL,
     "screenshot" TEXT,
     "status" TEXT NOT NULL DEFAULT 'PENDING',
     "walletType" TEXT DEFAULT 'WINNING',
     "notes" TEXT,
+    "senderNumber" TEXT,
     "communityAccessUnlocked" BOOLEAN NOT NULL DEFAULT false,
     "communityAccessRevoked" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 7. MatchResult Table
+ALTER TABLE "Payment" ADD COLUMN IF NOT EXISTS "userName" TEXT;
+ALTER TABLE "Payment" ADD COLUMN IF NOT EXISTS "userEmail" TEXT;
+ALTER TABLE "Payment" ADD COLUMN IF NOT EXISTS "tournamentTitle" TEXT;
+ALTER TABLE "Payment" ADD COLUMN IF NOT EXISTS "screenshot" TEXT;
+ALTER TABLE "Payment" ADD COLUMN IF NOT EXISTS "walletType" TEXT DEFAULT 'WINNING';
+ALTER TABLE "Payment" ADD COLUMN IF NOT EXISTS "notes" TEXT;
+ALTER TABLE "Payment" ADD COLUMN IF NOT EXISTS "senderNumber" TEXT;
+ALTER TABLE "Payment" ADD COLUMN IF NOT EXISTS "communityAccessUnlocked" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Payment" ADD COLUMN IF NOT EXISTS "communityAccessRevoked" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Payment" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL;
+
+
+-- =========================================================
+-- 7. MatchResult Table (Scoreboards & Kill Stats)
+-- =========================================================
 CREATE TABLE IF NOT EXISTS "MatchResult" (
     "id" TEXT PRIMARY KEY,
     "tournamentId" TEXT NOT NULL REFERENCES "Tournament"("id") ON DELETE CASCADE ON UPDATE CASCADE,
     "teamId" TEXT REFERENCES "Team"("id") ON DELETE SET NULL ON UPDATE CASCADE,
     "playerName" TEXT NOT NULL,
+    "teamOrPlayerName" TEXT,
     "ffUid" TEXT,
     "kills" INTEGER NOT NULL DEFAULT 0,
     "placement" INTEGER NOT NULL DEFAULT 0,
@@ -161,7 +294,14 @@ CREATE TABLE IF NOT EXISTS "MatchResult" (
     "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 8. Notification Table
+ALTER TABLE "MatchResult" ADD COLUMN IF NOT EXISTS "teamOrPlayerName" TEXT;
+ALTER TABLE "MatchResult" ADD COLUMN IF NOT EXISTS "ffUid" TEXT;
+ALTER TABLE "MatchResult" ADD COLUMN IF NOT EXISTS "points" DOUBLE PRECISION NOT NULL DEFAULT 0.0;
+
+
+-- =========================================================
+-- 8. Notification Table (In-App Push Alerts)
+-- =========================================================
 CREATE TABLE IF NOT EXISTS "Notification" (
     "id" TEXT PRIMARY KEY,
     "userId" TEXT NOT NULL REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE,
@@ -173,17 +313,38 @@ CREATE TABLE IF NOT EXISTS "Notification" (
     "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 9. Announcement Table
+ALTER TABLE "Notification" ADD COLUMN IF NOT EXISTS "type" TEXT DEFAULT 'GENERAL';
+ALTER TABLE "Notification" ADD COLUMN IF NOT EXISTS "link" TEXT;
+ALTER TABLE "Notification" ADD COLUMN IF NOT EXISTS "isRead" BOOLEAN NOT NULL DEFAULT false;
+
+
+-- =========================================================
+-- 9. Announcement Table (Public Notice Board)
+-- =========================================================
 CREATE TABLE IF NOT EXISTS "Announcement" (
     "id" TEXT PRIMARY KEY,
     "title" TEXT NOT NULL,
     "content" TEXT NOT NULL,
     "category" TEXT NOT NULL DEFAULT 'GENERAL',
     "isPinned" BOOLEAN NOT NULL DEFAULT false,
-    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    "link" TEXT,
+    "imageUrl" TEXT,
+    "postedBy" TEXT,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 10. SpinHistory Table
+ALTER TABLE "Announcement" ADD COLUMN IF NOT EXISTS "category" TEXT NOT NULL DEFAULT 'GENERAL';
+ALTER TABLE "Announcement" ADD COLUMN IF NOT EXISTS "isPinned" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Announcement" ADD COLUMN IF NOT EXISTS "link" TEXT;
+ALTER TABLE "Announcement" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT;
+ALTER TABLE "Announcement" ADD COLUMN IF NOT EXISTS "postedBy" TEXT;
+ALTER TABLE "Announcement" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL;
+
+
+-- =========================================================
+-- 10. SpinHistory Table (Lucky Spin Wheel Rewards)
+-- =========================================================
 CREATE TABLE IF NOT EXISTS "SpinHistory" (
     "id" TEXT PRIMARY KEY,
     "userId" TEXT NOT NULL REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE,
@@ -192,7 +353,10 @@ CREATE TABLE IF NOT EXISTS "SpinHistory" (
     "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 11. SiteSetting Table
+
+-- =========================================================
+-- 11. SiteSetting Table (Config, Keys, Pricing)
+-- =========================================================
 CREATE TABLE IF NOT EXISTS "SiteSetting" (
     "id" TEXT PRIMARY KEY,
     "key" TEXT UNIQUE NOT NULL,
@@ -201,7 +365,10 @@ CREATE TABLE IF NOT EXISTS "SiteSetting" (
     "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 12. DeleteRequest Table (Owner-approval workflow)
+
+-- =========================================================
+-- 12. DeleteRequest Table (Owner-Approval Workflow)
+-- =========================================================
 CREATE TABLE IF NOT EXISTS "DeleteRequest" (
     "id" TEXT PRIMARY KEY,
     "requestedBy" TEXT NOT NULL,
@@ -216,7 +383,16 @@ CREATE TABLE IF NOT EXISTS "DeleteRequest" (
     "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+ALTER TABLE "DeleteRequest" ADD COLUMN IF NOT EXISTS "requestedByName" TEXT;
+ALTER TABLE "DeleteRequest" ADD COLUMN IF NOT EXISTS "targetTitle" TEXT;
+ALTER TABLE "DeleteRequest" ADD COLUMN IF NOT EXISTS "reason" TEXT;
+ALTER TABLE "DeleteRequest" ADD COLUMN IF NOT EXISTS "approvedBy" TEXT;
+ALTER TABLE "DeleteRequest" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL;
+
+
+-- =========================================================
 -- 13. LFGPost Table (Player & Squad Finder)
+-- =========================================================
 CREATE TABLE IF NOT EXISTS "LFGPost" (
     "id" TEXT PRIMARY KEY,
     "userId" TEXT NOT NULL REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE,
@@ -232,10 +408,23 @@ CREATE TABLE IF NOT EXISTS "LFGPost" (
     "squadName" TEXT,
     "winRate" DOUBLE PRECISION NOT NULL DEFAULT 0.0,
     "kills" INTEGER NOT NULL DEFAULT 0,
-    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 14. AdminAccount Table (Discord-style custom credentials)
+ALTER TABLE "LFGPost" ADD COLUMN IF NOT EXISTS "accountNumber" TEXT;
+ALTER TABLE "LFGPost" ADD COLUMN IF NOT EXISTS "avatar" TEXT;
+ALTER TABLE "LFGPost" ADD COLUMN IF NOT EXISTS "roleNeeded" TEXT DEFAULT 'RUSHER';
+ALTER TABLE "LFGPost" ADD COLUMN IF NOT EXISTS "contactWhatsApp" TEXT;
+ALTER TABLE "LFGPost" ADD COLUMN IF NOT EXISTS "squadName" TEXT;
+ALTER TABLE "LFGPost" ADD COLUMN IF NOT EXISTS "winRate" DOUBLE PRECISION NOT NULL DEFAULT 0.0;
+ALTER TABLE "LFGPost" ADD COLUMN IF NOT EXISTS "kills" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "LFGPost" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL;
+
+
+-- =========================================================
+-- 14. AdminAccount Table (Custom Credential Sub-Admins)
+-- =========================================================
 CREATE TABLE IF NOT EXISTS "AdminAccount" (
     "id" TEXT PRIMARY KEY,
     "username" TEXT UNIQUE NOT NULL,
@@ -249,7 +438,14 @@ CREATE TABLE IF NOT EXISTS "AdminAccount" (
     "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+ALTER TABLE "AdminAccount" ADD COLUMN IF NOT EXISTS "permissions" TEXT[] DEFAULT ARRAY[]::TEXT[];
+ALTER TABLE "AdminAccount" ADD COLUMN IF NOT EXISTS "isActive" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "AdminAccount" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL;
+
+
+-- =========================================================
 -- 15. AdminActivityLog Table (Audit Trail)
+-- =========================================================
 CREATE TABLE IF NOT EXISTS "AdminActivityLog" (
     "id" TEXT PRIMARY KEY,
     "adminUsername" TEXT NOT NULL,
@@ -261,13 +457,18 @@ CREATE TABLE IF NOT EXISTS "AdminActivityLog" (
     "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 16. Conversation Table (Buyer-Seller Private Threads)
+
+-- =========================================================
+-- 16. Conversation Table (Buyer-Seller Direct Chat)
+-- =========================================================
 CREATE TABLE IF NOT EXISTS "Conversation" (
     "id" TEXT PRIMARY KEY,
     "buyerId" TEXT NOT NULL REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE,
     "sellerId" TEXT NOT NULL REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE,
     "buyerName" TEXT,
     "sellerName" TEXT,
+    "buyerAvatar" TEXT,
+    "sellerAvatar" TEXT,
     "lastMessage" TEXT,
     "lastMessageAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
@@ -275,19 +476,39 @@ CREATE TABLE IF NOT EXISTS "Conversation" (
     UNIQUE("buyerId", "sellerId")
 );
 
--- 17. Message Table (with Security & Moderation Flags)
+ALTER TABLE "Conversation" ADD COLUMN IF NOT EXISTS "buyerName" TEXT;
+ALTER TABLE "Conversation" ADD COLUMN IF NOT EXISTS "sellerName" TEXT;
+ALTER TABLE "Conversation" ADD COLUMN IF NOT EXISTS "buyerAvatar" TEXT;
+ALTER TABLE "Conversation" ADD COLUMN IF NOT EXISTS "sellerAvatar" TEXT;
+ALTER TABLE "Conversation" ADD COLUMN IF NOT EXISTS "lastMessage" TEXT;
+ALTER TABLE "Conversation" ADD COLUMN IF NOT EXISTS "lastMessageAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL;
+ALTER TABLE "Conversation" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL;
+
+
+-- =========================================================
+-- 17. Message Table (with Filter Violations & Moderation)
+-- =========================================================
 CREATE TABLE IF NOT EXISTS "Message" (
     "id" TEXT PRIMARY KEY,
     "conversationId" TEXT NOT NULL REFERENCES "Conversation"("id") ON DELETE CASCADE ON UPDATE CASCADE,
     "senderId" TEXT NOT NULL REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE,
     "senderName" TEXT,
+    "senderAvatar" TEXT,
     "content" TEXT NOT NULL,
     "isFlagged" BOOLEAN NOT NULL DEFAULT false,
     "flagReason" TEXT,
     "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 18. ContactUnlock Table (Paid WhatsApp / Phone Unlock Transactions)
+ALTER TABLE "Message" ADD COLUMN IF NOT EXISTS "senderName" TEXT;
+ALTER TABLE "Message" ADD COLUMN IF NOT EXISTS "senderAvatar" TEXT;
+ALTER TABLE "Message" ADD COLUMN IF NOT EXISTS "isFlagged" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Message" ADD COLUMN IF NOT EXISTS "flagReason" TEXT;
+
+
+-- =========================================================
+-- 18. ContactUnlock Table (Paid WhatsApp / Phone Transactions)
+-- =========================================================
 CREATE TABLE IF NOT EXISTS "ContactUnlock" (
     "id" TEXT PRIMARY KEY,
     "conversationId" TEXT NOT NULL,
@@ -303,7 +524,17 @@ CREATE TABLE IF NOT EXISTS "ContactUnlock" (
     "unlockedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Disable Row Level Security (RLS) or add open access policy so the app API keys can query freely
+ALTER TABLE "ContactUnlock" ADD COLUMN IF NOT EXISTS "buyerName" TEXT;
+ALTER TABLE "ContactUnlock" ADD COLUMN IF NOT EXISTS "sellerName" TEXT;
+ALTER TABLE "ContactUnlock" ADD COLUMN IF NOT EXISTS "amountPaid" DOUBLE PRECISION NOT NULL DEFAULT 20.0;
+ALTER TABLE "ContactUnlock" ADD COLUMN IF NOT EXISTS "sellerPhone" TEXT;
+ALTER TABLE "ContactUnlock" ADD COLUMN IF NOT EXISTS "sellerWhatsApp" TEXT;
+ALTER TABLE "ContactUnlock" ADD COLUMN IF NOT EXISTS "status" TEXT NOT NULL DEFAULT 'COMPLETED';
+
+
+-- =========================================================
+-- Disable Row Level Security (RLS) for API Access
+-- =========================================================
 ALTER TABLE "User" DISABLE ROW LEVEL SECURITY;
 ALTER TABLE "Team" DISABLE ROW LEVEL SECURITY;
 ALTER TABLE "TeamMember" DISABLE ROW LEVEL SECURITY;
@@ -323,23 +554,70 @@ ALTER TABLE "Conversation" DISABLE ROW LEVEL SECURITY;
 ALTER TABLE "Message" DISABLE ROW LEVEL SECURITY;
 ALTER TABLE "ContactUnlock" DISABLE ROW LEVEL SECURITY;
 
--- =========================================================
--- Storage Bucket Setup
--- Create the tournament-images bucket for image uploads
--- =========================================================
 
+-- =========================================================
+-- Performance Indexes (Fast Lookups)
+-- =========================================================
+CREATE INDEX IF NOT EXISTS "idx_user_email" ON "User"("email");
+CREATE INDEX IF NOT EXISTS "idx_user_accountNumber" ON "User"("accountNumber");
+CREATE INDEX IF NOT EXISTS "idx_user_referralCode" ON "User"("referralCode");
+CREATE INDEX IF NOT EXISTS "idx_tournament_status" ON "Tournament"("status");
+CREATE INDEX IF NOT EXISTS "idx_participant_tournamentId" ON "Participant"("tournamentId");
+CREATE INDEX IF NOT EXISTS "idx_participant_userId" ON "Participant"("userId");
+CREATE INDEX IF NOT EXISTS "idx_payment_userId" ON "Payment"("userId");
+CREATE INDEX IF NOT EXISTS "idx_payment_trxId" ON "Payment"("trxId");
+CREATE INDEX IF NOT EXISTS "idx_payment_status" ON "Payment"("status");
+CREATE INDEX IF NOT EXISTS "idx_notification_userId" ON "Notification"("userId");
+CREATE INDEX IF NOT EXISTS "idx_message_conversationId" ON "Message"("conversationId");
+CREATE INDEX IF NOT EXISTS "idx_conversation_buyerId" ON "Conversation"("buyerId");
+CREATE INDEX IF NOT EXISTS "idx_conversation_sellerId" ON "Conversation"("sellerId");
+CREATE INDEX IF NOT EXISTS "idx_contactunlock_conversationId" ON "ContactUnlock"("conversationId");
+CREATE INDEX IF NOT EXISTS "idx_sitesetting_key" ON "SiteSetting"("key");
+
+
+-- =========================================================
+-- Storage Bucket Setup (Images & Receipts)
+-- =========================================================
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('tournament-images', 'tournament-images', true)
 ON CONFLICT (id) DO NOTHING;
 
-CREATE POLICY IF NOT EXISTS "Public Read Access"
-ON storage.objects FOR SELECT
-USING ( bucket_id = 'tournament-images' );
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE policyname = 'Public Read Access' AND tablename = 'objects' AND schemaname = 'storage'
+    ) THEN
+        CREATE POLICY "Public Read Access" ON storage.objects FOR SELECT USING ( bucket_id = 'tournament-images' );
+    END IF;
 
-CREATE POLICY IF NOT EXISTS "Service Role Upload"
-ON storage.objects FOR INSERT
-WITH CHECK ( bucket_id = 'tournament-images' );
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE policyname = 'Service Role Upload' AND tablename = 'objects' AND schemaname = 'storage'
+    ) THEN
+        CREATE POLICY "Service Role Upload" ON storage.objects FOR INSERT WITH CHECK ( bucket_id = 'tournament-images' );
+    END IF;
 
-CREATE POLICY IF NOT EXISTS "Service Role Delete"
-ON storage.objects FOR DELETE
-USING ( bucket_id = 'tournament-images' );
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE policyname = 'Service Role Delete' AND tablename = 'objects' AND schemaname = 'storage'
+    ) THEN
+        CREATE POLICY "Service Role Delete" ON storage.objects FOR DELETE USING ( bucket_id = 'tournament-images' );
+    END IF;
+END $$;
+
+
+-- =========================================================
+-- Pre-Seed Essential Default Site Settings
+-- =========================================================
+INSERT INTO "SiteSetting" ("id", "key", "value") VALUES
+    ('setting_min_deposit', 'min_deposit', '20'),
+    ('setting_bkash_number', 'bkash_number', '01700000000'),
+    ('setting_nagad_number', 'nagad_number', '01800000000'),
+    ('setting_rocket_number', 'rocket_number', '01900000000'),
+    ('setting_whatsapp_unlock_fee', 'whatsapp_unlock_fee', '20'),
+    ('setting_platform_revenue_share', 'platform_revenue_share', '80'),
+    ('setting_seller_revenue_share', 'seller_revenue_share', '20'),
+    ('setting_is_live_active', 'is_live_active', 'false'),
+    ('setting_live_stream_url', 'live_stream_url', ''),
+    ('setting_contact_email', 'contact_email', 'support@blackrock.gg'),
+    ('setting_telegram_channel', 'telegram_channel', 'https://t.me/blackrock_esports')
+ON CONFLICT ("key") DO NOTHING;
+
