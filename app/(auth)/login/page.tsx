@@ -73,6 +73,9 @@ export default function LoginPage() {
     setGoogleLoading(true);
 
     try {
+      if (!auth) {
+        throw new Error('Google Sign-In is currently unavailable. Please sign in with email and password.');
+      }
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
 
