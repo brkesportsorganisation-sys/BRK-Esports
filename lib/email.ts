@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 import { supabaseAdmin } from './supabase';
 
 const DEFAULT_RESEND_KEY = process.env.RESEND_API_KEY || '';
@@ -11,7 +12,21 @@ export interface WelcomeEmailParams {
   inGameName?: string;
 }
 
-export async function getEmailSettings() {
+export interface EmailSettings {
+  provider: 'RESEND' | 'SMTP';
+  apiKey: string;
+  isEnabled: boolean;
+  fromEmail: string;
+  subject: string;
+  bodyTemplate: string;
+  smtpHost?: string;
+  smtpPort?: number;
+  smtpUser?: string;
+  smtpPass?: string;
+  smtpSecure?: boolean;
+}
+
+export async function getEmailSettings(): Promise<EmailSettings> {
   try {
     const { data: settings } = await supabaseAdmin
       .from('SiteSetting')
@@ -22,10 +37,20 @@ export async function getEmailSettings() {
       return acc;
     }, {});
 
+    const smtpUser = map.SMTP_USER || process.env.SMTP_USER || '';
+    const smtpPass = map.SMTP_PASS || process.env.SMTP_PASS || '';
+    const smtpHost = map.SMTP_HOST || process.env.SMTP_HOST || 'smtp.gmail.com';
+    const smtpPort = Number(map.SMTP_PORT || process.env.SMTP_PORT || 465);
+    const smtpSecure = map.SMTP_SECURE === 'true' || smtpPort === 465;
+
+    const provider: 'RESEND' | 'SMTP' = (map.EMAIL_PROVIDER as 'RESEND' | 'SMTP') || 
+      (smtpUser && smtpPass ? 'SMTP' : 'RESEND');
+
     return {
-      apiKey: map.RESEND_API_KEY || DEFAULT_RESEND_KEY,
-      isEnabled: map.WELCOME_EMAIL_ENABLED !== 'false', // enabled by default
-      fromEmail: map.WELCOME_EMAIL_FROM || 'BlackRock Esports <onboarding@resend.dev>',
+      provider,
+      apiKey: map.RESEND_API_KEY || process.env.RESEND_API_KEY || DEFAULT_RESEND_KEY,
+      isEnabled: map.WELCOME_EMAIL_ENABLED !== 'false',
+      fromEmail: map.WELCOME_EMAIL_FROM || map.SMTP_FROM || process.env.SMTP_FROM || 'BlackRock Esports <onboarding@resend.dev>',
       subject: map.WELCOME_EMAIL_SUBJECT || '🔥 Welcome to Black Rock Esports - Player ID: {PLAYER_ID}',
       bodyTemplate: map.WELCOME_EMAIL_BODY || `Welcome to Black Rock Esports, {NAME}!
 
@@ -33,16 +58,93 @@ Your official Player Unique ID is {PLAYER_ID}.
 You are now ready to compete in daily Free Fire squad, duo, and solo championship tournaments with automated Booyah payouts.
 
 Login to your account and book your slot today!`,
+      smtpHost,
+      smtpPort,
+      smtpUser,
+      smtpPass,
+      smtpSecure,
     };
   } catch {
     return {
-      apiKey: DEFAULT_RESEND_KEY,
+      provider: 'RESEND',
+      apiKey: process.env.RESEND_API_KEY || DEFAULT_RESEND_KEY,
       isEnabled: true,
       fromEmail: 'BlackRock Esports <onboarding@resend.dev>',
       subject: '🔥 Welcome to Black Rock Esports - Player ID: {PLAYER_ID}',
       bodyTemplate: `Welcome to Black Rock Esports, {NAME}!\n\nYour official Player Unique ID is {PLAYER_ID}.\nGet ready to dominate the arena!`,
     };
   }
+}
+
+/**
+ * Universal Mail Dispatcher with Automatic SMTP/Resend Fallback
+ */
+async function dispatchEmail(params: {
+  to: string;
+  subject: string;
+  html: string;
+  from?: string;
+}) {
+  const settings = await getEmailSettings();
+  const fromAddress = params.from || settings.fromEmail;
+
+  // 1. Try SMTP first if credentials exist
+  if (settings.smtpUser && settings.smtpPass) {
+    try {
+      const transporter = nodemailer.createTransport({
+        host: settings.smtpHost,
+        port: settings.smtpPort,
+        secure: settings.smtpSecure,
+        auth: {
+          user: settings.smtpUser,
+          pass: settings.smtpPass,
+        },
+      });
+
+      const info = await transporter.sendMail({
+        from: fromAddress.includes('@') ? fromAddress : `"${fromAddress}" <${settings.smtpUser}>`,
+        to: params.to,
+        subject: params.subject,
+        html: params.html,
+      });
+
+      console.log('[Email:SMTP] Sent successfully:', info.messageId);
+      return { success: true, provider: 'SMTP', data: info };
+    } catch (smtpErr: any) {
+      console.warn('[Email:SMTP] Failed to send via SMTP, trying Resend fallback:', smtpErr.message);
+    }
+  }
+
+  // 2. Try Resend if API key exists
+  if (settings.apiKey) {
+    try {
+      const resend = new Resend(settings.apiKey);
+      const resendResult = await resend.emails.send({
+        from: fromAddress,
+        to: params.to,
+        subject: params.subject,
+        html: params.html,
+      });
+
+      if (resendResult.error) {
+        console.warn('[Email:Resend] API Notice:', resendResult.error);
+        return { 
+          success: false, 
+          provider: 'RESEND', 
+          error: resendResult.error.message || 'Resend error',
+          details: resendResult.error 
+        };
+      }
+
+      console.log('[Email:Resend] Sent successfully:', resendResult.data);
+      return { success: true, provider: 'RESEND', data: resendResult.data };
+    } catch (resendErr: any) {
+      console.warn('[Email:Resend] Failed:', resendErr.message);
+      return { success: false, provider: 'RESEND', error: resendErr.message };
+    }
+  }
+
+  return { success: false, error: 'No active email provider configured (Resend API key or SMTP credentials missing).' };
 }
 
 export function generateWelcomeHtml(params: {
@@ -265,8 +367,6 @@ export async function sendWelcomeEmail(params: WelcomeEmailParams) {
       return { success: false, reason: 'DISABLED' };
     }
 
-    const resend = new Resend(emailSettings.apiKey);
-
     const formattedSubject = emailSettings.subject
       .replace(/{NAME}/g, params.name)
       .replace(/{PLAYER_ID}/g, params.accountNumber)
@@ -287,15 +387,13 @@ export async function sendWelcomeEmail(params: WelcomeEmailParams) {
       bodyText: formattedBody,
     });
 
-    const data = await resend.emails.send({
-      from: emailSettings.fromEmail,
+    const result = await dispatchEmail({
       to: params.email,
       subject: formattedSubject,
-      html: html,
+      html,
     });
 
-    console.log('[Email] Welcome email sent successfully to:', params.email, data);
-    return { success: true, data };
+    return result;
   } catch (error: any) {
     console.error('[Email] Failed to send welcome email:', error?.message || error);
     return { success: false, error: error?.message || 'Failed to send' };
@@ -308,24 +406,19 @@ export async function sendPasswordResetOtpEmail(params: {
   otp: string;
 }) {
   try {
-    const emailSettings = await getEmailSettings();
-    const resend = new Resend(emailSettings.apiKey);
-
     const html = generatePasswordResetOtpHtml({
       name: params.name,
       email: params.email,
       otp: params.otp,
     });
 
-    const data = await resend.emails.send({
-      from: emailSettings.fromEmail,
+    const result = await dispatchEmail({
       to: params.email,
       subject: `🔐 Your Password Reset Code: ${params.otp} - Black Rock Esports`,
-      html: html,
+      html,
     });
 
-    console.log('[Email] Password reset OTP sent to:', params.email, data);
-    return { success: true, data };
+    return result;
   } catch (error: any) {
     console.error('[Email] Failed to send OTP email:', error?.message || error);
     return { success: false, error: error?.message || 'Failed to send OTP email' };
@@ -341,8 +434,6 @@ export async function sendTestEmail(params: {
 }) {
   try {
     const emailSettings = await getEmailSettings();
-    const key = params.apiKey || emailSettings.apiKey;
-    const resend = new Resend(key);
 
     const from = params.fromEmail || emailSettings.fromEmail;
     const subject = (params.subject || emailSettings.subject)
@@ -363,17 +454,18 @@ export async function sendTestEmail(params: {
       bodyText: bodyText,
     });
 
-    const data = await resend.emails.send({
-      from: from,
+    const result = await dispatchEmail({
+      from,
       to: params.toEmail,
       subject: `[TEST PREVIEW] ${subject}`,
-      html: html,
+      html,
     });
 
-    return { success: true, data };
+    return result;
   } catch (error: any) {
     console.error('[Email Test] Error:', error);
     return { success: false, error: error?.message || 'Failed to send test email' };
   }
 }
+
 

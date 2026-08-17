@@ -102,6 +102,12 @@ Your official Player Unique ID is {PLAYER_ID}.
 You are now ready to compete in daily Free Fire squad, duo, and solo championship tournaments with automated Booyah payouts.
 
 Login to your account and book your slot today!`);
+  const [emailProvider, setEmailProvider] = useState<'RESEND' | 'SMTP'>('RESEND');
+  const [smtpHost, setSmtpHost] = useState('smtp.gmail.com');
+  const [smtpPort, setSmtpPort] = useState('465');
+  const [smtpUser, setSmtpUser] = useState('');
+  const [smtpPass, setSmtpPass] = useState('');
+  const [smtpFrom, setSmtpFrom] = useState('');
   const [testEmailRecipient, setTestEmailRecipient] = useState('');
   const [isSendingTestEmail, setIsSendingTestEmail] = useState(false);
   const [testEmailResult, setTestEmailResult] = useState<{ success: boolean; message: string } | null>(null);
@@ -179,12 +185,18 @@ Login to your account and book your slot today!`);
         if (s.YOUTUBE_LIVE_DESCRIPTION) setYoutubeLiveDesc(s.YOUTUBE_LIVE_DESCRIPTION);
         if (s.YOUTUBE_CHANNEL_URL) setYoutubeChannelUrl(s.YOUTUBE_CHANNEL_URL);
 
-        // Welcome Email (Resend) Settings
+        // Welcome Email & SMTP Settings
+        if (s.EMAIL_PROVIDER) setEmailProvider(s.EMAIL_PROVIDER as 'RESEND' | 'SMTP');
         if (s.WELCOME_EMAIL_ENABLED !== undefined) setWelcomeEmailEnabled(s.WELCOME_EMAIL_ENABLED !== 'false');
         if (s.RESEND_API_KEY) setResendApiKey(s.RESEND_API_KEY);
         if (s.WELCOME_EMAIL_FROM) setWelcomeEmailFrom(s.WELCOME_EMAIL_FROM);
         if (s.WELCOME_EMAIL_SUBJECT) setWelcomeEmailSubject(s.WELCOME_EMAIL_SUBJECT);
         if (s.WELCOME_EMAIL_BODY) setWelcomeEmailBody(s.WELCOME_EMAIL_BODY);
+        if (s.SMTP_HOST) setSmtpHost(s.SMTP_HOST);
+        if (s.SMTP_PORT) setSmtpPort(s.SMTP_PORT);
+        if (s.SMTP_USER) setSmtpUser(s.SMTP_USER);
+        if (s.SMTP_PASS) setSmtpPass(s.SMTP_PASS);
+        if (s.SMTP_FROM) setSmtpFrom(s.SMTP_FROM);
 
         // Payments & General
         if (s.bkash_no) setBkashNo(s.bkash_no);
@@ -261,12 +273,18 @@ Login to your account and book your slot today!`);
         YOUTUBE_LIVE_DESCRIPTION: youtubeLiveDesc.trim(),
         YOUTUBE_CHANNEL_URL: youtubeChannelUrl.trim(),
 
-        // Welcome Email (Resend) Settings
+        // Email & SMTP Settings
+        EMAIL_PROVIDER: emailProvider,
         WELCOME_EMAIL_ENABLED: String(welcomeEmailEnabled),
         RESEND_API_KEY: resendApiKey.trim(),
         WELCOME_EMAIL_FROM: welcomeEmailFrom.trim(),
         WELCOME_EMAIL_SUBJECT: welcomeEmailSubject.trim(),
         WELCOME_EMAIL_BODY: welcomeEmailBody.trim(),
+        SMTP_HOST: smtpHost.trim(),
+        SMTP_PORT: smtpPort.trim(),
+        SMTP_USER: smtpUser.trim(),
+        SMTP_PASS: smtpPass.trim(),
+        SMTP_FROM: smtpFrom.trim(),
 
         // Payments & Messaging Monetization
         bkash_no: bkashNo,
@@ -668,45 +686,151 @@ Login to your account and book your slot today!`);
                   </button>
                 </div>
 
-                {/* Resend API Key & From Address */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                  <div>
-                    <label className="block text-[#475569] font-bold mb-1 flex items-center justify-between">
-                      <span>Resend API Key *</span>
-                      <span className="text-[10px] text-indigo-600 font-normal">resend.com/api-keys</span>
-                    </label>
-                    <div className="relative">
-                      <Key className="w-4 h-4 text-indigo-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                {/* Provider Selector */}
+                <div className="p-4 rounded-[16px] bg-[#F8FAFC] border border-[#E2E8F0] space-y-3">
+                  <label className="block text-[#0F172A] font-bold text-xs">Choose Email Dispatch Method</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setEmailProvider('RESEND')}
+                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                        emailProvider === 'RESEND'
+                          ? 'border-indigo-600 bg-indigo-50/50 text-indigo-950 font-bold shadow-xs'
+                          : 'border-[#E2E8F0] bg-white text-[#64748B] hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="text-xs font-black uppercase text-indigo-700 flex items-center gap-1.5">
+                        <Key className="w-3.5 h-3.5" /> Resend.com API
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-1">
+                        Best with verified custom domain (e.g. resend.com).
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setEmailProvider('SMTP')}
+                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                        emailProvider === 'SMTP'
+                          ? 'border-emerald-600 bg-emerald-50/50 text-emerald-950 font-bold shadow-xs'
+                          : 'border-[#E2E8F0] bg-white text-[#64748B] hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="text-xs font-black uppercase text-emerald-700 flex items-center gap-1.5">
+                        <Mail className="w-3.5 h-3.5" /> Gmail / Custom SMTP (Free & Direct)
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-1">
+                        Send to ANY email without domain verification via Gmail App Password.
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Resend Configuration */}
+                {emailProvider === 'RESEND' && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                    <div>
+                      <label className="block text-[#475569] font-bold mb-1 flex items-center justify-between text-xs">
+                        <span>Resend API Key *</span>
+                        <span className="text-[10px] text-indigo-600 font-normal">resend.com/api-keys</span>
+                      </label>
+                      <div className="relative">
+                        <Key className="w-4 h-4 text-indigo-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          value={resendApiKey}
+                          onChange={(e) => setResendApiKey(e.target.value)}
+                          placeholder="re_12345678_..."
+                          className="w-full pl-10 pr-4 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] font-mono text-xs text-[#0F172A] focus:outline-none focus:border-indigo-600"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[#475569] font-bold mb-1 text-xs">
+                        Sender Name & From Email Address
+                      </label>
                       <input
                         type="text"
-                        value={resendApiKey}
-                        onChange={(e) => setResendApiKey(e.target.value)}
-                        placeholder="re_12345678_..."
-                        className="w-full pl-10 pr-4 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] font-mono text-xs text-[#0F172A] focus:outline-none focus:border-indigo-600"
-                        required
+                        value={welcomeEmailFrom}
+                        onChange={(e) => setWelcomeEmailFrom(e.target.value)}
+                        placeholder="BlackRock Esports <onboarding@resend.dev>"
+                        className="w-full px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] font-mono text-xs text-[#0F172A] focus:outline-none focus:border-indigo-600"
                       />
+                      <span className="text-[10px] text-slate-400 mt-1 block">
+                        Note: <code>onboarding@resend.dev</code> only sends to your Resend account email. Verify your domain on resend.com for all players.
+                      </span>
                     </div>
                   </div>
+                )}
 
-                  <div>
-                    <label className="block text-[#475569] font-bold mb-1">
-                      Sender Name & From Email Address
-                    </label>
-                    <input
-                      type="text"
-                      value={welcomeEmailFrom}
-                      onChange={(e) => setWelcomeEmailFrom(e.target.value)}
-                      placeholder="BlackRock Esports <onboarding@resend.dev>"
-                      className="w-full px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] font-mono text-xs text-[#0F172A] focus:outline-none focus:border-indigo-600"
-                      required
-                    />
-                    <span className="text-[10px] text-slate-400 mt-1 block">
-                      Use <code>onboarding@resend.dev</code> for testing or verified domain (e.g. <code>support@brkesports.com</code>).
-                    </span>
+                {/* SMTP Configuration */}
+                {emailProvider === 'SMTP' && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1 p-4 rounded-[16px] bg-emerald-50/30 border border-emerald-100">
+                    <div>
+                      <label className="block text-[#475569] font-bold mb-1 text-xs">SMTP Host</label>
+                      <input
+                        type="text"
+                        value={smtpHost}
+                        onChange={(e) => setSmtpHost(e.target.value)}
+                        placeholder="smtp.gmail.com"
+                        className="w-full px-3.5 py-2.5 rounded-[12px] bg-white border border-[#E2E8F0] font-mono text-xs text-[#0F172A] focus:outline-none focus:border-emerald-600"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[#475569] font-bold mb-1 text-xs">SMTP Port</label>
+                      <input
+                        type="text"
+                        value={smtpPort}
+                        onChange={(e) => setSmtpPort(e.target.value)}
+                        placeholder="465 (SSL) or 587 (TLS)"
+                        className="w-full px-3.5 py-2.5 rounded-[12px] bg-white border border-[#E2E8F0] font-mono text-xs text-[#0F172A] focus:outline-none focus:border-emerald-600"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[#475569] font-bold mb-1 text-xs">SMTP Username / Gmail Address</label>
+                      <input
+                        type="text"
+                        value={smtpUser}
+                        onChange={(e) => setSmtpUser(e.target.value)}
+                        placeholder="yourname@gmail.com"
+                        className="w-full px-3.5 py-2.5 rounded-[12px] bg-white border border-[#E2E8F0] font-mono text-xs text-[#0F172A] focus:outline-none focus:border-emerald-600"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[#475569] font-bold mb-1 text-xs">SMTP Password / Google App Password</label>
+                      <input
+                        type="password"
+                        value={smtpPass}
+                        onChange={(e) => setSmtpPass(e.target.value)}
+                        placeholder="16-character Google App Password"
+                        className="w-full px-3.5 py-2.5 rounded-[12px] bg-white border border-[#E2E8F0] font-mono text-xs text-[#0F172A] focus:outline-none focus:border-emerald-600"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="block text-[#475569] font-bold mb-1 text-xs">Custom From Header (Optional)</label>
+                      <input
+                        type="text"
+                        value={smtpFrom}
+                        onChange={(e) => setSmtpFrom(e.target.value)}
+                        placeholder="BlackRock Esports <support@brkesports.com>"
+                        className="w-full px-3.5 py-2.5 rounded-[12px] bg-white border border-[#E2E8F0] font-mono text-xs text-[#0F172A] focus:outline-none focus:border-emerald-600"
+                      />
+                      <span className="text-[10px] text-emerald-700 mt-1 block">
+                        💡 Tip: In your Google Account, enable 2-Step Verification $\rightarrow$ Security $\rightarrow$ App Passwords $\rightarrow$ Generate password for "Mail".
+                      </span>
+                    </div>
                   </div>
+                )}
 
+                {/* Email Subject & Body */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
                   <div className="sm:col-span-2">
-                    <label className="block text-[#475569] font-bold mb-1">
+                    <label className="block text-[#475569] font-bold mb-1 text-xs">
                       Welcome Email Subject Line *
                     </label>
                     <input
@@ -723,7 +847,7 @@ Login to your account and book your slot today!`);
                   </div>
 
                   <div className="sm:col-span-2">
-                    <label className="block text-[#475569] font-bold mb-1">
+                    <label className="block text-[#475569] font-bold mb-1 text-xs">
                       Welcome Email Body & Instructions *
                     </label>
                     <textarea

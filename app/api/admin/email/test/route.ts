@@ -32,7 +32,11 @@ export async function POST(request: NextRequest) {
     });
 
     if (result.success) {
-      return NextResponse.json({ message: `Test email sent successfully to ${toEmail}!`, data: result.data });
+      return NextResponse.json({ 
+        message: `Test email sent successfully to ${toEmail}!`, 
+        data: (result as any).data,
+        provider: (result as any).provider 
+      });
     } else {
       return NextResponse.json({ message: result.error || 'Failed to send test email.' }, { status: 500 });
     }
