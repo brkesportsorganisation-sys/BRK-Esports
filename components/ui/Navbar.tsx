@@ -38,6 +38,7 @@ import {
 import { db } from '@/lib/db';
 import { User as UserType, Notification as NotificationType } from '@/lib/types';
 import { useLanguage } from '@/lib/language-context';
+import { useRealtimeUser, useRealtimeNotifications } from '@/lib/use-realtime';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -52,6 +53,16 @@ export default function Navbar() {
   const [isLiveActive, setIsLiveActive] = useState(false);
   const [loadingNotifs, setLoadingNotifs] = useState(false);
   const notifDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Real-time live Supabase WebSockets listeners
+  useRealtimeUser(currentUser?.id, (updatedUser) => {
+    setCurrentUser(updatedUser);
+  });
+
+  useRealtimeNotifications(currentUser?.id, (newNotif) => {
+    setNotifications((prev) => [newNotif, ...prev]);
+    setUnreadCount((prev) => prev + 1);
+  });
 
   // Load user notifications from API
   const loadUserNotifications = async (userId: string) => {

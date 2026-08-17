@@ -28,6 +28,7 @@ import {
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import SlotGrid from '@/components/tournaments/SlotGrid';
+import { useRealtimeTournament } from '@/lib/use-realtime';
 import { getTournamentByIdFromDb } from '@/lib/tournament-store';
 import { getDynamicTournamentStatus } from '@/lib/tournament-utils';
 import { Tournament, User as UserType } from '@/lib/types';
@@ -242,6 +243,11 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
     };
     void loadTournament();
   }, [resolvedParams.id]);
+
+  // Real-time Supabase WebSockets listener for live match updates
+  useRealtimeTournament(resolvedParams.id, (updatedTour) => {
+    setTournament((prev) => prev ? { ...prev, ...updatedTour } : updatedTour);
+  });
 
   if (!tournament) {
     return (

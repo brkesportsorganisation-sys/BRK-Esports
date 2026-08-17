@@ -5,7 +5,6 @@ import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import MobileBottomNav from '@/components/ui/MobileBottomNav';
 import { db } from '@/lib/db';
-import { User } from '@/lib/types';
 import { 
   Swords, 
   Crosshair, 
@@ -26,13 +25,19 @@ import {
   Clock,
   Sparkles
 } from 'lucide-react';
-import { DuelChallenge } from '@/lib/types';
+import { DuelChallenge, User } from '@/lib/types';
+import { useRealtimeBroadcast } from '@/lib/use-realtime';
 
 export default function ArenaPage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [duels, setDuels] = useState<DuelChallenge[]>([]);
   const [loading, setLoading] = useState(true);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+
+  // Real-time Supabase Broadcast listener for live duel challenges
+  useRealtimeBroadcast('arena-duels', 'DUEL_UPDATE', () => {
+    loadDuels();
+  });
   const [activeTab, setActiveTab] = useState<'OPEN' | 'MY_DUELS'>('OPEN');
   const [selectedFilter, setSelectedFilter] = useState<string>('ALL');
 
