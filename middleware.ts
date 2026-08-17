@@ -5,10 +5,15 @@ import { inspectRequestSecurity, checkRateLimit, applySecurityHeaders } from '@/
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
+  // Extract client IP safely
+  const clientIp = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 
+                   request.headers.get('x-real-ip') || 
+                   '127.0.0.1';
+
   // 1. WAF Deep Inspection (Block SQLi, XSS, Path Traversal, Malicious Bots)
   const inspection = inspectRequestSecurity(request);
   if (inspection.blocked) {
-    console.warn(`[WAF Blocked] IP: ${request.ip || 'unknown'} Path: ${pathname} Reason: ${inspection.reason}`);
+    console.warn(`[WAF Blocked] IP: ${clientIp} Path: ${pathname} Reason: ${inspection.reason}`);
     return new NextResponse(
       JSON.stringify({ 
         error: 'Forbidden', 
@@ -23,9 +28,6 @@ export function middleware(request: NextRequest) {
   }
 
   // 2. IP Rate Limiting (DDoS & Brute Force Protection)
-  const clientIp = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 
-                   request.headers.get('x-real-ip') || 
-                   '127.0.0.1';
 
   let routeType: 'AUTH' | 'WALLET' | 'OTP' | 'GENERAL' = 'GENERAL';
   if (pathname.startsWith('/api/auth/forgot-password') || pathname.startsWith('/api/auth/reset-password')) {
