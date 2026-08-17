@@ -263,6 +263,19 @@ export async function POST(
       })
       .eq('id', tournamentId);
 
+    // 5. Send in-app Notification to player (safely)
+    try {
+      const notifId = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      await supabaseAdmin.from('Notification').insert([{
+        id: notifId,
+        userId,
+        title: `Registered: ${tournament.title} 🎮`,
+        message: `Your squad "${squadName.trim()}" has been registered successfully! Room ID and Password will be posted 10-15m before match start.`,
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      }]);
+    } catch {}
+
     return NextResponse.json({
       message: `Registration successful! ${tournament.entryFee} ${currencyUnit} has been deducted.`,
       registrationId,

@@ -87,18 +87,18 @@ export async function PATCH(request: NextRequest) {
         })
         .eq('id', paymentId);
 
-      // 3. Send in-app Notification to player
-      const notifId = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-      await supabaseAdmin.from('Notification').insert([{
-        id: notifId,
-        userId: payment.userId,
-        title: 'Deposit Approved! 🎉',
-        message: `Your deposit of ৳${payment.amount} via ${payment.method} (TrxID: ${payment.trxId}) has been verified and added to your wallet!`,
-        type: 'PAYOUT',
-        link: '/wallet',
-        isRead: false,
-        createdAt: new Date().toISOString(),
-      }]);
+      // 3. Send in-app Notification to player (safely)
+      try {
+        const notifId = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+        await supabaseAdmin.from('Notification').insert([{
+          id: notifId,
+          userId: payment.userId,
+          title: 'Deposit Approved! 🎉',
+          message: `Your deposit of ৳${payment.amount} via ${payment.method} (TrxID: ${payment.trxId}) has been verified and added to your wallet!`,
+          isRead: false,
+          createdAt: new Date().toISOString(),
+        }]);
+      } catch {}
 
       logAdminAction(
         session.username || session.email,
@@ -122,18 +122,18 @@ export async function PATCH(request: NextRequest) {
       })
       .eq('id', paymentId);
 
-    // Send Rejection Notification to player
-    const notifId = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-    await supabaseAdmin.from('Notification').insert([{
-      id: notifId,
-      userId: payment.userId,
-      title: 'Deposit Declined ⚠️',
-      message: `Your deposit of ৳${payment.amount} (TrxID: ${payment.trxId}) was rejected. Reason: ${reasonText}. Contact helpline if you believe this is an error.`,
-      type: 'WARNING',
-      link: '/wallet',
-      isRead: false,
-      createdAt: new Date().toISOString(),
-    }]);
+    // Send Rejection Notification to player (safely)
+    try {
+      const notifId = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      await supabaseAdmin.from('Notification').insert([{
+        id: notifId,
+        userId: payment.userId,
+        title: 'Deposit Declined ⚠️',
+        message: `Your deposit of ৳${payment.amount} (TrxID: ${payment.trxId}) was rejected. Reason: ${reasonText}. Contact helpline if you believe this is an error.`,
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      }]);
+    } catch {}
 
     logAdminAction(
       session.username || session.email,

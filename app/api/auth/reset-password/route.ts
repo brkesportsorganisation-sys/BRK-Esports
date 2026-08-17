@@ -61,18 +61,18 @@ export async function POST(request: NextRequest) {
       throw new Error(updateErr.message);
     }
 
-    // 5. Send in-app notification
-    const notifId = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-    await supabaseAdmin.from('Notification').insert([{
-      id: notifId,
-      userId: user.id,
-      title: 'Password Changed Successfully 🔒',
-      message: 'Your account password was recently reset via email OTP verification.',
-      type: 'SYSTEM',
-      link: '/profile',
-      isRead: false,
-      createdAt: new Date().toISOString(),
-    }]);
+    // 5. Send in-app notification (safely)
+    try {
+      const notifId = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      await supabaseAdmin.from('Notification').insert([{
+        id: notifId,
+        userId: user.id,
+        title: 'Password Changed Successfully 🔒',
+        message: 'Your account password was recently reset via email OTP verification.',
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      }]);
+    } catch {}
 
     const { password: _, ...sanitizedUser } = user;
 

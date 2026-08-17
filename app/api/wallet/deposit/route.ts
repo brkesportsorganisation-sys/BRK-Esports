@@ -64,13 +64,37 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date().toISOString(),
     };
 
-    const { data: createdPayment, error: paymentError } = await supabaseAdmin
-      .from('Payment')
-      .insert([newPayment])
-      .select()
-      .single();
+    let paymentRecord: Record<string, any> = { ...newPayment };
+    let createdPayment: any = null;
+    let success = false;
+    let attempts = 6;
 
-    if (paymentError) {
+    while (!success && attempts > 0) {
+      const { data, error: paymentError } = await supabaseAdmin
+        .from('Payment')
+        .insert([paymentRecord])
+        .select()
+        .maybeSingle();
+
+      if (!paymentError) {
+        createdPayment = data || paymentRecord;
+        success = true;
+        break;
+      }
+
+      const fullErrStr = `${paymentError.message || ''} ${paymentError.details || ''}`;
+      const match = fullErrStr.match(/Could not find the '([^']+)' column/i) ||
+                    fullErrStr.match(/column '([^']+)' does not exist/i) ||
+                    fullErrStr.match(/column "([^"]+)" does not exist/i);
+
+      if (match && match[1]) {
+        const missingCol = match[1];
+        console.warn(`[POST /api/wallet/deposit] Omission of column '${missingCol}' due to schema cache.`);
+        delete paymentRecord[missingCol];
+        attempts--;
+        continue;
+      }
+
       throw new Error(paymentError.message);
     }
 
