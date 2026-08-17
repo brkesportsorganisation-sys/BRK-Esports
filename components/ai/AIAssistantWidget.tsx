@@ -203,7 +203,7 @@ export default function AIAssistantWidget() {
                     <h3 className="font-extrabold text-sm text-white tracking-wide">BRK AI Assistant</h3>
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                   </div>
-                  <div className="text-[10px] text-slate-400 font-medium">Powered by Google Gemini 3.6</div>
+                  <div className="text-[10px] text-slate-400 font-medium">Powered by Google Gemini 2.5</div>
                 </div>
               </div>
 
