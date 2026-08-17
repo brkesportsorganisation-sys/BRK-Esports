@@ -194,6 +194,7 @@ export default function Navbar() {
   const navLinks: { name: string; href: string; icon: React.ElementType; isLive?: boolean }[] = [
     { name: t('nav_home', 'Home'), href: '/', icon: Flame },
     { name: t('nav_tournaments', 'Tournaments'), href: '/tournaments', icon: Trophy },
+    { name: 'Earn Rewards', href: '/ads', icon: Gift },
     { name: 'Notices', href: '/announcements', icon: Megaphone },
     { name: t('nav_community', 'Community'), href: '/community', icon: Users },
     { name: t('nav_leaderboard', 'Leaderboard'), href: '/leaderboard', icon: Award },
