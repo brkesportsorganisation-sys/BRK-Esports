@@ -335,10 +335,15 @@ CREATE TABLE IF NOT EXISTS "NotificationSchedule" (
     "id" TEXT PRIMARY KEY,
     "name" TEXT NOT NULL,
     "prompt" TEXT NOT NULL,
+    "naturalPrompt" TEXT,
     "category" TEXT NOT NULL DEFAULT 'GENERAL',
     "targetAudience" TEXT NOT NULL DEFAULT 'ALL',
     "tournamentId" TEXT,
     "intervalMinutes" INTEGER NOT NULL DEFAULT 60,
+    "startTime" TIMESTAMP WITH TIME ZONE,
+    "endTime" TIMESTAMP WITH TIME ZONE,
+    "maxRuns" INTEGER,
+    "specificTimes" TEXT[],
     "imageUrl" TEXT,
     "actionLink" TEXT,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
@@ -351,10 +356,15 @@ CREATE TABLE IF NOT EXISTS "NotificationSchedule" (
 
 ALTER TABLE "NotificationSchedule" ADD COLUMN IF NOT EXISTS "name" TEXT;
 ALTER TABLE "NotificationSchedule" ADD COLUMN IF NOT EXISTS "prompt" TEXT;
+ALTER TABLE "NotificationSchedule" ADD COLUMN IF NOT EXISTS "naturalPrompt" TEXT;
 ALTER TABLE "NotificationSchedule" ADD COLUMN IF NOT EXISTS "category" TEXT NOT NULL DEFAULT 'GENERAL';
 ALTER TABLE "NotificationSchedule" ADD COLUMN IF NOT EXISTS "targetAudience" TEXT NOT NULL DEFAULT 'ALL';
 ALTER TABLE "NotificationSchedule" ADD COLUMN IF NOT EXISTS "tournamentId" TEXT;
 ALTER TABLE "NotificationSchedule" ADD COLUMN IF NOT EXISTS "intervalMinutes" INTEGER NOT NULL DEFAULT 60;
+ALTER TABLE "NotificationSchedule" ADD COLUMN IF NOT EXISTS "startTime" TIMESTAMP WITH TIME ZONE;
+ALTER TABLE "NotificationSchedule" ADD COLUMN IF NOT EXISTS "endTime" TIMESTAMP WITH TIME ZONE;
+ALTER TABLE "NotificationSchedule" ADD COLUMN IF NOT EXISTS "maxRuns" INTEGER;
+ALTER TABLE "NotificationSchedule" ADD COLUMN IF NOT EXISTS "specificTimes" TEXT[];
 ALTER TABLE "NotificationSchedule" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT;
 ALTER TABLE "NotificationSchedule" ADD COLUMN IF NOT EXISTS "actionLink" TEXT;
 ALTER TABLE "NotificationSchedule" ADD COLUMN IF NOT EXISTS "isActive" BOOLEAN NOT NULL DEFAULT true;

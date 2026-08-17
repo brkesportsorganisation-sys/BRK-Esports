@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Send, 
   CheckCircle2, 
@@ -38,7 +38,11 @@ import {
   Flame,
   Calendar,
   Layers,
-  ChevronRight
+  ChevronRight,
+  MessageCircle,
+  CornerDownLeft,
+  CalendarClock,
+  Hash
 } from 'lucide-react';
 import { NotificationType, NotificationPriority, NotificationSchedule } from '@/lib/types';
 
@@ -78,8 +82,16 @@ interface TournamentItem {
   entryFee?: number;
 }
 
+interface ChatMessage {
+  id: string;
+  sender: 'ADMIN' | 'AI';
+  text: string;
+  time: string;
+  proposal?: any;
+}
+
 type AudienceMode = 'ALL' | 'ACTIVE_PLAYERS' | 'SINGLE' | 'MULTIPLE' | 'TOURNAMENT';
-type ActiveTab = 'COMPOSER' | 'AI_BOT' | 'HISTORY';
+type ActiveTab = 'COMPOSER' | 'AI_CHAT_BOT' | 'SCHEDULES' | 'HISTORY';
 
 const CATEGORY_CONFIG: Record<NotificationType, { label: string; icon: any; color: string; bg: string; border: string }> = {
   GENERAL: { label: 'General Announcement', icon: Info, color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/30' },
@@ -113,12 +125,24 @@ export default function AdminNotificationsPage() {
   // Target users state
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [selectedTournamentId, setSelectedTournamentId] = useState<string>('');
-  const [userSearchQuery, setUserSearchQuery] = useState('');
 
   // AI Generator state
   const [aiPrompt, setAiPrompt] = useState('');
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [aiModalOpen, setAiModalOpen] = useState(false);
+
+  // Conversational AI Chat Bot State
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
+    {
+      id: 'welcome',
+      sender: 'AI',
+      text: 'আসসালামু আলাইকুম! 👋 আমি আপনার **AI নোটিফিকেশন ক্যাম্পেইন ম্যানেজার**।\nআপনি আমাকে বাংলায় বা ইংরেজিতে বলুন:\n- কখন নোটিফিকেশন দেওয়া শুরু করতে হবে\n- কখন শেষ করতে হবে\n- কত মিনিট পর পর পাঠাতে হবে\n- এবং মোট কয়টি মেসেজ পাঠাতে হবে।\n\nযেমন: *"আজকে সন্ধ্যা ৭টা থেকে রাত ১০টা পর্যন্ত প্রতি ৪৫ মিনিট পর পর ৪টি মেসেজ পাঠাও টুর্নামেন্ট রেজিস্ট্রেশনের জন্য"*',
+      time: 'Just now',
+    }
+  ]);
+  const [chatInput, setChatInput] = useState('');
+  const [isChatThinking, setIsChatThinking] = useState(false);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
 
   // Schedules state
   const [schedules, setSchedules] = useState<NotificationSchedule[]>([]);
@@ -130,9 +154,12 @@ export default function AdminNotificationsPage() {
     category: 'MATCH' as NotificationType,
     targetAudience: 'ALL' as 'ALL' | 'ACTIVE_PLAYERS' | 'TOURNAMENT',
     intervalMinutes: 60,
+    startTime: '',
+    endTime: '',
+    maxRuns: 5,
     imageUrl: '',
     actionLink: '/tournaments',
-    triggerImmediately: true,
+    triggerImmediately: false,
   });
   const [triggeringScheduleId, setTriggeringScheduleId] = useState<string | null>(null);
 
@@ -183,52 +210,95 @@ export default function AdminNotificationsPage() {
     }
   };
 
-  // Load users
-  const loadUsers = async () => {
-    if (availableUsers.length > 0) return;
-    setLoadingUsers(true);
-    try {
-      const res = await fetch('/api/admin/users', { credentials: 'include' });
-      if (res.ok) {
-        const data = await res.json();
-        setAvailableUsers(data.users || []);
-      }
-    } catch (err) {
-      console.error('Failed to load users:', err);
-    } finally {
-      setLoadingUsers(false);
-    }
-  };
-
-  // Load tournaments
-  const loadTournaments = async () => {
-    if (availableTournaments.length > 0) return;
-    setLoadingTournaments(true);
-    try {
-      const res = await fetch('/api/admin/tournaments', { credentials: 'include' });
-      if (res.ok) {
-        const data = await res.json();
-        setAvailableTournaments(data.tournaments || []);
-      }
-    } catch (err) {
-      console.error('Failed to load tournaments:', err);
-    } finally {
-      setLoadingTournaments(false);
-    }
-  };
-
   useEffect(() => {
     loadNotifications();
     loadSchedules();
   }, []);
 
   useEffect(() => {
-    if (audienceMode === 'SINGLE' || audienceMode === 'MULTIPLE') {
-      loadUsers();
-    } else if (audienceMode === 'TOURNAMENT') {
-      loadTournaments();
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
     }
-  }, [audienceMode]);
+  }, [chatMessages, isChatThinking]);
+
+  // Handle Conversational AI Chat Submission
+  const handleSendChatMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim() || isChatThinking) return;
+
+    const userText = chatInput.trim();
+    setChatInput('');
+
+    const userMsg: ChatMessage = {
+      id: `usr_${Date.now()}`,
+      sender: 'ADMIN',
+      text: userText,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+
+    setChatMessages(prev => [...prev, userMsg]);
+    setIsChatThinking(true);
+
+    try {
+      const res = await fetch('/api/admin/notifications/ai-chat-scheduler', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userMessage: userText }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.replyMessage) {
+        const aiMsg: ChatMessage = {
+          id: `ai_${Date.now()}`,
+          sender: 'AI',
+          text: data.replyMessage,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          proposal: data.scheduleProposal,
+        };
+        setChatMessages(prev => [...prev, aiMsg]);
+      } else {
+        setChatMessages(prev => [
+          ...prev,
+          {
+            id: `err_${Date.now()}`,
+            sender: 'AI',
+            text: 'দুঃখিত, কমান্ডটি প্রসেস করতে সমস্যা হয়েছে। অনুগ্রহ করে আবার বলুন।',
+            time: 'Just now',
+          }
+        ]);
+      }
+    } catch (err) {
+      console.error('Chat AI error:', err);
+    } finally {
+      setIsChatThinking(false);
+    }
+  };
+
+  // Confirm AI Proposed Schedule from Chat
+  const handleConfirmProposedSchedule = async (proposal: any) => {
+    try {
+      const res = await fetch('/api/admin/notifications/schedules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...proposal,
+          triggerImmediately: false,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setFeedbackMsg(`🚀 বট সফলভাবে সক্রিয় করা হয়েছে: "${proposal.name}"!`);
+        loadSchedules();
+        setTimeout(() => setFeedbackMsg(''), 4000);
+      } else {
+        alert(data.message || 'Failed to activate schedule.');
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Error creating schedule.');
+    }
+  };
 
   // AI Instant Draft Generator
   const handleGenerateAI = async () => {
@@ -272,16 +342,6 @@ export default function AdminNotificationsPage() {
     e.preventDefault();
     if (!title.trim() || !message.trim()) {
       alert('Please provide both Title and Message.');
-      return;
-    }
-
-    if ((audienceMode === 'SINGLE' || audienceMode === 'MULTIPLE') && selectedUserIds.length === 0) {
-      alert('Please select at least one recipient user.');
-      return;
-    }
-
-    if (audienceMode === 'TOURNAMENT' && !selectedTournamentId) {
-      alert('Please select a tournament.');
       return;
     }
 
@@ -332,7 +392,7 @@ export default function AdminNotificationsPage() {
     }
   };
 
-  // Create AI Notification Schedule
+  // Create Manual Schedule with Timer
   const handleCreateSchedule = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newScheduleData.name.trim() || !newScheduleData.prompt.trim()) {
@@ -357,9 +417,12 @@ export default function AdminNotificationsPage() {
           category: 'MATCH',
           targetAudience: 'ALL',
           intervalMinutes: 60,
+          startTime: '',
+          endTime: '',
+          maxRuns: 5,
           imageUrl: '',
           actionLink: '/tournaments',
-          triggerImmediately: true,
+          triggerImmediately: false,
         });
         loadSchedules();
         loadNotifications();
@@ -445,66 +508,74 @@ export default function AdminNotificationsPage() {
   const CategoryIcon = CATEGORY_CONFIG[selectedCategory]?.icon || Info;
 
   return (
-    <div className="min-h-screen bg-[#070b13] text-slate-100 p-4 md:p-8">
-      {/* Header */}
+    <div className="min-h-screen bg-[#070b13] text-slate-100 p-4 md:p-8 font-sans">
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800/80 pb-6">
-          <div>
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-gradient-to-br from-orange-500/20 to-amber-500/20 border border-orange-500/30 rounded-2xl">
-                <Bell className="w-6 h-6 text-orange-400 animate-pulse" />
-              </div>
-              <div>
-                <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white flex items-center gap-2">
-                  Notification & AI Broadcast Suite
-                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-orange-500/20 border border-orange-500/30 text-orange-400 font-bold">
-                    PRO
-                  </span>
-                </h1>
-                <p className="text-sm text-slate-400">
-                  Send image-rich push alerts, configure recurring AI bots, and manage player communications.
-                </p>
-              </div>
+        
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800/80 pb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-gradient-to-br from-orange-500/20 to-amber-500/20 border border-orange-500/30 rounded-2xl">
+              <Bell className="w-6 h-6 text-orange-400 animate-pulse" />
+            </div>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white flex items-center gap-2">
+                Notification & AI Auto-Timer Suite
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-orange-500/20 border border-orange-500/30 text-orange-400 font-bold">
+                  AI CAMPAIGN V2
+                </span>
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-400">
+                Direct push with picture banners, conversational AI schedule builder, and intelligent timers.
+              </p>
             </div>
           </div>
 
-          {/* Tab Switcher */}
-          <div className="flex items-center bg-slate-900/80 p-1.5 rounded-2xl border border-slate-800">
+          {/* Navigation Tabs */}
+          <div className="flex flex-wrap items-center bg-slate-900/80 p-1.5 rounded-2xl border border-slate-800 gap-1">
             <button
               onClick={() => setActiveTab('COMPOSER')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
                 activeTab === 'COMPOSER'
                   ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-black shadow-lg shadow-orange-500/25'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              <Send className="w-4 h-4" />
-              Push Composer
+              <Send className="w-3.5 h-3.5" />
+              Direct Push
             </button>
             <button
-              onClick={() => setActiveTab('AI_BOT')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                activeTab === 'AI_BOT'
+              onClick={() => setActiveTab('AI_CHAT_BOT')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                activeTab === 'AI_CHAT_BOT'
                   ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/25'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              <Bot className="w-4 h-4" />
-              AI Auto-Scheduler
-              {schedules.filter(s => s.isActive).length > 0 && (
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-              )}
+              <MessageCircle className="w-3.5 h-3.5" />
+              Chat AI Scheduler
+              <span className="px-1.5 py-0.2 rounded-full bg-amber-400 text-black text-[9px] font-black">NEW</span>
             </button>
             <button
-              onClick={() => setActiveTab('HISTORY')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                activeTab === 'HISTORY'
-                  ? 'bg-gradient-to-r from-slate-700 to-slate-800 text-white border border-slate-600'
+              onClick={() => setActiveTab('SCHEDULES')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                activeTab === 'SCHEDULES'
+                  ? 'bg-slate-800 text-white border border-slate-700'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              <Layers className="w-4 h-4" />
-              Logs & History ({notifications.length})
+              <CalendarClock className="w-3.5 h-3.5" />
+              Active Timers ({schedules.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('HISTORY')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                activeTab === 'HISTORY'
+                  ? 'bg-slate-800 text-white border border-slate-700'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              History ({notifications.length})
             </button>
           </div>
         </div>
@@ -525,7 +596,6 @@ export default function AdminNotificationsPage() {
         {/* TAB 1: PUSH COMPOSER */}
         {activeTab === 'COMPOSER' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* Left: Composer Form */}
             <div className="lg:col-span-7 space-y-6">
               <form onSubmit={handleSendNotification} className="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-3xl p-6 md:p-8 space-y-6 shadow-2xl">
                 
@@ -580,31 +650,6 @@ export default function AdminNotificationsPage() {
                   </div>
                 </div>
 
-                {/* Tournament Selector (if mode is TOURNAMENT) */}
-                {audienceMode === 'TOURNAMENT' && (
-                  <div className="p-4 bg-slate-800/40 border border-slate-700/50 rounded-2xl space-y-2">
-                    <label className="text-xs font-bold text-slate-300">Select Tournament</label>
-                    {loadingTournaments ? (
-                      <div className="flex items-center gap-2 text-xs text-slate-400 py-2">
-                        <Loader2 className="w-4 h-4 animate-spin" /> Loading tournaments...
-                      </div>
-                    ) : (
-                      <select
-                        value={selectedTournamentId}
-                        onChange={(e) => setSelectedTournamentId(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-orange-500"
-                      >
-                        <option value="">-- Choose Tournament --</option>
-                        {availableTournaments.map(t => (
-                          <option key={t.id} value={t.id}>
-                            {t.title} ({t.registeredCount}/{t.maxTeams} teams) - {t.status}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
-                )}
-
                 {/* Category & Priority Selector */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -615,9 +660,7 @@ export default function AdminNotificationsPage() {
                       className="w-full bg-slate-800/60 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-orange-500"
                     >
                       {Object.entries(CATEGORY_CONFIG).map(([key, config]) => (
-                        <option key={key} value={key}>
-                          {config.label}
-                        </option>
+                        <option key={key} value={key}>{config.label}</option>
                       ))}
                     </select>
                   </div>
@@ -773,25 +816,21 @@ export default function AdminNotificationsPage() {
                     <span>Just now</span>
                   </div>
 
-                  {/* Notification Card */}
                   <div className="space-y-3">
                     <div className="flex items-start gap-3">
                       <div className={`p-2.5 rounded-xl ${CATEGORY_CONFIG[selectedCategory]?.bg} ${CATEGORY_CONFIG[selectedCategory]?.border} border`}>
                         <CategoryIcon className={`w-5 h-5 ${CATEGORY_CONFIG[selectedCategory]?.color}`} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-sm font-black text-white line-clamp-1">
-                            {title || '🔥 Tournament Notification Title Preview'}
-                          </h4>
-                        </div>
+                        <h4 className="text-sm font-black text-white line-clamp-1">
+                          {title || '🔥 Tournament Notification Title Preview'}
+                        </h4>
                         <p className="text-xs text-slate-300 mt-1 leading-relaxed line-clamp-3">
                           {message || 'Your dynamic notification message will be rendered here. Fast, clear and action-oriented.'}
                         </p>
                       </div>
                     </div>
 
-                    {/* Picture Preview */}
                     {imageUrl && (
                       <div className="relative rounded-xl overflow-hidden border border-slate-800 bg-slate-900 max-h-48">
                         <img
@@ -802,13 +841,9 @@ export default function AdminNotificationsPage() {
                             (e.target as HTMLElement).style.display = 'none';
                           }}
                         />
-                        <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/70 backdrop-blur-md rounded text-[10px] font-bold text-white">
-                          Image Attached
-                        </div>
                       </div>
                     )}
 
-                    {/* Action Button Preview */}
                     {actionLink && (
                       <div className="pt-1">
                         <div className="w-full py-2 bg-gradient-to-r from-orange-500/20 to-amber-500/20 border border-orange-500/40 rounded-xl text-center text-xs font-bold text-orange-400 flex items-center justify-center gap-1">
@@ -819,7 +854,6 @@ export default function AdminNotificationsPage() {
                   </div>
                 </div>
 
-                {/* Audience Stat Summary */}
                 <div className="p-4 bg-slate-800/30 border border-slate-800 rounded-2xl text-xs space-y-2 text-slate-400">
                   <div className="flex justify-between">
                     <span>Target Audience:</span>
@@ -839,17 +873,142 @@ export default function AdminNotificationsPage() {
           </div>
         )}
 
-        {/* TAB 2: AI AUTO-SCHEDULER BOT */}
-        {activeTab === 'AI_BOT' && (
+        {/* TAB 2: CHAT AI SCHEDULER & TIMER BUILDER (NEW!) */}
+        {activeTab === 'AI_CHAT_BOT' && (
+          <div className="bg-slate-900/70 border border-purple-500/30 rounded-3xl p-6 md:p-8 space-y-6 shadow-2xl shadow-purple-950/20">
+            <div className="border-b border-slate-800 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h2 className="text-xl font-black text-white flex items-center gap-2">
+                  <Bot className="w-6 h-6 text-purple-400" />
+                  Conversational AI Campaign Assistant
+                </h2>
+                <p className="text-xs text-slate-400">
+                  AI কে বাংলায় বা ইংরেজিতে বলুন কয়টা মেসেজ, কখন শুরু করতে হবে, কখন শেষ করতে হবে—সব স্বয়ংক্রিয়ভাবে তৈরি হবে।
+                </p>
+              </div>
+              <span className="px-3 py-1 bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-bold rounded-xl self-start sm:self-auto">
+                Gemini AI Engine
+              </span>
+            </div>
+
+            {/* Chat Box */}
+            <div
+              ref={chatScrollRef}
+              className="space-y-4 max-h-[500px] overflow-y-auto p-4 bg-slate-950/80 border border-slate-800 rounded-2xl"
+            >
+              {chatMessages.map((msg) => (
+                <div
+                  key={msg.id}
+                  className={`flex gap-3 ${msg.sender === 'ADMIN' ? 'justify-end' : 'justify-start'}`}
+                >
+                  {msg.sender === 'AI' && (
+                    <div className="w-8 h-8 rounded-xl bg-purple-600/30 border border-purple-500/40 text-purple-400 flex items-center justify-center flex-shrink-0 mt-1">
+                      <Bot className="w-4 h-4" />
+                    </div>
+                  )}
+
+                  <div className={`space-y-3 max-w-xl ${
+                    msg.sender === 'ADMIN'
+                      ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-black rounded-2xl rounded-tr-none p-4 font-medium'
+                      : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-2xl rounded-tl-none p-4 shadow-md'
+                  }`}>
+                    <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-line">{msg.text}</p>
+
+                    {/* AI Proposal Card */}
+                    {msg.proposal && (
+                      <div className="p-4 bg-slate-950 border border-purple-500/40 rounded-xl space-y-3 mt-2 text-xs">
+                        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                          <span className="font-bold text-purple-400 flex items-center gap-1.5">
+                            <Sparkles className="w-4 h-4" />
+                            {msg.proposal.name}
+                          </span>
+                          <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 text-[10px] font-mono">
+                            Every {msg.proposal.intervalMinutes}m
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-400">
+                          <div>
+                            <span className="text-slate-500 block">Total Quota:</span>
+                            <strong className="text-white">{msg.proposal.maxRuns ? `${msg.proposal.maxRuns} Messages` : 'Unlimited'}</strong>
+                          </div>
+                          <div>
+                            <span className="text-slate-500 block">Target Audience:</span>
+                            <strong className="text-orange-400">{msg.proposal.targetAudience}</strong>
+                          </div>
+                        </div>
+
+                        {/* Sample Draft */}
+                        <div className="p-3 bg-slate-900 border border-slate-800 rounded-lg space-y-1">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Sample Draft:</span>
+                          <div className="font-bold text-white text-xs">{msg.proposal.sampleDraftTitle}</div>
+                          <div className="text-slate-300 text-[11px]">{msg.proposal.sampleDraftMessage}</div>
+                        </div>
+
+                        {/* Confirm Button */}
+                        <button
+                          onClick={() => handleConfirmProposedSchedule(msg.proposal)}
+                          className="w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-xl text-xs transition-all shadow-lg shadow-purple-500/25 flex items-center justify-center gap-2"
+                        >
+                          <Zap className="w-3.5 h-3.5" />
+                          Confirm & Launch Automated Bot
+                        </button>
+                      </div>
+                    )}
+
+                    <div className={`text-[10px] font-mono text-right ${msg.sender === 'ADMIN' ? 'text-black/60' : 'text-slate-500'}`}>
+                      {msg.time}
+                    </div>
+                  </div>
+
+                  {msg.sender === 'ADMIN' && (
+                    <div className="w-8 h-8 rounded-xl bg-orange-500/20 border border-orange-500/40 text-orange-400 flex items-center justify-center flex-shrink-0 mt-1">
+                      <User className="w-4 h-4" />
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {isChatThinking && (
+                <div className="flex items-center gap-2 text-xs text-purple-400 p-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  AI Campaign Manager চিন্তা করছে ও শিডিউল বানাচ্ছে...
+                </div>
+              )}
+            </div>
+
+            {/* Chat Input */}
+            <form onSubmit={handleSendChatMessage} className="flex gap-2">
+              <input
+                type="text"
+                placeholder="যেমন: আজ রাত ৮টা থেকে ১০টা পর্যন্ত প্রতি ৩০ মিনিট পর পর ৪টি নোটিফিকেশন পাঠাও..."
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                className="flex-1 bg-slate-950 border border-slate-800 focus:border-purple-500 rounded-2xl px-4 py-3 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none transition-all"
+              />
+              <button
+                type="submit"
+                disabled={!chatInput.trim() || isChatThinking}
+                className="px-5 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-2xl text-xs sm:text-sm transition-all disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-purple-500/25 flex-shrink-0"
+              >
+                <Send className="w-4 h-4" />
+                <span>Send</span>
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* TAB 3: ACTIVE SCHEDULES & TIMERS */}
+        {activeTab === 'SCHEDULES' && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/60 p-6 rounded-3xl border border-slate-800">
               <div>
                 <h2 className="text-xl font-black text-white flex items-center gap-2">
-                  <Bot className="w-6 h-6 text-purple-400" />
-                  AI Automated Notification Schedulers
+                  <CalendarClock className="w-6 h-6 text-orange-400" />
+                  Active AI Notification Schedulers & Timers
                 </h2>
                 <p className="text-xs text-slate-400 mt-1">
-                  Create automatic background bots that use AI to draft and push notifications to players on intervals.
+                  View and manage all automated timer rules, execution intervals, and quotas.
                 </p>
               </div>
               <button
@@ -857,7 +1016,7 @@ export default function AdminNotificationsPage() {
                 className="px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-purple-500/25 flex items-center gap-2"
               >
                 <Plus className="w-4 h-4" />
-                New AI Auto-Bot Rule
+                New Manual Timer Rule
               </button>
             </div>
 
@@ -865,20 +1024,20 @@ export default function AdminNotificationsPage() {
             {loadingSchedules ? (
               <div className="p-12 text-center text-slate-400 space-y-3">
                 <Loader2 className="w-8 h-8 animate-spin mx-auto text-purple-400" />
-                <p className="text-sm">Loading AI schedulers...</p>
+                <p className="text-sm">Loading timers...</p>
               </div>
             ) : schedules.length === 0 ? (
               <div className="p-12 text-center bg-slate-900/40 border border-slate-800 rounded-3xl space-y-4">
-                <Bot className="w-12 h-12 mx-auto text-slate-600" />
-                <h3 className="text-base font-bold text-white">No AI Schedulers Configured Yet</h3>
+                <CalendarClock className="w-12 h-12 mx-auto text-slate-600" />
+                <h3 className="text-base font-bold text-white">No Timers Active</h3>
                 <p className="text-xs text-slate-400 max-w-md mx-auto">
-                  Set up automated notification bots to keep your players engaged with registration reminders, prize announcements, and leaderboards.
+                  Talk to the AI Scheduler or create a manual timer to automatically broadcast tournament reminders.
                 </p>
                 <button
-                  onClick={() => setNewScheduleModal(true)}
+                  onClick={() => setActiveTab('AI_CHAT_BOT')}
                   className="px-4 py-2 bg-purple-600 text-white text-xs font-bold rounded-xl"
                 >
-                  Create First AI Bot
+                  Open AI Chat Scheduler
                 </button>
               </div>
             ) : (
@@ -906,7 +1065,7 @@ export default function AdminNotificationsPage() {
                             ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
                             : 'bg-slate-800 text-slate-500 hover:bg-slate-700'
                         }`}
-                        title={schedule.isActive ? 'Pause Bot' : 'Activate Bot'}
+                        title={schedule.isActive ? 'Pause Timer' : 'Activate Timer'}
                       >
                         {schedule.isActive ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                       </button>
@@ -921,19 +1080,31 @@ export default function AdminNotificationsPage() {
                     {/* Schedule Stats */}
                     <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-400 border-t border-slate-800/80 pt-3">
                       <div>
-                        <span className="text-slate-500 block">Interval</span>
+                        <span className="text-slate-500 block">Frequency</span>
                         <span className="font-bold text-white flex items-center gap-1 mt-0.5">
                           <Clock className="w-3.5 h-3.5 text-orange-400" />
                           Every {schedule.intervalMinutes}m
                         </span>
                       </div>
                       <div>
-                        <span className="text-slate-500 block">Total Dispatched</span>
+                        <span className="text-slate-500 block">Dispatched / Max</span>
                         <span className="font-bold text-emerald-400 mt-0.5 block">
-                          {schedule.totalDispatched} notifications
+                          {schedule.totalDispatched} / {schedule.maxRuns || '∞'}
                         </span>
                       </div>
                     </div>
+
+                    {/* Start / End Time details */}
+                    {(schedule.startTime || schedule.endTime) && (
+                      <div className="text-[10px] text-slate-400 bg-slate-950/40 p-2.5 rounded-xl space-y-1">
+                        {schedule.startTime && (
+                          <div>Start: <span className="text-slate-200">{new Date(schedule.startTime).toLocaleString()}</span></div>
+                        )}
+                        {schedule.endTime && (
+                          <div>End: <span className="text-slate-200">{new Date(schedule.endTime).toLocaleString()}</span></div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Action Buttons */}
                     <div className="flex items-center gap-2 pt-2 border-t border-slate-800/80">
@@ -947,12 +1118,12 @@ export default function AdminNotificationsPage() {
                         ) : (
                           <Zap className="w-3.5 h-3.5 text-purple-400" />
                         )}
-                        Trigger AI Cycle Now
+                        Trigger Cycle Now
                       </button>
                       <button
                         onClick={() => handleDeleteSchedule(schedule.id)}
                         className="p-2 text-rose-400/70 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all"
-                        title="Delete Schedule"
+                        title="Delete Timer"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -964,10 +1135,9 @@ export default function AdminNotificationsPage() {
           </div>
         )}
 
-        {/* TAB 3: LOGS & HISTORY */}
+        {/* TAB 4: LOGS & HISTORY */}
         {activeTab === 'HISTORY' && (
           <div className="space-y-6">
-            {/* Search and Filters */}
             <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
               <div className="relative w-full sm:w-96">
                 <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -1004,7 +1174,6 @@ export default function AdminNotificationsPage() {
               </div>
             </div>
 
-            {/* Notifications Feed */}
             {loadingHistory ? (
               <div className="p-12 text-center text-slate-400 space-y-3">
                 <Loader2 className="w-8 h-8 animate-spin mx-auto text-orange-400" />
@@ -1053,9 +1222,6 @@ export default function AdminNotificationsPage() {
                           <p className="text-xs text-slate-300 leading-relaxed max-w-2xl">{notif.message}</p>
                           <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 pt-1">
                             <span>To: <strong className="text-slate-300">{notif.user?.name || notif.userId}</strong></span>
-                            {notif.user?.accountNumber && (
-                              <span className="text-orange-400/80 font-mono">[{notif.user.accountNumber}]</span>
-                            )}
                             <span>{new Date(notif.createdAt).toLocaleString()}</span>
                             {notif.link && (
                               <a href={notif.link} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline flex items-center gap-1">
@@ -1073,7 +1239,7 @@ export default function AdminNotificationsPage() {
           </div>
         )}
 
-        {/* AI Generator Modal */}
+        {/* AI Generator Modal for Push Composer */}
         {aiModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
             <div className="bg-slate-900 border border-purple-500/40 rounded-3xl p-6 md:p-8 max-w-lg w-full space-y-6 shadow-2xl shadow-purple-950/40">
@@ -1134,14 +1300,14 @@ export default function AdminNotificationsPage() {
           </div>
         )}
 
-        {/* New AI Schedule Modal */}
+        {/* Manual Timer Modal */}
         {newScheduleModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
             <div className="bg-slate-900 border border-purple-500/40 rounded-3xl p-6 md:p-8 max-w-lg w-full space-y-6 shadow-2xl shadow-purple-950/40 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between border-b border-slate-800 pb-4">
                 <div className="flex items-center gap-2">
-                  <Bot className="w-5 h-5 text-purple-400" />
-                  <h3 className="text-base font-black text-white">Create AI Auto-Scheduler Bot Rule</h3>
+                  <CalendarClock className="w-5 h-5 text-purple-400" />
+                  <h3 className="text-base font-black text-white">Create Manual Timer Rule</h3>
                 </div>
                 <button onClick={() => setNewScheduleModal(false)} className="text-slate-500 hover:text-white">
                   <X className="w-5 h-5" />
@@ -1154,7 +1320,7 @@ export default function AdminNotificationsPage() {
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Evening Tournament Reminder Bot"
+                    placeholder="e.g. Evening BR Match Alert Bot"
                     value={newScheduleData.name}
                     onChange={(e) => setNewScheduleData({ ...newScheduleData, name: e.target.value })}
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500"
@@ -1164,9 +1330,9 @@ export default function AdminNotificationsPage() {
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-300">AI Prompt Guideline</label>
                   <textarea
-                    rows={3}
+                    rows={2}
                     required
-                    placeholder="e.g. Remind all players that evening Free Fire squad tournaments are filling fast. Encourage them to claim their slot and win cash prizes."
+                    placeholder="e.g. Remind all players that evening Free Fire squad tournaments are filling fast."
                     value={newScheduleData.prompt}
                     onChange={(e) => setNewScheduleData({ ...newScheduleData, prompt: e.target.value })}
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-purple-500 resize-none"
@@ -1175,56 +1341,56 @@ export default function AdminNotificationsPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-300">Execution Interval</label>
+                    <label className="text-xs font-bold text-slate-300">Frequency Interval</label>
                     <select
                       value={newScheduleData.intervalMinutes}
                       onChange={(e) => setNewScheduleData({ ...newScheduleData, intervalMinutes: parseInt(e.target.value, 10) })}
                       className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500"
                     >
+                      <option value="15">Every 15 Minutes</option>
                       <option value="30">Every 30 Minutes</option>
+                      <option value="45">Every 45 Minutes</option>
                       <option value="60">Every 1 Hour</option>
                       <option value="120">Every 2 Hours</option>
                       <option value="240">Every 4 Hours</option>
-                      <option value="360">Every 6 Hours</option>
-                      <option value="720">Every 12 Hours</option>
-                      <option value="1440">Every 24 Hours (Daily)</option>
+                      <option value="1440">Daily (24h)</option>
                     </select>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-300">Category</label>
-                    <select
-                      value={newScheduleData.category}
-                      onChange={(e) => setNewScheduleData({ ...newScheduleData, category: e.target.value as NotificationType })}
+                    <label className="text-xs font-bold text-slate-300">Max Messages Quota</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="100"
+                      placeholder="e.g. 5"
+                      value={newScheduleData.maxRuns}
+                      onChange={(e) => setNewScheduleData({ ...newScheduleData, maxRuns: parseInt(e.target.value, 10) || 5 })}
                       className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500"
-                    >
-                      {Object.entries(CATEGORY_CONFIG).map(([k, cfg]) => (
-                        <option key={k} value={k}>{cfg.label}</option>
-                      ))}
-                    </select>
+                    />
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-300">Default Picture / Banner URL (Optional)</label>
-                  <input
-                    type="url"
-                    placeholder="https://..."
-                    value={newScheduleData.imageUrl}
-                    onChange={(e) => setNewScheduleData({ ...newScheduleData, imageUrl: e.target.value })}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500"
-                  />
-                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-300">Start Date & Time</label>
+                    <input
+                      type="datetime-local"
+                      value={newScheduleData.startTime}
+                      onChange={(e) => setNewScheduleData({ ...newScheduleData, startTime: e.target.value })}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500"
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-300">Default Action Link</label>
-                  <input
-                    type="text"
-                    placeholder="/tournaments"
-                    value={newScheduleData.actionLink}
-                    onChange={(e) => setNewScheduleData({ ...newScheduleData, actionLink: e.target.value })}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500"
-                  />
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-300">End Date & Time</label>
+                    <input
+                      type="datetime-local"
+                      value={newScheduleData.endTime}
+                      onChange={(e) => setNewScheduleData({ ...newScheduleData, endTime: e.target.value })}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500"
+                    />
+                  </div>
                 </div>
 
                 <div className="pt-2 flex items-center justify-end gap-3">
@@ -1239,13 +1405,14 @@ export default function AdminNotificationsPage() {
                     type="submit"
                     className="px-5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-purple-500/25"
                   >
-                    Save & Activate Bot
+                    Save & Activate Timer
                   </button>
                 </div>
               </form>
             </div>
           </div>
         )}
+
       </div>
     </div>
   );

@@ -85,10 +85,15 @@ export async function POST(req: NextRequest) {
     const {
       name,
       prompt,
+      naturalPrompt,
       category = 'GENERAL',
       targetAudience = 'ALL',
       tournamentId,
       intervalMinutes = 60,
+      startTime,
+      endTime,
+      maxRuns,
+      specificTimes,
       imageUrl,
       actionLink,
       isActive = true,
@@ -101,17 +106,23 @@ export async function POST(req: NextRequest) {
 
     const interval = Math.max(10, parseInt(String(intervalMinutes), 10) || 60);
     const now = new Date();
-    const nextRun = new Date(now.getTime() + interval * 60000);
+    const startIso = startTime ? new Date(startTime).toISOString() : now.toISOString();
+    const nextRun = triggerImmediately ? new Date(now.getTime() + interval * 60000) : new Date(startIso);
 
     const scheduleId = `sched_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const schedulePayload: NotificationSchedule = {
       id: scheduleId,
       name: name.trim(),
       prompt: prompt.trim(),
+      naturalPrompt: naturalPrompt?.trim() || undefined,
       category,
       targetAudience,
       tournamentId: tournamentId || undefined,
       intervalMinutes: interval,
+      startTime: startTime ? new Date(startTime).toISOString() : undefined,
+      endTime: endTime ? new Date(endTime).toISOString() : undefined,
+      maxRuns: maxRuns ? parseInt(String(maxRuns), 10) : undefined,
+      specificTimes: Array.isArray(specificTimes) ? specificTimes : undefined,
       imageUrl: imageUrl?.trim() || undefined,
       actionLink: actionLink?.trim() || undefined,
       isActive: Boolean(isActive),

@@ -207,10 +207,15 @@ export interface NotificationSchedule {
   id: string;
   name: string;
   prompt: string;
+  naturalPrompt?: string;
   category: NotificationType;
   targetAudience: 'ALL' | 'ACTIVE_PLAYERS' | 'TOURNAMENT';
   tournamentId?: string;
   intervalMinutes: number;
+  startTime?: string;
+  endTime?: string;
+  maxRuns?: number;
+  specificTimes?: string[];
   imageUrl?: string;
   actionLink?: string;
   isActive: boolean;

@@ -54,6 +54,19 @@ export async function GET(req: NextRequest) {
     }
 
     const schedulesToProcess = (allActiveSchedules || []).filter(sched => {
+      // 1. Check if startTime has arrived
+      if (sched.startTime && new Date(sched.startTime).getTime() > now.getTime()) {
+        return false;
+      }
+      // 2. Check if endTime has expired
+      if (sched.endTime && new Date(sched.endTime).getTime() < now.getTime()) {
+        return false;
+      }
+      // 3. Check if maxRuns reached
+      if (sched.maxRuns && (sched.totalDispatched || 0) >= sched.maxRuns) {
+        return false;
+      }
+      // 4. Check due time
       if (!sched.nextRunAt) return true;
       return new Date(sched.nextRunAt).getTime() <= now.getTime();
     });
@@ -100,18 +113,27 @@ export async function GET(req: NextRequest) {
           tournamentId: schedule.tournamentId || undefined,
         });
 
+        const newTotal = (schedule.totalDispatched || 0) + 1;
         const nextRun = new Date(now.getTime() + (schedule.intervalMinutes || 60) * 60000);
+        
+        // Deactivate if maxRuns reached or endTime passed
+        const shouldDeactivate = 
+          (schedule.maxRuns && newTotal >= schedule.maxRuns) ||
+          (schedule.endTime && nextRun.getTime() > new Date(schedule.endTime).getTime());
 
         // Update schedule record
-        await supabaseAdmin
-          .from('NotificationSchedule')
-          .update({
-            lastRunAt: now.toISOString(),
-            nextRunAt: nextRun.toISOString(),
-            totalDispatched: (schedule.totalDispatched || 0) + (dispatchResult.dispatchedCount || 0),
-            updatedAt: now.toISOString(),
-          })
-          .eq('id', schedule.id);
+        try {
+          await supabaseAdmin
+            .from('NotificationSchedule')
+            .update({
+              lastRunAt: now.toISOString(),
+              nextRunAt: nextRun.toISOString(),
+              totalDispatched: newTotal,
+              isActive: !shouldDeactivate,
+              updatedAt: now.toISOString(),
+            })
+            .eq('id', schedule.id);
+        } catch {}
 
         executionResults.push({
           scheduleId: schedule.id,
