@@ -178,6 +178,8 @@ export default function AdminShell({ children }: AdminShellProps) {
       links: [
         { href: '/admin/users', label: 'Player Accounts', icon: Users, colorClass: 'text-purple-600', permission: 'manage_users' },
         { href: '/admin/notifications', label: 'Announcements & Alerts', icon: Bell, colorClass: 'text-pink-400', permission: 'send_notifications' },
+        { href: '/admin/moderation', label: 'Chat Moderation', icon: ShieldAlert, colorClass: 'text-red-500', permission: 'moderate_messages' },
+        { href: '/admin/unlocks', label: 'Contact Unlocks (৳)', icon: DollarSign, colorClass: 'text-emerald-500', permission: 'view_financial_reports' },
         { href: '/admin/ads', label: 'Video Ads & Rewards', icon: PlaySquare, colorClass: 'text-blue-500', permission: 'manage_watch_earn' },
       ]
     },

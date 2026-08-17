@@ -29,7 +29,8 @@ import {
   Trash2,
   ExternalLink,
   Sparkles,
-  Globe
+  Globe,
+  Megaphone
 } from 'lucide-react';
 import { db } from '@/lib/db';
 import { User as UserType, Notification as NotificationType } from '@/lib/types';
@@ -193,8 +194,9 @@ export default function Navbar() {
   const navLinks: { name: string; href: string; icon: React.ElementType; isLive?: boolean }[] = [
     { name: t('nav_home', 'Home'), href: '/', icon: Flame },
     { name: t('nav_tournaments', 'Tournaments'), href: '/tournaments', icon: Trophy },
+    { name: 'Notices', href: '/announcements', icon: Megaphone },
+    { name: t('nav_community', 'Community'), href: '/community', icon: Users },
     { name: t('nav_leaderboard', 'Leaderboard'), href: '/leaderboard', icon: Award },
-    { name: t('nav_community', 'Community'), href: '/community', icon: MessageSquare },
     { name: t('nav_live', 'Live'), href: '/live', icon: Radio, isLive: isLiveActive },
   ];
 
@@ -308,6 +310,15 @@ export default function Navbar() {
                       {(currentUser.coinBalance || 0).toLocaleString()}
                     </div>
                   </div>
+                </Link>
+
+                {/* Messages Inbox Link Button */}
+                <Link
+                  href="/messages"
+                  className="w-10 h-10 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 hover:border-slate-300 flex items-center justify-center transition-all shadow-2xs"
+                  title="Messages Inbox"
+                >
+                  <MessageSquare className="w-4 h-4 text-brand-orange" />
                 </Link>
 
                 {/* Rich In-App Notification Bell & Popover */}

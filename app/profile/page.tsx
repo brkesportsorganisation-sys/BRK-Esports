@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, Suspense, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { 
   User as UserIcon, 
   Wallet, 
@@ -29,7 +30,8 @@ import {
   Upload,
   Sparkles,
   AlertCircle,
-  Coins
+  Coins,
+  MessageSquare
 } from 'lucide-react';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
@@ -432,6 +434,20 @@ function ProfilePageContent() {
                   </button>
                 </div>
               </div>
+
+              {/* Messages Inbox Button */}
+              <Link
+                href="/messages"
+                className="bg-slate-50 hover:bg-slate-100 p-4 rounded-2xl border border-slate-200 text-center sm:text-left transition-colors flex items-center gap-3 shadow-2xs group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-orange-100 group-hover:bg-orange-200 text-brand-orange flex items-center justify-center transition-colors">
+                  <MessageSquare className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-[10px] text-slate-500 font-bold uppercase">Direct Chat</div>
+                  <div className="font-heading font-black text-slate-900 text-sm">Messages Inbox</div>
+                </div>
+              </Link>
 
             </div>
 

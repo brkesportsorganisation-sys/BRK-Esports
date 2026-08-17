@@ -261,6 +261,48 @@ CREATE TABLE IF NOT EXISTS "AdminActivityLog" (
     "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- 16. Conversation Table (Buyer-Seller Private Threads)
+CREATE TABLE IF NOT EXISTS "Conversation" (
+    "id" TEXT PRIMARY KEY,
+    "buyerId" TEXT NOT NULL REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    "sellerId" TEXT NOT NULL REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    "buyerName" TEXT,
+    "sellerName" TEXT,
+    "lastMessage" TEXT,
+    "lastMessageAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    UNIQUE("buyerId", "sellerId")
+);
+
+-- 17. Message Table (with Security & Moderation Flags)
+CREATE TABLE IF NOT EXISTS "Message" (
+    "id" TEXT PRIMARY KEY,
+    "conversationId" TEXT NOT NULL REFERENCES "Conversation"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    "senderId" TEXT NOT NULL REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    "senderName" TEXT,
+    "content" TEXT NOT NULL,
+    "isFlagged" BOOLEAN NOT NULL DEFAULT false,
+    "flagReason" TEXT,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 18. ContactUnlock Table (Paid WhatsApp / Phone Unlock Transactions)
+CREATE TABLE IF NOT EXISTS "ContactUnlock" (
+    "id" TEXT PRIMARY KEY,
+    "conversationId" TEXT NOT NULL,
+    "buyerId" TEXT NOT NULL REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    "sellerId" TEXT NOT NULL REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    "buyerName" TEXT,
+    "sellerName" TEXT,
+    "amountPaid" DOUBLE PRECISION NOT NULL DEFAULT 20.0,
+    "sellerPhone" TEXT,
+    "sellerWhatsApp" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'COMPLETED',
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    "unlockedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
 -- Disable Row Level Security (RLS) or add open access policy so the app API keys can query freely
 ALTER TABLE "User" DISABLE ROW LEVEL SECURITY;
 ALTER TABLE "Team" DISABLE ROW LEVEL SECURITY;
@@ -277,6 +319,9 @@ ALTER TABLE "DeleteRequest" DISABLE ROW LEVEL SECURITY;
 ALTER TABLE "LFGPost" DISABLE ROW LEVEL SECURITY;
 ALTER TABLE "AdminAccount" DISABLE ROW LEVEL SECURITY;
 ALTER TABLE "AdminActivityLog" DISABLE ROW LEVEL SECURITY;
+ALTER TABLE "Conversation" DISABLE ROW LEVEL SECURITY;
+ALTER TABLE "Message" DISABLE ROW LEVEL SECURITY;
+ALTER TABLE "ContactUnlock" DISABLE ROW LEVEL SECURITY;
 
 -- =========================================================
 -- Storage Bucket Setup

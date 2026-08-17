@@ -113,6 +113,11 @@ Login to your account and book your slot today!`);
   const [minDeposit, setMinDeposit] = useState('20');
   const [minWithdraw, setMinWithdraw] = useState('50');
 
+  // Contact Unlock & Messaging Monetization
+  const [contactUnlockFee, setContactUnlockFee] = useState('20');
+  const [platformShare, setPlatformShare] = useState('80');
+  const [sellerShare, setSellerShare] = useState('20');
+
   // 5. Platform General Branding
   const [siteName, setSiteName] = useState('BlackRock Esports');
   const [helpline, setHelpline] = useState('+880 1712-998877');
@@ -187,6 +192,9 @@ Login to your account and book your slot today!`);
         if (s.rocket_no) setRocketNo(s.rocket_no);
         if (s.min_deposit) setMinDeposit(s.min_deposit);
         if (s.min_withdraw) setMinWithdraw(s.min_withdraw);
+        if (s.contact_unlock_fee) setContactUnlockFee(s.contact_unlock_fee);
+        if (s.contact_unlock_platform_share) setPlatformShare(s.contact_unlock_platform_share);
+        if (s.contact_unlock_seller_share) setSellerShare(s.contact_unlock_seller_share);
         if (s.site_name) setSiteName(s.site_name);
         if (s.helpline) setHelpline(s.helpline);
       }
@@ -260,12 +268,15 @@ Login to your account and book your slot today!`);
         WELCOME_EMAIL_SUBJECT: welcomeEmailSubject.trim(),
         WELCOME_EMAIL_BODY: welcomeEmailBody.trim(),
 
-        // Payments & General
+        // Payments & Messaging Monetization
         bkash_no: bkashNo,
         nagad_no: nagadNo,
         rocket_no: rocketNo,
         min_deposit: minDeposit,
         min_withdraw: minWithdraw,
+        contact_unlock_fee: contactUnlockFee,
+        contact_unlock_platform_share: platformShare,
+        contact_unlock_seller_share: sellerShare,
         site_name: siteName,
         helpline: helpline,
       };
@@ -1010,6 +1021,45 @@ Login to your account and book your slot today!`);
                       value={minWithdraw}
                       onChange={(e) => setMinWithdraw(e.target.value)}
                       className="w-full px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] font-bold text-xs text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] p-6 space-y-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+                <div className="flex items-center space-x-2 border-b border-[#F1F5F9] pb-3">
+                  <CreditCard className="w-5 h-5 text-amber-500" />
+                  <h2 className="text-[17px] font-bold text-[#0F172A]">Buyer-Seller Contact Unlock & Monetization</h2>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+                  <div>
+                    <label className="block text-[#475569] font-semibold mb-1">WhatsApp / Phone Unlock Fee (৳ BDT)</label>
+                    <input
+                      type="number"
+                      value={contactUnlockFee}
+                      onChange={(e) => setContactUnlockFee(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] font-bold text-xs text-[#0F172A] focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[#475569] font-semibold mb-1">Platform Revenue Share (%)</label>
+                    <input
+                      type="number"
+                      value={platformShare}
+                      onChange={(e) => setPlatformShare(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] font-bold text-xs text-[#0F172A] focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[#475569] font-semibold mb-1">Seller Commission Share (%)</label>
+                    <input
+                      type="number"
+                      value={sellerShare}
+                      onChange={(e) => setSellerShare(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] font-bold text-xs text-[#0F172A] focus:outline-none focus:border-amber-500"
                     />
                   </div>
                 </div>

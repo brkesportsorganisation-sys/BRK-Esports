@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { 
   Users, 
   UserPlus, 
@@ -15,7 +16,8 @@ import {
   Loader2,
   Crosshair,
   Zap,
-  Target
+  Target,
+  MessageSquare
 } from 'lucide-react';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
@@ -314,17 +316,13 @@ export default function LFGPage() {
 
                 {/* Footer Actions */}
                 <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                  {post.contactWhatsApp ? (
-                    <a
-                      href={`https://wa.me/${post.contactWhatsApp.replace(/\D/g, '')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 py-2 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold text-xs transition-all flex items-center justify-center space-x-1.5"
-                    >
-                      <MessageCircle className="w-3.5 h-3.5" />
-                      <span>WhatsApp</span>
-                    </a>
-                  ) : null}
+                  <Link
+                    href={`/messages?sellerId=${post.userId}`}
+                    className="flex-1 py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-all flex items-center justify-center space-x-1.5 shadow-xs"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5 text-brand-orange" />
+                    <span>Chat / Message</span>
+                  </Link>
 
                   {activeTab === 'SQUAD_LOOKING_FOR_PLAYER' && post.status === 'OPEN' && (
                     <button

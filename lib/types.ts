@@ -215,6 +215,7 @@ export type AdminPermissionKey =
   | 'manage_users'
   | 'manage_bans'
   | 'moderate_lfg'
+  | 'moderate_messages'
   | 'manage_deposits'
   | 'manage_withdrawals'
   | 'adjust_wallets'
@@ -225,6 +226,48 @@ export type AdminPermissionKey =
   | 'approve_deletes' // Owner-only
   | 'send_notifications'
   | 'manage_settings'; // Owner-only
+
+export interface Conversation {
+  id: string;
+  buyerId: string;
+  sellerId: string;
+  buyerName?: string;
+  sellerName?: string;
+  buyerAvatar?: string;
+  sellerAvatar?: string;
+  lastMessage?: string;
+  lastMessageAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  isUnlocked?: boolean;
+}
+
+export interface Message {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  senderName?: string;
+  senderAvatar?: string;
+  content: string;
+  isFlagged?: boolean;
+  flagReason?: string;
+  createdAt: string;
+}
+
+export interface ContactUnlock {
+  id: string;
+  conversationId: string;
+  buyerId: string;
+  sellerId: string;
+  buyerName?: string;
+  sellerName?: string;
+  amountPaid: number;
+  sellerPhone?: string;
+  sellerWhatsApp?: string;
+  status: 'COMPLETED' | 'REFUNDED' | 'DISPUTED';
+  createdAt: string;
+  unlockedAt: string;
+}
 
 export interface AdminAccount {
   id: string;
@@ -250,3 +293,4 @@ export interface AdminActivityLog {
   ipAddress?: string;
   createdAt: string;
 }
+
