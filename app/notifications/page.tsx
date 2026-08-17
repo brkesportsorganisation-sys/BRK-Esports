@@ -341,16 +341,32 @@ export default function UserNotificationsPage() {
                     {notif.message}
                   </p>
 
+                  {/* Picture / Banner Image */}
+                  {notif.imageUrl && (
+                    <div className="pt-2">
+                      <div className="relative rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 max-h-60">
+                        <img
+                          src={notif.imageUrl}
+                          alt="Notification Media"
+                          className="w-full h-44 object-cover hover:scale-105 transition-transform duration-500"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   {/* Action Link button */}
                   {notif.link && (
                     <div className="pt-2">
                       <Link
                         href={notif.link}
                         onClick={(e) => e.stopPropagation()}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 text-brand-orange border border-orange-500/30 text-xs font-bold transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-orange-500/20 to-amber-500/20 hover:from-orange-500/30 hover:to-amber-500/30 text-brand-orange border border-orange-500/30 text-xs font-bold transition-all shadow-sm"
                       >
-                        <span>Open Details ({notif.link})</span>
-                        <ExternalLink className="w-3 h-3" />
+                        <span>Open Details</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
                       </Link>
                     </div>
                   )}

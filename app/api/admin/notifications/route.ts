@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { title, message, targetGroup, userIds: explicitUserIds, tournamentId, type = 'GENERAL', link = '' } = body;
+    const { title, message, targetGroup, userIds: explicitUserIds, tournamentId, type = 'GENERAL', link = '', imageUrl = '', icon = '', priority = 'NORMAL' } = body;
 
     if (!title || !message) {
       return NextResponse.json({ message: 'Title and message are required' }, { status: 400 });
@@ -122,7 +122,10 @@ export async function POST(req: NextRequest) {
       title: title.trim(),
       message: message.trim(),
       type: type || 'GENERAL',
-      link: (link || '').trim(),
+      link: (link || '').trim() || null,
+      imageUrl: (imageUrl || '').trim() || null,
+      icon: (icon || '').trim() || null,
+      priority: priority || 'NORMAL',
       isRead: false,
       createdAt: now
     }));

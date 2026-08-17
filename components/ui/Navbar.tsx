@@ -418,10 +418,21 @@ export default function Navbar() {
                                     : 'bg-white hover:bg-slate-50 border border-transparent hover:border-slate-100'
                                 }`}
                               >
-                                {/* Icon Badge */}
-                                <div className="w-8 h-8 rounded-xl bg-white border border-slate-200/80 flex items-center justify-center flex-shrink-0 shadow-2xs">
-                                  {getNotifIcon(notif.type)}
-                                </div>
+                                {/* Icon Badge / Image Thumbnail */}
+                                {notif.imageUrl ? (
+                                  <img
+                                    src={notif.imageUrl}
+                                    alt="Thumbnail"
+                                    className="w-10 h-10 rounded-xl object-cover border border-slate-200 flex-shrink-0"
+                                    onError={(e) => {
+                                      (e.target as HTMLElement).style.display = 'none';
+                                    }}
+                                  />
+                                ) : (
+                                  <div className="w-8 h-8 rounded-xl bg-white border border-slate-200/80 flex items-center justify-center flex-shrink-0 shadow-2xs">
+                                    {getNotifIcon(notif.type)}
+                                  </div>
+                                )}
 
                                 {/* Content */}
                                 <div className="flex-1 min-w-0 space-y-0.5">

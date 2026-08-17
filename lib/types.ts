@@ -186,6 +186,7 @@ export interface Announcement {
 }
 
 export type NotificationType = 'GENERAL' | 'ROOM_ID' | 'PAYOUT' | 'WARNING' | 'MATCH' | 'SYSTEM' | 'REWARD';
+export type NotificationPriority = 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
 
 export interface Notification {
   id: string;
@@ -195,7 +196,29 @@ export interface Notification {
   isRead: boolean;
   type?: NotificationType;
   link?: string;
+  imageUrl?: string;
+  icon?: string;
+  priority?: NotificationPriority;
+  metadata?: Record<string, any>;
   createdAt: string;
+}
+
+export interface NotificationSchedule {
+  id: string;
+  name: string;
+  prompt: string;
+  category: NotificationType;
+  targetAudience: 'ALL' | 'ACTIVE_PLAYERS' | 'TOURNAMENT';
+  tournamentId?: string;
+  intervalMinutes: number;
+  imageUrl?: string;
+  actionLink?: string;
+  isActive: boolean;
+  lastRunAt?: string;
+  nextRunAt?: string;
+  totalDispatched: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 

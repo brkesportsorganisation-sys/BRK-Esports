@@ -311,13 +311,57 @@ CREATE TABLE IF NOT EXISTS "Notification" (
     "message" TEXT NOT NULL,
     "type" TEXT DEFAULT 'GENERAL',
     "link" TEXT,
+    "imageUrl" TEXT,
+    "icon" TEXT,
+    "priority" TEXT DEFAULT 'NORMAL',
+    "metadata" JSONB,
     "isRead" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 ALTER TABLE "Notification" ADD COLUMN IF NOT EXISTS "type" TEXT DEFAULT 'GENERAL';
 ALTER TABLE "Notification" ADD COLUMN IF NOT EXISTS "link" TEXT;
+ALTER TABLE "Notification" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT;
+ALTER TABLE "Notification" ADD COLUMN IF NOT EXISTS "icon" TEXT;
+ALTER TABLE "Notification" ADD COLUMN IF NOT EXISTS "priority" TEXT DEFAULT 'NORMAL';
+ALTER TABLE "Notification" ADD COLUMN IF NOT EXISTS "metadata" JSONB;
 ALTER TABLE "Notification" ADD COLUMN IF NOT EXISTS "isRead" BOOLEAN NOT NULL DEFAULT false;
+
+
+-- =========================================================
+-- 8.1. NotificationSchedule Table (AI Automated Timer & Cron)
+-- =========================================================
+CREATE TABLE IF NOT EXISTS "NotificationSchedule" (
+    "id" TEXT PRIMARY KEY,
+    "name" TEXT NOT NULL,
+    "prompt" TEXT NOT NULL,
+    "category" TEXT NOT NULL DEFAULT 'GENERAL',
+    "targetAudience" TEXT NOT NULL DEFAULT 'ALL',
+    "tournamentId" TEXT,
+    "intervalMinutes" INTEGER NOT NULL DEFAULT 60,
+    "imageUrl" TEXT,
+    "actionLink" TEXT,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "lastRunAt" TIMESTAMP WITH TIME ZONE,
+    "nextRunAt" TIMESTAMP WITH TIME ZONE,
+    "totalDispatched" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE "NotificationSchedule" ADD COLUMN IF NOT EXISTS "name" TEXT;
+ALTER TABLE "NotificationSchedule" ADD COLUMN IF NOT EXISTS "prompt" TEXT;
+ALTER TABLE "NotificationSchedule" ADD COLUMN IF NOT EXISTS "category" TEXT NOT NULL DEFAULT 'GENERAL';
+ALTER TABLE "NotificationSchedule" ADD COLUMN IF NOT EXISTS "targetAudience" TEXT NOT NULL DEFAULT 'ALL';
+ALTER TABLE "NotificationSchedule" ADD COLUMN IF NOT EXISTS "tournamentId" TEXT;
+ALTER TABLE "NotificationSchedule" ADD COLUMN IF NOT EXISTS "intervalMinutes" INTEGER NOT NULL DEFAULT 60;
+ALTER TABLE "NotificationSchedule" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT;
+ALTER TABLE "NotificationSchedule" ADD COLUMN IF NOT EXISTS "actionLink" TEXT;
+ALTER TABLE "NotificationSchedule" ADD COLUMN IF NOT EXISTS "isActive" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "NotificationSchedule" ADD COLUMN IF NOT EXISTS "lastRunAt" TIMESTAMP WITH TIME ZONE;
+ALTER TABLE "NotificationSchedule" ADD COLUMN IF NOT EXISTS "nextRunAt" TIMESTAMP WITH TIME ZONE;
+ALTER TABLE "NotificationSchedule" ADD COLUMN IF NOT EXISTS "totalDispatched" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "NotificationSchedule" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL;
 
 
 -- =========================================================
