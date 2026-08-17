@@ -6,78 +6,112 @@ const PREFERRED_MODELS = [
   'gemini-1.5-pro'
 ];
 
-interface ChatMessage {
+export interface ChatMessage {
   role: 'user' | 'model' | 'assistant';
   content: string;
 }
 
-const BLACKROCK_SYSTEM_INSTRUCTION = `You are "BRK AI", the official intelligent AI Esports Assistant & Gaming Coach for Blackrock Esports (BRK Esports) — Bangladesh's premier Free Fire Championship and Tournament Platform.
-
-Core Platform Knowledge:
-1. Platform Name: Blackrock Esports (BRK Esports).
-2. Game: Garena Free Fire (Battle Royale Squad/Duo/Solo, Clash Squad Ranked).
-3. Registration & Tournaments:
-   - Players register with their Free Fire UID and in-game name (IGN).
-   - Entry fees can be paid via bKash, Nagad, Rocket, or in-app Winning/Promo Wallet.
-   - Custom Room ID and Password are published on the tournament match tab 10-15 minutes before match start.
-4. Wallets & Payouts:
-   - Dual wallet system: Main Wallet, Promo Wallet (for slot entries), and Winning Wallet (withdrawable cash prize).
-   - Cash prize payouts are verified and sent directly to bKash/Nagad/Rocket.
-5. Anti-Cheat & Rules:
-   - Strict fair play policy. Third-party config tools, scripts, macro mods, or unauthorized emulator bypass are strictly prohibited and result in permanent device bans.
-   - Players must join assigned slots on time.
-6. LFG & Squad Finder:
-   - Players can find squadmates, rushers, snipers, IGLs (In-Game Leaders), and support players in the Community / LFG tab.
-7. Language & Personality:
-   - Friendly, energetic, confident esports gaming coach tone.
-   - Fluent in English, Bengali (বাংলা), and Banglish (Bengali in English letters). Always respond in the language the player asks in.
-   - Keep answers concise, clear, and helpful with emojis (🎮, 🏆, 🔥, 💰, ⚡).`;
-
-function getLocalFallbackResponse(prompt: string): string {
-  const lower = prompt.toLowerCase();
-  
-  if (lower.includes('room') || lower.includes('id') || lower.includes('password') || lower.includes('রুম')) {
-    return "🎮 **Room ID & Password:** ম্যাচ শুরুর ১০-১৫ মিনিট আগে টুর্নামেন্ট পেজের 'My Matches' অথবা নির্দিষ্ট টুর্নামেন্টের Match Details সেকশনে Room ID এবং Password দেখতে পাবেন। নির্ধারিত সময়ে ইন-গেম কাস্টম রুমে জয়েন করুন!";
-  }
-  
-  if (lower.includes('payout') || lower.includes('cashout') || lower.includes('withdraw') || lower.includes('টাকা') || lower.includes('বিকাশ') || lower.includes('নগদ') || lower.includes('wallet')) {
-    return "💰 **ক্যাশআউট ও প্রাইজমানি:** টুর্নামেন্টে জেতার পর আপনার প্রাইজমানি সরাসরি **Winning Wallet**-এ যুক্ত হয়। প্রোফাইল থেকে বিকাশ (bKash), নগদ (Nagad) বা রকেটের মাধ্যমে খুব সহজেই উইথড্র রিকোয়েস্ট করতে পারবেন। অ্যাডমিন ভেরিফিকেশনের পর দ্রুত টাকা পৌঁছে যাবে!";
-  }
-
-  if (lower.includes('register') || lower.includes('join') || lower.includes('টুর্নামেন্ট') || lower.includes('অংশগ্রহণ') || lower.includes('slot')) {
-    return "🏆 **টুর্নামেন্টে জয়েন করার নিয়ম:** \n1. Tournaments ট্যাব থেকে আপনার পছন্দের ম্যাচ সিলেক্ট করুন।\n2. 'Register Slot' বাটনে ক্লিক করুন।\n3. আপনার Free Fire UID ও IGN দিন এবং ফি পরিশোধ করে স্লট কনফার্ম করুন!";
-  }
-
-  if (lower.includes('combo') || lower.includes('gun') || lower.includes('loadout') || lower.includes('গান') || lower.includes('টিপস')) {
-    return "🔥 **Free Fire Top Combo:**\n- **Close Range / Rush:** MP40 / Shotgun (M1887, Charge Buster) + Tatsuya / Homer\n- **Mid/Long Range:** Woodpecker / AC80 + Groza / SCAR\n- **Character Combo:** Tatsuya/Alok + Kelly + Hayato + Moco!";
-  }
-
-  if (lower.includes('ki obostha') || lower.includes('kemon') || lower.includes('hello') || lower.includes('hi') || lower.includes('helo') || lower.includes('হাই') || lower.includes('কেমন')) {
-    return "🔥 আরে ভাই, একদম চরম অবস্থা! Blackrock Esports অ্যারেনায় আপনাকে স্বাগতম। আজকে কোন টুর্নামেন্টে নামছেন? কোনো হেল্প লাগলে সরাসরি বলুন!";
-  }
-
-  return "🎮 **Blackrock Esports (BRK AI):** আমি আপনার গেমিং অ্যাসিস্ট্যান্ট! টুর্নামেন্ট শিডিউল, কাস্টম রুম আইডি, বিকাশ/নগদ উইথড্রয়াল বা স্কোয়াড স্ট্র্যাটেজি সম্পর্কে যে কোনো প্রশ্ন করতে পারেন।";
+export interface AIResponseWithActions {
+  reply: string;
+  suggestedAction?: {
+    label: string;
+    link: string;
+    icon?: string;
+  };
+  suggestedCategory?: string;
 }
 
+const ADVANCED_BLACKROCK_SYSTEM_INSTRUCTION = `You are "BRK AI", the official elite AI Esports Assistant & Professional Free Fire Gaming Coach for Blackrock Esports (BRK Esports) — Bangladesh's #1 premier competitive Free Fire platform.
+
+### Core Identity & Voice:
+- Energetic, confident, welcoming, and deeply knowledgeable about Free Fire esports, competitive scrims, gun mechanics, sensitivity settings, and platform features.
+- Fluent in Bengali (বাংলা), English, and Banglish (Bengali written in English letters). Always respond in the language the user initiates with.
+- Use gaming emojis (🎮, 🏆, 🔥, 💰, ⚡, 🎯, 🛡️, 💎).
+
+### Platform Knowledge Base:
+1. **Tournaments & Formats**:
+   - Battle Royale (BR Ranked) Squad, Duo, Solo matches on Bermuda, Purgatory, Kalahari, Alpine, Nexterra.
+   - Clash Squad (CS Ranked) 4v4 competitive matches.
+   - Registration: Players provide their Free Fire UID, In-Game Name (IGN), and pay slot fees.
+   - Room ID & Password: Automatically released on the tournament details page 10-15 minutes before the match start time.
+2. **Dual-Wallet & Instant Financial System**:
+   - Main / Winning Wallet: Real money balance earned from match kills, rank placements, and tournament prizes. Withdrawable via bKash, Nagad, and Rocket.
+   - Promo Wallet: Referral bonuses and promotional credits used to book tournament slots.
+   - Coin Balance: Earned from daily Lucky Spins, watch-and-earn tasks, and referral milestones.
+3. **Pro Free Fire Coaching Expertise**:
+   - **Optimal Sensitivities**:
+     - 4GB-6GB RAM Phones: General 95-100, Red Dot 90-95, 2x Scope 85-90, 4x Scope 80-85, Sniper Scope 50-60, Free Look 65.
+     - High-End Phones (8GB-12GB+ 120Hz): General 90-95, Red Dot 85-90, 2x Scope 80-85, 4x Scope 75-80.
+     - DPI Settings: Recommended 390-440 for smooth drag-headshots without frame drops.
+   - **Meta Character Skill Combos**:
+     - *Aggressive Rusher*: Tatsuya / Alok (Active) + Kelly (Speed) + Hayato (Armor Pen) + Moco (Tagging) or Jota.
+     - *Sniper / Long-Range Anchor*: Iris / Homer (Active) + Maro (Distance Dmg) + Rafael (Silent Bleed) + Laura (Accuracy).
+     - *Clash Squad Survival*: Dimitri / Chrono (Active) + Thiva (Fast Revive) + Sonia (Clutch Shield) + Antonio (Extra HP).
+   - **Top Gun Combos**:
+     - *Close-Range Shotgun Meta*: M1887 / Charge Buster / MP40 + Woodpecker / Groza.
+     - *Mid-Range Spray*: MP5-III / Bizon / UMP + AC80 / SCAR-III.
+   - **Zone & Drop Strategy**:
+     - Bermuda: Safe high-tier loot drops at Clock Tower, Factory, Peak, Mars Electric, Observator.
+4. **Platform Security & Anti-Cheat**:
+   - Zero tolerance for modded APKs, script cheats, antennas, auto-headshot configs, or unauthorized emulator bypasses.
+   - Verified Free Fire UIDs required. Violators receive permanent hardware & IP bans.
+
+### Response Instructions:
+- Keep answers formatted with clear bold headings, bullet points, and actionable advice.
+- When relevant, guide the user to the exact platform page (e.g. \`/tournaments\` for matches, \`/wallet\` for withdrawals/deposits, \`/ads\` for spins, \`/lfg\` for squad finder).`;
+
+function getSmartFallback(prompt: string): string {
+  const lower = prompt.toLowerCase();
+
+  if (lower.includes('sens') || lower.includes('হেডশট') || lower.includes('headshot') || lower.includes('dpi') || lower.includes('setting')) {
+    return "🎯 **Free Fire Best Drag-Headshot Sensitivity Settings:**\n\n- **General:** 98-100 (Smooth 360 drag)\n- **Red Dot:** 92-95\n- **2x Scope:** 88\n- **4x Scope:** 82\n- **Sniper Scope:** 55\n- **Recommended DPI:** 410 - 440 (For 4GB-8GB devices)\n\n💡 *Pro Tip:* ড্র্যাগ করার সময় ফায়ার বাটন 'J' শেপে বা হালকা নিচের দিকে টেনে সোজা উপরে টানলে সহজে হেডশট লক হয়!";
+  }
+
+  if (lower.includes('combo') || lower.includes('character') || lower.includes('skill') || lower.includes('ক্যারেক্টার') || lower.includes('গান')) {
+    return "🔥 **Free Fire Pro Meta Combos:**\n\n1. ⚡ **Rusher Combo:** Tatsuya + Kelly + Hayato + Moco\n2. 🎯 **Sniper Combo:** Iris + Rafael + Maro + Laura\n3. 🛡️ **CS Squad Combo:** Dimitri + Sonia + Thiva + Antonio\n\n🔫 **Best Weapons:** M1887 / Charge Buster + Woodpecker / Groza!";
+  }
+
+  if (lower.includes('room') || lower.includes('id') || lower.includes('pass') || lower.includes('রুম')) {
+    return "🔑 **Custom Room ID & Password:**\nম্যাচ শুরুর **১০-১৫ মিনিট আগে** আপনার রেজিস্টার্ড টুর্নামেন্ট ডিটেইলস পেজে Room ID এবং Password আনলক হবে। রুম পাসওয়ার্ড নিয়ে ইন-গেম কাস্টম রুমে নির্ধারিত স্লট নাম্বারে বসে পড়ুন!";
+  }
+
+  if (lower.includes('withdraw') || lower.includes('payout') || lower.includes('টাকা') || lower.includes('bkash') || lower.includes('nagad') || lower.includes('wallet')) {
+    return "💰 **ক্যাশআউট ও প্রাইজমানি:**\nটুর্নামেন্ট জেতার পর আপনার উইনিং ব্যালেন্স সরাসরি বিকাশ (bKash), নগদ (Nagad) বা রকেটে ইনস্ট্যান্ট উইথড্র করা যায়! আপনার **Wallet** পেজে গিয়ে উইথড্র রিকোয়েস্ট সাবমিট করুন।";
+  }
+
+  if (lower.includes('tournament') || lower.includes('join') || lower.includes('register') || lower.includes('টুর্নামেন্ট') || lower.includes('ম্যাচ')) {
+    return "🏆 **টুর্নামেন্টে জয়েন করার নিয়ম:**\n1. **Tournaments** পেজে যান।\n2. পছন্দমতো BR বা CS ম্যাচ বেছে নিয়ে 'Register Slot' চাপুন।\n3. আপনার Free Fire UID ও IGN দিন এবং ফি পরিশোধ করে স্লট কনফার্ম করুন!";
+  }
+
+  if (lower.includes('spin') || lower.includes('coin') || lower.includes('diamond') || lower.includes('ফ্রি')) {
+    return "🎁 **Lucky Spin & Rewards:**\nপ্রতিদিন **Ads & Rewards** পেজে গিয়ে লাকি হুইল স্পিন করে ফ্রি কয়েন, ডায়মন্ড এবং ওয়ালেট রিওয়ার্ড জিতে নিতে পারেন!";
+  }
+
+  return "🎮 **Blackrock Esports (BRK AI):** আমি আপনার ২৪/৭ গেমিং কোচ ও প্ল্যাটফর্ম অ্যাসিস্ট্যান্ট! টুর্নামেন্ট শিডিউল, কাস্টম রুম আইডি, সেরা হেডশট সেনসিটিভিটি বা বিকাশ উইথড্রয়াল সম্পর্কে যে কোনো প্রশ্ন করতে পারেন।";
+}
+
+/**
+ * Ask Gemini with live context injection and fallback resilience
+ */
 export async function askGemini(prompt: string, options: {
   systemInstruction?: string;
   history?: ChatMessage[];
   temperature?: number;
+  liveContext?: string;
 } = {}): Promise<string> {
   const {
-    systemInstruction = BLACKROCK_SYSTEM_INSTRUCTION,
+    systemInstruction = ADVANCED_BLACKROCK_SYSTEM_INSTRUCTION,
     history = [],
-    temperature = 0.7
+    temperature = 0.7,
+    liveContext = ''
   } = options;
 
   const apiKey = (process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || '').trim();
 
-  // If no Gemini API key is configured, respond with smart local fallback
   if (!apiKey || apiKey === 'your_gemini_api_key_here') {
-    return getLocalFallbackResponse(prompt);
+    return getSmartFallback(prompt);
   }
 
-  // Build contents array
   const contents: any[] = [];
 
   // Add conversation history
@@ -88,10 +122,14 @@ export async function askGemini(prompt: string, options: {
     });
   }
 
-  // Add latest prompt
+  // Final user prompt with live context injection
+  const fullUserPrompt = liveContext 
+    ? `[LIVE PLATFORM REAL-TIME DATA]:\n${liveContext}\n\n[USER QUESTION]:\n${prompt}`
+    : prompt;
+
   contents.push({
     role: 'user',
-    parts: [{ text: prompt }]
+    parts: [{ text: fullUserPrompt }]
   });
 
   let lastError: any = null;
@@ -127,13 +165,11 @@ export async function askGemini(prompt: string, options: {
       }
 
       lastError = data.error?.message || `HTTP ${res.status}`;
-      console.warn(`[Gemini ${model} warning]:`, lastError);
     } catch (err: any) {
       lastError = err.message;
-      console.warn(`[Gemini ${model} error]:`, err);
     }
   }
 
   console.warn('[Gemini fallback triggered]:', lastError);
-  return getLocalFallbackResponse(prompt);
+  return getSmartFallback(prompt);
 }
