@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { Trophy, Users, Clock, Flame, ShieldAlert, Award } from 'lucide-react';
 import { Tournament, TournamentStatus } from '@/lib/types';
 import { getDynamicTournamentStatus } from '@/lib/tournament-utils';
+import { useLanguage } from '@/lib/language-context';
 
 interface TournamentCardProps {
   tournament: Tournament;
@@ -26,6 +27,7 @@ function stripHtml(html?: string) {
 }
 
 export default function TournamentCard({ tournament }: TournamentCardProps) {
+  const { t } = useLanguage();
   const isFree = tournament.entryFee === 0;
   const isFull = tournament.registeredCount >= tournament.maxTeams;
 
@@ -127,9 +129,9 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
         {/* Extra details hidden from public card view */}
 
         <Link href={`/tournaments/${tournament.id}`} className="block w-full">
-          <button className="w-full py-2.5 rounded-xl bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold text-white font-heading font-bold text-sm shadow-neon-orange hover:shadow-neon-red transition-all flex items-center justify-center space-x-2">
+          <button className="w-full py-2.5 rounded-xl bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold text-white font-heading font-bold text-sm shadow-neon-orange hover:shadow-neon-red transition-all flex items-center justify-center space-x-2 cursor-pointer">
             <Trophy className="w-4 h-4" />
-            <span>VIEW TOURNAMENT</span>
+            <span>{t('view_details', 'VIEW TOURNAMENT')}</span>
           </button>
         </Link>
       </div>

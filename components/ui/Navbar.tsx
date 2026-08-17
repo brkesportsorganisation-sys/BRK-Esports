@@ -28,10 +28,12 @@ import {
   CheckCheck,
   Trash2,
   ExternalLink,
-  Sparkles
+  Sparkles,
+  Globe
 } from 'lucide-react';
 import { db } from '@/lib/db';
 import { User as UserType, Notification as NotificationType } from '@/lib/types';
+import { useLanguage } from '@/lib/language-context';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -186,12 +188,14 @@ export default function Navbar() {
     }
   };
 
+  const { t, language, toggleLanguage, isBangla } = useLanguage();
+
   const navLinks: { name: string; href: string; icon: React.ElementType; isLive?: boolean }[] = [
-    { name: 'Home', href: '/', icon: Flame },
-    { name: 'Tournaments', href: '/tournaments', icon: Trophy },
-    { name: 'Leaderboard', href: '/leaderboard', icon: Award },
-    { name: 'Community', href: '/community', icon: MessageSquare },
-    { name: 'Live', href: '/live', icon: Radio, isLive: isLiveActive },
+    { name: t('nav_home', 'Home'), href: '/', icon: Flame },
+    { name: t('nav_tournaments', 'Tournaments'), href: '/tournaments', icon: Trophy },
+    { name: t('nav_leaderboard', 'Leaderboard'), href: '/leaderboard', icon: Award },
+    { name: t('nav_community', 'Community'), href: '/community', icon: MessageSquare },
+    { name: t('nav_live', 'Live'), href: '/live', icon: Radio, isLive: isLiveActive },
   ];
 
   // Helper for notification type icons
@@ -512,7 +516,7 @@ export default function Navbar() {
                             className="flex items-center space-x-2 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
                           >
                             <User className="w-4 h-4 text-slate-400" />
-                            <span>Player Profile</span>
+                            <span>{t('nav_profile', 'Player Profile')}</span>
                           </Link>
 
                           <Link
@@ -522,7 +526,7 @@ export default function Navbar() {
                           >
                             <div className="flex items-center space-x-2">
                               <Bell className="w-4 h-4 text-slate-400" />
-                              <span>Notifications</span>
+                              <span>{t('nav_notifications', 'Notifications')}</span>
                             </div>
                             {unreadCount > 0 && (
                               <span className="px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-brand-orange text-white">
@@ -537,15 +541,15 @@ export default function Navbar() {
                             className="flex items-center space-x-2 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
                           >
                             <Wallet className="w-4 h-4 text-slate-400" />
-                            <span>Dual Wallet & Cashouts</span>
+                            <span>{t('nav_wallet', 'Dual Wallet & Cashouts')}</span>
                           </Link>
 
                           <button
                             onClick={handleSignOut}
-                            className="w-full flex items-center space-x-2 px-3 py-2 rounded-xl text-xs font-semibold text-brand-red hover:bg-brand-red/10 transition-colors mt-2"
+                            className="w-full flex items-center space-x-2 px-3 py-2 rounded-xl text-xs font-semibold text-brand-red hover:bg-brand-red/10 transition-colors mt-2 cursor-pointer"
                           >
                             <LogOut className="w-4 h-4" />
-                            <span>Sign Out</span>
+                            <span>{t('nav_logout', 'Sign Out')}</span>
                           </button>
                         </div>
                       </motion.div>
@@ -560,14 +564,33 @@ export default function Navbar() {
                 className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-black text-xs shadow-neon-red hover:brightness-110 transition-all flex items-center space-x-2"
               >
                 <User className="w-4 h-4" />
-                <span>LOGIN / REGISTER</span>
+                <span>{t('nav_login', 'LOGIN')} / {t('nav_register', 'REGISTER')}</span>
               </Link>
             )}
+
+            {/* Desktop Language Switcher */}
+            <button
+              onClick={toggleLanguage}
+              className="flex items-center space-x-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-2 rounded-2xl border border-slate-200/80 transition-all text-xs font-extrabold shadow-2xs cursor-pointer group ml-1"
+              title={isBangla ? "Switch to English" : "বাংলায় দেখুন"}
+            >
+              <Globe className="w-4 h-4 text-brand-orange group-hover:rotate-45 transition-transform" />
+              <span className="font-heading font-black">{isBangla ? 'EN' : 'বাংলা'}</span>
+            </button>
 
           </div>
 
           {/* Mobile Hamburger & Quick Badges */}
           <div className="flex lg:hidden items-center space-x-2">
+            {/* Mobile Language Toggle */}
+            <button
+              onClick={toggleLanguage}
+              className="flex items-center space-x-1 bg-slate-100 text-slate-800 px-2.5 py-1.5 rounded-xl border border-slate-200 text-[11px] font-extrabold shadow-2xs"
+            >
+              <Globe className="w-3.5 h-3.5 text-brand-orange" />
+              <span>{isBangla ? 'EN' : 'বাংলা'}</span>
+            </button>
+
             {currentUser && (
               <div className="flex items-center gap-1.5">
                 {/* Mobile Notification Bell */}
@@ -641,11 +664,11 @@ export default function Navbar() {
                 >
                   <div className="flex items-center space-x-3">
                     <Bell className="w-4 h-4 text-brand-orange" />
-                    <span>Notifications Center</span>
+                    <span>{t('nav_notifications', 'Notifications')}</span>
                   </div>
                   {unreadCount > 0 && (
                     <span className="px-2 py-0.5 rounded-full bg-brand-orange text-white font-black text-[10px]">
-                      {unreadCount} New
+                      {unreadCount} {t('nav_unread_notifications', 'New')}
                     </span>
                   )}
                 </Link>
@@ -656,15 +679,15 @@ export default function Navbar() {
                   className="flex items-center space-x-3 px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 font-semibold text-xs"
                 >
                   <User className="w-4 h-4 text-brand-orange" />
-                  <span>Profile ({currentUser.inGameName || currentUser.name})</span>
+                  <span>{t('nav_profile', 'Profile')} ({currentUser.inGameName || currentUser.name})</span>
                 </Link>
 
                 <button
                   onClick={handleSignOut}
-                  className="w-full text-left flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-semibold text-brand-red hover:bg-red-50"
+                  className="w-full text-left flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-semibold text-brand-red hover:bg-red-50 cursor-pointer"
                 >
                   <LogOut className="w-4 h-4" />
-                  <span>Sign Out</span>
+                  <span>{t('nav_logout', 'Sign Out')}</span>
                 </button>
               </div>
             ) : (
@@ -673,7 +696,7 @@ export default function Navbar() {
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="block text-center py-3 rounded-2xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-black text-xs"
               >
-                LOGIN / REGISTER
+                {t('nav_login', 'LOGIN')} / {t('nav_register', 'REGISTER')}
               </Link>
             )}
           </motion.div>

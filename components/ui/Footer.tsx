@@ -1,8 +1,13 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import { Flame, ShieldCheck, Zap, Headphones, MessageSquare } from 'lucide-react';
+import { useLanguage } from '@/lib/language-context';
 
 export default function Footer() {
+  const { t } = useLanguage();
+
   return (
     <footer className="bg-white border-t border-slate-200 mt-20 relative overflow-hidden">
       {/* Glow highlight */}
@@ -24,16 +29,16 @@ export default function Footer() {
               </span>
             </Link>
             <p className="text-slate-600 text-sm leading-relaxed max-w-sm">
-              The ultimate competitive esports platform for Free Fire players in South Asia. Compete in daily BR & CS ranked tournaments and build your legacy.
+              {t('footer_tagline', 'The ultimate competitive esports platform for Free Fire players in South Asia. Compete in daily BR & CS ranked tournaments and build your legacy.')}
             </p>
             <div className="flex items-center space-x-3 pt-2">
               <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs text-brand-cyan">
                 <ShieldCheck className="w-4 h-4 text-brand-cyan" />
-                <span className="font-semibold text-slate-700">Anti-Cheat Secured</span>
+                <span className="font-semibold text-slate-700">{t('footer_anti_cheat', 'Anti-Cheat Secured')}</span>
               </div>
               <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs text-brand-gold">
                 <Zap className="w-4 h-4 text-brand-gold" />
-                <span className="font-semibold text-slate-700">Instant Payouts</span>
+                <span className="font-semibold text-slate-700">{t('footer_instant_payouts', 'Instant Payouts')}</span>
               </div>
             </div>
           </div>
@@ -41,21 +46,20 @@ export default function Footer() {
           {/* Quick Links */}
           <div>
             <h4 className="font-heading font-bold text-lg text-slate-900 mb-4 uppercase tracking-wider border-l-2 border-brand-red pl-3">
-              Platform
+              {t('footer_platform', 'Platform')}
             </h4>
             <ul className="space-y-2.5 text-sm text-slate-600">
               <li><Link href="/tournaments" className="hover:text-brand-orange transition-colors">BR Tournaments</Link></li>
               <li><Link href="/tournaments" className="hover:text-brand-orange transition-colors">CS 4v4 Knockouts</Link></li>
-              <li><Link href="/leaderboard" className="hover:text-brand-orange transition-colors">Global Ranking</Link></li>
-
-              <li><Link href="/community" className="hover:text-brand-orange transition-colors">Community Announcements</Link></li>
+              <li><Link href="/leaderboard" className="hover:text-brand-orange transition-colors">{t('nav_leaderboard', 'Global Ranking')}</Link></li>
+              <li><Link href="/community" className="hover:text-brand-orange transition-colors">{t('nav_community', 'Community')}</Link></li>
             </ul>
           </div>
 
           {/* Legal & Help */}
           <div>
             <h4 className="font-heading font-bold text-lg text-slate-900 mb-4 uppercase tracking-wider border-l-2 border-brand-orange pl-3">
-              Support & Legal
+              {t('footer_support_legal', 'Support & Legal')}
             </h4>
             <ul className="space-y-2.5 text-sm text-slate-600">
               <li><Link href="/contact" className="hover:text-brand-orange transition-colors">Contact Support</Link></li>
@@ -69,9 +73,9 @@ export default function Footer() {
           {/* Payment Methods */}
           <div>
             <h4 className="font-heading font-bold text-lg text-slate-900 mb-4 uppercase tracking-wider border-l-2 border-brand-gold pl-3">
-              Supported Banking
+              {t('footer_banking', 'Supported Banking')}
             </h4>
-            <p className="text-xs text-slate-600 mb-4">Instant deposit and fast automated withdrawal via trusted local payment partners.</p>
+            <p className="text-xs text-slate-600 mb-4">{t('footer_banking_desc', 'Instant deposit and fast automated withdrawal via trusted local payment partners.')}</p>
             <div className="grid grid-cols-3 gap-2">
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-2 text-center text-xs font-bold text-pink-600">
                 bKash
@@ -90,14 +94,14 @@ export default function Footer() {
         {/* Bottom Banner */}
         <div className="pt-12 mt-12 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-600">
           <div>
-            © {new Date().getFullYear()} Black Rock Tournaments. All rights reserved. Not affiliated with Garena Free Fire.
+            © {new Date().getFullYear()} Black Rock Tournaments. {t('footer_copyright', 'All rights reserved. Not affiliated with Garena Free Fire.')}
           </div>
           <div className="flex items-center space-x-6">
             <span className="hover:text-slate-900 cursor-pointer transition-colors flex items-center gap-1">
-              <MessageSquare className="w-4 h-4 text-brand-orange" /> Discord Community
+              <MessageSquare className="w-4 h-4 text-brand-orange" /> {t('footer_discord', 'Discord Community')}
             </span>
             <span className="hover:text-slate-900 cursor-pointer transition-colors flex items-center gap-1">
-              <Headphones className="w-4 h-4 text-brand-cyan" /> 24/7 Live Support
+              <Headphones className="w-4 h-4 text-brand-cyan" /> {t('footer_live_support', '24/7 Live Support')}
             </span>
           </div>
         </div>

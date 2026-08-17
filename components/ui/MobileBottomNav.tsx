@@ -4,10 +4,12 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Flame, Trophy, Wallet, Radio, Users, Award } from 'lucide-react';
+import { useLanguage } from '@/lib/language-context';
 
 export default function MobileBottomNav() {
   const pathname = usePathname();
   const [isLiveActive, setIsLiveActive] = useState(false);
+  const { t } = useLanguage();
 
   useEffect(() => {
     async function checkLiveStatus() {
@@ -29,11 +31,11 @@ export default function MobileBottomNav() {
   }
 
   const tabs: { name: string; href: string; icon: React.ElementType; isLive?: boolean }[] = [
-    { name: 'Home', href: '/', icon: Flame },
-    { name: 'Tournaments', href: '/tournaments', icon: Trophy },
-    { name: 'Live', href: '/live', icon: Radio, isLive: isLiveActive },
-    { name: 'Community', href: '/community', icon: Users },
-    { name: 'Wallet', href: '/wallet', icon: Wallet },
+    { name: t('nav_home', 'Home'), href: '/', icon: Flame },
+    { name: t('nav_tournaments', 'Tournaments'), href: '/tournaments', icon: Trophy },
+    { name: t('nav_live', 'Live'), href: '/live', icon: Radio, isLive: isLiveActive },
+    { name: t('nav_community', 'Community'), href: '/community', icon: Users },
+    { name: t('nav_wallet', 'Wallet'), href: '/wallet', icon: Wallet },
   ];
 
   return (
