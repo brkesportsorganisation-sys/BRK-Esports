@@ -7,7 +7,7 @@ import { Flame, Lock, Mail, ArrowRight, Loader2 } from 'lucide-react';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import { db } from '@/lib/db';
-import { auth, googleProvider, signInWithPopup } from '@/lib/firebase';
+import { auth, googleProvider, signInWithPopup, getFirebaseAuth } from '@/lib/firebase';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -32,7 +32,7 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        // Fallback check in local db if offline
+        // Fallback for local mock users if database is in offline mode
         const localFound = db.loginWithEmailAndPassword(email, password);
         if (localFound) {
           db.setCurrentUser(localFound);
@@ -73,10 +73,14 @@ export default function LoginPage() {
     setGoogleLoading(true);
 
     try {
-      if (!auth) {
-        throw new Error('Google Sign-In is currently unavailable. Please sign in with email and password.');
+      const fb = getFirebaseAuth();
+      const targetAuth = fb?.auth || auth;
+      const targetProvider = fb?.googleProvider || googleProvider;
+
+      if (!targetAuth) {
+        throw new Error('Google Sign-In service could not be initialized. Please sign in with email and password.');
       }
-      const result = await signInWithPopup(auth, googleProvider);
+      const result = await signInWithPopup(targetAuth, targetProvider);
       const user = result.user;
 
       if (!user.email) {
@@ -115,12 +119,15 @@ export default function LoginPage() {
     } catch (err: any) {
       console.error('Google Sign-In Error:', err);
       if (err.code === 'auth/popup-closed-by-user') {
-        // User closed popup without signing in
         setErrorMsg('Google sign-in was cancelled.');
       } else if (err.code === 'auth/popup-blocked') {
-        setErrorMsg('Sign-in popup was blocked by browser. Please allow popups for this site.');
+        setErrorMsg('Sign-in popup was blocked by your browser. Please allow popups for this site.');
+      } else if (err.code === 'auth/unauthorized-domain') {
+        setErrorMsg('Domain not authorized in Firebase Console. Please add this domain to Firebase Auth Authorized Domains.');
+      } else if (err.code === 'auth/operation-not-allowed') {
+        setErrorMsg('Google Sign-In is not enabled in Firebase Console. Please enable Google provider in Firebase.');
       } else {
-        setErrorMsg(err.message || 'Google sign-in failed. Please try again.');
+        setErrorMsg(err.message || 'Google sign-in failed. Please try again or sign in with email.');
       }
     } finally {
       setGoogleLoading(false);

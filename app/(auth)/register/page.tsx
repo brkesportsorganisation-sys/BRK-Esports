@@ -8,7 +8,7 @@ import { Flame, Lock, Mail, User as UserIcon, Gamepad2, ArrowRight, Loader2, Che
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import { db } from '@/lib/db';
-import { auth, googleProvider, signInWithPopup } from '@/lib/firebase';
+import { auth, googleProvider, signInWithPopup, getFirebaseAuth } from '@/lib/firebase';
 
 function RegisterContent() {
   const router = useRouter();
@@ -29,38 +29,37 @@ function RegisterContent() {
   const [fetchStatus, setFetchStatus] = useState<{ status: 'idle' | 'loading' | 'success' | 'failed'; message?: string }>({ status: 'idle' });
   const ignRef = useRef<HTMLInputElement>(null);
 
-  // Debounced auto-fetch when UID is 8+ digits
+  // Debounced auto-fetch Free Fire in-game name when UID is 5+ digits
   useEffect(() => {
     const cleanUid = ffUid.trim();
-    if (cleanUid.length < 8) {
+    if (cleanUid.length < 5) {
       setFetchStatus({ status: 'idle' });
       return;
     }
 
     const timer = setTimeout(async () => {
       setIsFetchingIgn(true);
-      setFetchStatus({ status: 'loading', message: 'Loading...' });
+      setFetchStatus({ status: 'loading', message: 'Detecting Free Fire player name...' });
 
       try {
         const res = await fetch(`/api/get-player-name/${encodeURIComponent(cleanUid)}`);
         const data = await res.json();
 
-        if (res.ok && data.success && data.nickname) {
+        if (res.ok && data.name) {
+          setIgn(data.name);
+          setFetchStatus({ status: 'success', message: `✅ Verified IGN: ${data.name}` });
+        } else if (res.ok && data.nickname) {
           setIgn(data.nickname);
           setFetchStatus({ status: 'success', message: `✅ Verified IGN: ${data.nickname}` });
-        } else if (res.ok && data.success && data.verified) {
-          // UID is valid but nickname could not be fetched — focus IGN field
-          setFetchStatus({ status: 'success', message: '✅ UID Valid — Please enter your IGN' });
-          setTimeout(() => ignRef.current?.focus(), 100);
         } else {
-          setFetchStatus({ status: 'failed', message: 'Player UID not found / Enter IGN manually' });
+          setFetchStatus({ status: 'failed', message: data.message || 'Player UID not found / Enter IGN manually' });
         }
       } catch {
         setFetchStatus({ status: 'failed', message: 'Error fetching player name' });
       } finally {
         setIsFetchingIgn(false);
       }
-    }, 500);
+    }, 600);
 
     return () => clearTimeout(timer);
   }, [ffUid]);
@@ -101,10 +100,14 @@ function RegisterContent() {
     setGoogleLoading(true);
 
     try {
-      if (!auth) {
-        throw new Error('Google Sign-Up is currently unavailable. Please register with email and password.');
+      const fb = getFirebaseAuth();
+      const targetAuth = fb?.auth || auth;
+      const targetProvider = fb?.googleProvider || googleProvider;
+
+      if (!targetAuth) {
+        throw new Error('Google Sign-Up service could not be initialized. Please register with email and password.');
       }
-      const result = await signInWithPopup(auth, googleProvider);
+      const result = await signInWithPopup(targetAuth, targetProvider);
       const user = result.user;
 
       if (!user.email) {
@@ -138,9 +141,13 @@ function RegisterContent() {
       if (err.code === 'auth/popup-closed-by-user') {
         setErrorMsg('Google sign-up was cancelled.');
       } else if (err.code === 'auth/popup-blocked') {
-        setErrorMsg('Sign-up popup was blocked by browser. Please allow popups for this site.');
+        setErrorMsg('Sign-up popup was blocked by your browser. Please allow popups for this site.');
+      } else if (err.code === 'auth/unauthorized-domain') {
+        setErrorMsg('Domain not authorized in Firebase Console. Please add this domain to Firebase Auth Authorized Domains.');
+      } else if (err.code === 'auth/operation-not-allowed') {
+        setErrorMsg('Google Sign-In is not enabled in Firebase Console. Please enable Google provider in Firebase.');
       } else {
-        setErrorMsg(err.message || 'Google registration failed. Please try again.');
+        setErrorMsg(err.message || 'Google registration failed. Please try again or register with email.');
       }
     } finally {
       setGoogleLoading(false);
