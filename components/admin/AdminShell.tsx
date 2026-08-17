@@ -38,6 +38,7 @@ import {
   ShoppingBag,
   BarChart3,
   Coins,
+  Gift,
   Mail,
   Globe,
   ShoppingCart
