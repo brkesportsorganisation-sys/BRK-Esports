@@ -35,7 +35,6 @@ export async function GET() {
       tag: t.tag,
       logo: t.logo || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150',
       captainId: t.captainId,
-      inviteCode: t.inviteCode,
       membersCount: 4,
       wins: 0,
     }));

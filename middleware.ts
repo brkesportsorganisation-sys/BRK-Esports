@@ -1,19 +1,84 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { inspectRequestSecurity, checkRateLimit, applySecurityHeaders } from '@/lib/security-firewall';
 
 export function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+
+  // 1. WAF Deep Inspection (Block SQLi, XSS, Path Traversal, Malicious Bots)
+  const inspection = inspectRequestSecurity(request);
+  if (inspection.blocked) {
+    console.warn(`[WAF Blocked] IP: ${request.ip || 'unknown'} Path: ${pathname} Reason: ${inspection.reason}`);
+    return new NextResponse(
+      JSON.stringify({ 
+        error: 'Forbidden', 
+        message: 'Request blocked by Black Rock Web Application Firewall (WAF).',
+        code: 'WAF_ATTACK_DETECTED'
+      }),
+      { 
+        status: 403, 
+        headers: { 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+
+  // 2. IP Rate Limiting (DDoS & Brute Force Protection)
+  const clientIp = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 
+                   request.headers.get('x-real-ip') || 
+                   '127.0.0.1';
+
+  let routeType: 'AUTH' | 'WALLET' | 'OTP' | 'GENERAL' = 'GENERAL';
+  if (pathname.startsWith('/api/auth/forgot-password') || pathname.startsWith('/api/auth/reset-password')) {
+    routeType = 'OTP';
+  } else if (pathname.startsWith('/api/auth')) {
+    routeType = 'AUTH';
+  } else if (pathname.startsWith('/api/wallet')) {
+    routeType = 'WALLET';
+  }
+
+  if (pathname.startsWith('/api/')) {
+    const rateLimit = checkRateLimit(clientIp, routeType);
+    if (!rateLimit.allowed) {
+      return new NextResponse(
+        JSON.stringify({
+          error: 'Too Many Requests',
+          message: 'Rate limit exceeded. Please wait before making further requests.',
+          retryAfterSec: rateLimit.retryAfterSec,
+        }),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'Retry-After': String(rateLimit.retryAfterSec || 60),
+          },
+        }
+      );
+    }
+  }
+
+  // 3. Admin Route Authentication Enforcement
   const adminSession = request.cookies.get('admin_session')?.value;
-  
-  // Protect /admin routes, but allow /admin/login to be accessed by anyone
-  if (request.nextUrl.pathname.startsWith('/admin') && request.nextUrl.pathname !== '/admin/login') {
+  if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
     if (!adminSession) {
       return NextResponse.redirect(new URL('/admin/login', request.url));
     }
   }
 
-  return NextResponse.next();
+  // 4. Attach Enterprise Security Headers
+  const response = NextResponse.next();
+  return applySecurityHeaders(response);
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public files (images, icons)
+     */
+    '/((?!_next/static|_next/image|favicon.ico|icon-192.png|icon-512.png).*)',
+  ],
 };
+

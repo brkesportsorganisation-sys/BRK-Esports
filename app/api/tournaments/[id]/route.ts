@@ -27,6 +27,15 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     }
   }
 
-  return NextResponse.json({ tournament, userRegistrations });
+  const isUserRegistered = userRegistrations.length > 0;
+  
+  // Protect Room ID & Password from leaking to non-registered visitors
+  const sanitizedTournament = {
+    ...tournament,
+    roomId: isUserRegistered ? tournament.roomId : undefined,
+    roomPassword: isUserRegistered ? tournament.roomPassword : undefined,
+  };
+
+  return NextResponse.json({ tournament: sanitizedTournament, userRegistrations });
 }
 
