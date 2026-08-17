@@ -388,3 +388,47 @@ export interface AdminActivityLog {
   createdAt: string;
 }
 
+export interface DuelChallenge {
+  id: string;
+  creatorId: string;
+  creatorName: string;
+  creatorIgn: string;
+  creatorUid: string;
+  challengerId?: string;
+  challengerName?: string;
+  challengerIgn?: string;
+  challengerUid?: string;
+  mode: '1v1_CS' | '1v1_SNIPER' | '1v1_DEAGLE' | '2v2_CS' | 'CUSTOM_BERMUDA';
+  customRules: string;
+  stakeType: 'BDT' | 'COINS';
+  entryFee: number;
+  prizePool: number;
+  status: 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  winnerId?: string;
+  roomId?: string;
+  roomPass?: string;
+  createdAt: string;
+}
+
+export interface DiamondProduct {
+  id: string;
+  name: string;
+  diamonds: number;
+  bonusDiamonds?: number;
+  priceBdt: number;
+  priceCoins: number;
+  icon: string;
+  badge?: string;
+  category: 'TOPUP' | 'MEMBERSHIP' | 'SPECIAL';
+}
+
+export const DIAMOND_PRODUCTS: DiamondProduct[] = [
+  { id: 'dia_115', name: '115 Free Fire Diamonds', diamonds: 115, priceBdt: 85, priceCoins: 4250, icon: '💎', category: 'TOPUP' },
+  { id: 'dia_240', name: '240 Free Fire Diamonds', diamonds: 240, bonusDiamonds: 25, priceBdt: 165, priceCoins: 8250, icon: '💎', badge: 'POPULAR', category: 'TOPUP' },
+  { id: 'dia_610', name: '610 Free Fire Diamonds', diamonds: 610, bonusDiamonds: 60, priceBdt: 410, priceCoins: 20500, icon: '💎', badge: 'BEST VALUE', category: 'TOPUP' },
+  { id: 'dia_1240', name: '1,240 Free Fire Diamonds', diamonds: 1240, bonusDiamonds: 150, priceBdt: 820, priceCoins: 41000, icon: '💎', category: 'TOPUP' },
+  { id: 'mem_weekly', name: 'Weekly Membership (450💎 Total)', diamonds: 450, priceBdt: 175, priceCoins: 8750, icon: '🎟️', badge: 'HOT', category: 'MEMBERSHIP' },
+  { id: 'mem_monthly', name: 'Monthly Membership (2600💎 Total)', diamonds: 2600, priceBdt: 860, priceCoins: 43000, icon: '👑', badge: 'VIP', category: 'MEMBERSHIP' },
+  { id: 'pass_lvlup', name: 'Level Up Pass (800💎)', diamonds: 800, priceBdt: 190, priceCoins: 9500, icon: '⚡', category: 'SPECIAL' },
+];
+

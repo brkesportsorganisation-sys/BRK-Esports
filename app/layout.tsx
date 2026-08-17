@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import MobileBottomNav from "@/components/ui/MobileBottomNav";
 import AIAssistantWidget from "@/components/ai/AIAssistantWidget";
+import InstallPwaModal from "@/components/ui/InstallPwaModal";
 import { LanguageProvider } from "@/lib/language-context";
 
 export const metadata: Metadata = {
@@ -32,6 +33,7 @@ export default function RootLayout({
           {children}
           <MobileBottomNav />
           <AIAssistantWidget />
+          <InstallPwaModal />
         </LanguageProvider>
       </body>
     </html>

@@ -30,7 +30,10 @@ import {
   ExternalLink,
   Sparkles,
   Globe,
-  Megaphone
+  Megaphone,
+  Swords,
+  Diamond,
+  Crown
 } from 'lucide-react';
 import { db } from '@/lib/db';
 import { User as UserType, Notification as NotificationType } from '@/lib/types';
@@ -194,10 +197,11 @@ export default function Navbar() {
   const navLinks: { name: string; href: string; icon: React.ElementType; isLive?: boolean }[] = [
     { name: t('nav_home', 'Home'), href: '/', icon: Flame },
     { name: t('nav_tournaments', 'Tournaments'), href: '/tournaments', icon: Trophy },
+    { name: '1v1 Arena', href: '/arena', icon: Swords },
     { name: 'Earn Rewards', href: '/ads', icon: Gift },
+    { name: 'Diamonds', href: '/shop', icon: Diamond },
+    { name: 'Champions', href: '/champions', icon: Crown },
     { name: 'Notices', href: '/announcements', icon: Megaphone },
-    { name: t('nav_community', 'Community'), href: '/community', icon: Users },
-    { name: t('nav_leaderboard', 'Leaderboard'), href: '/leaderboard', icon: Award },
     { name: t('nav_live', 'Live'), href: '/live', icon: Radio, isLive: isLiveActive },
   ];
 
