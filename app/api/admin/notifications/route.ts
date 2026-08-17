@@ -130,30 +130,57 @@ export async function POST(req: NextRequest) {
       createdAt: now
     }));
 
-    // Insert in chunks of 150 to avoid payload size limit
+    // Insert in chunks of 150 with dynamic schema tolerance
     const chunkSize = 150;
-    let hasColumnError = false;
 
     for (let i = 0; i < fullRecords.length; i += chunkSize) {
-      const chunk = fullRecords.slice(i, i + chunkSize);
-      
-      if (!hasColumnError) {
+      let chunk = fullRecords.slice(i, i + chunkSize);
+      let success = false;
+      let attempts = 8;
+
+      while (!success && attempts > 0) {
         const { error: insertErr } = await supabaseAdmin.from('Notification').insert(chunk);
-        if (insertErr) {
-          // If custom column type/link is not yet in Supabase schema, fallback to core columns
-          if (insertErr.message?.toLowerCase().includes('column') || insertErr.message?.includes('type') || insertErr.message?.includes('link')) {
-            hasColumnError = true;
-            const basicChunk = chunk.map(({ type: _, link: __, ...basic }) => basic);
-            const { error: basicErr } = await supabaseAdmin.from('Notification').insert(basicChunk);
-            if (basicErr) throw new Error(basicErr.message);
-          } else {
-            throw new Error(insertErr.message);
+        if (!insertErr) {
+          success = true;
+          break;
+        }
+
+        const fullErrStr = `${insertErr.message || ''} ${insertErr.details || ''} ${insertErr.hint || ''}`;
+        const match = fullErrStr.match(/Could not find the '([^']+)' column/i) ||
+                      fullErrStr.match(/column '([^']+)' does not exist/i) ||
+                      fullErrStr.match(/column "([^"]+)" does not exist/i);
+
+        if (match && match[1]) {
+          const missingCol = match[1];
+          console.warn(`[POST /api/admin/notifications] Dynamic omission of column '${missingCol}' due to schema cache.`);
+          chunk = chunk.map(record => {
+            const copy = { ...record };
+            delete (copy as any)[missingCol];
+            return copy;
+          });
+          attempts--;
+          continue;
+        }
+
+        // Ultimate fallback to core columns if multiple columns mismatch
+        if (attempts <= 2) {
+          const minimalChunk = chunk.map(r => ({
+            id: r.id,
+            userId: r.userId,
+            title: r.title,
+            message: r.message,
+            isRead: false,
+            createdAt: r.createdAt
+          }));
+          const { error: minErr } = await supabaseAdmin.from('Notification').insert(minimalChunk);
+          if (!minErr) {
+            success = true;
+            break;
           }
         }
-      } else {
-        const basicChunk = chunk.map(({ type: _, link: __, ...basic }) => basic);
-        const { error: basicErr } = await supabaseAdmin.from('Notification').insert(basicChunk);
-        if (basicErr) throw new Error(basicErr.message);
+
+        console.error('[POST /api/admin/notifications] Insert error:', insertErr);
+        throw new Error(insertErr.message);
       }
     }
 

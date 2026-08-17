@@ -257,35 +257,61 @@ export async function dispatchNotificationToDatabase(params: {
       createdAt: new Date().toISOString(),
     }));
 
-    // Batch insert up to 100 rows per batch
+    // Batch insert up to 100 rows per batch with dynamic schema tolerance
     const batchSize = 100;
     for (let i = 0; i < rowsToInsert.length; i += batchSize) {
-      const batch = rowsToInsert.slice(i, i + batchSize);
-      const { error: insertErr } = await supabaseAdmin
-        .from('Notification')
-        .insert(batch);
+      let batch = rowsToInsert.slice(i, i + batchSize);
+      let success = false;
+      let attempts = 8;
 
-      if (insertErr) {
-        // Graceful fallback to core Notification columns if new columns are missing
-        if (insertErr.message?.toLowerCase().includes('column') || insertErr.message?.includes('schema cache')) {
-          const coreBatch = batch.map(({ id, userId, title, message, type, link, isRead, createdAt }) => ({
+      while (!success && attempts > 0) {
+        const { error: insertErr } = await supabaseAdmin
+          .from('Notification')
+          .insert(batch);
+
+        if (!insertErr) {
+          success = true;
+          break;
+        }
+
+        const fullErrStr = `${insertErr.message || ''} ${insertErr.details || ''} ${insertErr.hint || ''}`;
+        const match = fullErrStr.match(/Could not find the '([^']+)' column/i) ||
+                      fullErrStr.match(/column '([^']+)' does not exist/i) ||
+                      fullErrStr.match(/column "([^"]+)" does not exist/i);
+
+        if (match && match[1]) {
+          const missingCol = match[1];
+          console.warn(`[dispatchNotificationToDatabase] Dynamic omission of column '${missingCol}' due to schema cache.`);
+          batch = batch.map(record => {
+            const copy = { ...record };
+            delete (copy as any)[missingCol];
+            return copy;
+          });
+          attempts--;
+          continue;
+        }
+
+        // Ultimate fallback to core Notification columns if multiple columns mismatch
+        if (attempts <= 2) {
+          const coreBatch = batch.map(({ id, userId, title, message, isRead, createdAt }) => ({
             id,
             userId,
             title,
             message,
-            type,
-            link,
-            isRead,
+            isRead: Boolean(isRead),
             createdAt,
           }));
           const { error: fallbackErr } = await supabaseAdmin
             .from('Notification')
             .insert(coreBatch);
-          if (fallbackErr) throw new Error(fallbackErr.message);
-        } else {
-          console.error('[dispatchNotificationToDatabase] Batch insert error:', insertErr);
-          throw new Error(insertErr.message);
+          if (!fallbackErr) {
+            success = true;
+            break;
+          }
         }
+
+        console.error('[dispatchNotificationToDatabase] Batch insert error:', insertErr);
+        throw new Error(insertErr.message);
       }
     }
 
