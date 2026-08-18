@@ -225,6 +225,7 @@ export default function Navbar() {
   ];
 
   const moreNavLinks: NavLinkItem[] = [
+    { name: isBangla ? 'লিডারবোর্ড' : 'Leaderboard', href: '/leaderboard', icon: Trophy },
     { name: 'Diamonds & Top-up', href: '/shop', icon: Diamond },
     { name: 'Hall of Champions', href: '/champions', icon: Crown },
     { name: 'Notices & Rules', href: '/announcements', icon: Megaphone },
