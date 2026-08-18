@@ -30,7 +30,15 @@ export default function HomePage() {
   const { t, isBangla } = useLanguage();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [siteSettings, setSiteSettings] = useState<Record<string, string>>({});
+  const [siteSettings, setSiteSettings] = useState<Record<string, string>>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('helian_site_settings');
+        if (cached) return JSON.parse(cached);
+      } catch {}
+    }
+    return {};
+  });
 
   // Real-time Monthly Event Reset Countdown Timer
   const [timeLeft, setTimeLeft] = useState({
@@ -76,7 +84,11 @@ export default function HomePage() {
         const res = await fetch('/api/settings', { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
-          setSiteSettings(data.settings || {});
+          const settings = data.settings || {};
+          setSiteSettings(settings);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('helian_site_settings', JSON.stringify(settings));
+          }
         }
       } catch (err) {
         console.warn('Failed to load site settings:', err);
@@ -136,19 +148,19 @@ export default function HomePage() {
               <div className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-orange-50 border border-brand-orange/20">
                 <Flame className="w-4 h-4 text-brand-red animate-pulse" />
                 <span className="text-xs font-bold text-slate-700 uppercase tracking-widest">
-                  {siteSettings.hero_badge || t('hero_badge', 'Multi-Game Esports Championships Live')}
+                  {siteSettings.hero_badge || 'Multi-Game Esports Championships Live'}
                 </span>
               </div>
 
               <h1 className="font-heading text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-slate-900 leading-none">
-                {siteSettings.hero_title_1 || t('hero_title_1', 'DOMINATE THE')} <br />
+                {siteSettings.hero_title_1 || 'DOMINATE THE'} <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold">
-                  {siteSettings.hero_title_2 || t('hero_title_2', 'ESPORTS ARENA')}
+                  {siteSettings.hero_title_2 || 'ESPORTS ARENA'}
                 </span>
               </h1>
 
               <p className="text-slate-600 text-base sm:text-lg max-w-2xl leading-relaxed">
-                {siteSettings.hero_desc || t('hero_desc', "Join Bangladesh's premier automated esports platform. Compete in Free Fire, eFootball, PUBG Mobile, Valorant & daily tournaments, earn instant bKash payouts, and claim championship glory.")}
+                {siteSettings.hero_desc || "Join Bangladesh's premier automated esports platform. Compete in Free Fire, eFootball, PUBG Mobile, Valorant & daily tournaments, earn instant bKash payouts, and claim championship glory."}
               </p>
 
               {/* Action Buttons */}
@@ -158,7 +170,7 @@ export default function HomePage() {
                   className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold text-white font-heading font-black text-lg shadow-neon-red hover:scale-105 active:scale-95 transition-all flex items-center justify-center space-x-3"
                 >
                   <Trophy className="w-5 h-5 text-white" />
-                  <span>{siteSettings.hero_btn_1_text || t('hero_btn_browse', 'BROWSE TOURNAMENTS')}</span>
+                  <span>{siteSettings.hero_btn_1_text || 'BROWSE TOURNAMENTS'}</span>
                 </Link>
 
                 <Link
@@ -166,7 +178,7 @@ export default function HomePage() {
                   className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-white text-slate-900 font-heading font-bold text-lg border border-slate-200 hover:border-brand-orange/60 hover:bg-slate-50 transition-all flex items-center justify-center space-x-3 shadow-sm"
                 >
                   <Sparkles className="w-5 h-5 text-brand-gold" />
-                  <span>{siteSettings.hero_btn_2_text || t('hero_btn_rewards', 'CLAIM FREE REWARDS')}</span>
+                  <span>{siteSettings.hero_btn_2_text || 'CLAIM FREE REWARDS'}</span>
                 </Link>
               </div>
 
