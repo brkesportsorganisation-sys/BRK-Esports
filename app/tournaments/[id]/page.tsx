@@ -414,7 +414,10 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
 
         <div className="absolute bottom-6 left-4 sm:left-8 right-4 sm:right-8 max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div className="space-y-2 max-w-2xl">
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 items-center">
+              <span className="px-3 py-1 rounded-lg bg-orange-600/90 text-white text-xs font-black uppercase tracking-wider shadow-md">
+                {tournament.game === 'EFOOTBALL' ? '⚽ eFootball' : tournament.game === 'PUBG_MOBILE' ? '🪖 PUBG Mobile' : tournament.game === 'VALORANT' ? '🎯 Valorant' : tournament.game === 'MLBB' ? '⚔️ Mobile Legends' : tournament.gameName || '🔥 Free Fire'}
+              </span>
               <span className="px-3 py-1 rounded-lg bg-brand-red text-white text-xs font-bold uppercase">{tournament.mode}</span>
               <span className="px-3 py-1 rounded-lg bg-brand-purple text-white text-xs font-bold uppercase shadow-neon-cyan">{tournament.format.replace('_', ' ')}</span>
               <span className="px-3 py-1 rounded-lg bg-surface/80 border border-surface-border text-xs font-bold text-brand-gold uppercase flex items-center gap-2">

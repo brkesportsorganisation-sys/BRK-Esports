@@ -34,7 +34,7 @@ export default function HomePage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(playerLeaderboard);
   const [siteSettings, setSiteSettings] = useState<Record<string, string>>({});
-  const [activeTab, setActiveTab] = useState<'ALL' | 'SQUAD' | 'SOLO' | 'CS_RANKED'>('ALL');
+  const [activeTab, setActiveTab] = useState<'ALL' | 'FREE_FIRE' | 'EFOOTBALL' | 'PUBG_MOBILE' | 'VALORANT' | 'SOLO' | 'SQUAD'>('ALL');
 
   // Real-time Monthly Event Reset Countdown Timer
   const [timeLeft, setTimeLeft] = useState({
@@ -135,9 +135,12 @@ export default function HomePage() {
 
   const filteredTournaments = tournaments.filter(t => {
     if (activeTab === 'ALL') return true;
+    if (activeTab === 'FREE_FIRE') return (t.game || 'FREE_FIRE') === 'FREE_FIRE' || t.title.toLowerCase().includes('free fire');
+    if (activeTab === 'EFOOTBALL') return t.game === 'EFOOTBALL' || t.title.toLowerCase().includes('efootball') || t.title.toLowerCase().includes('pes');
+    if (activeTab === 'PUBG_MOBILE') return t.game === 'PUBG_MOBILE' || t.title.toLowerCase().includes('pubg') || t.title.toLowerCase().includes('bgmi');
+    if (activeTab === 'VALORANT') return t.game === 'VALORANT' || t.title.toLowerCase().includes('valorant');
     if (activeTab === 'SQUAD') return t.mode === 'SQUAD';
     if (activeTab === 'SOLO') return t.mode === 'SOLO';
-    if (activeTab === 'CS_RANKED') return t.format === 'CS_RANKED';
     return true;
   });
 
@@ -163,19 +166,19 @@ export default function HomePage() {
               <div className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-orange-50 border border-brand-orange/20">
                 <Flame className="w-4 h-4 text-brand-red animate-pulse" />
                 <span className="text-xs font-bold text-slate-700 uppercase tracking-widest">
-                  {siteSettings.hero_badge || t('hero_badge', 'Season 5 Bangladesh Championship Live')}
+                  {siteSettings.hero_badge || t('hero_badge', 'Multi-Game Esports Championships Live')}
                 </span>
               </div>
 
               <h1 className="font-heading text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-slate-900 leading-none">
                 {siteSettings.hero_title_1 || t('hero_title_1', 'DOMINATE THE')} <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold">
-                  {siteSettings.hero_title_2 || t('hero_title_2', 'FREE FIRE ARENA')}
+                  {siteSettings.hero_title_2 || t('hero_title_2', 'ESPORTS ARENA')}
                 </span>
               </h1>
 
               <p className="text-slate-600 text-base sm:text-lg max-w-2xl leading-relaxed">
-                {siteSettings.hero_desc || t('hero_desc', "Join Bangladesh's premier automated Free Fire esports platform. Compete in daily BR Squad, Duo & CS 4v4 tournaments, earn instant bKash payouts per kill, and claim the championship trophy.")}
+                {siteSettings.hero_desc || t('hero_desc', "Join Bangladesh's premier automated esports platform. Compete in Free Fire, eFootball, PUBG Mobile, Valorant & daily tournaments, earn instant bKash payouts, and claim championship glory.")}
               </p>
 
               {/* Action Buttons */}
@@ -479,18 +482,26 @@ export default function HomePage() {
           </div>
 
           {/* Filter Tabs */}
-          <div className="flex items-center space-x-1 bg-white p-1.5 rounded-2xl border border-slate-200 overflow-x-auto shadow-sm">
-            {(['ALL', 'SQUAD', 'SOLO', 'CS_RANKED'] as const).map((tab) => (
+          <div className="flex items-center space-x-1.5 bg-white p-1.5 rounded-2xl border border-slate-200 overflow-x-auto shadow-sm">
+            {[
+              { id: 'ALL', label: '🎮 All Games' },
+              { id: 'FREE_FIRE', label: '🔥 Free Fire' },
+              { id: 'EFOOTBALL', label: '⚽ eFootball' },
+              { id: 'PUBG_MOBILE', label: '🪖 PUBG Mobile' },
+              { id: 'VALORANT', label: '🎯 Valorant' },
+              { id: 'SOLO', label: 'Solo 1v1' },
+              { id: 'SQUAD', label: 'Squad' },
+            ].map((tab) => (
               <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                  activeTab === tab
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                  activeTab === tab.id
                     ? 'bg-gradient-to-r from-brand-red to-brand-orange text-white shadow-sm'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                 }`}
               >
-                {tab.replace('_', ' ')}
+                {tab.label}
               </button>
             ))}
           </div>

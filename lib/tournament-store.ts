@@ -34,6 +34,16 @@ function serializeTournament(record: Record<string, any>): Tournament {
     title: String(record.title || ''),
     description: String(record.description || ''),
     banner: String(record.banner || ''),
+    game: record.game ? String(record.game) : 'FREE_FIRE',
+    gameName: record.gameName ? String(record.gameName) : (
+      record.game === 'EFOOTBALL' ? 'eFootball' :
+      record.game === 'PUBG_MOBILE' ? 'PUBG Mobile' :
+      record.game === 'VALORANT' ? 'Valorant' :
+      record.game === 'MLBB' ? 'Mobile Legends' :
+      record.game === 'COD_MOBILE' ? 'COD Mobile' :
+      record.game === 'LUDO_KING' ? 'Ludo King' :
+      'Free Fire'
+    ),
     mode: (record.mode as Tournament['mode']) || 'SQUAD',
     format: (record.format as Tournament['format']) || 'BR_RANKED',
     entryFee: Number(record.entryFee || 0),
@@ -110,6 +120,16 @@ export async function createTournamentInDb(input: Record<string, any>) {
     title: String(input.title || ''),
     description: String(input.description || ''),
     banner: input.banner ? String(input.banner) : null,
+    game: input.game ? String(input.game) : 'FREE_FIRE',
+    gameName: input.gameName ? String(input.gameName) : (
+      input.game === 'EFOOTBALL' ? 'eFootball' :
+      input.game === 'PUBG_MOBILE' ? 'PUBG Mobile' :
+      input.game === 'VALORANT' ? 'Valorant' :
+      input.game === 'MLBB' ? 'Mobile Legends' :
+      input.game === 'COD_MOBILE' ? 'COD Mobile' :
+      input.game === 'LUDO_KING' ? 'Ludo King' :
+      'Free Fire'
+    ),
     bannerImage: input.bannerImage ? String(input.bannerImage) : null,
     thumbnailImage: input.thumbnailImage ? String(input.thumbnailImage) : null,
     logoImage: input.logoImage ? String(input.logoImage) : null,
@@ -172,6 +192,8 @@ export async function updateTournamentInDb(id: string, input: Record<string, any
   if (input.title !== undefined) updateData.title = String(input.title);
   if (input.description !== undefined) updateData.description = String(input.description);
   if (input.banner !== undefined) updateData.banner = String(input.banner);
+  if (input.game !== undefined) updateData.game = String(input.game);
+  if (input.gameName !== undefined) updateData.gameName = String(input.gameName);
   if (input.bannerImage !== undefined) updateData.bannerImage = input.bannerImage ? String(input.bannerImage) : null;
   if (input.thumbnailImage !== undefined) updateData.thumbnailImage = input.thumbnailImage ? String(input.thumbnailImage) : null;
   if (input.logoImage !== undefined) updateData.logoImage = input.logoImage ? String(input.logoImage) : null;

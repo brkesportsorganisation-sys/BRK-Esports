@@ -22,6 +22,8 @@ const toLocalISO = (dateString?: string | Date | null) => {
 interface TournamentFormState {
   title: string;
   description: string;
+  game: string;
+  gameName: string;
   mode: Mode;
   format: Format;
   entryFee: number;
@@ -65,6 +67,8 @@ interface TournamentFormState {
 const defaultForm: TournamentFormState = {
   title: '',
   description: '',
+  game: 'FREE_FIRE',
+  gameName: 'Free Fire',
   mode: 'SQUAD' as Mode,
   format: 'BR_RANKED' as Format,
   entryFee: 100,
@@ -118,6 +122,7 @@ export default function AdminTournamentsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | TournamentStatus>('ALL');
+  const [gameFilter, setGameFilter] = useState<string>('ALL');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<TournamentFormState>(defaultForm);
@@ -139,6 +144,7 @@ export default function AdminTournamentsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: form.title,
+          game: form.game,
           mode: form.mode,
           format: form.format,
           prizePool: form.prizePool,
@@ -171,16 +177,13 @@ export default function AdminTournamentsPage() {
   }, []);
 
   const loadTournaments = async () => {
+    setLoading(true);
     try {
       const response = await fetch('/api/admin/tournaments', { credentials: 'include' });
-      const data = await response.json();
       if (response.ok) {
-        setTournaments(data.tournaments || []);
-      } else {
-        console.error('[loadTournaments] Failed:', data.message);
+        const payload = await response.json();
+        setTournaments(payload.tournaments || []);
       }
-    } catch (err) {
-      console.error('[loadTournaments] Network error:', err);
     } finally {
       setLoading(false);
     }
@@ -188,11 +191,31 @@ export default function AdminTournamentsPage() {
 
   const filteredTournaments = useMemo(() => {
     return tournaments.filter((item) => {
-      const matchesSearch = `${item.title} ${item.description}`.toLowerCase().includes(search.toLowerCase());
+      const matchesSearch = `${item.title} ${item.description} ${item.gameName || ''}`.toLowerCase().includes(search.toLowerCase());
       const matchesStatus = statusFilter === 'ALL' || item.status === statusFilter;
-      return matchesSearch && matchesStatus;
+      let matchesGame = true;
+      if (gameFilter !== 'ALL') {
+        const g = (item.game || '').toUpperCase();
+        const title = item.title.toLowerCase();
+        if (gameFilter === 'FREE_FIRE') {
+          matchesGame = g === 'FREE_FIRE' || title.includes('free fire') || g === '';
+        } else if (gameFilter === 'EFOOTBALL') {
+          matchesGame = g === 'EFOOTBALL' || title.includes('efootball') || title.includes('pes');
+        } else if (gameFilter === 'PUBG_MOBILE') {
+          matchesGame = g === 'PUBG_MOBILE' || title.includes('pubg') || title.includes('bgmi');
+        } else if (gameFilter === 'VALORANT') {
+          matchesGame = g === 'VALORANT' || title.includes('valorant');
+        } else if (gameFilter === 'MLBB') {
+          matchesGame = g === 'MLBB' || title.includes('mobile legends') || title.includes('mlbb');
+        } else if (gameFilter === 'COD_MOBILE') {
+          matchesGame = g === 'COD_MOBILE' || title.includes('cod') || title.includes('call of duty');
+        } else if (gameFilter === 'LUDO_KING') {
+          matchesGame = g === 'LUDO_KING' || title.includes('ludo');
+        }
+      }
+      return matchesSearch && matchesStatus && matchesGame;
     });
-  }, [search, statusFilter, tournaments]);
+  }, [search, statusFilter, gameFilter, tournaments]);
 
   const resetForm = () => {
     setForm(defaultForm);
@@ -245,6 +268,8 @@ export default function AdminTournamentsPage() {
     setForm({
       title: item.title,
       description: item.description,
+      game: item.game || 'FREE_FIRE',
+      gameName: item.gameName || (item.game === 'EFOOTBALL' ? 'eFootball' : item.game === 'PUBG_MOBILE' ? 'PUBG Mobile' : item.game === 'VALORANT' ? 'Valorant' : 'Free Fire'),
       mode: item.mode,
       format: item.format,
       entryFee: item.entryFee,
@@ -364,6 +389,8 @@ export default function AdminTournamentsPage() {
       title: form.title.trim(),
       description: form.description.trim(),
       banner: form.bannerImage || undefined,
+      game: form.game || 'FREE_FIRE',
+      gameName: form.gameName || undefined,
       mode: form.mode,
       format: form.format,
       entryFee: form.entryFee,
@@ -490,6 +517,8 @@ export default function AdminTournamentsPage() {
     const duplicatePayload = {
       title: `${item.title} (Copy)`,
       description: item.description,
+      game: item.game || 'FREE_FIRE',
+      gameName: item.gameName || 'Free Fire',
       mode: item.mode,
       format: item.format,
       entryFee: item.entryFee,
@@ -546,9 +575,9 @@ export default function AdminTournamentsPage() {
           <div>
             <p className="text-xs uppercase tracking-[0.35em] text-brand-red font-bold">Secure Tournament Operations</p>
             <h1 className="mt-1 text-2xl sm:text-3xl font-heading font-black text-white">TOURNAMENT CONTROL CENTER</h1>
-            <p className="mt-1 text-xs text-slate-300 font-medium">Create, edit, publish, feature, duplicate, and manage tournament slot brackets.</p>
+            <p className="mt-1 text-xs text-slate-300 font-medium">Create, edit, publish, feature, duplicate, and manage multi-game esports tournaments.</p>
           </div>
-          <button onClick={openCreateModal} className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-brand-red to-brand-orange px-5 py-3 font-heading font-black text-xs text-white shadow-neon-red hover:brightness-110 transition-all">
+          <button onClick={openCreateModal} className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-brand-red to-brand-orange px-5 py-3 font-heading font-black text-xs text-white shadow-neon-red hover:brightness-110 transition-all cursor-pointer">
             <PlusCircle className="h-4 w-4" /> CREATE TOURNAMENT
           </button>
         </div>
@@ -573,11 +602,26 @@ export default function AdminTournamentsPage() {
         <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-center">
           <label className="flex flex-1 items-center gap-2 rounded-2xl border border-slate-800 bg-slate-900 px-4 py-2.5 text-xs text-white shadow-sm focus-within:border-brand-red">
             <Search className="h-4 w-4 text-slate-400" />
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search tournaments..." className="w-full bg-transparent outline-none text-white placeholder-slate-400 font-medium" />
+            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search tournaments or game..." className="w-full bg-transparent outline-none text-white placeholder-slate-400 font-medium" />
           </label>
+
           <label className="flex items-center gap-2 rounded-2xl border border-slate-800 bg-slate-900 px-4 py-2.5 text-xs text-white shadow-sm focus-within:border-brand-red">
             <Filter className="h-4 w-4 text-slate-400" />
-            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as 'ALL' | TournamentStatus)} className="bg-transparent outline-none text-white font-bold">
+            <select value={gameFilter} onChange={(event) => setGameFilter(event.target.value)} className="bg-transparent outline-none text-white font-bold cursor-pointer">
+              <option value="ALL" className="bg-slate-900 text-white">🎮 All Games</option>
+              <option value="FREE_FIRE" className="bg-slate-900 text-white">🔥 Free Fire</option>
+              <option value="EFOOTBALL" className="bg-slate-900 text-white">⚽ eFootball</option>
+              <option value="PUBG_MOBILE" className="bg-slate-900 text-white">🪖 PUBG Mobile</option>
+              <option value="VALORANT" className="bg-slate-900 text-white">🎯 Valorant</option>
+              <option value="MLBB" className="bg-slate-900 text-white">⚔️ MLBB</option>
+              <option value="COD_MOBILE" className="bg-slate-900 text-white">💥 COD Mobile</option>
+              <option value="LUDO_KING" className="bg-slate-900 text-white">🎲 Ludo King</option>
+            </select>
+          </label>
+
+          <label className="flex items-center gap-2 rounded-2xl border border-slate-800 bg-slate-900 px-4 py-2.5 text-xs text-white shadow-sm focus-within:border-brand-red">
+            <Filter className="h-4 w-4 text-slate-400" />
+            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as 'ALL' | TournamentStatus)} className="bg-transparent outline-none text-white font-bold cursor-pointer">
               {statusOptions.map((option) => (
                 <option key={option} value={option} className="bg-slate-900 text-white">
                   {option === 'ALL' ? 'All Statuses' : option}
@@ -591,7 +635,7 @@ export default function AdminTournamentsPage() {
           <table className="min-w-full text-left text-sm">
             <thead className="bg-slate-900/90 text-slate-300 text-xs uppercase font-bold border-b border-slate-800">
               <tr>
-                <th className="px-4 py-4">Tournament</th>
+                <th className="px-4 py-4">Tournament & Game</th>
                 <th className="px-4 py-4">Status</th>
                 <th className="px-4 py-4">Prize Pool</th>
                 <th className="px-4 py-4">Visibility</th>
@@ -612,7 +656,12 @@ export default function AdminTournamentsPage() {
                       </div>
                       <div>
                         <div className="font-bold text-white text-xs">{item.title}</div>
-                        <div className="text-[11px] text-slate-300 mt-0.5 font-mono font-medium">{item.mode} • {item.format.replace('_', ' ')}</div>
+                        <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                          <span className="px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-[10px] font-bold text-brand-gold uppercase">
+                            {item.game === 'EFOOTBALL' ? '⚽ eFootball' : item.game === 'PUBG_MOBILE' ? '🪖 PUBG' : item.game === 'VALORANT' ? '🎯 Valorant' : item.game === 'MLBB' ? '⚔️ MLBB' : item.gameName || '🔥 Free Fire'}
+                          </span>
+                          <span className="text-[11px] text-slate-300 font-mono font-medium">{item.mode} • {item.format.replace('_', ' ')}</span>
+                        </div>
                       </div>
                     </div>
                   </td>
@@ -626,11 +675,11 @@ export default function AdminTournamentsPage() {
                   </td>
                   <td className="px-4 py-4 text-right">
                     <div className="flex flex-wrap justify-end gap-1.5">
-                      <button onClick={() => openEditModal(item)} className="rounded-xl border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs font-bold text-slate-300 hover:text-white transition-colors">Edit</button>
-                      <button onClick={() => void handleQuickAction(item.id, { status: item.status === 'LIVE' ? 'UPCOMING' : 'LIVE', isPublished: true })} className="rounded-xl border border-emerald-800/50 bg-emerald-950/50 px-2.5 py-1.5 text-xs font-bold text-emerald-400 hover:bg-emerald-900 transition-colors">Publish</button>
-                      <button onClick={() => void handleQuickAction(item.id, { isFeatured: !item.isFeatured })} className="rounded-xl border border-orange-800/50 bg-orange-950/50 px-2.5 py-1.5 text-xs font-bold text-orange-400 hover:bg-orange-900 transition-colors">Feature</button>
-                      <button onClick={() => void duplicateTournament(item)} className="rounded-xl border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs font-bold text-slate-300 hover:text-white transition-colors"><Copy className="mr-1 h-3 w-3 inline" /> Copy</button>
-                      <button onClick={() => void handleDelete(item.id)} className="rounded-xl border border-red-900/50 bg-red-950/50 px-2.5 py-1.5 text-xs font-bold text-red-400 hover:bg-red-900 transition-colors"><Trash2 className="mr-1 h-3 w-3 inline" /> Delete</button>
+                      <button onClick={() => openEditModal(item)} className="rounded-xl border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs font-bold text-slate-300 hover:text-white transition-colors cursor-pointer">Edit</button>
+                      <button onClick={() => void handleQuickAction(item.id, { status: item.status === 'LIVE' ? 'UPCOMING' : 'LIVE', isPublished: true })} className="rounded-xl border border-emerald-800/50 bg-emerald-950/50 px-2.5 py-1.5 text-xs font-bold text-emerald-400 hover:bg-emerald-900 transition-colors cursor-pointer">Publish</button>
+                      <button onClick={() => void handleQuickAction(item.id, { isFeatured: !item.isFeatured })} className="rounded-xl border border-orange-800/50 bg-orange-950/50 px-2.5 py-1.5 text-xs font-bold text-orange-400 hover:bg-orange-900 transition-colors cursor-pointer">Feature</button>
+                      <button onClick={() => void duplicateTournament(item)} className="rounded-xl border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs font-bold text-slate-300 hover:text-white transition-colors cursor-pointer"><Copy className="mr-1 h-3 w-3 inline" /> Copy</button>
+                      <button onClick={() => void handleDelete(item.id)} className="rounded-xl border border-red-900/50 bg-red-950/50 px-2.5 py-1.5 text-xs font-bold text-red-400 hover:bg-red-900 transition-colors cursor-pointer"><Trash2 className="mr-1 h-3 w-3 inline" /> Delete</button>
                     </div>
                   </td>
                 </tr>
@@ -657,6 +706,37 @@ export default function AdminTournamentsPage() {
 
             <form onSubmit={handleSubmit} className="mt-6 grid gap-4 lg:grid-cols-2">
               <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                {/* Select Esports Game */}
+                <div>
+                  <label className="mb-2 block text-sm font-bold text-slate-800">Select Esports Game <span className="text-red-500">*</span></label>
+                  <select 
+                    value={form.game} 
+                    onChange={(event) => {
+                      const g = event.target.value;
+                      const defaultName = 
+                        g === 'FREE_FIRE' ? 'Free Fire' :
+                        g === 'EFOOTBALL' ? 'eFootball' :
+                        g === 'PUBG_MOBILE' ? 'PUBG Mobile' :
+                        g === 'VALORANT' ? 'Valorant' :
+                        g === 'MLBB' ? 'Mobile Legends' :
+                        g === 'COD_MOBILE' ? 'COD Mobile' :
+                        g === 'LUDO_KING' ? 'Ludo King' :
+                        'Other Game';
+                      setForm((prev) => ({ ...prev, game: g, gameName: defaultName }));
+                    }} 
+                    className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-3 text-slate-900 font-bold shadow-sm focus:border-red-300 focus:ring-1 focus:ring-red-300 outline-none cursor-pointer"
+                  >
+                    <option value="FREE_FIRE">🔥 Free Fire (Garena)</option>
+                    <option value="EFOOTBALL">⚽ eFootball (Konami)</option>
+                    <option value="PUBG_MOBILE">🪖 PUBG Mobile / BGMI</option>
+                    <option value="VALORANT">🎯 Valorant (Riot Games)</option>
+                    <option value="MLBB">⚔️ Mobile Legends (MLBB)</option>
+                    <option value="COD_MOBILE">💥 Call of Duty: Mobile</option>
+                    <option value="LUDO_KING">🎲 Ludo King</option>
+                    <option value="OTHER">🏆 Other Custom Game</option>
+                  </select>
+                </div>
+
                 <div>
                   <label className="mb-2 block text-sm font-medium text-slate-700">Tournament Name <span className="text-red-500">*</span></label>
                   <input required value={form.title} onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))} className={`w-full rounded-2xl border bg-white px-3 py-3 text-slate-900 shadow-sm focus:border-red-300 focus:ring-1 focus:ring-red-300 outline-none ${validationErrors.title ? 'border-red-500' : 'border-slate-300'}`} />
@@ -689,30 +769,30 @@ export default function AdminTournamentsPage() {
                   <div>
                     <label className="mb-2 block text-sm font-medium text-slate-700">Game Mode</label>
                     <select value={form.mode} onChange={(event) => setForm((prev) => ({ ...prev, mode: event.target.value as Mode }))} className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-3 text-slate-900 shadow-sm focus:border-red-300 focus:ring-1 focus:ring-red-300 outline-none">
-                      <option value="SOLO">SOLO</option>
-                      <option value="DUO">DUO</option>
-                      <option value="SQUAD">SQUAD</option>
+                      <option value="SOLO">SOLO (1v1)</option>
+                      <option value="DUO">DUO (2v2)</option>
+                      <option value="SQUAD">SQUAD (4v4 / 5v5)</option>
                     </select>
                   </div>
                   <div>
                     <label className="mb-2 block text-sm font-medium text-slate-700">Match Type</label>
                     <select value={form.format} onChange={(event) => setForm((prev) => ({ ...prev, format: event.target.value as Format }))} className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-3 text-slate-900 shadow-sm focus:border-red-300 focus:ring-1 focus:ring-red-300 outline-none">
-                      <option value="BR_RANKED">BR RANKED</option>
-                      <option value="CS_RANKED">CS RANKED</option>
+                      <option value="BR_RANKED">BR RANKED / Knockout</option>
+                      <option value="CS_RANKED">CS RANKED / Custom Room</option>
                     </select>
                   </div>
                 </div>
                 <div className="grid gap-4 md:grid-cols-3">
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700">Entry Fee</label>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">Entry Fee (৳)</label>
                     <input type="number" min="0" value={form.entryFee} onChange={(event) => setForm((prev) => ({ ...prev, entryFee: Number(event.target.value) }))} className={`w-full rounded-2xl border bg-white px-3 py-3 text-slate-900 shadow-sm focus:border-red-300 focus:ring-1 focus:ring-red-300 outline-none ${validationErrors.entryFee ? 'border-red-500' : 'border-slate-300'}`} />
                   </div>
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700">Prize Pool</label>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">Prize Pool (৳)</label>
                     <input type="number" min="0" value={form.prizePool} onChange={(event) => setForm((prev) => ({ ...prev, prizePool: Number(event.target.value) }))} className={`w-full rounded-2xl border bg-white px-3 py-3 text-slate-900 shadow-sm focus:border-red-300 focus:ring-1 focus:ring-red-300 outline-none ${validationErrors.prizePool ? 'border-red-500' : 'border-slate-300'}`} />
                   </div>
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700">Max Teams</label>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">Max Teams / Slots</label>
                     <input type="number" min="2" value={form.maxTeams} onChange={(event) => setForm((prev) => ({ ...prev, maxTeams: Number(event.target.value) }))} className={`w-full rounded-2xl border bg-white px-3 py-3 text-slate-900 shadow-sm focus:border-red-300 focus:ring-1 focus:ring-red-300 outline-none ${validationErrors.maxTeams ? 'border-red-500' : 'border-slate-300'}`} />
                   </div>
                 </div>

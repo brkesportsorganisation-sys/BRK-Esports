@@ -178,6 +178,8 @@ CREATE TABLE IF NOT EXISTS "Tournament" (
     "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "game" TEXT DEFAULT 'FREE_FIRE';
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "gameName" TEXT DEFAULT 'Free Fire';
 ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "bannerImage" TEXT;
 ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "thumbnailImage" TEXT;
 ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "logoImage" TEXT;

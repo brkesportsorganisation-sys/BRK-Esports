@@ -66,6 +66,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       ...(body.title !== undefined ? { title: validateAdminInput(body.title, 3, 120) || undefined } : {}),
       ...(body.description !== undefined ? { description: validateAdminInput(body.description, 10, 4000) || undefined } : {}),
       ...(body.banner !== undefined || bannerImageUrl !== undefined ? { banner: bannerImageUrl || body.banner || undefined } : {}),
+      ...(body.game !== undefined ? { game: String(body.game) } : {}),
+      ...(body.gameName !== undefined ? { gameName: String(body.gameName) } : {}),
       ...(body.mode !== undefined ? { mode: body.mode } : {}),
       ...(body.format !== undefined ? { format: body.format } : {}),
       ...(body.entryFee !== undefined ? { entryFee: validateNumberInput(body.entryFee) ?? undefined } : {}),

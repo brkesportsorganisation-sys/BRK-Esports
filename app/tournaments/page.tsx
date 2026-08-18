@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, Trophy, Filter, X, RotateCcw, Sparkles } from 'lucide-react';
+import { Search, Trophy, Filter, X, RotateCcw, Sparkles, Gamepad2 } from 'lucide-react';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import TournamentCard from '@/components/tournaments/TournamentCard';
@@ -10,6 +10,7 @@ import { Tournament } from '@/lib/types';
 export default function TournamentsPage() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedGame, setSelectedGame] = useState<string>('ALL');
   const [selectedMode, setSelectedMode] = useState<string>('ALL');
   const [selectedFormat, setSelectedFormat] = useState<string>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
@@ -32,6 +33,7 @@ export default function TournamentsPage() {
 
   const hasActiveFilters = 
     Boolean(searchQuery.trim()) || 
+    selectedGame !== 'ALL' ||
     selectedMode !== 'ALL' || 
     selectedFormat !== 'ALL' || 
     selectedStatus !== 'ALL' || 
@@ -39,6 +41,7 @@ export default function TournamentsPage() {
 
   const resetFilters = () => {
     setSearchQuery('');
+    setSelectedGame('ALL');
     setSelectedMode('ALL');
     setSelectedFormat('ALL');
     setSelectedStatus('ALL');
@@ -47,8 +50,28 @@ export default function TournamentsPage() {
 
   const filteredTournaments = tournaments.filter((t) => {
     // Search
-    if (searchQuery && !t.title.toLowerCase().includes(searchQuery.toLowerCase())) {
+    if (searchQuery && !t.title.toLowerCase().includes(searchQuery.toLowerCase()) && !(t.gameName || '').toLowerCase().includes(searchQuery.toLowerCase())) {
       return false;
+    }
+    // Game Filter
+    if (selectedGame !== 'ALL') {
+      const g = (t.game || '').toUpperCase();
+      const title = t.title.toLowerCase();
+      if (selectedGame === 'FREE_FIRE') {
+        if (g !== 'FREE_FIRE' && !title.includes('free fire') && g !== '') return false;
+      } else if (selectedGame === 'EFOOTBALL') {
+        if (g !== 'EFOOTBALL' && !title.includes('efootball') && !title.includes('pes')) return false;
+      } else if (selectedGame === 'PUBG_MOBILE') {
+        if (g !== 'PUBG_MOBILE' && !title.includes('pubg') && !title.includes('bgmi')) return false;
+      } else if (selectedGame === 'VALORANT') {
+        if (g !== 'VALORANT' && !title.includes('valorant')) return false;
+      } else if (selectedGame === 'MLBB') {
+        if (g !== 'MLBB' && !title.includes('mobile legends') && !title.includes('mlbb')) return false;
+      } else if (selectedGame === 'COD_MOBILE') {
+        if (g !== 'COD_MOBILE' && !title.includes('cod') && !title.includes('call of duty')) return false;
+      } else if (selectedGame === 'LUDO_KING') {
+        if (g !== 'LUDO_KING' && !title.includes('ludo')) return false;
+      }
     }
     // Mode
     if (selectedMode !== 'ALL' && t.mode !== selectedMode) return false;
@@ -73,13 +96,13 @@ export default function TournamentsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center space-y-2">
           <span className="text-[11px] font-bold text-brand-orange uppercase tracking-widest inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 border border-brand-orange/20">
             <Trophy className="w-3.5 h-3.5 text-brand-orange" />
-            <span>Competitive Esports Arena</span>
+            <span>Multi-Game Esports Championship Hub</span>
           </span>
           <h1 className="font-heading font-black text-2xl sm:text-4xl text-slate-900 tracking-tight">
-            FREE FIRE TOURNAMENTS
+            ESPORTS TOURNAMENTS
           </h1>
           <p className="text-slate-600 text-xs sm:text-sm mt-1 max-w-xl mx-auto leading-relaxed">
-            Browse active Solo, Duo, and Squad tournaments. Enter room credentials, eliminate enemies, and earn real cash payouts.
+            Free Fire, eFootball, PUBG Mobile, Valorant & more! Enter room credentials, eliminate enemies, and earn real cash payouts.
           </p>
         </div>
       </div>
@@ -92,11 +115,11 @@ export default function TournamentsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5 items-center">
             
             {/* Search Input */}
-            <div className="sm:col-span-2 lg:col-span-4 relative">
+            <div className="sm:col-span-2 lg:col-span-3 relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search tournament or mode..."
+                placeholder="Search tournament, game..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl pl-9 pr-8 py-2 text-xs font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-orange focus:bg-white transition-colors"
@@ -112,6 +135,24 @@ export default function TournamentsPage() {
               )}
             </div>
 
+            {/* Game Select */}
+            <div className="lg:col-span-2">
+              <select
+                value={selectedGame}
+                onChange={(e) => setSelectedGame(e.target.value)}
+                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-brand-orange focus:bg-white cursor-pointer"
+              >
+                <option value="ALL">🎮 Game: All Games</option>
+                <option value="FREE_FIRE">🔥 Free Fire</option>
+                <option value="EFOOTBALL">⚽ eFootball</option>
+                <option value="PUBG_MOBILE">🪖 PUBG Mobile</option>
+                <option value="VALORANT">🎯 Valorant</option>
+                <option value="MLBB">⚔️ Mobile Legends</option>
+                <option value="COD_MOBILE">💥 COD Mobile</option>
+                <option value="LUDO_KING">🎲 Ludo King</option>
+              </select>
+            </div>
+
             {/* Mode Select */}
             <div className="lg:col-span-2">
               <select
@@ -119,10 +160,10 @@ export default function TournamentsPage() {
                 onChange={(e) => setSelectedMode(e.target.value)}
                 className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-brand-orange focus:bg-white cursor-pointer"
               >
-                <option value="ALL">🎮 Mode: All</option>
+                <option value="ALL">🕹️ Mode: All</option>
                 <option value="SOLO">Solo (1v1)</option>
                 <option value="DUO">Duo (2v2)</option>
-                <option value="SQUAD">Squad (4v4)</option>
+                <option value="SQUAD">Squad (4v4 / 5v5)</option>
               </select>
             </div>
 
@@ -134,35 +175,35 @@ export default function TournamentsPage() {
                 className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-brand-orange focus:bg-white cursor-pointer"
               >
                 <option value="ALL">🎯 Format: All</option>
-                <option value="BR_RANKED">BR Ranked</option>
-                <option value="CS_RANKED">CS Ranked</option>
+                <option value="BR_RANKED">BR Ranked / Knockout</option>
+                <option value="CS_RANKED">CS Ranked / Custom</option>
               </select>
             </div>
 
             {/* Status Select */}
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-1.5">
               <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
-                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-brand-orange focus:bg-white cursor-pointer"
+                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-brand-orange focus:bg-white cursor-pointer"
               >
-                <option value="ALL">⚡ Status: All</option>
+                <option value="ALL">⚡ All Status</option>
                 <option value="UPCOMING">🕒 Upcoming</option>
-                <option value="LIVE">🔴 Live Now</option>
-                <option value="COMPLETED">✅ Completed</option>
+                <option value="LIVE">🔴 Live</option>
+                <option value="COMPLETED">✅ Ended</option>
               </select>
             </div>
 
             {/* Entry Fee Select */}
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-1.5">
               <select
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value)}
-                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-brand-orange focus:bg-white cursor-pointer"
+                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-brand-orange focus:bg-white cursor-pointer"
               >
-                <option value="ALL">💰 Entry: All</option>
-                <option value="FREE">🎁 FREE Entry</option>
-                <option value="PAID">৳ Paid Only</option>
+                <option value="ALL">💰 All Entry</option>
+                <option value="FREE">🎁 Free</option>
+                <option value="PAID">৳ Paid</option>
               </select>
             </div>
 
@@ -173,6 +214,12 @@ export default function TournamentsPage() {
             <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-[11px] font-bold text-slate-500">Active Filters:</span>
+                {selectedGame !== 'ALL' && (
+                  <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-lg text-[10px] font-bold">
+                    Game: {selectedGame.replace('_', ' ')}
+                    <button onClick={() => setSelectedGame('ALL')}><X className="w-3 h-3" /></button>
+                  </span>
+                )}
                 {selectedMode !== 'ALL' && (
                   <span className="inline-flex items-center gap-1 bg-orange-50 text-brand-orange border border-orange-200 px-2 py-0.5 rounded-lg text-[10px] font-bold">
                     Mode: {selectedMode}

@@ -1,6 +1,7 @@
 export type Role = 'OWNER' | 'ADMIN' | 'MANAGER' | 'SUPER_ADMIN' | 'MODERATOR' | 'VENDOR' | 'USER';
 export type Mode = 'SOLO' | 'DUO' | 'SQUAD';
 export type Format = 'BR_RANKED' | 'CS_RANKED';
+export type GameType = 'FREE_FIRE' | 'EFOOTBALL' | 'PUBG_MOBILE' | 'VALORANT' | 'MLBB' | 'COD_MOBILE' | 'LUDO_KING' | 'OTHER';
 export type TournamentStatus = 'DRAFT' | 'UPCOMING' | 'LIVE' | 'FINISHED' | 'CANCELLED';
 export type PaymentMethod = 'BKASH' | 'NAGAD' | 'ROCKET' | 'WALLET';
 export type PaymentStatus = 'PENDING' | 'VERIFIED' | 'REJECTED';
@@ -81,6 +82,8 @@ export interface Tournament {
   title: string;
   description: string;
   banner: string;
+  game?: GameType | string;
+  gameName?: string;
   mode: Mode;
   format: Format;
   entryFee: number;
