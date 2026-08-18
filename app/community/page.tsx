@@ -523,7 +523,6 @@ export default function CommunityPage() {
         </div>
       )}
 
-      <MobileBottomNav />
       <Footer />
     </div>
   );

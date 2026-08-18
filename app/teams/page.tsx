@@ -379,7 +379,6 @@ export default function SquadTeamsPage() {
       )}
 
       <Footer />
-      <MobileBottomNav />
     </div>
   );
 }

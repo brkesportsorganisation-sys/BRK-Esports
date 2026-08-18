@@ -600,7 +600,6 @@ function MessagesInboxContent() {
         </div>
       )}
 
-      <MobileBottomNav />
       <Footer />
     </div>
   );

@@ -75,11 +75,11 @@ export default function AnnouncementsPage() {
           <span>Official Public Notice Feed</span>
         </span>
 
-        <h1 className="font-heading font-black text-3xl sm:text-5xl text-slate-900 tracking-tight">
+        <h1 className="font-heading font-black text-2xl sm:text-4xl md:text-5xl text-slate-900 tracking-tight break-words px-2">
           OFFICIAL ANNOUNCEMENTS
         </h1>
 
-        <p className="text-slate-600 text-xs sm:text-sm max-w-md mx-auto">
+        <p className="text-slate-600 text-xs sm:text-sm max-w-md mx-auto px-4">
           Tournament notices, server updates, rule changes, and executive news from BlackRock Esports.
         </p>
 
@@ -101,7 +101,7 @@ export default function AnnouncementsPage() {
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all ${
+                className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer ${
                   selectedCategory === cat
                     ? 'bg-slate-900 text-white shadow-xs'
                     : 'bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50'
@@ -145,9 +145,9 @@ export default function AnnouncementsPage() {
                     <div
                       key={ann.id}
                       onClick={() => setSelectedAnnouncement(ann)}
-                      className="bg-gradient-to-r from-red-500/5 via-amber-500/5 to-white rounded-3xl p-6 sm:p-7 border-2 border-red-200 shadow-sm hover:shadow-md transition-all cursor-pointer space-y-3 relative overflow-hidden group"
+                      className="bg-gradient-to-r from-red-500/5 via-amber-500/5 to-white rounded-3xl p-5 sm:p-7 border-2 border-red-200 shadow-sm hover:shadow-md transition-all cursor-pointer space-y-3 relative overflow-hidden group"
                     >
-                      <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
                         <div className="flex items-center gap-2">
                           <span className="px-2.5 py-1 rounded-full bg-red-100 text-red-700 text-[10px] font-black uppercase tracking-wider flex items-center gap-1 border border-red-200">
                             <Pin className="w-3 h-3 fill-red-700" /> Pinned
@@ -281,7 +281,6 @@ export default function AnnouncementsPage() {
         </div>
       )}
 
-      <MobileBottomNav />
       <Footer />
     </div>
   );

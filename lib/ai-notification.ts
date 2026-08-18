@@ -102,15 +102,22 @@ const FALLBACK_TEMPLATES: Record<string, { titles: string[]; messages: string[];
   }
 };
 
+const PREFERRED_MODELS = [
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+  'gemini-1.5-flash-8b',
+  'gemini-1.5-pro'
+];
+
 /**
  * Generate high-converting, exciting notification copy using Gemini AI with fallback
  */
 export async function generateAINotification(input: AINotificationPromptInput): Promise<AIGeneratedNotification> {
-  const geminiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+  const geminiKey = (process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || '').trim();
 
-  if (geminiKey) {
-    try {
-      const promptText = `
+  if (geminiKey && geminiKey !== 'your_gemini_api_key_here') {
+    const promptText = `
 You are the official AI Esports Notification Bot for "Black Rock Esports" (a premium Free Fire tournament platform in Bangladesh).
 Generate an energetic, high-converting, gamer-friendly mobile push notification.
 
@@ -130,41 +137,47 @@ Return ONLY a valid JSON object with this exact structure (no markdown fences, n
 }
 `;
 
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: promptText }] }],
-            generationConfig: {
-              temperature: 0.8,
-              maxOutputTokens: 300,
-            },
-          }),
-        }
-      );
+    for (const model of PREFERRED_MODELS) {
+      try {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: promptText }] }],
+              generationConfig: {
+                temperature: 0.8,
+                maxOutputTokens: 300,
+              },
+            }),
+          }
+        );
 
-      if (response.ok) {
-        const data = await response.json();
-        const candidateText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        
-        // Clean JSON formatting
-        const cleanJson = candidateText.replace(/```json/gi, '').replace(/```/g, '').trim();
-        const parsed = JSON.parse(cleanJson);
+        if (response.ok) {
+          const data = await response.json();
+          const candidateText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          
+          // Clean JSON formatting
+          const cleanJson = candidateText.replace(/```json/gi, '').replace(/```/g, '').trim();
+          const jsonMatch = cleanJson.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
 
-        if (parsed.title && parsed.message) {
-          return {
-            title: parsed.title,
-            message: parsed.message,
-            category: (parsed.category as NotificationType) || input.category || 'GENERAL',
-            priority: (parsed.priority as NotificationPriority) || 'NORMAL',
-            suggestedActionLink: parsed.suggestedActionLink || '/tournaments',
-          };
+            if (parsed.title && parsed.message) {
+              return {
+                title: parsed.title,
+                message: parsed.message,
+                category: (parsed.category as NotificationType) || input.category || 'GENERAL',
+                priority: (parsed.priority as NotificationPriority) || 'NORMAL',
+                suggestedActionLink: parsed.suggestedActionLink || '/tournaments',
+              };
+            }
+          }
         }
+      } catch (aiErr) {
+        console.warn(`[AI Notification Generator] ${model} attempt error:`, aiErr);
       }
-    } catch (aiErr) {
-      console.warn('[AI Notification Generator] Gemini API error, falling back to smart templates:', aiErr);
     }
   }
 

@@ -221,7 +221,6 @@ export default function ChampionsPage() {
       </main>
 
       <Footer />
-      <MobileBottomNav />
     </div>
   );
 }

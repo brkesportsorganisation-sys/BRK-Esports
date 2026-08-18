@@ -466,7 +466,6 @@ export default function LFGPage() {
         </div>
       )}
 
-      <MobileBottomNav />
       <Footer />
     </div>
   );

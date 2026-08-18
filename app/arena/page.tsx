@@ -485,7 +485,6 @@ export default function ArenaPage() {
       )}
 
       <Footer />
-      <MobileBottomNav />
     </div>
   );
 }

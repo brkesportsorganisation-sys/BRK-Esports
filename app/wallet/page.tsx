@@ -954,7 +954,6 @@ export default function WalletPage() {
         </div>
       )}
 
-      <MobileBottomNav />
       <Footer />
     </div>
   );
