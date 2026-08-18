@@ -30,10 +30,11 @@ import {
   ExternalLink, 
   ArrowRight,
   Zap,
-  Radio
+  Radio,
+  Headphones
 } from 'lucide-react';
 import { db } from '@/lib/db';
-import { User as UserType } from '@/lib/types';
+import { User as UserType, SupportTicket, SupportMessage } from '@/lib/types';
 import Link from 'next/link';
 
 interface Message {

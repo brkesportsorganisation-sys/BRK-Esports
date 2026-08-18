@@ -43,7 +43,8 @@ import {
   Globe,
   ShoppingCart,
   Diamond,
-  Swords
+  Swords,
+  Headphones
 } from 'lucide-react';
 import { AdminPermissionKey } from '@/lib/types';
 
