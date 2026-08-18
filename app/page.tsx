@@ -17,7 +17,9 @@ import {
   CheckCircle2,
   Lock,
   Wallet,
-  Bell
+  Bell,
+  Timer,
+  Clock
 } from 'lucide-react';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
@@ -33,6 +35,44 @@ export default function HomePage() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(playerLeaderboard);
   const [siteSettings, setSiteSettings] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState<'ALL' | 'SQUAD' | 'SOLO' | 'CS_RANKED'>('ALL');
+
+  // Real-time Monthly Event Reset Countdown Timer
+  const [timeLeft, setTimeLeft] = useState({
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+  });
+
+  useEffect(() => {
+    function calculateTimeLeft() {
+      const now = new Date();
+      let target: Date;
+      if (siteSettings.ref_reset_date) {
+        target = new Date(siteSettings.ref_reset_date);
+      } else {
+        // Automatically target the 1st of next month at 00:00:00
+        target = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0);
+      }
+
+      let diff = target.getTime() - now.getTime();
+      if (diff <= 0) {
+        // If passed, cycle to subsequent month
+        const nextMonthTarget = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0);
+        diff = Math.max(0, nextMonthTarget.getTime() - now.getTime());
+      }
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      setTimeLeft({ days, hours, minutes, seconds });
+    }
+
+    calculateTimeLeft();
+    const timerInterval = setInterval(calculateTimeLeft, 1000);
+    return () => clearInterval(timerInterval);
+  }, [siteSettings.ref_reset_date]);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -283,11 +323,26 @@ export default function HomePage() {
             <div className="absolute top-0 right-0 w-96 h-96 bg-brand-orange/10 rounded-full blur-3xl pointer-events-none"></div>
 
             <div className="flex flex-col lg:flex-row items-center justify-between gap-6 relative z-10">
-              <div className="space-y-2 text-center lg:text-left">
-                <span className="text-[10px] font-black uppercase px-3 py-1 rounded-full bg-brand-red text-white tracking-widest inline-flex items-center gap-1.5">
-                  <Flame className="w-3 h-3 animate-pulse" />
-                  <span>{siteSettings.ref_banner_badge || 'MONTHLY EVENT • RESETS 1ST OF EVERY MONTH'}</span>
-                </span>
+              <div className="space-y-2.5 text-center lg:text-left">
+                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2.5">
+                  <span className="text-[10px] font-black uppercase px-3 py-1 rounded-full bg-brand-red text-white tracking-widest inline-flex items-center gap-1.5 shadow-xs">
+                    <Flame className="w-3 h-3 animate-pulse" />
+                    <span>{siteSettings.ref_banner_badge || 'MONTHLY EVENT • RESETS 1ST OF EVERY MONTH'}</span>
+                  </span>
+
+                  {/* Dynamic Countdown Timer Badge */}
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/90 border border-orange-500/50 text-orange-400 text-[11px] font-mono font-bold shadow-xs">
+                    <Timer className="w-3.5 h-3.5 text-brand-orange animate-spin" />
+                    <span className="text-slate-300 uppercase text-[9px] tracking-wider">{isBangla ? 'রিসেট হতে বাকি:' : 'RESETS IN:'}</span>
+                    <span className="text-white font-black tracking-wider">
+                      {timeLeft.days}{isBangla ? ' দিন ' : 'd '} 
+                      {String(timeLeft.hours).padStart(2, '0')}{isBangla ? ' ঘণ্টা ' : 'h '} 
+                      {String(timeLeft.minutes).padStart(2, '0')}{isBangla ? ' মি. ' : 'm '} 
+                      <span className="text-amber-400">{String(timeLeft.seconds).padStart(2, '0')}{isBangla ? ' সে.' : 's'}</span>
+                    </span>
+                  </div>
+                </div>
+
                 <h2 className="font-heading font-black text-2xl sm:text-3xl text-white">
                   {siteSettings.ref_banner_title || 'REFERRAL REWARDS CRUSADE'}
                 </h2>
@@ -296,23 +351,49 @@ export default function HomePage() {
                 </p>
               </div>
 
-              {/* Action */}
-              <div className="flex flex-wrap items-center gap-3">
-                <Link
-                  href={siteSettings.ref_btn_1_link || '/profile'}
-                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-black text-xs shadow-neon-red hover:brightness-110 transition-all flex items-center space-x-2"
-                >
-                  <Users className="w-4 h-4" />
-                  <span>{siteSettings.ref_btn_1_text || 'GET REFERRAL LINK'}</span>
-                </Link>
+              {/* Action Buttons & Visual Timer Digits */}
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                {/* Visual Cyberpunk Countdown Box Grid */}
+                <div className="flex items-center gap-1.5 bg-slate-950/70 p-2 rounded-2xl border border-slate-800/90 shadow-inner">
+                  <div className="text-center px-2.5 py-1.5 bg-slate-900/90 rounded-xl border border-slate-800 min-w-[46px]">
+                    <div className="text-sm sm:text-base font-black font-heading text-orange-400 leading-none">{timeLeft.days}</div>
+                    <div className="text-[8px] text-slate-400 uppercase font-extrabold mt-0.5">{isBangla ? 'দিন' : 'DAYS'}</div>
+                  </div>
+                  <span className="text-orange-500 font-black text-xs animate-pulse">:</span>
+                  <div className="text-center px-2.5 py-1.5 bg-slate-900/90 rounded-xl border border-slate-800 min-w-[46px]">
+                    <div className="text-sm sm:text-base font-black font-heading text-orange-400 leading-none">{String(timeLeft.hours).padStart(2, '0')}</div>
+                    <div className="text-[8px] text-slate-400 uppercase font-extrabold mt-0.5">{isBangla ? 'ঘণ্টা' : 'HOURS'}</div>
+                  </div>
+                  <span className="text-orange-500 font-black text-xs animate-pulse">:</span>
+                  <div className="text-center px-2.5 py-1.5 bg-slate-900/90 rounded-xl border border-slate-800 min-w-[46px]">
+                    <div className="text-sm sm:text-base font-black font-heading text-orange-400 leading-none">{String(timeLeft.minutes).padStart(2, '0')}</div>
+                    <div className="text-[8px] text-slate-400 uppercase font-extrabold mt-0.5">{isBangla ? 'মিনিট' : 'MINS'}</div>
+                  </div>
+                  <span className="text-orange-500 font-black text-xs animate-pulse">:</span>
+                  <div className="text-center px-2.5 py-1.5 bg-slate-900/90 rounded-xl border border-slate-800 min-w-[46px]">
+                    <div className="text-sm sm:text-base font-black font-heading text-amber-400 leading-none">{String(timeLeft.seconds).padStart(2, '0')}</div>
+                    <div className="text-[8px] text-amber-400 uppercase font-extrabold mt-0.5">{isBangla ? 'সেকেন্ড' : 'SECS'}</div>
+                  </div>
+                </div>
 
-                <Link
-                  href={siteSettings.ref_btn_2_link || '/lfg'}
-                  className="px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-heading font-bold text-xs border border-slate-700 transition-all flex items-center space-x-2"
-                >
-                  <Users className="w-4 h-4 text-brand-cyan" />
-                  <span>{siteSettings.ref_btn_2_text || 'FIND SQUAD (LFG)'}</span>
-                </Link>
+                {/* Buttons */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link
+                    href={siteSettings.ref_btn_1_link || '/profile'}
+                    className="px-5 py-3 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-black text-xs shadow-neon-red hover:brightness-110 transition-all flex items-center space-x-2 whitespace-nowrap"
+                  >
+                    <Users className="w-4 h-4" />
+                    <span>{siteSettings.ref_btn_1_text || 'GET REFERRAL LINK'}</span>
+                  </Link>
+
+                  <Link
+                    href={siteSettings.ref_btn_2_link || '/lfg'}
+                    className="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-heading font-bold text-xs border border-slate-700 transition-all flex items-center space-x-2 whitespace-nowrap"
+                  >
+                    <Users className="w-4 h-4 text-brand-cyan" />
+                    <span>{siteSettings.ref_btn_2_text || 'FIND SQUAD (LFG)'}</span>
+                  </Link>
+                </div>
               </div>
             </div>
 
@@ -430,64 +511,6 @@ export default function HomePage() {
             <span>VIEW ALL TOURNAMENTS ({tournaments.length})</span>
             <ChevronRight className="w-4 h-4 text-brand-orange" />
           </Link>
-        </div>
-      </section>
-
-      {/* How It Works Section */}
-      <section className="py-16 bg-slate-50 border-y border-slate-200 relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <span className="text-xs font-bold text-brand-cyan uppercase tracking-widest">
-              Simple 4-Step Process
-            </span>
-            <h2 className="font-heading font-black text-4xl text-slate-900 mt-1">
-              HOW TO COMPETE & WIN CASH
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            
-            <div className="bg-white p-6 rounded-2xl relative border border-slate-200 text-center space-y-3 shadow-sm">
-              <div className="w-12 h-12 rounded-2xl bg-brand-red/10 text-brand-red font-heading font-black text-xl flex items-center justify-center mx-auto border border-brand-red/20">
-                01
-              </div>
-              <h3 className="font-heading font-bold text-lg text-slate-900">Create Account</h3>
-              <p className="text-slate-600 text-xs leading-relaxed">
-                Sign up with Google or Email and enter your official Free Fire In-Game UID & Name.
-              </p>
-            </div>
-
-            <div className="bg-white p-6 rounded-2xl relative border border-slate-200 text-center space-y-3 shadow-sm">
-              <div className="w-12 h-12 rounded-2xl bg-brand-orange/10 text-brand-orange font-heading font-black text-xl flex items-center justify-center mx-auto border border-brand-orange/20">
-                02
-              </div>
-              <h3 className="font-heading font-bold text-lg text-slate-900">Pay & Register</h3>
-              <p className="text-slate-600 text-xs leading-relaxed">
-                Deposit entry fees via bKash, Nagad, or Rocket with fast manual screenshot approval.
-              </p>
-            </div>
-
-            <div className="bg-white p-6 rounded-2xl relative border border-slate-200 text-center space-y-3 shadow-sm">
-              <div className="w-12 h-12 rounded-2xl bg-brand-cyan/10 text-brand-cyan font-heading font-black text-xl flex items-center justify-center mx-auto border border-brand-cyan/20">
-                03
-              </div>
-              <h3 className="font-heading font-bold text-lg text-slate-900">Get Room Pass</h3>
-              <p className="text-slate-600 text-xs leading-relaxed">
-                Custom Room ID & Password auto-reveals on your dashboard 15 mins before match start.
-              </p>
-            </div>
-
-            <div className="bg-white p-6 rounded-2xl relative border border-slate-200 text-center space-y-3 shadow-sm">
-              <div className="w-12 h-12 rounded-2xl bg-brand-gold/10 text-brand-gold font-heading font-black text-xl flex items-center justify-center mx-auto border border-brand-gold/20">
-                04
-              </div>
-              <h3 className="font-heading font-bold text-lg text-slate-900">Booyah & Payout</h3>
-              <p className="text-slate-600 text-xs leading-relaxed">
-                Score kills, claim Booyah, and withdraw winnings directly to your mobile bank account.
-              </p>
-            </div>
-
-          </div>
         </div>
       </section>
 

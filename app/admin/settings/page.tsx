@@ -77,6 +77,7 @@ export default function AdminSettingsPage() {
   const [refBannerBadge, setRefBannerBadge] = useState('MONTHLY EVENT • RESETS 1ST OF EVERY MONTH');
   const [refBannerTitle, setRefBannerTitle] = useState('REFERRAL REWARDS CRUSADE');
   const [refBannerDesc, setRefBannerDesc] = useState('Invite friends to Black Rock Arena. Rewards credit to your Promo Wallet to join tournaments for free!');
+  const [refResetDate, setRefResetDate] = useState('');
   const [refBtn1Text, setRefBtn1Text] = useState('GET REFERRAL LINK');
   const [refBtn1Link, setRefBtn1Link] = useState('/profile');
   const [refBtn2Text, setRefBtn2Text] = useState('FIND SQUAD (LFG)');
@@ -171,6 +172,7 @@ Login to your account and book your slot today!`);
         if (s.ref_banner_badge) setRefBannerBadge(s.ref_banner_badge);
         if (s.ref_banner_title) setRefBannerTitle(s.ref_banner_title);
         if (s.ref_banner_desc) setRefBannerDesc(s.ref_banner_desc);
+        if (s.ref_reset_date) setRefResetDate(s.ref_reset_date);
         if (s.ref_btn_1_text) setRefBtn1Text(s.ref_btn_1_text);
         if (s.ref_btn_1_link) setRefBtn1Link(s.ref_btn_1_link);
         if (s.ref_btn_2_text) setRefBtn2Text(s.ref_btn_2_text);
@@ -261,6 +263,7 @@ Login to your account and book your slot today!`);
         ref_banner_badge: refBannerBadge,
         ref_banner_title: refBannerTitle,
         ref_banner_desc: refBannerDesc,
+        ref_reset_date: refResetDate.trim(),
         ref_btn_1_text: refBtn1Text,
         ref_btn_1_link: refBtn1Link,
         ref_btn_2_text: refBtn2Text,
@@ -645,6 +648,85 @@ Login to your account and book your slot today!`);
                       onChange={(e) => setHeroStat3Label(e.target.value)}
                       className="w-full px-3 py-1.5 rounded-[8px] bg-white border border-[#E2E8F0] text-xs text-[#64748B]"
                       placeholder="Label (e.g. Anti-Cheat Safe)"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Monthly Referral Rewards Event Crusade CMS */}
+              <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] p-6 space-y-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+                <div className="flex items-center space-x-2 border-b border-[#F1F5F9] pb-3">
+                  <Flame className="w-5 h-5 text-red-500" />
+                  <h2 className="text-[17px] font-bold text-[#0F172A]">Monthly Referral Event & Countdown Timer Banner</h2>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                  <div>
+                    <label className="block text-[#475569] font-semibold mb-1">Event Badge Text</label>
+                    <input
+                      type="text"
+                      value={refBannerBadge}
+                      onChange={(e) => setRefBannerBadge(e.target.value)}
+                      placeholder="MONTHLY EVENT • RESETS 1ST OF EVERY MONTH"
+                      className="w-full px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] font-bold text-xs text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[#475569] font-semibold mb-1">Event Banner Title</label>
+                    <input
+                      type="text"
+                      value={refBannerTitle}
+                      onChange={(e) => setRefBannerTitle(e.target.value)}
+                      placeholder="REFERRAL REWARDS CRUSADE"
+                      className="w-full px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] font-bold text-xs text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-[#475569] font-semibold mb-1">Event Description</label>
+                    <textarea
+                      rows={2}
+                      value={refBannerDesc}
+                      onChange={(e) => setRefBannerDesc(e.target.value)}
+                      placeholder="Invite friends to Black Rock Arena. Rewards credit to your Promo Wallet to join tournaments for free!"
+                      className="w-full px-3.5 py-2 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] text-xs text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[#475569] font-semibold mb-1">
+                      Custom Reset Target Date & Time (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={refResetDate}
+                      onChange={(e) => setRefResetDate(e.target.value)}
+                      placeholder="e.g. 2026-09-01T00:00:00 (Leave empty for auto-1st of next month)"
+                      className="w-full px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] font-mono text-xs text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
+                    />
+                    <span className="text-[10px] text-slate-400 mt-1 block">
+                      Empty রাখলে প্রতি মাসের ১ তারিখ ০০:০০:০০ অটোমেটিক কাউন্টডাউন চলবে।
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="block text-[#475569] font-semibold mb-1">Button 1 Text</label>
+                    <input
+                      type="text"
+                      value={refBtn1Text}
+                      onChange={(e) => setRefBtn1Text(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] font-bold text-xs text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[#475569] font-semibold mb-1">Button 2 Text</label>
+                    <input
+                      type="text"
+                      value={refBtn2Text}
+                      onChange={(e) => setRefBtn2Text(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] font-bold text-xs text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
                     />
                   </div>
                 </div>
