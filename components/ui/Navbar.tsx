@@ -262,7 +262,7 @@ export default function Navbar() {
   });
 
   return (
-    <nav className="sticky top-0 z-50 glass-panel border-b border-slate-200/60 backdrop-blur-2xl bg-white/85 font-sans">
+    <nav className="sticky top-0 z-50 w-full glass-panel border-b border-slate-200/80 backdrop-blur-2xl bg-white/95 font-sans shadow-xs">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-20 gap-2">
           

@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
+import HomeBannerSlider from '@/components/home/HomeBannerSlider';
 import { Tournament, Announcement } from '@/lib/types';
 import { useLanguage } from '@/lib/language-context';
 
@@ -130,117 +131,18 @@ export default function HomePage() {
     <div className="flex flex-col font-body w-full">
       <Navbar />
 
-      {/* Hero Section */}
-      <section className="relative pt-12 pb-24 overflow-hidden border-b border-slate-200">
+      {/* Hero Banner Section (3-Banner Grid on PC / 1-Banner on Mobile) */}
+      <section className="relative pt-4 pb-12 overflow-hidden border-b border-slate-200 bg-slate-50/50">
         {/* Background Gradients & Particle Glows */}
         <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-r from-brand-red/10 via-brand-orange/10 to-brand-purple/10 rounded-full blur-[120px] pointer-events-none"></div>
 
+        {/* 3-Banner Carousel Slider matching User Mockup */}
+        <HomeBannerSlider />
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            
-            {/* Left Hero Text */}
-            <motion.div 
-              initial={{ opacity: 0, x: -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6 }}
-              className="lg:col-span-7 space-y-6 text-center lg:text-left"
-            >
-              <div className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-orange-50 border border-brand-orange/20">
-                <Flame className="w-4 h-4 text-brand-red animate-pulse" />
-                <span className="text-xs font-bold text-slate-700 uppercase tracking-widest">
-                  {siteSettings.hero_badge || 'Multi-Game Esports Championships Live'}
-                </span>
-              </div>
 
-              <h1 className="font-heading text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-slate-900 leading-none">
-                {siteSettings.hero_title_1 || 'DOMINATE THE'} <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold">
-                  {siteSettings.hero_title_2 || 'ESPORTS ARENA'}
-                </span>
-              </h1>
-
-              <p className="text-slate-600 text-base sm:text-lg max-w-2xl leading-relaxed">
-                {siteSettings.hero_desc || "Join Bangladesh's premier automated esports platform. Compete in Free Fire, eFootball, PUBG Mobile, Valorant & daily tournaments, earn instant bKash payouts, and claim championship glory."}
-              </p>
-
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
-                <Link
-                  href={siteSettings.hero_btn_1_link || '/tournaments'}
-                  className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold text-white font-heading font-black text-lg shadow-neon-red hover:scale-105 active:scale-95 transition-all flex items-center justify-center space-x-3"
-                >
-                  <Trophy className="w-5 h-5 text-white" />
-                  <span>{siteSettings.hero_btn_1_text || 'BROWSE TOURNAMENTS'}</span>
-                </Link>
-
-                <Link
-                  href={siteSettings.hero_btn_2_link && siteSettings.hero_btn_2_link !== '/rewards' ? siteSettings.hero_btn_2_link : '/ads'}
-                  className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-white text-slate-900 font-heading font-bold text-lg border border-slate-200 hover:border-brand-orange/60 hover:bg-slate-50 transition-all flex items-center justify-center space-x-3 shadow-sm"
-                >
-                  <Sparkles className="w-5 h-5 text-brand-gold" />
-                  <span>{siteSettings.hero_btn_2_text || 'CLAIM FREE REWARDS'}</span>
-                </Link>
-              </div>
-
-
-
-            </motion.div>
-
-            {/* Right Hero Graphic Card */}
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="lg:col-span-5 relative"
-            >
-              <Link href="/tournaments" className="block group cursor-pointer">
-                <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-lg relative overflow-hidden group hover:border-brand-orange/60 hover:shadow-xl transition-all duration-300">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-brand-orange/10 rounded-full blur-2xl"></div>
-
-                  {/* Hero Featured Tournament Preview */}
-                  <div className="relative rounded-2xl overflow-hidden h-64 mb-4">
-                    <img
-                      src={siteSettings.featured_image || "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800"}
-                      alt="Free Fire Hero Tournament"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent"></div>
-                    <span className="absolute top-3 left-3 px-3 py-1 rounded-full bg-brand-red text-white text-xs font-black uppercase shadow-sm animate-pulse">
-                      {siteSettings.featured_badge || 'FEATURED LEAGUE'}
-                    </span>
-                  </div>
-
-                  <h3 className="font-heading font-black text-2xl text-slate-900 group-hover:text-brand-orange transition-colors">
-                    {siteSettings.featured_title || 'Grand Free Fire BR Squad League #42'}
-                  </h3>
-
-                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-200">
-                    <div>
-                      <div className="text-xs text-slate-600 font-medium">Total Prize Pool</div>
-                      <div className="text-2xl font-heading font-extrabold text-orange-500">
-                        {siteSettings.featured_prize || '৳ 4,000 CASH'}
-                      </div>
-                    </div>
-                    <span className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-bold text-sm shadow-neon-orange group-hover:brightness-110 transition-all flex items-center gap-1.5">
-                      <span>{siteSettings.featured_entry || 'VIEW ALL TOURNAMENTS'}</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </span>
-                  </div>
-
-                </div>
-              </Link>
-            </motion.div>
-
-          </div>
-        </div>
-      </section>
-
-
-
-      {/* Referral Rewards & Monthly Event Progress Section */}
-      <section className="py-8 bg-slate-50 border-b border-slate-200 relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="rounded-3xl p-6 sm:p-7 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white border-2 border-orange-500/40 shadow-xl shadow-orange-500/10 relative overflow-hidden">
+          {/* Referral Rewards & Monthly Event Crusade Banner (Unified in Home Hero Section) */}
+          <div className="mt-12 rounded-3xl p-5 sm:p-7 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white border-2 border-orange-500/40 shadow-xl shadow-orange-500/10 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-96 h-96 bg-brand-orange/15 rounded-full blur-3xl pointer-events-none"></div>
 
             {/* Top Bar: Title + Live Countdown + Actions */}
@@ -318,6 +220,7 @@ export default function HomePage() {
             </div>
 
           </div>
+
         </div>
       </section>
 

@@ -755,5 +755,28 @@ CREATE TABLE IF NOT EXISTS "VendorPayoutRequest" (
 CREATE INDEX IF NOT EXISTS "idx_vendorpayout_vendorId" ON "VendorPayoutRequest"("vendorId");
 CREATE INDEX IF NOT EXISTS "idx_vendorpayout_status" ON "VendorPayoutRequest"("status");
 
+-- =========================================================
+-- 22. Banner Table (Hero Carousel & Side Promo Banners)
+-- =========================================================
+CREATE TABLE IF NOT EXISTS "Banner" (
+    "id" TEXT PRIMARY KEY,
+    "title" TEXT NOT NULL,
+    "subtitle" TEXT,
+    "badge" TEXT,
+    "imageUrl" TEXT NOT NULL,
+    "linkUrl" TEXT NOT NULL DEFAULT '/tournaments',
+    "buttonText" TEXT DEFAULT 'JOIN TOURNAMENT',
+    "placement" TEXT NOT NULL DEFAULT 'MAIN_SLIDER', -- 'MAIN_SLIDER', 'SIDE_TOP', 'SIDE_BOTTOM'
+    "order" INTEGER NOT NULL DEFAULT 1,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS "idx_banner_placement" ON "Banner"("placement");
+CREATE INDEX IF NOT EXISTS "idx_banner_order" ON "Banner"("order");
+CREATE INDEX IF NOT EXISTS "idx_banner_active" ON "Banner"("isActive");
+
+
 
 

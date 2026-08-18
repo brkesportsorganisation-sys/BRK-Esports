@@ -1,5 +1,5 @@
-import { User, Tournament, Team, Payment, Announcement, MatchResult, PaymentStatus } from './types';
-import { initialUsers, initialTournaments, initialTeams, initialPayments, initialAnnouncements } from './mock-data';
+import { User, Tournament, Team, Payment, Announcement, MatchResult, PaymentStatus, Banner } from './types';
+import { initialUsers, initialTournaments, initialTeams, initialPayments, initialAnnouncements, initialBanners } from './mock-data';
 
 class LocalDatabase {
   private users: User[] = [...initialUsers];
@@ -7,6 +7,11 @@ class LocalDatabase {
   private teams: Team[] = [...initialTeams];
   private payments: Payment[] = [...initialPayments];
   private announcements: Announcement[] = [...initialAnnouncements];
+  private banners: Banner[] = [...initialBanners];
+  private bannerSettings: { autoSlideInterval: number; isEnabled: boolean } = {
+    autoSlideInterval: 4000,
+    isEnabled: true,
+  };
   private matchResults: MatchResult[] = [];
   private registrations: any[] = [];
   private currentUser: User | null = null;
@@ -44,6 +49,20 @@ class LocalDatabase {
       
       const savedAnn = localStorage.getItem('helian_announcements');
       if (savedAnn) this.announcements = JSON.parse(savedAnn);
+
+      const savedBanners = localStorage.getItem('helian_banners');
+      if (savedBanners) {
+        try {
+          this.banners = JSON.parse(savedBanners);
+        } catch {}
+      }
+
+      const savedBannerSettings = localStorage.getItem('helian_banner_settings');
+      if (savedBannerSettings) {
+        try {
+          this.bannerSettings = JSON.parse(savedBannerSettings);
+        } catch {}
+      }
       
       const savedAdSettings = localStorage.getItem('helian_ad_settings');
       if (savedAdSettings) {
@@ -69,6 +88,8 @@ class LocalDatabase {
       localStorage.setItem('helian_tournaments', JSON.stringify(this.tournaments));
       localStorage.setItem('helian_payments', JSON.stringify(this.payments));
       localStorage.setItem('helian_registrations', JSON.stringify(this.registrations));
+      localStorage.setItem('helian_banners', JSON.stringify(this.banners));
+      localStorage.setItem('helian_banner_settings', JSON.stringify(this.bannerSettings));
       if (this.currentUser) {
         localStorage.setItem('helian_current_user', JSON.stringify(this.currentUser));
       } else {
@@ -553,6 +574,61 @@ class LocalDatabase {
       localStorage.setItem('helian_vendors', JSON.stringify(this.vendors));
     }
     return true;
+  }
+
+  // Banner & Slider Management
+  getBanners(): Banner[] {
+    return [...this.banners].sort((a, b) => (a.order || 0) - (b.order || 0));
+  }
+
+  getBannerById(id: string): Banner | null {
+    return this.banners.find((b) => b.id === id) || null;
+  }
+
+  createBanner(banner: Omit<Banner, 'id' | 'createdAt'>): Banner {
+    const newBanner: Banner = {
+      ...banner,
+      id: `banner_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    this.banners.push(newBanner);
+    this.save();
+    return newBanner;
+  }
+
+  updateBanner(id: string, updates: Partial<Banner>): Banner | null {
+    const idx = this.banners.findIndex((b) => b.id === id);
+    if (idx === -1) return null;
+
+    this.banners[idx] = {
+      ...this.banners[idx],
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+    this.save();
+    return this.banners[idx];
+  }
+
+  deleteBanner(id: string): boolean {
+    const beforeCount = this.banners.length;
+    this.banners = this.banners.filter((b) => b.id !== id);
+    if (this.banners.length === beforeCount) return false;
+    this.save();
+    return true;
+  }
+
+  getBannerSettings(): { autoSlideInterval: number; isEnabled: boolean } {
+    return this.bannerSettings;
+  }
+
+  updateBannerSettings(settings: Partial<{ autoSlideInterval: number; isEnabled: boolean }>) {
+    this.bannerSettings = {
+      ...this.bannerSettings,
+      ...settings,
+    };
+    this.save();
+    return this.bannerSettings;
   }
 }
 

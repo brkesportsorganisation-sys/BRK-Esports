@@ -175,6 +175,7 @@ export default function AdminShell({ children }: AdminShellProps) {
         { href: '/admin/arena', label: '1v1 Arena Duels (⚔️)', icon: Swords, colorClass: 'text-red-500', permission: 'manage_tournaments' },
         { href: '/admin/lfg', label: 'LFG Recruitment Board', icon: Crosshair, colorClass: 'text-blue-500', permission: 'moderate_lfg' },
         { href: '/admin/tournament-settings', label: 'Tournament Match Rules', icon: FileText, colorClass: 'text-pink-500', permission: 'manage_settings' },
+        { href: '/admin/banners', label: 'Banners & Sliders (🖼️)', icon: Sparkles, colorClass: 'text-orange-500', permission: 'manage_settings' },
         { href: '/admin/withdrawals', label: 'Winning Payouts', icon: Coins, colorClass: 'text-amber-500', permission: 'manage_withdrawals' },
       ]
     },

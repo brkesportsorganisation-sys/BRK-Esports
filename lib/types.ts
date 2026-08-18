@@ -165,6 +165,23 @@ export interface MatchResult {
   createdAt?: string;
 }
 
+export type BannerPlacement = 'MAIN_SLIDER' | 'SIDE_TOP' | 'SIDE_BOTTOM';
+
+export interface Banner {
+  id: string;
+  title: string;
+  subtitle?: string;
+  badge?: string;
+  imageUrl: string;
+  linkUrl: string;
+  buttonText?: string;
+  placement: BannerPlacement;
+  order: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface LeaderboardEntry {
   rank: number;
   id: string;
