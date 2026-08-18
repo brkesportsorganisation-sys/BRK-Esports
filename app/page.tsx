@@ -189,7 +189,7 @@ export default function HomePage() {
                 </Link>
 
                 <Link
-                  href={siteSettings.hero_btn_2_link || '/rewards'}
+                  href={siteSettings.hero_btn_2_link && siteSettings.hero_btn_2_link !== '/rewards' ? siteSettings.hero_btn_2_link : '/ads'}
                   className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-white text-slate-900 font-heading font-bold text-lg border border-slate-200 hover:border-brand-orange/60 hover:bg-slate-50 transition-all flex items-center justify-center space-x-3 shadow-sm"
                 >
                   <Sparkles className="w-5 h-5 text-brand-gold" />

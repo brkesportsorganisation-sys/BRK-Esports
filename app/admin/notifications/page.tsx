@@ -198,7 +198,10 @@ export default function AdminNotificationsPage() {
   const loadSchedules = async () => {
     setLoadingSchedules(true);
     try {
-      const res = await fetch('/api/admin/notifications/schedules', { credentials: 'include' });
+      const res = await fetch(`/api/admin/notifications/schedules?t=${Date.now()}`, { 
+        credentials: 'include',
+        cache: 'no-store',
+      });
       if (res.ok) {
         const data = await res.json();
         setSchedules(data.schedules || []);
@@ -214,6 +217,12 @@ export default function AdminNotificationsPage() {
     loadNotifications();
     loadSchedules();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'SCHEDULES') {
+      loadSchedules();
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     if (chatScrollRef.current) {
@@ -290,7 +299,8 @@ export default function AdminNotificationsPage() {
       const data = await res.json();
       if (res.ok) {
         setFeedbackMsg(`🚀 বট সফলভাবে সক্রিয় করা হয়েছে: "${proposal.name}"!`);
-        loadSchedules();
+        await loadSchedules();
+        setActiveTab('SCHEDULES');
         setTimeout(() => setFeedbackMsg(''), 4000);
       } else {
         alert(data.message || 'Failed to activate schedule.');

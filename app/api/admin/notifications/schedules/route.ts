@@ -13,47 +13,66 @@ async function getSession() {
 
 // Fallback helper to get schedules from SiteSetting if table is not yet created
 async function getSchedulesFromStore(): Promise<NotificationSchedule[]> {
+  const schedulesMap = new Map<string, NotificationSchedule>();
+
+  // 1. Try reading from NotificationSchedule table
   try {
     const { data: tableData, error: tableErr } = await supabaseAdmin
       .from('NotificationSchedule')
       .select('*')
       .order('createdAt', { ascending: false });
 
-    if (!tableErr && tableData) {
-      return tableData;
+    if (!tableErr && Array.isArray(tableData)) {
+      for (const item of tableData) {
+        if (item?.id) schedulesMap.set(item.id, item);
+      }
     }
-  } catch {}
+  } catch (err) {
+    console.warn('[getSchedulesFromStore] table query warning:', err);
+  }
 
-  // Fallback to SiteSetting
+  // 2. Try reading from SiteSetting store (always check and merge)
   try {
-    const { data: setting } = await supabaseAdmin
+    const { data: setting, error: settingErr } = await supabaseAdmin
       .from('SiteSetting')
       .select('value')
       .eq('key', 'AI_NOTIFICATION_SCHEDULES')
       .maybeSingle();
 
-    if (setting?.value) {
-      const parsed = JSON.parse(setting.value);
-      return Array.isArray(parsed) ? parsed : [];
+    if (!settingErr && setting?.value) {
+      const parsed = typeof setting.value === 'string' ? JSON.parse(setting.value) : setting.value;
+      if (Array.isArray(parsed)) {
+        for (const item of parsed) {
+          if (item?.id && !schedulesMap.has(item.id)) {
+            schedulesMap.set(item.id, item);
+          }
+        }
+      }
     }
-  } catch {}
+  } catch (err) {
+    console.warn('[getSchedulesFromStore] SiteSetting query warning:', err);
+  }
 
-  return [];
+  return Array.from(schedulesMap.values());
 }
 
 // Fallback helper to save schedules to SiteSetting
 async function saveSchedulesToSettingStore(schedules: NotificationSchedule[]) {
   try {
-    await supabaseAdmin
+    const { error } = await supabaseAdmin
       .from('SiteSetting')
       .upsert({
+        id: 'setting_AI_NOTIFICATION_SCHEDULES',
         key: 'AI_NOTIFICATION_SCHEDULES',
         value: JSON.stringify(schedules),
-        description: 'Automated AI Notification Bot Schedules',
         updatedAt: new Date().toISOString(),
       }, { onConflict: 'key' });
+
+    if (error) {
+      console.error('[saveSchedulesToSettingStore] error:', error);
+    }
   } catch (e) {
-    console.error('Failed to save to SiteSetting fallback:', e);
+    console.error('[saveSchedulesToSettingStore] fatal exception:', e);
   }
 }
 
@@ -133,19 +152,19 @@ export async function POST(req: NextRequest) {
       updatedAt: now.toISOString(),
     };
 
+    // 1. Always save to SiteSetting fallback store to guarantee persistence
+    const current = await getSchedulesFromStore();
+    const updatedSchedules = [schedulePayload, ...current.filter(s => s.id !== schedulePayload.id)];
+    await saveSchedulesToSettingStore(updatedSchedules);
+
+    // 2. Also try inserting into NotificationSchedule table if exists
     let tableSaved = false;
     try {
       const { error: insertErr } = await supabaseAdmin
         .from('NotificationSchedule')
-        .insert([schedulePayload]);
+        .upsert([schedulePayload]);
       if (!insertErr) tableSaved = true;
     } catch {}
-
-    // Fallback store in SiteSetting if table is missing
-    if (!tableSaved) {
-      const current = await getSchedulesFromStore();
-      await saveSchedulesToSettingStore([schedulePayload, ...current]);
-    }
 
     let dispatchResult: any = null;
     if (triggerImmediately) {
@@ -170,18 +189,18 @@ export async function POST(req: NextRequest) {
         schedulePayload.totalDispatched = dispatchResult.dispatchedCount;
         schedulePayload.lastRunAt = now.toISOString();
         if (tableSaved) {
-          await supabaseAdmin
-            .from('NotificationSchedule')
-            .update({
-              totalDispatched: dispatchResult.dispatchedCount,
-              lastRunAt: now.toISOString(),
-            })
-            .eq('id', scheduleId);
-        } else {
-          const current = await getSchedulesFromStore();
-          const updated = current.map(s => s.id === scheduleId ? schedulePayload : s);
-          await saveSchedulesToSettingStore(updated);
+          try {
+            await supabaseAdmin
+              .from('NotificationSchedule')
+              .update({
+                totalDispatched: dispatchResult.dispatchedCount,
+                lastRunAt: now.toISOString(),
+              })
+              .eq('id', scheduleId);
+          } catch {}
         }
+        const updated = updatedSchedules.map(s => s.id === scheduleId ? schedulePayload : s);
+        await saveSchedulesToSettingStore(updated);
       }
     }
 

@@ -46,7 +46,7 @@ export default function AdminSettingsPage() {
   const [heroBtn1Text, setHeroBtn1Text] = useState('BROWSE TOURNAMENTS');
   const [heroBtn1Link, setHeroBtn1Link] = useState('/tournaments');
   const [heroBtn2Text, setHeroBtn2Text] = useState('CLAIM FREE REWARDS');
-  const [heroBtn2Link, setHeroBtn2Link] = useState('/rewards');
+  const [heroBtn2Link, setHeroBtn2Link] = useState('/ads');
   
   // Hero 3 Trust Stats
   const [heroStat1Val, setHeroStat1Val] = useState('৳ 2.5 Lakh+');
