@@ -87,6 +87,7 @@ export default function AIAssistantWidget() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Load user data on mount
   useEffect(() => {
@@ -212,47 +213,95 @@ export default function AIAssistantWidget() {
     }
   };
 
-  // Text to Speech (Bengali TTS)
-  const speakMessage = (text: string, id: string) => {
+  // High-Quality Free Google Bangla Text to Speech (TTS)
+  const speakMessage = async (text: string, id: string) => {
     if (typeof window === 'undefined') return;
 
-    if (!('speechSynthesis' in window)) {
-      alert('আপনার ব্রাউজারে Text-to-Speech সাপোর্ট নেই।');
-      return;
-    }
-
+    // Toggle off if already speaking
     if (speakingId === id) {
-      window.speechSynthesis.cancel();
+      if (currentAudioRef.current) {
+        currentAudioRef.current.pause();
+        currentAudioRef.current = null;
+      }
+      window.speechSynthesis?.cancel();
       setSpeakingId(null);
       return;
     }
 
-    window.speechSynthesis.cancel();
-
-    // Clean text for natural TTS reading
-    const cleanText = text
-      .replace(/https?:\/\/[^\s]+/g, 'ওয়েবসাইট লিংক')
-      .replace(/[*#_`~>]/g, '')
-      .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
-      .replace(/[🎮🏆🔥💰⚡🎯🛡️💎🔑]/g, '')
-      .trim();
-
-    const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.lang = 'bn-BD';
-    utterance.rate = 0.95;
-    utterance.pitch = 1.0;
-
-    const voices = window.speechSynthesis.getVoices();
-    const bnVoice = voices.find(v => v.lang.includes('bn') || v.name.toLowerCase().includes('bangla') || v.name.toLowerCase().includes('bengali'));
-    if (bnVoice) {
-      utterance.voice = bnVoice;
+    // Stop any previous speech
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current = null;
     }
+    window.speechSynthesis?.cancel();
 
-    utterance.onstart = () => setSpeakingId(id);
-    utterance.onend = () => setSpeakingId(null);
-    utterance.onerror = () => setSpeakingId(null);
+    setSpeakingId(id);
 
-    window.speechSynthesis.speak(utterance);
+    try {
+      // 1. Request audio from Free Google TTS API
+      const res = await fetch(`/api/tts?text=${encodeURIComponent(text)}`);
+      if (!res.ok) throw new Error('API TTS unavailable');
+      
+      const data = await res.json();
+      if (!data.urls || !Array.isArray(data.urls) || data.urls.length === 0) {
+        throw new Error('No audio urls generated');
+      }
+
+      // 2. Play audio stream sequentially
+      let currentIndex = 0;
+      const playNextChunk = () => {
+        if (currentIndex >= data.urls.length) {
+          setSpeakingId(null);
+          currentAudioRef.current = null;
+          return;
+        }
+
+        const audio = new Audio(data.urls[currentIndex]);
+        currentAudioRef.current = audio;
+
+        audio.onended = () => {
+          currentIndex++;
+          playNextChunk();
+        };
+
+        audio.onerror = () => {
+          currentIndex++;
+          playNextChunk();
+        };
+
+        audio.play().catch(() => {
+          setSpeakingId(null);
+        });
+      };
+
+      playNextChunk();
+    } catch (err) {
+      console.warn('Google TTS API notice, falling back to Browser Speech:', err);
+      // Fallback: Browser Web Speech API
+      if ('speechSynthesis' in window) {
+        const cleanText = text
+          .replace(/https?:\/\/[^\s]+/g, '')
+          .replace(/[*#_`~>\[\]\(\)]/g, ' ')
+          .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
+          .replace(/[🎮🏆🔥💰⚡🎯🛡️💎🔑👉📌✨⚠️]/g, '')
+          .trim();
+
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        utterance.lang = 'bn-BD';
+        utterance.rate = 0.95;
+
+        const voices = window.speechSynthesis.getVoices();
+        const bnVoice = voices.find(v => v.lang.includes('bn') || v.name.toLowerCase().includes('bangla') || v.name.toLowerCase().includes('bengali'));
+        if (bnVoice) utterance.voice = bnVoice;
+
+        utterance.onend = () => setSpeakingId(null);
+        utterance.onerror = () => setSpeakingId(null);
+
+        window.speechSynthesis.speak(utterance);
+      } else {
+        setSpeakingId(null);
+      }
+    }
   };
 
   const handleSendMessage = async (textToSend?: string) => {
