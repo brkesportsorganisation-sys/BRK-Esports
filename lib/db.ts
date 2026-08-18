@@ -8,6 +8,7 @@ class LocalDatabase {
   private payments: Payment[] = [...initialPayments];
   private announcements: Announcement[] = [...initialAnnouncements];
   private matchResults: MatchResult[] = [];
+  private registrations: any[] = [];
   private currentUser: User | null = null;
   private adSettings: { isActive: boolean, ads: { id: string, videoId: string, rewardAmount: number, isActive: boolean }[] } = {
     isActive: true,
@@ -26,6 +27,9 @@ class LocalDatabase {
 
       const savedPayments = localStorage.getItem('helian_payments');
       if (savedPayments) this.payments = JSON.parse(savedPayments);
+
+      const savedRegs = localStorage.getItem('helian_registrations');
+      if (savedRegs) this.registrations = JSON.parse(savedRegs);
 
       const savedUser = localStorage.getItem('helian_current_user');
       if (savedUser) {
@@ -64,6 +68,7 @@ class LocalDatabase {
       localStorage.setItem('helian_users', JSON.stringify(this.users));
       localStorage.setItem('helian_tournaments', JSON.stringify(this.tournaments));
       localStorage.setItem('helian_payments', JSON.stringify(this.payments));
+      localStorage.setItem('helian_registrations', JSON.stringify(this.registrations));
       if (this.currentUser) {
         localStorage.setItem('helian_current_user', JSON.stringify(this.currentUser));
       } else {
@@ -71,6 +76,40 @@ class LocalDatabase {
       }
       localStorage.setItem('helian_ad_settings', JSON.stringify(this.adSettings));
     }
+  }
+
+  // Registrations (Tournament Squad Participants)
+  getRegistrations(): any[] {
+    return this.registrations;
+  }
+
+  getRegistrationsByTournament(tournamentId: string): any[] {
+    return this.registrations.filter((r) => r.tournamentId === tournamentId);
+  }
+
+  getRegistrationsByUser(userId: string): any[] {
+    return this.registrations.filter((r) => r.userId === userId);
+  }
+
+  createRegistration(registration: any): any {
+    const newReg = {
+      ...registration,
+      id: registration.id || `reg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      status: registration.status || 'VERIFIED',
+      joinedAt: registration.joinedAt || new Date().toISOString(),
+    };
+    this.registrations.unshift(newReg);
+    
+    // Also increment tournament count
+    if (registration.tournamentId) {
+      const t = this.getTournamentById(registration.tournamentId);
+      if (t) {
+        this.updateTournament(t.id, { registeredCount: (t.registeredCount || 0) + 1 });
+      }
+    }
+
+    this.save();
+    return newReg;
   }
 
   // User Auth & Management

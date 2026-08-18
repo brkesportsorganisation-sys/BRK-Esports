@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server';
 import { getTournamentByIdFromDb } from '@/lib/tournament-store';
 import { supabaseAdmin } from '@/lib/supabase';
+import { db } from '@/lib/db';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const tournament = await getTournamentByIdFromDb(id);
+  let tournament = await getTournamentByIdFromDb(id);
+  if (!tournament) {
+    tournament = db.getTournamentById(id) || null;
+  }
+
   if (!tournament) {
     return NextResponse.json({ message: 'Tournament not found' }, { status: 404 });
   }
@@ -13,17 +18,27 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const userId = url.searchParams.get('userId');
   
   let userRegistrations: any[] = [];
-  if (userId) {
-    try {
-      const { data } = await supabaseAdmin
-        .from('Participant')
-        .select('*')
-        .eq('tournamentId', id)
-        .eq('userId', userId)
-        .order('joinedAt', { ascending: false });
-      userRegistrations = data || [];
-    } catch (e) {
-      console.error('Failed to fetch user registrations:', e);
+  let allParticipants: any[] = [];
+
+  try {
+    const { data: participantsData } = await supabaseAdmin
+      .from('Participant')
+      .select('*')
+      .eq('tournamentId', id)
+      .order('joinedAt', { ascending: true });
+
+    allParticipants = participantsData || [];
+
+    if (userId) {
+      userRegistrations = allParticipants.filter((p) => p.userId === userId);
+    }
+  } catch (e) {
+    console.error('Failed to fetch participants from Supabase:', e);
+    // Fallback to local DB
+    const localRegs = db.getRegistrations ? db.getRegistrations() : [];
+    allParticipants = localRegs.filter((r: any) => r.tournamentId === id);
+    if (userId) {
+      userRegistrations = allParticipants.filter((p) => p.userId === userId);
     }
   }
 
@@ -32,10 +47,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   // Protect Room ID & Password from leaking to non-registered visitors
   const sanitizedTournament = {
     ...tournament,
+    participants: allParticipants,
+    registeredCount: allParticipants.length > (tournament.registeredCount || 0) ? allParticipants.length : (tournament.registeredCount || 0),
     roomId: isUserRegistered ? tournament.roomId : undefined,
     roomPassword: isUserRegistered ? tournament.roomPassword : undefined,
   };
 
   return NextResponse.json({ tournament: sanitizedTournament, userRegistrations });
 }
-

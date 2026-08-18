@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { getTournamentByIdFromDb } from '@/lib/tournament-store';
+import { db } from '@/lib/db';
 
 function generateId(prefix: string): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -262,6 +263,24 @@ export async function POST(
         updatedAt: new Date().toISOString()
       })
       .eq('id', tournamentId);
+
+    // Sync to local fallback DB
+    db.createRegistration({
+      id: participantId,
+      tournamentId,
+      userId,
+      status: 'VERIFIED',
+      registrationId,
+      squadName: squadName.trim(),
+      iglName: iglName.trim(),
+      captainWhatsApp: captainWhatsApp.trim(),
+      player1Name: player1Name.trim(),
+      player2Name: player2Name.trim(),
+      player3Name: player3Name.trim(),
+      player4Name: player4Name.trim(),
+      backupPlayerName: backupPlayerName?.trim() || null,
+      joinedAt: new Date().toISOString(),
+    });
 
     // 5. Send in-app Notification to player (safely)
     try {

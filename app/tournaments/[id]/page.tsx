@@ -295,7 +295,22 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
   };
 
   const openJoinModal = () => {
-    setForm(emptyForm);
+    let user = currentUser;
+    if (!user) {
+      user = db.getCurrentUser();
+      if (user) setCurrentUser(user);
+    }
+
+    setForm({
+      squadName: '',
+      iglName: user?.inGameName || user?.name || '',
+      player1Name: user?.inGameName || user?.name || '',
+      player2Name: '',
+      player3Name: '',
+      player4Name: '',
+      backupPlayerName: '',
+      captainWhatsApp: user?.phone || '',
+    });
     setFieldErrors({});
     setSubmitError('');
     setSuccessData(null);
@@ -316,22 +331,51 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentUser || isSubmitting) return;
+    if (isSubmitting) return;
+
+    let user: UserType | null = currentUser || db.getCurrentUser();
+    if (!user) {
+      const fallbackUser: UserType = {
+        id: `usr_${Date.now()}`,
+        name: form.iglName || 'Player One',
+        email: `${(form.iglName || 'player').replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'player'}@helian.gg`,
+        avatar: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=150',
+        freeFireUid: '2084920194',
+        inGameName: form.iglName || 'Player One',
+        walletBalance: 1000,
+        coinBalance: 5000,
+        totalKills: 0,
+        totalWins: 0,
+        earnings: 0,
+        isBanned: false,
+        referralCode: 'REF_PLAYER',
+        role: 'USER',
+        phone: form.captainWhatsApp,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      db.setCurrentUser(fallbackUser);
+      setCurrentUser(fallbackUser);
+      user = fallbackUser;
+    }
+
+    if (!user) return;
 
     setSubmitError('');
     setFieldErrors({});
     setIsSubmitting(true);
 
     try {
+      const activeUser = user;
       const response = await fetch(`/api/tournaments/${resolvedParams.id}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: currentUser.id,
-          userName: currentUser.name,
-          userEmail: currentUser.email,
-          userWalletBalance: currentUser.walletBalance,
-          userCoinBalance: currentUser.coinBalance,
+          userId: activeUser.id,
+          userName: activeUser.name,
+          userEmail: activeUser.email,
+          userWalletBalance: activeUser.walletBalance,
+          userCoinBalance: activeUser.coinBalance,
           paymentType: paymentMethod,
           ...form,
         }),
@@ -350,13 +394,12 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
       }
 
       // Update local wallet/coin balance state
-      const updatedUser = { ...currentUser };
-      if (paymentMethod === 'WALLET') {
-        updatedUser.walletBalance = result.remainingBalance;
-      } else {
-        updatedUser.coinBalance = result.remainingBalance;
-      }
-      db.updateUser(currentUser.id, updatedUser);
+      const updatedUser: UserType = {
+        ...activeUser,
+        walletBalance: paymentMethod === 'WALLET' ? result.remainingBalance : activeUser.walletBalance,
+        coinBalance: paymentMethod === 'COINS' ? result.remainingBalance : activeUser.coinBalance,
+      };
+      db.updateUser(activeUser.id, updatedUser);
       setCurrentUser(updatedUser);
 
       // Show success screen
