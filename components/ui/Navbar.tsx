@@ -47,12 +47,15 @@ export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [activeNotifTab, setActiveNotifTab] = useState<'ALL' | 'UNREAD'>('ALL');
   const [notifications, setNotifications] = useState<NotificationType[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLiveActive, setIsLiveActive] = useState(false);
   const [loadingNotifs, setLoadingNotifs] = useState(false);
   const notifDropdownRef = useRef<HTMLDivElement>(null);
+  const moreDropdownRef = useRef<HTMLDivElement>(null);
+  const profileDropdownRef = useRef<HTMLDivElement>(null);
 
   // Real-time live Supabase WebSockets listeners
   useRealtimeUser(currentUser?.id, (updatedUser) => {
@@ -138,6 +141,12 @@ export default function Navbar() {
       if (notifDropdownRef.current && !notifDropdownRef.current.contains(event.target as Node)) {
         setIsNotificationsOpen(false);
       }
+      if (moreDropdownRef.current && !moreDropdownRef.current.contains(event.target as Node)) {
+        setIsMoreOpen(false);
+      }
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target as Node)) {
+        setIsProfileOpen(false);
+      }
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -205,15 +214,27 @@ export default function Navbar() {
 
   const { t, language, toggleLanguage, isBangla } = useLanguage();
 
-  const navLinks: { name: string; href: string; icon: React.ElementType; isLive?: boolean }[] = [
+  type NavLinkItem = { name: string; href: string; icon: React.ElementType; isLive?: boolean };
+
+  const primaryNavLinks: NavLinkItem[] = [
     { name: t('nav_home', 'Home'), href: '/', icon: Flame },
     { name: t('nav_tournaments', 'Tournaments'), href: '/tournaments', icon: Trophy },
     { name: '1v1 Arena', href: '/arena', icon: Swords },
-    { name: 'Earn Rewards', href: '/ads', icon: Gift },
-    { name: 'Diamonds', href: '/shop', icon: Diamond },
-    { name: 'Champions', href: '/champions', icon: Crown },
-    { name: 'Notices', href: '/announcements', icon: Megaphone },
+    { name: 'Rewards', href: '/ads', icon: Gift },
     { name: t('nav_live', 'Live'), href: '/live', icon: Radio, isLive: isLiveActive },
+  ];
+
+  const moreNavLinks: NavLinkItem[] = [
+    { name: 'Diamonds & Top-up', href: '/shop', icon: Diamond },
+    { name: 'Hall of Champions', href: '/champions', icon: Crown },
+    { name: 'Notices & Rules', href: '/announcements', icon: Megaphone },
+    { name: 'Squad Finder (LFG)', href: '/lfg', icon: Users },
+    { name: 'Community Hub', href: '/community', icon: MessageSquare },
+  ];
+
+  const allNavLinks: NavLinkItem[] = [
+    ...primaryNavLinks,
+    ...moreNavLinks
   ];
 
   // Helper for notification type icons
@@ -262,15 +283,15 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop Nav Links */}
-          <div className="hidden xl:flex items-center space-x-0.5 bg-slate-50 p-1 rounded-2xl border border-slate-200/60">
-            {navLinks.map((link) => {
+          <div className="hidden lg:flex items-center space-x-0.5 bg-slate-50 p-1 rounded-2xl border border-slate-200/60 flex-shrink-0">
+            {primaryNavLinks.map((link) => {
               const Icon = link.icon;
               const isActive = pathname === link.href;
               return (
                 <Link
                   key={link.name}
                   href={link.href}
-                  className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 whitespace-nowrap ${
+                  className={`flex items-center space-x-1.5 px-2.5 xl:px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 whitespace-nowrap ${
                     isActive
                       ? 'bg-gradient-to-r from-brand-red to-brand-orange text-white shadow-sm font-black'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-white'
@@ -289,59 +310,81 @@ export default function Navbar() {
                 </Link>
               );
             })}
+
+            {/* More ▾ Dropdown */}
+            <div className="relative" ref={moreDropdownRef}>
+              <button
+                onClick={() => setIsMoreOpen(!isMoreOpen)}
+                className={`flex items-center space-x-1 px-2.5 xl:px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
+                  isMoreOpen || moreNavLinks.some(l => l.href === pathname)
+                    ? 'bg-slate-200/80 text-slate-900'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+                }`}
+              >
+                <span>{isBangla ? 'আরো' : 'More'}</span>
+                <ChevronDown className={`w-3 h-3 transition-transform ${isMoreOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              <AnimatePresence>
+                {isMoreOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute left-0 mt-2 w-52 bg-white rounded-2xl p-1.5 z-50 border border-slate-200/90 shadow-xl"
+                  >
+                    {moreNavLinks.map((item) => {
+                      const Icon = item.icon;
+                      const isItemActive = pathname === item.href;
+                      return (
+                        <Link
+                          key={item.name}
+                          href={item.href}
+                          onClick={() => setIsMoreOpen(false)}
+                          className={`flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
+                            isItemActive
+                              ? 'bg-orange-50 text-brand-orange'
+                              : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                          }`}
+                        >
+                          <Icon className="w-4 h-4 text-brand-orange" />
+                          <span>{item.name}</span>
+                        </Link>
+                      );
+                    })}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
 
           {/* User Right Action Panel (Desktop) */}
-          <div className="hidden lg:flex items-center space-x-2 xl:space-x-3 flex-shrink-0">
+          <div className="hidden lg:flex items-center space-x-1.5 xl:space-x-2 flex-shrink-0">
             
             {currentUser ? (
               <>
                 {/* Wallet Balance Badge */}
                 <Link 
                   href="/wallet" 
-                  className="flex items-center space-x-2 bg-white hover:bg-slate-50 px-2.5 xl:px-3 py-1.5 rounded-2xl border border-slate-200 transition-all group shadow-2xs"
+                  className="flex items-center space-x-1.5 bg-white hover:bg-slate-50 px-2.5 py-1.5 rounded-2xl border border-slate-200 transition-all group shadow-2xs"
                 >
-                  <div className="w-7 h-7 rounded-xl bg-orange-100 flex items-center justify-center text-orange-500 group-hover:scale-110 transition-transform">
-                    <Wallet className="w-3.5 h-3.5 text-brand-orange" />
+                  <div className="w-6 h-6 rounded-xl bg-orange-100 flex items-center justify-center text-orange-500 group-hover:scale-110 transition-transform flex-shrink-0">
+                    <Wallet className="w-3 h-3 text-brand-orange" />
                   </div>
                   <div className="text-left">
-                    <div className="text-[9px] text-slate-500 font-bold uppercase leading-none">Wallet</div>
+                    <div className="text-[8px] text-slate-500 font-bold uppercase leading-none">Wallet</div>
                     <div className="text-xs font-heading font-black text-orange-600">
                       ৳ {(currentUser.walletBalance || 0).toLocaleString()}
                     </div>
                   </div>
                 </Link>
 
-                {/* Coins Badge */}
-                <Link 
-                  href="/profile" 
-                  className="hidden 2xl:flex items-center space-x-2 bg-white hover:bg-slate-50 px-3 py-1.5 rounded-2xl border border-slate-200 transition-all group shadow-2xs"
-                >
-                  <div className="w-7 h-7 rounded-xl bg-yellow-100 flex items-center justify-center text-yellow-600 group-hover:scale-110 transition-transform">
-                    <Coins className="w-3.5 h-3.5 text-yellow-600" />
-                  </div>
-                  <div className="text-left">
-                    <div className="text-[9px] text-slate-500 font-bold uppercase leading-none">Coins</div>
-                    <div className="text-xs font-heading font-black text-yellow-600">
-                      {(currentUser.coinBalance || 0).toLocaleString()}
-                    </div>
-                  </div>
-                </Link>
-
-                {/* Messages Inbox Link Button */}
-                <Link
-                  href="/messages"
-                  className="hidden xl:flex w-10 h-10 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 hover:border-slate-300 items-center justify-center transition-all shadow-2xs"
-                  title="Messages Inbox"
-                >
-                  <MessageSquare className="w-4 h-4 text-brand-orange" />
-                </Link>
-
                 {/* Rich In-App Notification Bell & Popover */}
                 <div className="relative" ref={notifDropdownRef}>
                   <button
                     onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                    className={`w-10 h-10 rounded-2xl border flex items-center justify-center transition-all relative shadow-2xs cursor-pointer ${
+                    className={`w-9 h-9 rounded-2xl border flex items-center justify-center transition-all relative shadow-2xs cursor-pointer ${
                       isNotificationsOpen
                         ? 'bg-orange-50 border-brand-orange text-brand-orange'
                         : 'bg-white border-slate-200 text-slate-700 hover:text-slate-900 hover:border-slate-300'
@@ -350,7 +393,7 @@ export default function Navbar() {
                   >
                     <Bell className="w-4 h-4" />
                     {unreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-gradient-to-r from-brand-red to-brand-orange text-white text-[10px] font-black flex items-center justify-center animate-bounce shadow-md shadow-orange-500/30">
+                      <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full bg-gradient-to-r from-brand-red to-brand-orange text-white text-[9px] font-black flex items-center justify-center animate-bounce shadow-md shadow-orange-500/30">
                         {unreadCount > 99 ? '99+' : unreadCount}
                       </span>
                     )}
@@ -508,24 +551,16 @@ export default function Navbar() {
                 </div>
 
                 {/* Profile Dropdown */}
-                <div className="relative">
+                <div className="relative" ref={profileDropdownRef}>
                   <button
                     onClick={() => setIsProfileOpen(!isProfileOpen)}
-                    className="flex items-center space-x-2.5 bg-white p-1.5 pr-3 rounded-2xl border border-slate-200 hover:border-slate-300 shadow-2xs transition-all"
+                    className="flex items-center space-x-1.5 bg-white p-1 pr-2 rounded-2xl border border-slate-200 hover:border-slate-300 shadow-2xs transition-all cursor-pointer"
                   >
                     <img
                       src={currentUser.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150'}
                       alt={currentUser.name}
-                      className="w-8 h-8 rounded-xl object-cover border border-slate-200"
+                      className="w-7 h-7 rounded-xl object-cover border border-slate-200"
                     />
-                    <div className="text-left hidden xl:block">
-                      <div className="text-xs font-bold text-slate-900 truncate max-w-[100px]">
-                        {currentUser.inGameName || currentUser.name}
-                      </div>
-                      <div className="text-[10px] text-slate-500 font-mono leading-none">
-                        {currentUser.freeFireUid ? `UID: ${currentUser.freeFireUid}` : currentUser.role}
-                      </div>
-                    </div>
                     <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
                   </button>
 
@@ -535,9 +570,9 @@ export default function Navbar() {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 10 }}
-                        className="absolute right-0 mt-3 w-56 bg-white rounded-2xl p-2 z-50 border border-slate-200 shadow-xl"
+                        className="absolute right-0 mt-3 w-60 bg-white rounded-2xl p-2 z-50 border border-slate-200 shadow-xl"
                       >
-                        <div className="p-3 border-b border-slate-100">
+                        <div className="p-3 border-b border-slate-100 bg-slate-50/60 rounded-xl mb-1">
                           <div className="font-bold text-sm text-slate-900">{currentUser.name}</div>
                           <div className="text-xs text-slate-500 truncate">{currentUser.email}</div>
                           {currentUser.freeFireUid && (
@@ -545,9 +580,14 @@ export default function Navbar() {
                               UID: {currentUser.freeFireUid}
                             </div>
                           )}
+                          <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-200/60">
+                            <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200 flex items-center gap-1">
+                              <Coins className="w-3 h-3" /> {(currentUser.coinBalance || 0).toLocaleString()} Coins
+                            </span>
+                          </div>
                         </div>
 
-                        <div className="py-1">
+                        <div className="py-1 space-y-0.5">
                           <Link
                             href="/profile"
                             onClick={() => setIsProfileOpen(false)}
@@ -555,6 +595,15 @@ export default function Navbar() {
                           >
                             <User className="w-4 h-4 text-slate-400" />
                             <span>{t('nav_profile', 'Player Profile')}</span>
+                          </Link>
+
+                          <Link
+                            href="/messages"
+                            onClick={() => setIsProfileOpen(false)}
+                            className="flex items-center space-x-2 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                          >
+                            <MessageSquare className="w-4 h-4 text-slate-400" />
+                            <span>Messages Inbox</span>
                           </Link>
 
                           <Link
@@ -599,9 +648,9 @@ export default function Navbar() {
               /* If NOT logged in: Render clean LOGIN Button ONLY */
               <Link
                 href="/login"
-                className="px-4 py-2 rounded-2xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-black text-xs shadow-neon-red hover:brightness-110 transition-all flex items-center space-x-2 whitespace-nowrap"
+                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-black text-xs shadow-neon-red hover:brightness-110 transition-all flex items-center space-x-1.5 whitespace-nowrap"
               >
-                <User className="w-4 h-4" />
+                <User className="w-3.5 h-3.5" />
                 <span>{t('nav_login', 'LOGIN')}</span>
               </Link>
             )}
@@ -609,10 +658,10 @@ export default function Navbar() {
             {/* Desktop Language Switcher */}
             <button
               onClick={toggleLanguage}
-              className="flex items-center space-x-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-2 rounded-2xl border border-slate-200/80 transition-all text-xs font-extrabold shadow-2xs cursor-pointer group ml-1"
+              className="flex items-center space-x-1 bg-slate-100 hover:bg-slate-200 text-slate-800 px-2.5 py-1.5 rounded-xl border border-slate-200/80 transition-all text-xs font-extrabold shadow-2xs cursor-pointer group"
               title={isBangla ? "Switch to English" : "বাংলায় দেখুন"}
             >
-              <Globe className="w-4 h-4 text-brand-orange group-hover:rotate-45 transition-transform" />
+              <Globe className="w-3.5 h-3.5 text-brand-orange group-hover:rotate-45 transition-transform" />
               <span className="font-heading font-black">{isBangla ? 'EN' : 'বাংলা'}</span>
             </button>
 
@@ -737,7 +786,7 @@ export default function Navbar() {
               </div>
             )}
 
-            {navLinks.map((link) => {
+            {allNavLinks.map((link) => {
               const Icon = link.icon;
               const isActive = pathname === link.href;
               return (
