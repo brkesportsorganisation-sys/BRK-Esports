@@ -182,6 +182,7 @@ export default function AdminShell({ children }: AdminShellProps) {
     {
       title: 'PLAYERS & COMMUNITY',
       links: [
+        { href: '/admin/support', label: 'Live Support Chat (🎧)', icon: Headphones, colorClass: 'text-emerald-500', permission: 'moderate_messages' },
         { href: '/admin/users', label: 'Player Accounts', icon: Users, colorClass: 'text-purple-600', permission: 'manage_users' },
         { href: '/admin/teams', label: 'Squad Clans Directory', icon: Swords, colorClass: 'text-orange-500', permission: 'manage_tournaments' },
         { href: '/admin/notifications', label: 'Announcements & Alerts', icon: Bell, colorClass: 'text-pink-400', permission: 'send_notifications' },

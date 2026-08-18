@@ -26,31 +26,53 @@ export default function ContactPage() {
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 flex-1 w-full space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all text-center space-y-3">
-            <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto border border-indigo-100">
-              <MessageSquare className="w-6 h-6" />
+          <a
+            href="https://discord.gg/blackrock-esports"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block group cursor-pointer"
+          >
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-500 transition-all text-center space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto border border-indigo-100 group-hover:scale-110 transition-transform">
+                <MessageSquare className="w-6 h-6" />
+              </div>
+              <h3 className="font-heading font-bold text-lg text-slate-900 group-hover:text-indigo-600 transition-colors">Discord Community</h3>
+              <p className="text-xs text-slate-600 font-medium">Join 10,000+ gamers on our active server for instant support & scrims.</p>
+              <span className="inline-block px-3 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold font-mono">
+                discord.gg/blackrock
+              </span>
             </div>
-            <h3 className="font-heading font-bold text-lg text-slate-900">Discord Community</h3>
-            <p className="text-xs text-slate-600 font-medium">Join 10,000+ gamers on our active server for scrims & chat.</p>
-          </div>
+          </a>
 
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all text-center space-y-3">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto border border-emerald-100">
-              <MessageCircle className="w-6 h-6" />
+          <a
+            href="https://wa.me/8801700000000?text=Hello%20Black%20Rock%20Esports%20Support"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block group cursor-pointer"
+          >
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-emerald-500 transition-all text-center space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto border border-emerald-100 group-hover:scale-110 transition-transform">
+                <MessageCircle className="w-6 h-6" />
+              </div>
+              <h3 className="font-heading font-bold text-lg text-slate-900 group-hover:text-emerald-600 transition-colors">WhatsApp Helpline</h3>
+              <p className="text-xs font-mono font-bold text-emerald-600">+880 1700-000000</p>
+              <p className="text-[11px] text-slate-600 font-medium">Instant deposit & room ID live help</p>
             </div>
-            <h3 className="font-heading font-bold text-lg text-slate-900">WhatsApp Helpline</h3>
-            <p className="text-xs font-mono font-bold text-emerald-600">+880 1712-998877</p>
-            <p className="text-[11px] text-slate-600 font-medium">Instant deposit & room ID help</p>
-          </div>
+          </a>
 
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all text-center space-y-3">
-            <div className="w-12 h-12 rounded-2xl bg-red-50 text-brand-red flex items-center justify-center mx-auto border border-red-100">
-              <Mail className="w-6 h-6" />
+          <a
+            href="mailto:support@blackrock.esports"
+            className="block group cursor-pointer"
+          >
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-red-500 transition-all text-center space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-red-50 text-brand-red flex items-center justify-center mx-auto border border-red-100 group-hover:scale-110 transition-transform">
+                <Mail className="w-6 h-6" />
+              </div>
+              <h3 className="font-heading font-bold text-lg text-slate-900 group-hover:text-brand-red transition-colors">Email Support</h3>
+              <p className="text-xs font-mono font-bold text-slate-700">support@blackrock.esports</p>
+              <p className="text-[11px] text-slate-600 font-medium">Official business & sponsorship</p>
             </div>
-            <h3 className="font-heading font-bold text-lg text-slate-900">Email Support</h3>
-            <p className="text-xs font-mono font-bold text-slate-700">support@blackrock.esports</p>
-            <p className="text-[11px] text-slate-600 font-medium">Official business inquiries</p>
-          </div>
+          </a>
         </div>
       </main>
 

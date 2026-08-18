@@ -1,4 +1,4 @@
-import { User, Tournament, Team, Payment, Announcement, MatchResult, PaymentStatus, Banner } from './types';
+import { User, Tournament, Team, Payment, Announcement, MatchResult, PaymentStatus, Banner, SupportTicket, SupportMessage } from './types';
 import { initialUsers, initialTournaments, initialTeams, initialPayments, initialAnnouncements, initialBanners } from './mock-data';
 
 class LocalDatabase {
@@ -8,6 +8,8 @@ class LocalDatabase {
   private payments: Payment[] = [...initialPayments];
   private announcements: Announcement[] = [...initialAnnouncements];
   private banners: Banner[] = [...initialBanners];
+  private supportTickets: SupportTicket[] = [];
+  private supportMessages: SupportMessage[] = [];
   private bannerSettings: { autoSlideInterval: number; isEnabled: boolean } = {
     autoSlideInterval: 4000,
     isEnabled: true,
@@ -63,6 +65,16 @@ class LocalDatabase {
           this.bannerSettings = JSON.parse(savedBannerSettings);
         } catch {}
       }
+
+      const savedTickets = localStorage.getItem('helian_support_tickets');
+      if (savedTickets) {
+        try { this.supportTickets = JSON.parse(savedTickets); } catch {}
+      }
+
+      const savedMsgs = localStorage.getItem('helian_support_messages');
+      if (savedMsgs) {
+        try { this.supportMessages = JSON.parse(savedMsgs); } catch {}
+      }
       
       const savedAdSettings = localStorage.getItem('helian_ad_settings');
       if (savedAdSettings) {
@@ -90,6 +102,8 @@ class LocalDatabase {
       localStorage.setItem('helian_registrations', JSON.stringify(this.registrations));
       localStorage.setItem('helian_banners', JSON.stringify(this.banners));
       localStorage.setItem('helian_banner_settings', JSON.stringify(this.bannerSettings));
+      localStorage.setItem('helian_support_tickets', JSON.stringify(this.supportTickets));
+      localStorage.setItem('helian_support_messages', JSON.stringify(this.supportMessages));
       if (this.currentUser) {
         localStorage.setItem('helian_current_user', JSON.stringify(this.currentUser));
       } else {
@@ -629,6 +643,79 @@ class LocalDatabase {
     };
     this.save();
     return this.bannerSettings;
+  }
+
+  // Support Tickets & Live Admin Messaging
+  getSupportTickets(): SupportTicket[] {
+    return [...this.supportTickets].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  }
+
+  getSupportTicketById(id: string): SupportTicket | null {
+    return this.supportTickets.find((t) => t.id === id) || null;
+  }
+
+  getSupportTicketByUserId(userId: string): SupportTicket | null {
+    return this.supportTickets.find((t) => t.userId === userId) || null;
+  }
+
+  createOrGetSupportTicket(userId: string, userName: string, userEmail?: string, userPhone?: string): SupportTicket {
+    let ticket = this.getSupportTicketByUserId(userId);
+    if (!ticket) {
+      ticket = {
+        id: `ticket_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        userId,
+        userName: userName || 'Player',
+        userEmail: userEmail || '',
+        userPhone: userPhone || '',
+        lastMessage: 'Ticket Opened',
+        status: 'OPEN',
+        unreadCountAdmin: 1,
+        unreadCountUser: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      this.supportTickets.unshift(ticket);
+      this.save();
+    }
+    return ticket;
+  }
+
+  getSupportMessages(ticketId: string): SupportMessage[] {
+    return this.supportMessages
+      .filter((m) => m.ticketId === ticketId)
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  }
+
+  addSupportMessage(msg: Omit<SupportMessage, 'id' | 'createdAt'>): SupportMessage {
+    const newMsg: SupportMessage = {
+      ...msg,
+      id: `smsg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      createdAt: new Date().toISOString(),
+    };
+    this.supportMessages.push(newMsg);
+
+    const ticketIdx = this.supportTickets.findIndex((t) => t.id === msg.ticketId);
+    if (ticketIdx !== -1) {
+      this.supportTickets[ticketIdx].lastMessage = msg.content;
+      this.supportTickets[ticketIdx].updatedAt = new Date().toISOString();
+      if (msg.senderRole === 'USER') {
+        this.supportTickets[ticketIdx].unreadCountAdmin += 1;
+      } else if (msg.senderRole === 'ADMIN') {
+        this.supportTickets[ticketIdx].unreadCountUser += 1;
+        this.supportTickets[ticketIdx].unreadCountAdmin = 0;
+      }
+    }
+    this.save();
+    return newMsg;
+  }
+
+  resolveSupportTicket(id: string): boolean {
+    const ticket = this.getSupportTicketById(id);
+    if (!ticket) return false;
+    ticket.status = 'RESOLVED';
+    ticket.updatedAt = new Date().toISOString();
+    this.save();
+    return true;
   }
 }
 

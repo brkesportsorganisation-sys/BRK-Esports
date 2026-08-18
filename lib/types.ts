@@ -613,5 +613,31 @@ export interface VendorPayoutRequest {
   updatedAt: string;
 }
 
+export interface SupportMessage {
+  id: string;
+  ticketId: string;
+  userId: string;
+  userName: string;
+  userAvatar?: string;
+  senderRole: 'USER' | 'ADMIN' | 'SYSTEM';
+  content: string;
+  createdAt: string;
+}
+
+export interface SupportTicket {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail?: string;
+  userPhone?: string;
+  lastMessage: string;
+  status: 'OPEN' | 'RESOLVED';
+  unreadCountAdmin: number;
+  unreadCountUser: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+
 
 

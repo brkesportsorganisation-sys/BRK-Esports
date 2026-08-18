@@ -777,6 +777,45 @@ CREATE INDEX IF NOT EXISTS "idx_banner_placement" ON "Banner"("placement");
 CREATE INDEX IF NOT EXISTS "idx_banner_order" ON "Banner"("order");
 CREATE INDEX IF NOT EXISTS "idx_banner_active" ON "Banner"("isActive");
 
+-- =========================================================
+-- 23. SupportTicket Table (Player Helpdesk & Support Threads)
+-- =========================================================
+CREATE TABLE IF NOT EXISTS "SupportTicket" (
+    "id" TEXT PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "userName" TEXT NOT NULL,
+    "userEmail" TEXT,
+    "userPhone" TEXT,
+    "lastMessage" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'OPEN', -- 'OPEN', 'RESOLVED'
+    "unreadCountAdmin" INTEGER NOT NULL DEFAULT 1,
+    "unreadCountUser" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS "idx_supportticket_userId" ON "SupportTicket"("userId");
+CREATE INDEX IF NOT EXISTS "idx_supportticket_status" ON "SupportTicket"("status");
+CREATE INDEX IF NOT EXISTS "idx_supportticket_updatedAt" ON "SupportTicket"("updatedAt");
+
+-- =========================================================
+-- 24. SupportMessage Table (Live Messages & Discord Welcomes)
+-- =========================================================
+CREATE TABLE IF NOT EXISTS "SupportMessage" (
+    "id" TEXT PRIMARY KEY,
+    "ticketId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "userName" TEXT NOT NULL,
+    "userAvatar" TEXT,
+    "senderRole" TEXT NOT NULL DEFAULT 'USER', -- 'USER', 'ADMIN', 'SYSTEM'
+    "content" TEXT NOT NULL,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS "idx_supportmessage_ticketId" ON "SupportMessage"("ticketId");
+CREATE INDEX IF NOT EXISTS "idx_supportmessage_createdAt" ON "SupportMessage"("createdAt");
+
+
 
 
 
