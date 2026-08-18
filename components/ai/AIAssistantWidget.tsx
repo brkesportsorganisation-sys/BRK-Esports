@@ -45,25 +45,25 @@ const COACHING_PILLS = [
   { id: 'spin', label: '🎁 Free Rewards', query: 'How can I get free coins, spins, and diamond rewards on Black Rock Esports?' }
 ];
 
+const DEFAULT_WELCOME_MESSAGE: Message = {
+  id: 'welcome',
+  role: 'assistant',
+  senderName: 'BlackRock Support',
+  content: "👋 আসসালামু আলাইকুম! Black Rock Esports অফিসিয়াল সাপোর্ট ও এআই ডেস্কে স্বাগতম।\n\n📌 টুর্নামেন্ট রুম আইডি, বিকাশ পেমেন্ট বা যেকোনো সমস্যার দ্রুত সমাধানের জন্য আমাদের অফিসিয়াল Discord সার্ভারে জয়েন করুন:\n👉 https://discord.gg/blackrock-esports\n\nআপনার যেকোনো সমস্যার কথা এখানেও লিখে পাঠাতে পারেন। আমাদের এআই ও অ্যাডমিন টিম দ্রুত উত্তর দেবে।",
+  timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+  suggestedAction: {
+    label: '👉 Join Official Discord Server',
+    link: 'https://discord.gg/blackrock-esports'
+  }
+};
+
 export default function AIAssistantWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [showHumanModal, setShowHumanModal] = useState(false);
 
   // Unified Chat Stream
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 'welcome',
-      role: 'assistant',
-      senderName: 'BlackRock AI',
-      content: "👋 আসসালামু আলাইকুম! Black Rock Esports অফিসিয়াল সাপোর্ট ও এআই ডেস্কে স্বাগতম।\n\n📌 টুর্নামেন্ট স্লট বুকিং, কাস্টম রুম আইডি, বিকাশ উইথড্র বা হেডশট সেনসিটিভিটি জানতে নিচে লিখুন। যেকোনো জরুরি সমস্যার জন্য সরাসরি আমাদের Discord কমিউনিটিতে যুক্ত হতে পারেন।",
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      suggestedAction: {
-        label: '👉 Join Official Discord Server',
-        link: 'https://discord.gg/blackrock-esports'
-      }
-    }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([DEFAULT_WELCOME_MESSAGE]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserType | null>(null);
@@ -441,15 +441,7 @@ export default function AIAssistantWidget() {
       window.speechSynthesis?.cancel();
       setSpeakingId(null);
     }
-    setMessages([
-      {
-        id: 'welcome',
-        role: 'assistant',
-        senderName: 'BlackRock AI',
-        content: "Hello! I am here to provide BlackRock AI Support. How can I help you today?",
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      }
-    ]);
+    setMessages([DEFAULT_WELCOME_MESSAGE]);
   };
 
   return (
