@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET() {
   try {
@@ -19,7 +20,16 @@ export async function GET() {
       return acc;
     }, {});
 
-    return NextResponse.json({ settings: settingsMap });
+    return NextResponse.json(
+      { settings: settingsMap },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          Pragma: 'no-cache',
+          Expires: '0',
+        },
+      }
+    );
   } catch (error: any) {
     console.error('[GET /api/settings]', error);
     return NextResponse.json({ settings: {} });
