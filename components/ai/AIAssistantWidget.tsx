@@ -6,40 +6,22 @@ import {
   Bot, 
   Send, 
   X, 
-  Sparkles, 
-  RefreshCw, 
-  Flame, 
-  Gamepad2, 
-  DollarSign, 
-  Trophy, 
-  ShieldAlert, 
-  User, 
-  MessageSquare, 
-  ChevronDown, 
-  Maximize2, 
-  Minimize2, 
   Copy, 
   Check, 
   Mic, 
-  MicOff, 
   Volume2, 
   VolumeX, 
-  Gift, 
-  Crosshair, 
-  Users, 
-  ExternalLink, 
+  Headphones,
   ArrowRight,
-  Zap,
-  Radio,
-  Headphones
+  Sparkles
 } from 'lucide-react';
 import { db } from '@/lib/db';
-import { User as UserType, SupportTicket, SupportMessage } from '@/lib/types';
+import { User as UserType, SupportMessage } from '@/lib/types';
 import Link from 'next/link';
 
 interface Message {
   id: string;
-  role: 'user' | 'assistant' | 'admin' | 'system';
+  role: 'user' | 'assistant' | 'admin';
   senderName?: string;
   content: string;
   timestamp: string;
@@ -50,32 +32,18 @@ interface Message {
   };
 }
 
-const COACHING_PILLS = [
-  { id: 'discord', label: '💬 Join Discord', query: 'I want to join the official Discord server for instant support' },
-  { id: 'tournaments', label: '🏆 Live Matches', query: 'What active Free Fire tournaments are open for registration right now?' },
-  { id: 'sens', label: '🎯 Headshot Sens', query: 'What is the best Free Fire drag-headshot sensitivity and DPI settings?' },
-  { id: 'room', label: '🔑 Custom Room ID', query: 'How and when will I get the Custom Room ID and Password for my match?' },
-  { id: 'wallet', label: '💰 bKash Cashout', query: 'How does prize money payout work and how to withdraw to bKash/Nagad?' },
-  { id: 'spin', label: '🎁 Free Rewards', query: 'How can I get free coins, spins, and diamond rewards on Black Rock Esports?' }
-];
-
 export default function AIAssistantWidget() {
   const [isOpen, setIsOpen] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
   const [isListening, setIsListening] = useState(false);
 
-  // Unified Chat Stream
+  // Minimal Chat Stream
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
       role: 'assistant',
-      senderName: 'Black Rock AI',
-      content: "👋 আসসালামু আলাইকুম! Black Rock Esports অফিসিয়াল সাপোর্ট ও এআই ডেস্কে স্বাগতম।\n\n📌 টুর্নামেন্ট স্লট বুকিং, কাস্টম রুম আইডি, বিকাশ উইথড্র বা হেডশট সেনসিটিভিটি জানতে সরাসরি প্রশ্ন করুন। আমাদের এআই ও অ্যাডমিন টিম সার্বক্ষণিক প্রস্তুত রয়েছে।\n\n👉 দ্রুততম লাইভ সহায়তার জন্য আমাদের Discord সার্ভারে যোগ দিতে পারেন: https://discord.gg/blackrock-esports",
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      suggestedAction: {
-        label: '👉 Join Official Discord Server',
-        link: 'https://discord.gg/blackrock-esports'
-      }
+      senderName: 'BlackRock AI',
+      content: "Hello! I am here to provide BlackRock AI Support. How can I help you today?",
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
   const [input, setInput] = useState('');
@@ -106,7 +74,6 @@ export default function AIAssistantWidget() {
         if (res.ok) {
           const data = await res.json();
           if (data.messages && Array.isArray(data.messages)) {
-            // Find admin messages that aren't yet in current messages stream
             const adminMsgs: SupportMessage[] = data.messages.filter((m: SupportMessage) => m.senderRole === 'ADMIN');
             
             setMessages(prev => {
@@ -118,7 +85,7 @@ export default function AIAssistantWidget() {
                   newAdminMsgs.push({
                     id: am.id,
                     role: 'admin',
-                    senderName: am.userName || '🛡️ Admin Support',
+                    senderName: am.userName || 'Admin Support',
                     content: am.content,
                     timestamp: new Date(am.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                   });
@@ -151,7 +118,7 @@ export default function AIAssistantWidget() {
     const SpeechRecognitionClass = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     
     if (!SpeechRecognitionClass) {
-      alert('ভয়েস ইনপুটের জন্য অনুগ্রহ করে Google Chrome, Edge অথবা Safari ব্রাউজার ব্যবহার করুন।');
+      alert('ভয়েস ইনপুটের জন্য Google Chrome, Edge অথবা Safari ব্রাউজার ব্যবহার করুন।');
       return;
     }
 
@@ -196,8 +163,7 @@ export default function AIAssistantWidget() {
         }
       };
 
-      recognition.onerror = (event: any) => {
-        console.warn('Speech recognition notice:', event.error);
+      recognition.onerror = () => {
         setIsListening(false);
       };
 
@@ -208,16 +174,14 @@ export default function AIAssistantWidget() {
       recognitionRef.current = recognition;
       recognition.start();
     } catch (err) {
-      console.warn('Microphone permission notice:', err);
       setIsListening(false);
     }
   };
 
-  // High-Quality Free Google Bangla Text to Speech (TTS)
+  // Free Google Bangla Text to Speech (TTS)
   const speakMessage = async (text: string, id: string) => {
     if (typeof window === 'undefined') return;
 
-    // Toggle off if already speaking
     if (speakingId === id) {
       if (currentAudioRef.current) {
         currentAudioRef.current.pause();
@@ -228,7 +192,6 @@ export default function AIAssistantWidget() {
       return;
     }
 
-    // Stop any previous speech
     if (currentAudioRef.current) {
       currentAudioRef.current.pause();
       currentAudioRef.current = null;
@@ -238,16 +201,14 @@ export default function AIAssistantWidget() {
     setSpeakingId(id);
 
     try {
-      // 1. Request audio from Free Google TTS API
       const res = await fetch(`/api/tts?text=${encodeURIComponent(text)}`);
-      if (!res.ok) throw new Error('API TTS unavailable');
+      if (!res.ok) throw new Error('API TTS error');
       
       const data = await res.json();
       if (!data.urls || !Array.isArray(data.urls) || data.urls.length === 0) {
-        throw new Error('No audio urls generated');
+        throw new Error('No audio urls');
       }
 
-      // 2. Play audio stream sequentially
       let currentIndex = 0;
       const playNextChunk = () => {
         if (currentIndex >= data.urls.length) {
@@ -275,9 +236,8 @@ export default function AIAssistantWidget() {
       };
 
       playNextChunk();
-    } catch (err) {
-      console.warn('Google TTS API notice, falling back to Browser Speech:', err);
-      // Fallback: Browser Web Speech API
+    } catch {
+      // Fallback to browser TTS
       if ('speechSynthesis' in window) {
         const cleanText = text
           .replace(/https?:\/\/[^\s]+/g, '')
@@ -331,7 +291,7 @@ export default function AIAssistantWidget() {
     setInput('');
     setIsLoading(true);
 
-    // 1. Sync to Support Admin Desk (/api/support) in background
+    // Sync to Support Desk
     const uid = currentUser ? currentUser.id : 'guest_user';
     const uName = currentUser ? (currentUser.inGameName || currentUser.name) : 'Guest Player';
     const uEmail = currentUser?.email;
@@ -350,7 +310,7 @@ export default function AIAssistantWidget() {
       }),
     }).catch(() => {});
 
-    // 2. Query Smart AI Assistant
+    // Query AI
     try {
       const history = messages
         .filter(m => m.id !== 'welcome')
@@ -382,7 +342,7 @@ export default function AIAssistantWidget() {
         const assistantMsg: Message = {
           id: `ai_${Date.now()}`,
           role: 'assistant',
-          senderName: 'Black Rock AI',
+          senderName: 'BlackRock AI',
           content: data.reply,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           suggestedAction: data.suggestedAction || undefined
@@ -394,20 +354,20 @@ export default function AIAssistantWidget() {
           {
             id: `err_${Date.now()}`,
             role: 'assistant',
-            senderName: 'Black Rock AI',
+            senderName: 'BlackRock AI',
             content: "দুঃখিত, সার্ভার রেসপন্স করতে সাময়িক সমস্যা হয়েছে। আপনি কি প্রশ্নটি আবার করবেন?",
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           }
         ]);
       }
-    } catch (error) {
+    } catch {
       setMessages(prev => [
         ...prev,
         {
           id: `err_${Date.now()}`,
           role: 'assistant',
-          senderName: 'Black Rock AI',
-          content: "সার্ভারে কানেক্ট করা যাচ্ছে না। অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করুন বা Discord সার্ভারে মেসেজ দিন।",
+          senderName: 'BlackRock AI',
+          content: "সার্ভারে কানেক্ট করা যাচ্ছে না। অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করুন।",
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ]);
@@ -422,20 +382,8 @@ export default function AIAssistantWidget() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleClearChat = () => {
-    if (speakingId) {
-      window.speechSynthesis?.cancel();
-      setSpeakingId(null);
-    }
-    setMessages([
-      {
-        id: 'welcome',
-        role: 'assistant',
-        senderName: 'Black Rock AI',
-        content: "✨ চ্যাট হিস্ট্রি ক্লিয়ার করা হয়েছে। টুর্নামেন্ট তথ্য, ট্রিকস বা সাহায্য লাগলে বলুন!",
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      }
-    ]);
+  const handleTalkToHuman = () => {
+    window.open('https://discord.gg/blackrock-esports', '_blank');
   };
 
   return (
@@ -448,116 +396,52 @@ export default function AIAssistantWidget() {
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0, opacity: 0 }}
-              whileHover={{ scale: 1.06 }}
-              whileTap={{ scale: 0.94 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => setIsOpen(true)}
-              className="relative group px-4 py-3 sm:px-5 sm:py-3.5 rounded-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 text-white shadow-xl shadow-emerald-500/30 border border-white/20 flex items-center justify-center gap-2.5 transition-all duration-300 cursor-pointer"
-              aria-label="Open Support & AI Helpdesk"
+              className="w-14 h-14 rounded-full bg-[#2563EB] hover:bg-blue-700 text-white shadow-xl shadow-blue-500/25 flex items-center justify-center transition-all cursor-pointer relative"
+              aria-label="Open AI Support"
             >
-              {/* Glowing Pulse Aura */}
-              <span className="absolute -inset-1 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 opacity-60 blur-md group-hover:opacity-100 transition duration-300 animate-pulse" />
-              
-              <div className="relative flex items-center gap-2.5">
-                {/* Official WhatsApp Icon */}
-                <div className="w-7 h-7 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center flex-shrink-0">
-                  <svg className="w-4.5 h-4.5 fill-white" viewBox="0 0 24 24">
-                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
-                  </svg>
-                </div>
-                <div className="flex flex-col text-left">
-                  <span className="font-heading font-black text-xs uppercase tracking-wider text-white leading-none">
-                    Support Desk
-                  </span>
-                  <span className="text-[9px] text-emerald-100 font-medium">
-                    24/7 AI & Admin
-                  </span>
-                </div>
-              </div>
-
-              {/* Online Indicator Badge */}
-              <span className="absolute top-0.5 right-0.5 w-3 h-3 bg-emerald-300 border-2 border-slate-900 rounded-full animate-ping" />
-              <span className="absolute top-0.5 right-0.5 w-3 h-3 bg-emerald-400 border-2 border-slate-900 rounded-full" />
+              <Bot className="w-6 h-6" />
+              <span className="absolute top-0 right-0 w-3.5 h-3.5 bg-emerald-400 border-2 border-white rounded-full" />
             </motion.button>
           )}
         </AnimatePresence>
       </div>
 
-      {/* Single Unified Chat Window */}
+      {/* Minimal Clean Chat Window (Matching Reference Screenshot) */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 30, scale: 0.95 }}
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 30, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className={`fixed z-50 flex flex-col bg-slate-950/95 backdrop-blur-2xl border border-slate-800 rounded-3xl shadow-2xl shadow-black/60 overflow-hidden font-sans transition-all duration-300 ${
-              isExpanded 
-                ? 'inset-4 md:inset-10' 
-                : 'bottom-4 right-4 sm:bottom-6 sm:right-6 w-[95vw] sm:w-[420px] md:w-[460px] h-[640px] max-h-[88vh]'
-            }`}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            transition={{ duration: 0.18 }}
+            className="fixed z-50 bottom-4 right-4 sm:bottom-6 sm:right-6 w-[92vw] sm:w-[380px] h-[520px] max-h-[82vh] bg-white rounded-3xl shadow-2xl border border-slate-200/80 overflow-hidden flex flex-col font-sans"
           >
-            {/* Header */}
-            <div className="relative p-3.5 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 border-b border-slate-800 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="relative">
-                  <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-md text-white">
-                    <Headphones className="w-4.5 h-4.5" />
-                  </div>
-                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 border-2 border-slate-950 rounded-full" />
+            {/* Minimal Blue Header */}
+            <div className="bg-[#2563EB] p-4 flex items-center justify-between text-white select-none">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-white text-[#2563EB] flex items-center justify-center shadow-xs flex-shrink-0">
+                  <Bot className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-heading font-black text-sm text-white tracking-wide">
-                      Black Rock Support Desk
-                    </h3>
-                    <span className="text-[9px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-mono">
-                      ONLINE
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
-                    ২৪/৭ লাইভ সাপোর্ট ও স্মার্ট অ্যাসিস্ট্যান্ট
-                  </p>
+                  <h3 className="font-bold text-sm leading-tight text-white">AI Support</h3>
+                  <p className="text-[11px] text-blue-100 font-normal leading-tight mt-0.5">BlackRock AI</p>
                 </div>
               </div>
 
-              {/* Direct Quick Action Links + Window Controls */}
-              <div className="flex items-center gap-1">
-                <a
-                  href="https://discord.gg/blackrock-esports"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title="Join Discord Server"
-                  className="px-2 py-1 rounded-xl bg-indigo-600/30 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/40 text-[10px] font-black transition-all flex items-center gap-1 cursor-pointer shadow-sm"
-                >
-                  <span>Discord</span>
-                </a>
-
-                <a
-                  href="https://wa.me/8801700000000?text=Hello%20Black%20Rock%20Esports%20Support%2C%20I%20need%20help"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title="Direct WhatsApp Support"
-                  className="px-2 py-1 rounded-xl bg-emerald-600/30 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/40 text-[10px] font-black transition-all flex items-center gap-1 cursor-pointer shadow-sm"
-                >
-                  <span>WhatsApp</span>
-                </a>
-
+              <div className="flex items-center gap-2">
+                {/* Talk to Human Pill Button */}
                 <button
-                  onClick={handleClearChat}
-                  title="Clear Chat"
-                  className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all cursor-pointer"
+                  onClick={handleTalkToHuman}
+                  title="Talk to Human Admin on Discord"
+                  className="px-3 py-1 rounded-full bg-white/20 hover:bg-white/30 text-white text-xs font-semibold backdrop-blur-xs transition-all border border-white/20 flex items-center gap-1 cursor-pointer active:scale-95"
                 >
-                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Talk to Human</span>
                 </button>
 
-                <button
-                  onClick={() => setIsExpanded(!isExpanded)}
-                  title={isExpanded ? 'Minimize' : 'Expand'}
-                  className="hidden sm:inline-flex p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all cursor-pointer"
-                >
-                  {isExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-                </button>
+                {/* Close Button */}
                 <button
                   onClick={() => {
                     if (speakingId) {
@@ -566,70 +450,41 @@ export default function AIAssistantWidget() {
                     }
                     setIsOpen(false);
                   }}
-                  title="Close Desk"
-                  className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all cursor-pointer"
+                  className="w-7 h-7 rounded-full hover:bg-white/15 text-white/80 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
-            {/* Quick Suggestion Pills */}
-            <div className="px-3 py-2 bg-slate-900/80 border-b border-slate-800/80 overflow-x-auto scrollbar-none flex items-center gap-1.5">
-              {COACHING_PILLS.map((pill) => (
-                <button
-                  key={pill.id}
-                  onClick={() => handleSendMessage(pill.query)}
-                  className="text-[11px] font-bold px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-orange-500/20 hover:border-orange-500/40 border border-slate-700 text-slate-300 hover:text-orange-400 transition-all flex-shrink-0 flex items-center gap-1 shadow-sm cursor-pointer"
-                >
-                  {pill.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Unified Message Stream */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-slate-800 bg-slate-950">
+            {/* Message Stream */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white">
               {messages.map((msg) => {
                 const isUser = msg.role === 'user';
-                const isAdmin = msg.role === 'admin';
+
+                if (isUser) {
+                  return (
+                    <div key={msg.id} className="flex justify-end">
+                      <div className="bg-[#2563EB] text-white rounded-2xl rounded-tr-xs px-4 py-2.5 text-xs leading-relaxed max-w-[85%] shadow-xs break-words">
+                        {msg.content}
+                      </div>
+                    </div>
+                  );
+                }
 
                 return (
-                  <div
-                    key={msg.id}
-                    className={`flex items-start gap-2.5 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}
-                  >
-                    {!isUser && (
-                      <div className={`w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md mt-0.5 text-white ${
-                        isAdmin ? 'bg-gradient-to-br from-emerald-600 to-teal-600' : 'bg-gradient-to-br from-brand-red to-brand-orange'
-                      }`}>
-                        {isAdmin ? <Headphones className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
-                      </div>
-                    )}
+                  <div key={msg.id} className="flex items-start gap-2.5">
+                    {/* Bot Icon on Left */}
+                    <div className="w-6 h-6 rounded-full bg-blue-50 text-[#2563EB] border border-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <Bot className="w-3.5 h-3.5" />
+                    </div>
 
-                    <div className={`space-y-1 max-w-[85%] ${isUser ? 'items-end' : 'items-start'}`}>
-                      <div className="flex items-center gap-1.5 px-1">
-                        <span className="text-[10px] font-bold text-slate-400">
-                          {isUser ? 'You' : (msg.senderName || 'Black Rock Support')}
-                        </span>
-                        <span className="text-[9px] text-slate-500 font-mono">
-                          {msg.timestamp}
-                        </span>
-                      </div>
+                    <div className="space-y-1 max-w-[85%]">
+                      {/* Clean Message Bubble */}
+                      <div className="bg-white border border-slate-200/90 rounded-2xl rounded-tl-xs px-4 py-3 text-xs text-slate-800 shadow-xs leading-relaxed whitespace-pre-wrap break-words">
+                        {msg.content}
 
-                      <div
-                        className={`p-3.5 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-md relative group ${
-                          isUser
-                            ? 'bg-gradient-to-r from-brand-red to-brand-orange text-white font-semibold rounded-tr-none'
-                            : isAdmin
-                            ? 'bg-slate-900 border border-emerald-500/40 text-slate-100 rounded-tl-none'
-                            : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-tl-none'
-                        }`}
-                      >
-                        <div className="whitespace-pre-line break-words space-y-1">
-                          {msg.content}
-                        </div>
-
-                        {/* Interactive Suggested Action Button */}
+                        {/* Optional Suggested Action */}
                         {msg.suggestedAction && (
                           <div className="pt-2">
                             {msg.suggestedAction.link.startsWith('http') ? (
@@ -637,79 +492,80 @@ export default function AIAssistantWidget() {
                                 href={msg.suggestedAction.link}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md transition-all cursor-pointer"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#2563EB] font-bold text-[11px] border border-blue-200 transition-colors"
                               >
                                 <span>{msg.suggestedAction.label}</span>
-                                <ArrowRight className="w-3.5 h-3.5" />
+                                <ArrowRight className="w-3 h-3" />
                               </a>
                             ) : (
                               <Link
                                 href={msg.suggestedAction.link}
                                 onClick={() => setIsOpen(false)}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-bold text-xs hover:brightness-110 transition-all shadow-md cursor-pointer"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#2563EB] font-bold text-[11px] border border-blue-200 transition-colors"
                               >
                                 <span>{msg.suggestedAction.label}</span>
-                                <ArrowRight className="w-3.5 h-3.5" />
+                                <ArrowRight className="w-3 h-3" />
                               </Link>
                             )}
                           </div>
                         )}
+                      </div>
 
-                        {/* Copy and Bangla TTS */}
-                        {!isUser && (
-                          <div className="flex items-center gap-2.5 pt-2 border-t border-slate-800/80 mt-2 text-[10px] text-slate-500">
-                            <button
-                              onClick={() => handleCopyText(msg.content, msg.id)}
-                              className="hover:text-slate-300 flex items-center gap-1 transition-colors cursor-pointer"
-                              title="Copy Answer"
-                            >
-                              {copiedId === msg.id ? (
-                                <>
-                                  <Check className="w-3 h-3 text-emerald-400" />
-                                  <span className="text-emerald-400">কপি হয়েছে</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Copy className="w-3 h-3" />
-                                  <span>কপি</span>
-                                </>
-                              )}
-                            </button>
+                      {/* Action Bar (Audio & Copy) */}
+                      <div className="flex items-center gap-2 px-1 text-[10px] text-slate-400">
+                        <button
+                          onClick={() => speakMessage(msg.content, msg.id)}
+                          className="hover:text-blue-600 flex items-center gap-1 transition-colors cursor-pointer"
+                          title="Listen in Bangla"
+                        >
+                          {speakingId === msg.id ? (
+                            <>
+                              <VolumeX className="w-3 h-3 text-blue-600 animate-pulse" />
+                              <span className="text-blue-600 font-semibold">থামুন</span>
+                            </>
+                          ) : (
+                            <>
+                              <Volume2 className="w-3 h-3" />
+                              <span>শুনুন</span>
+                            </>
+                          )}
+                        </button>
 
-                            <button
-                              onClick={() => speakMessage(msg.content, msg.id)}
-                              className="hover:text-slate-300 flex items-center gap-1 transition-colors cursor-pointer"
-                              title="বাংলায় শুনুন (Listen in Bangla)"
-                            >
-                              {speakingId === msg.id ? (
-                                <>
-                                  <VolumeX className="w-3.5 h-3.5 text-orange-400 animate-pulse" />
-                                  <span className="text-orange-400 font-bold">থামুন</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Volume2 className="w-3.5 h-3.5 text-slate-400 group-hover:text-white" />
-                                  <span>শুনুন</span>
-                                </>
-                              )}
-                            </button>
-                          </div>
-                        )}
+                        <span>•</span>
+
+                        <button
+                          onClick={() => handleCopyText(msg.content, msg.id)}
+                          className="hover:text-blue-600 flex items-center gap-1 transition-colors cursor-pointer"
+                          title="Copy text"
+                        >
+                          {copiedId === msg.id ? (
+                            <>
+                              <Check className="w-3 h-3 text-emerald-500" />
+                              <span className="text-emerald-500">কপি হয়েছে</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3 h-3" />
+                              <span>কপি</span>
+                            </>
+                          )}
+                        </button>
                       </div>
                     </div>
                   </div>
                 );
               })}
 
+              {/* Typing Animation */}
               {isLoading && (
                 <div className="flex items-start gap-2.5">
-                  <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-brand-red to-brand-orange text-white flex items-center justify-center flex-shrink-0 shadow-md">
-                    <Bot className="w-4 h-4" />
+                  <div className="w-6 h-6 rounded-full bg-blue-50 text-[#2563EB] border border-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Bot className="w-3.5 h-3.5" />
                   </div>
-                  <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 rounded-tl-none flex items-center space-x-1.5">
-                    <div className="w-2 h-2 rounded-full bg-brand-orange animate-bounce"></div>
-                    <div className="w-2 h-2 rounded-full bg-brand-orange animate-bounce [animation-delay:0.2s]"></div>
-                    <div className="w-2 h-2 rounded-full bg-brand-orange animate-bounce [animation-delay:0.4s]"></div>
+                  <div className="bg-white border border-slate-200/90 rounded-2xl rounded-tl-xs px-4 py-3 shadow-xs flex items-center space-x-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-bounce"></div>
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-bounce [animation-delay:0.2s]"></div>
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-bounce [animation-delay:0.4s]"></div>
                   </div>
                 </div>
               )}
@@ -717,59 +573,50 @@ export default function AIAssistantWidget() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input Form Bar */}
-            <div className="p-3 bg-slate-900 border-t border-slate-800">
-              {isListening && (
-                <div className="mb-2 px-3 py-1.5 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-between text-xs text-red-300">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
-                    <span className="font-bold">শুনছি... আপনার প্রশ্নটি বাংলায় বলুন</span>
-                  </div>
-                </div>
-              )}
-
+            {/* Minimal Rounded Input Bar */}
+            <div className="p-3 bg-white border-t border-slate-100">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
                   handleSendMessage();
                 }}
-                className="flex items-center gap-2"
+                className="bg-slate-100 rounded-full px-3.5 py-1.5 flex items-center gap-2 border border-slate-200/60 focus-within:border-blue-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/10 transition-all"
               >
+                {/* Voice Mic Button */}
                 <button
                   type="button"
                   onClick={toggleVoiceInput}
-                  title={isListening ? 'শোনা হচ্ছে... থামাতে ক্লিক করুন' : 'বাংলায় কথা বলুন (Speak in Bangla)'}
-                  className={`p-2.5 rounded-xl border transition-all flex items-center justify-center cursor-pointer ${
-                    isListening
-                      ? 'bg-red-500 text-white border-red-400 animate-pulse shadow-lg shadow-red-500/40'
-                      : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-400 hover:text-white'
+                  title={isListening ? 'Listening...' : 'Speak in Bangla'}
+                  className={`p-1.5 rounded-full transition-colors cursor-pointer ${
+                    isListening ? 'text-red-500 animate-pulse' : 'text-slate-400 hover:text-blue-600'
                   }`}
                 >
-                  {isListening ? <Mic className="w-4 h-4 text-white animate-bounce" /> : <Mic className="w-4 h-4" />}
+                  <Mic className="w-4 h-4" />
                 </button>
 
+                {/* Input Text Field */}
                 <input
                   ref={inputRef}
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder={isListening ? 'শুনছি... বলুন...' : 'যেকোনো টুর্নামেন্ট সমস্যা বা তথ্য সম্পর্কে লিখুন...'}
-                  className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-orange"
+                  placeholder={isListening ? 'শুনছি... বলুন...' : 'Ask AI anything...'}
+                  className="flex-1 bg-transparent text-xs text-slate-800 placeholder-slate-400 focus:outline-none"
                 />
 
+                {/* Send Button */}
                 <button
                   type="submit"
                   disabled={!input.trim() || isLoading}
-                  className="p-2.5 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange hover:from-brand-red/90 hover:to-brand-orange/90 text-white shadow-md disabled:opacity-40 transition-all cursor-pointer"
+                  className={`w-7 h-7 rounded-full flex items-center justify-center transition-all cursor-pointer flex-shrink-0 ${
+                    input.trim()
+                      ? 'bg-[#2563EB] hover:bg-blue-700 text-white shadow-sm'
+                      : 'bg-slate-300 text-slate-500 opacity-60 cursor-not-allowed'
+                  }`}
                 >
-                  <Send className="w-4 h-4" />
+                  <Send className="w-3.5 h-3.5" />
                 </button>
               </form>
-
-              <div className="flex items-center justify-between mt-2 px-1 text-[10px] text-slate-500">
-                <span>Black Rock Support Desk</span>
-                <span>বাংলা ও English সাপোর্টেড</span>
-              </div>
             </div>
 
           </motion.div>
