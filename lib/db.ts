@@ -143,6 +143,10 @@ class LocalDatabase {
     return this.users;
   }
 
+  getUserById(id: string): User | null {
+    return this.users.find((u) => u.id === id) || null;
+  }
+
   createVendor(details: { name: string; email: string; password: string; inGameName?: string }): User | null {
     const name = details.name?.trim();
     const email = details.email?.trim();

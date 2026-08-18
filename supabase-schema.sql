@@ -47,6 +47,8 @@ CREATE TABLE IF NOT EXISTS "User" (
     "adminPermissions" TEXT[] DEFAULT ARRAY[]::TEXT[],
     "deviceToken" TEXT,
     "isVerified" BOOLEAN NOT NULL DEFAULT false,
+    "currentStreak" INTEGER NOT NULL DEFAULT 0,
+    "lastStreakClaimDate" TEXT,
     "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
