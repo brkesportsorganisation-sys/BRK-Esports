@@ -13,7 +13,11 @@ import {
   VolumeX, 
   Headphones,
   ArrowRight,
-  Sparkles
+  Sparkles,
+  MessageSquare,
+  Phone,
+  RefreshCw,
+  ExternalLink
 } from 'lucide-react';
 import { db } from '@/lib/db';
 import { User as UserType, SupportMessage } from '@/lib/types';
@@ -21,7 +25,7 @@ import Link from 'next/link';
 
 interface Message {
   id: string;
-  role: 'user' | 'assistant' | 'admin';
+  role: 'user' | 'assistant' | 'admin' | 'system';
   senderName?: string;
   content: string;
   timestamp: string;
@@ -32,18 +36,32 @@ interface Message {
   };
 }
 
+const COACHING_PILLS = [
+  { id: 'discord', label: '💬 Discord Server', query: 'I want to join the official Discord server for instant support' },
+  { id: 'tournaments', label: '🏆 Live Tournaments', query: 'What active Free Fire tournaments are open for registration right now?' },
+  { id: 'sens', label: '🎯 Headshot Sens', query: 'What is the best Free Fire drag-headshot sensitivity and DPI settings?' },
+  { id: 'room', label: '🔑 Room ID & Pass', query: 'How and when will I get the Custom Room ID and Password for my match?' },
+  { id: 'wallet', label: '💰 bKash Cashout', query: 'How does prize money payout work and how to withdraw to bKash/Nagad?' },
+  { id: 'spin', label: '🎁 Free Rewards', query: 'How can I get free coins, spins, and diamond rewards on Black Rock Esports?' }
+];
+
 export default function AIAssistantWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [showHumanModal, setShowHumanModal] = useState(false);
 
-  // Minimal Chat Stream
+  // Unified Chat Stream
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
       role: 'assistant',
       senderName: 'BlackRock AI',
-      content: "Hello! I am here to provide BlackRock AI Support. How can I help you today?",
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      content: "👋 আসসালামু আলাইকুম! Black Rock Esports অফিসিয়াল সাপোর্ট ও এআই ডেস্কে স্বাগতম।\n\n📌 টুর্নামেন্ট স্লট বুকিং, কাস্টম রুম আইডি, বিকাশ উইথড্র বা হেডশট সেনসিটিভিটি জানতে নিচে লিখুন। যেকোনো জরুরি সমস্যার জন্য সরাসরি আমাদের Discord কমিউনিটিতে যুক্ত হতে পারেন।",
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      suggestedAction: {
+        label: '👉 Join Official Discord Server',
+        link: 'https://discord.gg/blackrock-esports'
+      }
     }
   ]);
   const [input, setInput] = useState('');
@@ -51,6 +69,7 @@ export default function AIAssistantWidget() {
   const [currentUser, setCurrentUser] = useState<UserType | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [speakingId, setSpeakingId] = useState<string | null>(null);
+  const [hasSentFirstMsg, setHasSentFirstMsg] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -173,7 +192,7 @@ export default function AIAssistantWidget() {
 
       recognitionRef.current = recognition;
       recognition.start();
-    } catch (err) {
+    } catch {
       setIsListening(false);
     }
   };
@@ -291,7 +310,28 @@ export default function AIAssistantWidget() {
     setInput('');
     setIsLoading(true);
 
-    // Sync to Support Desk
+    // If first message, add automated Discord greeting invite
+    if (!hasSentFirstMsg) {
+      setHasSentFirstMsg(true);
+      setTimeout(() => {
+        setMessages(prev => [
+          ...prev,
+          {
+            id: `system_${Date.now()}`,
+            role: 'system',
+            senderName: 'BlackRock Community Desk',
+            content: "📌 দ্রুততম লাইভ সাপোর্ট ও টুর্নামেন্ট আপডেটের জন্য আমাদের অফিসিয়াল Discord সার্ভারে যোগ দিন: https://discord.gg/blackrock-esports — আমাদের একজন অ্যাডমিন আপনার মেসেজটি পেয়েছেন এবং খুব দ্রুত উত্তর দেবেন।",
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            suggestedAction: {
+              label: '👉 Join Discord Community',
+              link: 'https://discord.gg/blackrock-esports'
+            }
+          }
+        ]);
+      }, 600);
+    }
+
+    // 1. Sync to Support Desk (/api/support)
     const uid = currentUser ? currentUser.id : 'guest_user';
     const uName = currentUser ? (currentUser.inGameName || currentUser.name) : 'Guest Player';
     const uEmail = currentUser?.email;
@@ -310,10 +350,10 @@ export default function AIAssistantWidget() {
       }),
     }).catch(() => {});
 
-    // Query AI
+    // 2. Query Smart AI Assistant
     try {
       const history = messages
-        .filter(m => m.id !== 'welcome')
+        .filter(m => m.id !== 'welcome' && m.role !== 'system')
         .slice(-6)
         .map(m => ({
           role: m.role === 'user' ? 'user' : 'model',
@@ -382,8 +422,20 @@ export default function AIAssistantWidget() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleTalkToHuman = () => {
-    window.open('https://discord.gg/blackrock-esports', '_blank');
+  const handleClearChat = () => {
+    if (speakingId) {
+      window.speechSynthesis?.cancel();
+      setSpeakingId(null);
+    }
+    setMessages([
+      {
+        id: 'welcome',
+        role: 'assistant',
+        senderName: 'BlackRock AI',
+        content: "Hello! I am here to provide BlackRock AI Support. How can I help you today?",
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }
+    ]);
   };
 
   return (
@@ -417,28 +469,41 @@ export default function AIAssistantWidget() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.18 }}
-            className="fixed z-50 bottom-4 right-4 sm:bottom-6 sm:right-6 w-[92vw] sm:w-[380px] h-[520px] max-h-[82vh] bg-white rounded-3xl shadow-2xl border border-slate-200/80 overflow-hidden flex flex-col font-sans"
+            className="fixed z-50 bottom-4 right-4 sm:bottom-6 sm:right-6 w-[92vw] sm:w-[390px] h-[540px] max-h-[84vh] bg-white rounded-3xl shadow-2xl border border-slate-200/80 overflow-hidden flex flex-col font-sans"
           >
             {/* Minimal Blue Header */}
-            <div className="bg-[#2563EB] p-4 flex items-center justify-between text-white select-none">
+            <div className="bg-[#2563EB] p-3.5 sm:p-4 flex items-center justify-between text-white select-none">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-white text-[#2563EB] flex items-center justify-center shadow-xs flex-shrink-0">
                   <Bot className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm leading-tight text-white">AI Support</h3>
+                  <div className="flex items-center gap-1.5">
+                    <h3 className="font-bold text-sm leading-tight text-white">AI Support</h3>
+                    <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                  </div>
                   <p className="text-[11px] text-blue-100 font-normal leading-tight mt-0.5">BlackRock AI</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                {/* Talk to Human Pill Button */}
+              <div className="flex items-center gap-1.5">
+                {/* Talk to Human Button */}
                 <button
-                  onClick={handleTalkToHuman}
-                  title="Talk to Human Admin on Discord"
+                  onClick={() => setShowHumanModal(!showHumanModal)}
+                  title="Connect with Human Admin on Discord or WhatsApp"
                   className="px-3 py-1 rounded-full bg-white/20 hover:bg-white/30 text-white text-xs font-semibold backdrop-blur-xs transition-all border border-white/20 flex items-center gap-1 cursor-pointer active:scale-95"
                 >
+                  <Headphones className="w-3.5 h-3.5" />
                   <span>Talk to Human</span>
+                </button>
+
+                {/* Clear Chat */}
+                <button
+                  onClick={handleClearChat}
+                  title="Clear Chat History"
+                  className="w-7 h-7 rounded-full hover:bg-white/15 text-white/80 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
                 </button>
 
                 {/* Close Button */}
@@ -448,6 +513,7 @@ export default function AIAssistantWidget() {
                       window.speechSynthesis?.cancel();
                       setSpeakingId(null);
                     }
+                    setShowHumanModal(false);
                     setIsOpen(false);
                   }}
                   className="w-7 h-7 rounded-full hover:bg-white/15 text-white/80 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
@@ -457,10 +523,53 @@ export default function AIAssistantWidget() {
               </div>
             </div>
 
+            {/* Talk to Human Quick Popup */}
+            {showHumanModal && (
+              <div className="p-3 bg-blue-50 border-b border-blue-100 flex items-center justify-between text-xs animate-fadeIn">
+                <div className="space-y-0.5">
+                  <span className="font-bold text-blue-950 block">লাইভ হিউম্যান সাপোর্ট:</span>
+                  <span className="text-[11px] text-blue-700">অ্যাডমিনের সাথে সরাসরি কথা বলতে চ্যানেল বেছে নিন</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <a
+                    href="https://discord.gg/blackrock-esports"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[10px] font-bold shadow-xs cursor-pointer"
+                  >
+                    Discord
+                  </a>
+                  <a
+                    href="https://wa.me/8801700000000?text=Hello%20BlackRock%20Support"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold shadow-xs cursor-pointer"
+                  >
+                    WhatsApp
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {/* Subtle Minimal Pill Chips Row */}
+            <div className="px-3 py-2 bg-slate-50 border-b border-slate-100 overflow-x-auto scrollbar-none flex items-center gap-1.5">
+              {COACHING_PILLS.map((pill) => (
+                <button
+                  key={pill.id}
+                  onClick={() => handleSendMessage(pill.query)}
+                  className="text-[11px] font-medium px-3 py-1 rounded-full bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-slate-600 hover:text-blue-600 transition-all flex-shrink-0 cursor-pointer shadow-xs"
+                >
+                  {pill.label}
+                </button>
+              ))}
+            </div>
+
             {/* Message Stream */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white">
+            <div className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-white">
               {messages.map((msg) => {
                 const isUser = msg.role === 'user';
+                const isAdmin = msg.role === 'admin';
+                const isSystem = msg.role === 'system';
 
                 if (isUser) {
                   return (
@@ -474,14 +583,32 @@ export default function AIAssistantWidget() {
 
                 return (
                   <div key={msg.id} className="flex items-start gap-2.5">
-                    {/* Bot Icon on Left */}
-                    <div className="w-6 h-6 rounded-full bg-blue-50 text-[#2563EB] border border-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <Bot className="w-3.5 h-3.5" />
+                    {/* Bot / Admin Icon */}
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                      isAdmin ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-blue-50 text-[#2563EB] border border-blue-100'
+                    }`}>
+                      {isAdmin ? <Headphones className="w-3.5 h-3.5" /> : <Bot className="w-3.5 h-3.5" />}
                     </div>
 
                     <div className="space-y-1 max-w-[85%]">
+                      {/* Name / Role Badge */}
+                      <div className="flex items-center gap-1.5 px-1">
+                        <span className={`text-[10px] font-bold ${isAdmin ? 'text-emerald-700' : 'text-slate-500'}`}>
+                          {msg.senderName || (isAdmin ? 'Admin Support' : 'BlackRock AI')}
+                        </span>
+                        <span className="text-[9px] text-slate-400 font-mono">
+                          {msg.timestamp}
+                        </span>
+                      </div>
+
                       {/* Clean Message Bubble */}
-                      <div className="bg-white border border-slate-200/90 rounded-2xl rounded-tl-xs px-4 py-3 text-xs text-slate-800 shadow-xs leading-relaxed whitespace-pre-wrap break-words">
+                      <div className={`rounded-2xl rounded-tl-xs px-4 py-3 text-xs leading-relaxed whitespace-pre-wrap break-words shadow-xs ${
+                        isAdmin 
+                          ? 'bg-emerald-50/70 border border-emerald-200 text-slate-900' 
+                          : isSystem 
+                          ? 'bg-indigo-50/70 border border-indigo-200 text-slate-900' 
+                          : 'bg-white border border-slate-200/90 text-slate-800'
+                      }`}>
                         {msg.content}
 
                         {/* Optional Suggested Action */}
@@ -492,7 +619,7 @@ export default function AIAssistantWidget() {
                                 href={msg.suggestedAction.link}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#2563EB] font-bold text-[11px] border border-blue-200 transition-colors"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#2563EB] font-bold text-[11px] border border-blue-200 transition-colors cursor-pointer"
                               >
                                 <span>{msg.suggestedAction.label}</span>
                                 <ArrowRight className="w-3 h-3" />
@@ -501,7 +628,7 @@ export default function AIAssistantWidget() {
                               <Link
                                 href={msg.suggestedAction.link}
                                 onClick={() => setIsOpen(false)}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#2563EB] font-bold text-[11px] border border-blue-200 transition-colors"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#2563EB] font-bold text-[11px] border border-blue-200 transition-colors cursor-pointer"
                               >
                                 <span>{msg.suggestedAction.label}</span>
                                 <ArrowRight className="w-3 h-3" />
@@ -512,45 +639,47 @@ export default function AIAssistantWidget() {
                       </div>
 
                       {/* Action Bar (Audio & Copy) */}
-                      <div className="flex items-center gap-2 px-1 text-[10px] text-slate-400">
-                        <button
-                          onClick={() => speakMessage(msg.content, msg.id)}
-                          className="hover:text-blue-600 flex items-center gap-1 transition-colors cursor-pointer"
-                          title="Listen in Bangla"
-                        >
-                          {speakingId === msg.id ? (
-                            <>
-                              <VolumeX className="w-3 h-3 text-blue-600 animate-pulse" />
-                              <span className="text-blue-600 font-semibold">থামুন</span>
-                            </>
-                          ) : (
-                            <>
-                              <Volume2 className="w-3 h-3" />
-                              <span>শুনুন</span>
-                            </>
-                          )}
-                        </button>
+                      {!isSystem && (
+                        <div className="flex items-center gap-2 px-1 text-[10px] text-slate-400">
+                          <button
+                            onClick={() => speakMessage(msg.content, msg.id)}
+                            className="hover:text-blue-600 flex items-center gap-1 transition-colors cursor-pointer"
+                            title="Listen in Bangla"
+                          >
+                            {speakingId === msg.id ? (
+                              <>
+                                <VolumeX className="w-3 h-3 text-blue-600 animate-pulse" />
+                                <span className="text-blue-600 font-semibold">থামুন</span>
+                              </>
+                            ) : (
+                              <>
+                                <Volume2 className="w-3 h-3" />
+                                <span>শুনুন</span>
+                              </>
+                            )}
+                          </button>
 
-                        <span>•</span>
+                          <span>•</span>
 
-                        <button
-                          onClick={() => handleCopyText(msg.content, msg.id)}
-                          className="hover:text-blue-600 flex items-center gap-1 transition-colors cursor-pointer"
-                          title="Copy text"
-                        >
-                          {copiedId === msg.id ? (
-                            <>
-                              <Check className="w-3 h-3 text-emerald-500" />
-                              <span className="text-emerald-500">কপি হয়েছে</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="w-3 h-3" />
-                              <span>কপি</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
+                          <button
+                            onClick={() => handleCopyText(msg.content, msg.id)}
+                            className="hover:text-blue-600 flex items-center gap-1 transition-colors cursor-pointer"
+                            title="Copy text"
+                          >
+                            {copiedId === msg.id ? (
+                              <>
+                                <Check className="w-3 h-3 text-emerald-500" />
+                                <span className="text-emerald-500">কপি হয়েছে</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3 h-3" />
+                                <span>কপি</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -586,7 +715,7 @@ export default function AIAssistantWidget() {
                 <button
                   type="button"
                   onClick={toggleVoiceInput}
-                  title={isListening ? 'Listening...' : 'Speak in Bangla'}
+                  title={isListening ? 'শুনছি... কথা বলুন' : 'বাংলায় কথা বলুন (Speak in Bangla)'}
                   className={`p-1.5 rounded-full transition-colors cursor-pointer ${
                     isListening ? 'text-red-500 animate-pulse' : 'text-slate-400 hover:text-blue-600'
                   }`}
