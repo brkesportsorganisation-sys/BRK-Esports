@@ -201,9 +201,11 @@ export default function AIAssistantWidget() {
   const speakMessage = async (text: string, id: string) => {
     if (typeof window === 'undefined') return;
 
+    // If currently playing this message, toggle stop
     if (speakingId === id) {
       if (currentAudioRef.current) {
         currentAudioRef.current.pause();
+        currentAudioRef.current.currentTime = 0;
         currentAudioRef.current = null;
       }
       window.speechSynthesis?.cancel();
@@ -211,8 +213,10 @@ export default function AIAssistantWidget() {
       return;
     }
 
+    // Stop any previous speech
     if (currentAudioRef.current) {
       currentAudioRef.current.pause();
+      currentAudioRef.current.currentTime = 0;
       currentAudioRef.current = null;
     }
     window.speechSynthesis?.cancel();
@@ -220,43 +224,53 @@ export default function AIAssistantWidget() {
     setSpeakingId(id);
 
     try {
-      const res = await fetch(`/api/tts?text=${encodeURIComponent(text)}`);
+      const res = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
+
       if (!res.ok) throw new Error('API TTS error');
-      
+
       const data = await res.json();
-      if (!data.urls || !Array.isArray(data.urls) || data.urls.length === 0) {
-        throw new Error('No audio urls');
+      const audioList: string[] = data.audios || [];
+
+      if (audioList.length === 0) {
+        throw new Error('No audio generated');
       }
 
       let currentIndex = 0;
-      const playNextChunk = () => {
-        if (currentIndex >= data.urls.length) {
+      const playChunk = () => {
+        if (currentIndex >= audioList.length) {
           setSpeakingId(null);
           currentAudioRef.current = null;
           return;
         }
 
-        const audio = new Audio(data.urls[currentIndex]);
+        const audio = new Audio(audioList[currentIndex]);
         currentAudioRef.current = audio;
 
         audio.onended = () => {
           currentIndex++;
-          playNextChunk();
+          playChunk();
         };
 
         audio.onerror = () => {
           currentIndex++;
-          playNextChunk();
+          playChunk();
         };
 
-        audio.play().catch(() => {
+        audio.play().catch((playErr) => {
+          console.warn('Audio play error, falling back:', playErr);
           setSpeakingId(null);
+          currentAudioRef.current = null;
         });
       };
 
-      playNextChunk();
-    } catch {
-      // Fallback to browser TTS
+      playChunk();
+    } catch (err) {
+      console.warn('Google TTS API notice, falling back to Browser Speech:', err);
+      // Fallback: Browser Web Speech API
       if ('speechSynthesis' in window) {
         const cleanText = text
           .replace(/https?:\/\/[^\s]+/g, '')
