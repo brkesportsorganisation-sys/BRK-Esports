@@ -13,7 +13,7 @@ export default function Footer() {
       {/* Glow highlight */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-px bg-gradient-to-r from-transparent via-brand-red to-transparent opacity-30"></div>
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-28 lg:pb-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10">
           
           {/* Brand Info */}
@@ -92,7 +92,7 @@ export default function Footer() {
         </div>
 
         {/* Bottom Banner */}
-        <div className="pt-12 mt-12 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-600">
+        <div className="pt-10 mt-10 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-600 text-center md:text-left">
           <div>
             © {new Date().getFullYear()} Black Rock Tournaments. {t('footer_copyright', 'All rights reserved. Not affiliated with Garena Free Fire.')}
           </div>

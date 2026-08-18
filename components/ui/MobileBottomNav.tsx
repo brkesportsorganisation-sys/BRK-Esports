@@ -26,20 +26,20 @@ export default function MobileBottomNav() {
     checkLiveStatus();
   }, []);
 
-  if (pathname?.startsWith('/admin')) {
+  if (pathname?.startsWith('/admin') || pathname?.startsWith('/vendor')) {
     return null;
   }
 
   const tabs: { name: string; href: string; icon: React.ElementType; isLive?: boolean }[] = [
-    { name: t('nav_home', 'Home'), href: '/', icon: Flame },
-    { name: t('nav_tournaments', 'Tournaments'), href: '/tournaments', icon: Trophy },
-    { name: '1v1 Arena', href: '/arena', icon: Swords },
-    { name: 'Rewards', href: '/ads', icon: Gift },
-    { name: t('nav_wallet', 'Wallet'), href: '/wallet', icon: Wallet },
+    { name: t('nav_home', 'হোম'), href: '/', icon: Flame },
+    { name: t('nav_tournaments', 'টুর্নামেন্ট'), href: '/tournaments', icon: Trophy },
+    { name: '1V1 ARENA', href: '/arena', icon: Swords },
+    { name: 'REWARDS', href: '/ads', icon: Gift },
+    { name: t('nav_wallet', 'ওয়ালেট'), href: '/wallet', icon: Wallet },
   ];
 
   return (
-    <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 glass-panel bg-slate-900/95 border-t border-slate-700/60 backdrop-blur-2xl px-2 py-2 shadow-cyber">
+    <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0B0F19]/95 border-t border-slate-800/90 backdrop-blur-2xl px-2 py-2 shadow-2xl">
       <div className="flex items-center justify-around">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -48,16 +48,18 @@ export default function MobileBottomNav() {
             <Link
               key={tab.name}
               href={tab.href}
-              className={`flex flex-col items-center py-1 px-2.5 rounded-2xl transition-all duration-200 ${
+              className={`flex flex-col items-center py-1 px-2.5 rounded-2xl transition-all duration-200 cursor-pointer ${
                 isActive
-                  ? 'text-brand-orange scale-105 font-bold'
-                  : 'text-slate-300 hover:text-white'
+                  ? 'scale-105'
+                  : 'hover:opacity-90'
               }`}
             >
               <div className={`relative p-1.5 rounded-xl transition-all ${
-                isActive ? 'bg-brand-orange/20 text-brand-orange shadow-neon-orange' : 'bg-transparent'
+                isActive 
+                  ? 'bg-gradient-to-r from-brand-red to-brand-orange text-white shadow-lg shadow-orange-500/30' 
+                  : 'bg-transparent text-slate-400'
               }`}>
-                <Icon className={`w-5 h-5 ${tab.isLive ? 'text-red-500 animate-pulse' : ''}`} />
+                <Icon className={`w-5 h-5 ${tab.isLive ? 'text-red-400 animate-pulse' : ''}`} />
                 {tab.isLive && (
                   <span className="absolute top-0 right-0 flex h-2.5 w-2.5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
@@ -65,7 +67,11 @@ export default function MobileBottomNav() {
                   </span>
                 )}
               </div>
-              <span className={`text-[10px] font-heading uppercase font-bold mt-0.5 tracking-wider ${tab.isLive ? 'text-red-500 font-black' : ''}`}>
+              <span className={`text-[10px] font-heading uppercase font-bold mt-1 tracking-wider ${
+                isActive 
+                  ? 'text-orange-400 font-black drop-shadow-xs' 
+                  : 'text-slate-400 font-semibold'
+              }`}>
                 {tab.name}
               </span>
             </Link>
