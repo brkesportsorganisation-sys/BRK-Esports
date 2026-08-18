@@ -5,54 +5,65 @@ import bcrypt from 'bcryptjs';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, otp, newPassword } = body;
+    const { email, otp, verifiedToken, newPassword } = body;
 
-    if (!email || !otp || !newPassword) {
-      return NextResponse.json({ message: 'Email, 6-digit OTP, and new password are required.' }, { status: 400 });
+    if (!email || !newPassword) {
+      return NextResponse.json({ message: 'Email and new password are required.' }, { status: 400 });
     }
 
     const trimmedEmail = email.trim().toLowerCase();
-    const trimmedOtp = otp.trim();
     const trimmedPassword = newPassword.trim();
 
     if (trimmedPassword.length < 6) {
       return NextResponse.json({ message: 'Password must be at least 6 characters long.' }, { status: 400 });
     }
 
-    // 1. Fetch user from Supabase
+    // 1. Fetch user from Supabase (case-insensitive)
     const { data: user, error: fetchErr } = await supabaseAdmin
       .from('User')
-      .select('*')
-      .eq('email', trimmedEmail)
+      .select('id, name, email')
+      .ilike('email', trimmedEmail)
       .maybeSingle();
 
     if (fetchErr || !user) {
       return NextResponse.json({ message: 'No registered user found with this email.' }, { status: 404 });
     }
 
-    // 2. Validate OTP and expiration
-    if (!user.passwordResetOtp || user.passwordResetOtp !== trimmedOtp) {
-      return NextResponse.json({ message: 'Invalid 6-digit verification code. Please check and try again.' }, { status: 400 });
+    // 2. Validate OTP or verifiedToken from SiteSetting resilient store
+    const otpKey = `otp_reset_${trimmedEmail}`;
+    let isAuthorized = false;
+
+    const { data: settingRecord } = await supabaseAdmin
+      .from('SiteSetting')
+      .select('value')
+      .eq('key', otpKey)
+      .maybeSingle();
+
+    if (settingRecord && settingRecord.value) {
+      try {
+        const payload = JSON.parse(settingRecord.value);
+        const expiryTime = new Date(payload.expiresAt).getTime();
+        
+        if (Date.now() <= expiryTime) {
+          if (payload.verified || (verifiedToken && payload.verifiedToken === verifiedToken) || (otp && payload.otp === otp.toString().trim())) {
+            isAuthorized = true;
+          }
+        }
+      } catch {}
     }
 
-    if (user.passwordResetExpires) {
-      const expiry = new Date(user.passwordResetExpires).getTime();
-      const now = Date.now();
-      if (now > expiry) {
-        return NextResponse.json({ message: 'Verification code has expired. Please request a new OTP.' }, { status: 400 });
-      }
+    if (!isAuthorized) {
+      return NextResponse.json({ message: 'Invalid or unverified OTP session. Please verify your OTP code first.' }, { status: 400 });
     }
 
     // 3. Hash new password
     const hashedPassword = await bcrypt.hash(trimmedPassword, 10);
 
-    // 4. Update user in Supabase
+    // 4. Update user password in Supabase
     const { error: updateErr } = await supabaseAdmin
       .from('User')
       .update({
         password: hashedPassword,
-        passwordResetOtp: null,
-        passwordResetExpires: null,
         updatedAt: new Date().toISOString(),
       })
       .eq('id', user.id);
@@ -61,25 +72,30 @@ export async function POST(request: NextRequest) {
       throw new Error(updateErr.message);
     }
 
-    // 5. Send in-app notification (safely)
+    // 5. Clean up OTP record from SiteSetting
+    try {
+      await supabaseAdmin
+        .from('SiteSetting')
+        .delete()
+        .eq('key', otpKey);
+    } catch {}
+
+    // 6. Send in-app confirmation notification (safely)
     try {
       const notifId = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
       await supabaseAdmin.from('Notification').insert([{
         id: notifId,
         userId: user.id,
-        title: 'Password Changed Successfully 🔒',
-        message: 'Your account password was recently reset via email OTP verification.',
+        title: 'পাসওয়ার্ড সফলভাবে পরিবর্তন হয়েছে 🔒',
+        message: 'আপনার BRK Esports একাউন্টের পাসওয়ার্ড সফলভাবে আপডেট করা হয়েছে। এখন নতুন পাসওয়ার্ড দিয়ে লগইন করুন।',
         isRead: false,
         createdAt: new Date().toISOString(),
       }]);
     } catch {}
 
-    const { password: _, ...sanitizedUser } = user;
-
     return NextResponse.json({
       success: true,
-      message: 'Your password has been reset successfully! You can now sign in with your new password.',
-      user: sanitizedUser,
+      message: 'পাসওয়ার্ড সফলভাবে পরিবর্তন করা হয়েছে! আপনি এখন নতুন পাসওয়ার্ড দিয়ে লগইন করতে পারবেন।',
     }, { status: 200 });
 
   } catch (error: any) {
