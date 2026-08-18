@@ -59,91 +59,109 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (action === 'APPROVE') {
-      // 1. Credit player balance in Supabase User table (both walletBalance and winningBalance)
-      const { data: user } = await supabaseAdmin
-        .from('User')
-        .select('id, walletBalance, winningBalance')
-        .eq('id', payment.userId)
-        .single();
-
-      if (user) {
-        await supabaseAdmin
-          .from('User')
-          .update({
-            walletBalance: Number(user.walletBalance || 0) + Number(payment.amount),
-            winningBalance: Number(user.winningBalance || 0) + Number(payment.amount),
-            updatedAt: new Date().toISOString(),
-          })
-          .eq('id', user.id);
-      }
-
-      // 2. Mark payment as VERIFIED
+      // 1. Mark payment as VERIFIED (already auto-credited on submission)
       await supabaseAdmin
         .from('Payment')
         .update({
           status: 'VERIFIED',
-          notes: `${payment.notes || ''} [Verified by ${session.username || session.email}]`,
+          notes: `${payment.notes || ''} [Verified & Confirmed by ${session.username || session.email}]`,
           updatedAt: new Date().toISOString(),
         })
         .eq('id', paymentId);
 
-      // 3. Send in-app Notification to player (safely)
+      // 2. Send in-app Confirmation Notification to player
       try {
         const notifId = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
         await supabaseAdmin.from('Notification').insert([{
           id: notifId,
           userId: payment.userId,
-          title: 'Deposit Approved! 🎉',
-          message: `Your deposit of ৳${payment.amount} via ${payment.method} (TrxID: ${payment.trxId}) has been verified and added to your wallet!`,
+          title: 'Deposit Verified! 🎉',
+          message: `আপনার ৳${payment.amount} ডিপোজিট (${payment.method}, TrxID: ${payment.trxId}) এডমিন কর্তৃক সফলভাবে ভেরিফাই ও কনফার্ম করা হয়েছে!`,
           isRead: false,
           createdAt: new Date().toISOString(),
         }]);
       } catch {}
 
-      logAdminAction(
+      await logAdminAction(
         session.username || session.email,
         'DEPOSIT_VERIFIED',
-        `Approved deposit of ৳${payment.amount} (TrxID: ${payment.trxId}) for ${payment.userName}`,
         'Payment',
-        paymentId
+        paymentId,
+        `Approved and verified deposit of ৳${payment.amount} (TrxID: ${payment.trxId}) for player ${payment.userName}`
       );
 
-      return NextResponse.json({ message: `Deposit of ৳${payment.amount} verified and credited to player balance.` });
+      return NextResponse.json({ 
+        success: true,
+        message: `Deposit of ৳${payment.amount} verified and confirmed.` 
+      });
     }
 
-    // If REJECTED
-    const reasonText = rejectionReason || 'Invalid Transaction ID, number mismatch, or receipt verification failed';
+    // If REJECTED (Fraud / Fake TrxID / Fake Screenshot -> Deduct / Minus balance)
+    const reasonText = rejectionReason || 'Invalid Transaction ID, number mismatch, or payment not received';
+    const deductAmt = Number(payment.amount || 0);
+
+    // 1. Deduct the auto-credited balance from the player's wallet
+    const { data: user } = await supabaseAdmin
+      .from('User')
+      .select('id, walletBalance, winningBalance')
+      .eq('id', payment.userId)
+      .single();
+
+    let newWallet = 0;
+    let newWinning = 0;
+
+    if (user) {
+      const currentWallet = Number(user.walletBalance || 0);
+      const currentWinning = Number(user.winningBalance || 0);
+      newWallet = Math.max(0, currentWallet - deductAmt);
+      newWinning = Math.max(0, currentWinning - deductAmt);
+
+      await supabaseAdmin
+        .from('User')
+        .update({
+          walletBalance: newWallet,
+          winningBalance: newWinning,
+          updatedAt: new Date().toISOString(),
+        })
+        .eq('id', user.id);
+    }
+
+    // 2. Mark payment as REJECTED
     await supabaseAdmin
       .from('Payment')
       .update({
         status: 'REJECTED',
-        notes: `${payment.notes || ''} [Rejected: ${reasonText}]`,
+        notes: `${payment.notes || ''} [Rejected & ৳${deductAmt} Deducted by ${session.username || session.email}: ${reasonText}]`,
         updatedAt: new Date().toISOString(),
       })
       .eq('id', paymentId);
 
-    // Send Rejection Notification to player (safely)
+    // 3. Send Rejection & Balance Deduction Notification to player
     try {
       const notifId = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
       await supabaseAdmin.from('Notification').insert([{
         id: notifId,
         userId: payment.userId,
-        title: 'Deposit Declined ⚠️',
-        message: `Your deposit of ৳${payment.amount} (TrxID: ${payment.trxId}) was rejected. Reason: ${reasonText}. Contact helpline if you believe this is an error.`,
+        title: 'ডিপোজিট বাতিল ও ব্যালেন্স কর্তন ⚠️',
+        message: `আপনার ৳${deductAmt} ডিপোজিট (TrxID: ${payment.trxId}) ভেরিফিকেশনে বাতিল হয়েছে এবং ওয়ালেট থেকে ৳${deductAmt} কেটে নেওয়া হয়েছে। কারণ: ${reasonText}। ভুল মনে হলে হেল্পলাইনে যোগাযোগ করুন।`,
         isRead: false,
         createdAt: new Date().toISOString(),
       }]);
     } catch {}
 
-    logAdminAction(
+    await logAdminAction(
       session.username || session.email,
-      'DEPOSIT_REJECTED',
-      `Rejected deposit of ৳${payment.amount} (TrxID: ${payment.trxId}) for ${payment.userName}`,
+      'DEPOSIT_REJECTED_AND_DEDUCTED',
       'Payment',
-      paymentId
+      paymentId,
+      `Rejected deposit of ৳${deductAmt} (TrxID: ${payment.trxId}) for ${payment.userName} and deducted balance (Reason: ${reasonText})`
     );
 
-    return NextResponse.json({ message: `Deposit request marked rejected.` });
+    return NextResponse.json({ 
+      success: true,
+      message: `Deposit rejected. ৳${deductAmt} has been deducted from player's balance.`,
+      newWalletBalance: newWallet
+    });
   } catch (error: any) {
     console.error('[PATCH /api/admin/payments]', error);
     return NextResponse.json({ message: error?.message || 'Failed to process deposit.' }, { status: 500 });

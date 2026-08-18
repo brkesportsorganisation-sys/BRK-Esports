@@ -574,12 +574,9 @@ export default function Navbar() {
                       >
                         <div className="p-3 border-b border-slate-100 bg-slate-50/60 rounded-xl mb-1">
                           <div className="font-bold text-sm text-slate-900">{currentUser.name}</div>
-                          <div className="text-xs text-slate-500 truncate">{currentUser.email}</div>
-                          {currentUser.freeFireUid && (
-                            <div className="text-[11px] font-mono font-bold text-brand-orange mt-1">
-                              UID: {currentUser.freeFireUid}
-                            </div>
-                          )}
+                          <div className="text-[11px] font-mono font-bold text-brand-orange mt-0.5">
+                            ID: {currentUser.accountNumber || 'BRE-MEMBER'}
+                          </div>
                           <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-200/60">
                             <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200 flex items-center gap-1">
                               <Coins className="w-3 h-3" /> {(currentUser.coinBalance || 0).toLocaleString()} Coins
@@ -748,7 +745,7 @@ export default function Navbar() {
                         {currentUser.inGameName || currentUser.name}
                       </div>
                       <div className="text-[10px] text-slate-500 font-mono">
-                        {currentUser.freeFireUid ? `UID: ${currentUser.freeFireUid}` : currentUser.email}
+                        ID: {currentUser.accountNumber || 'BRE-MEMBER'}
                       </div>
                     </div>
                   </div>

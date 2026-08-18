@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     // Check duplicate TrxID in Supabase Payment table (Anti-Fraud protection)
     const { data: existingTrx } = await supabaseAdmin
       .from('Payment')
-      .select('id')
+      .select('id, status')
       .eq('trxId', trimmedTrx)
       .maybeSingle();
 
@@ -44,20 +44,51 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 1. Fetch current player balances from User table
+    const { data: playerUser, error: userFetchErr } = await supabaseAdmin
+      .from('User')
+      .select('id, walletBalance, winningBalance, name, email')
+      .eq('id', userId)
+      .single();
+
+    if (userFetchErr || !playerUser) {
+      return NextResponse.json({ message: 'Player account not found in database.' }, { status: 404 });
+    }
+
+    const currentWallet = Number(playerUser.walletBalance || 0);
+    const currentWinning = Number(playerUser.winningBalance || 0);
+    const newWalletBalance = currentWallet + numAmount;
+    const newWinningBalance = currentWinning + numAmount;
+
+    // 2. INSTANT AUTO-CREDIT: Add deposit amount directly to player's wallet
+    const { error: balanceUpdateErr } = await supabaseAdmin
+      .from('User')
+      .update({
+        walletBalance: newWalletBalance,
+        winningBalance: newWinningBalance,
+        updatedAt: new Date().toISOString(),
+      })
+      .eq('id', userId);
+
+    if (balanceUpdateErr) {
+      console.error('[POST /api/wallet/deposit] Failed to auto-credit balance:', balanceUpdateErr);
+    }
+
+    // 3. Create Payment record with PENDING status (marked as Auto-Credited)
     const paymentId = `pay_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
     const newPayment = {
       id: paymentId,
       userId,
-      userName: userName || 'Player',
-      userEmail: userEmail || '',
+      userName: userName || playerUser.name || 'Player',
+      userEmail: userEmail || playerUser.email || '',
       method,
       amount: numAmount,
       trxId: trimmedTrx,
       screenshot: screenshotUrl,
-      status: 'PENDING',
+      status: 'PENDING', // Pending Admin Final Verification
       walletType: 'WINNING',
-      notes: 'bKash/Nagad Manual Deposit',
+      notes: `Instant Auto-Credited ৳${numAmount} on submission. Pending Admin Review.`,
       communityAccessUnlocked: false,
       communityAccessRevoked: false,
       createdAt: new Date().toISOString(),
@@ -98,9 +129,24 @@ export async function POST(request: NextRequest) {
       throw new Error(paymentError.message);
     }
 
+    // 4. Send Instant In-App Notification to Player
+    try {
+      const notifId = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      await supabaseAdmin.from('Notification').insert([{
+        id: notifId,
+        userId: userId,
+        title: `৳${numAmount} ডিপোজিট ইনস্ট্যান্ট জমা হয়েছে! ⚡`,
+        message: `আপনার ${method} ডিপোজিট (TrxID: ${trimmedTrx}) সাবমিট করায় ৳${numAmount} তাৎক্ষণিকভাবে আপনার ওয়ালেটে যোগ করা হয়েছে। এডমিন প্যানেল থেকে এটি রিভিউ করা হচ্ছে।`,
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      }]);
+    } catch {}
+
     return NextResponse.json({
+      success: true,
       payment: createdPayment,
-      message: 'Deposit request submitted successfully! Your balance will be credited upon admin verification.',
+      newWalletBalance,
+      message: `৳${numAmount} ইনস্ট্যান্ট আপনার ওয়ালেটে যোগ হয়ে গেছে! আপনি এখনই টুর্নামেন্টে জয়েন করতে পারবেন। এডমিন প্যানেল থেকে ট্রানজেকশনটি রিভিউ করা হচ্ছে।`,
     }, { status: 201 });
   } catch (error: any) {
     console.error('[POST /api/wallet/deposit]', error);

@@ -198,7 +198,7 @@ export default function WalletPage() {
         return;
       }
 
-      alert('Deposit request submitted! Admin will verify your transaction shortly.');
+      alert(data.message || `৳${depositAmount} ইনস্ট্যান্ট আপনার ওয়ালেটে যোগ হয়ে গেছে! আপনি এখনই টুর্নামেন্টে জয়েন করতে পারবেন।`);
       setIsDepositOpen(false);
       setTrxId('');
       setScreenshotPreview(null);

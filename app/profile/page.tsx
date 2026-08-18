@@ -384,24 +384,13 @@ function ProfilePageContent() {
                   </button>
                 </h1>
 
-                <div className="text-xs text-slate-600 font-mono flex items-center gap-2 justify-center sm:justify-start">
+                <div className="text-xs text-slate-600 font-mono flex flex-wrap items-center gap-2 justify-center sm:justify-start">
                   <span>Full Name: <strong className="text-slate-800 font-semibold">{user.name}</strong></span>
                   <span className="text-slate-300">•</span>
                   <span>App ID: <strong className="text-orange-600 font-bold">{user.accountNumber || 'BRE-MEMBER'}</strong></span>
-                </div>
-
-                <div className="text-xs text-slate-600 font-mono flex items-center gap-2 justify-center sm:justify-start">
-                  <span>FF UID: <strong className="text-cyan-600">{user.freeFireUid || 'Not Set'}</strong></span>
-                  {user.freeFireUid && (
-                    <span className="flex items-center text-green-600 text-[10px] font-bold gap-0.5">
-                      <CheckCircle2 className="w-3 h-3" /> VERIFIED
-                    </span>
-                  )}
                   <span className="text-slate-300">•</span>
                   <span>Win Rate: <strong className="text-emerald-600 font-bold">{user.winRate || 0}%</strong></span>
                 </div>
-
-                <div className="text-xs text-slate-600 font-medium">{user.email}</div>
               </div>
             </div>
 
