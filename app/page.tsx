@@ -23,7 +23,6 @@ import {
 } from 'lucide-react';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
-import TournamentCard from '@/components/tournaments/TournamentCard';
 import { Tournament, LeaderboardEntry, Announcement } from '@/lib/types';
 import { playerLeaderboard } from '@/lib/mock-data';
 import { useLanguage } from '@/lib/language-context';
@@ -34,7 +33,6 @@ export default function HomePage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(playerLeaderboard);
   const [siteSettings, setSiteSettings] = useState<Record<string, string>>({});
-  const [activeTab, setActiveTab] = useState<'ALL' | 'FREE_FIRE' | 'EFOOTBALL' | 'PUBG_MOBILE' | 'VALORANT' | 'SOLO' | 'SQUAD'>('ALL');
 
   // Real-time Monthly Event Reset Countdown Timer
   const [timeLeft, setTimeLeft] = useState({
@@ -133,17 +131,6 @@ export default function HomePage() {
     void loadLeaderboard();
   }, []);
 
-  const filteredTournaments = tournaments.filter(t => {
-    if (activeTab === 'ALL') return true;
-    if (activeTab === 'FREE_FIRE') return (t.game || 'FREE_FIRE') === 'FREE_FIRE' || t.title.toLowerCase().includes('free fire');
-    if (activeTab === 'EFOOTBALL') return t.game === 'EFOOTBALL' || t.title.toLowerCase().includes('efootball') || t.title.toLowerCase().includes('pes');
-    if (activeTab === 'PUBG_MOBILE') return t.game === 'PUBG_MOBILE' || t.title.toLowerCase().includes('pubg') || t.title.toLowerCase().includes('bgmi');
-    if (activeTab === 'VALORANT') return t.game === 'VALORANT' || t.title.toLowerCase().includes('valorant');
-    if (activeTab === 'SQUAD') return t.mode === 'SQUAD';
-    if (activeTab === 'SOLO') return t.mode === 'SOLO';
-    return true;
-  });
-
   return (
     <div className="flex flex-col font-body w-full">
       <Navbar />
@@ -211,43 +198,42 @@ export default function HomePage() {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="lg:col-span-5 relative"
             >
-              <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-lg relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-brand-orange/10 rounded-full blur-2xl"></div>
+              <Link href="/tournaments" className="block group cursor-pointer">
+                <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-lg relative overflow-hidden group hover:border-brand-orange/60 hover:shadow-xl transition-all duration-300">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-brand-orange/10 rounded-full blur-2xl"></div>
 
-                {/* Hero Featured Tournament Preview */}
-                <div className="relative rounded-2xl overflow-hidden h-64 mb-4">
-                  <img
-                    src={siteSettings.featured_image || "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800"}
-                    alt="Free Fire Hero Tournament"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent"></div>
-                  <span className="absolute top-3 left-3 px-3 py-1 rounded-full bg-brand-red text-white text-xs font-black uppercase shadow-sm animate-pulse">
-                    {siteSettings.featured_badge || 'FEATURED LEAGUE'}
-                  </span>
-                </div>
-
-                <h3 className="font-heading font-black text-2xl text-slate-900">
-                  {siteSettings.featured_title || 'Grand Free Fire BR Squad League #42'}
-                </h3>
-
-                <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-200">
-                  <div>
-                    <div className="text-xs text-slate-600 font-medium">Total Prize Pool</div>
-                    <div className="text-2xl font-heading font-extrabold text-orange-500">
-                      {siteSettings.featured_prize || '৳ 4,000 CASH'}
-                    </div>
+                  {/* Hero Featured Tournament Preview */}
+                  <div className="relative rounded-2xl overflow-hidden h-64 mb-4">
+                    <img
+                      src={siteSettings.featured_image || "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800"}
+                      alt="Free Fire Hero Tournament"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent"></div>
+                    <span className="absolute top-3 left-3 px-3 py-1 rounded-full bg-brand-red text-white text-xs font-black uppercase shadow-sm animate-pulse">
+                      {siteSettings.featured_badge || 'FEATURED LEAGUE'}
+                    </span>
                   </div>
-                  <Link
-                    href={siteSettings.featured_link || '/tournaments'}
-                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-bold text-sm shadow-neon-orange hover:brightness-110 transition-all flex items-center gap-1.5"
-                  >
-                    <span>{siteSettings.featured_entry || 'ENTRY ৳100'}</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
-                </div>
 
-              </div>
+                  <h3 className="font-heading font-black text-2xl text-slate-900 group-hover:text-brand-orange transition-colors">
+                    {siteSettings.featured_title || 'Grand Free Fire BR Squad League #42'}
+                  </h3>
+
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-200">
+                    <div>
+                      <div className="text-xs text-slate-600 font-medium">Total Prize Pool</div>
+                      <div className="text-2xl font-heading font-extrabold text-orange-500">
+                        {siteSettings.featured_prize || '৳ 4,000 CASH'}
+                      </div>
+                    </div>
+                    <span className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-bold text-sm shadow-neon-orange group-hover:brightness-110 transition-all flex items-center gap-1.5">
+                      <span>{siteSettings.featured_entry || 'VIEW ALL TOURNAMENTS'}</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </span>
+                  </div>
+
+                </div>
+              </Link>
             </motion.div>
 
           </div>
@@ -257,34 +243,34 @@ export default function HomePage() {
 
 
       {/* Referral Rewards & Monthly Event Progress Section */}
-      <section className="py-6 sm:py-8 bg-white border-b border-slate-200 relative">
+      <section className="py-8 bg-slate-50 border-b border-slate-200 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="rounded-2xl p-5 sm:p-6 bg-gradient-to-br from-orange-50/70 via-white to-amber-50/40 border border-orange-200/80 shadow-sm relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-80 h-80 bg-orange-400/10 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="rounded-3xl p-6 sm:p-7 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white border-2 border-orange-500/40 shadow-xl shadow-orange-500/10 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-brand-orange/15 rounded-full blur-3xl pointer-events-none"></div>
 
             {/* Top Bar: Title + Live Countdown + Actions */}
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-5 border-b border-orange-100/80 relative z-10">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-5 border-b border-slate-800 relative z-10">
               <div className="space-y-1.5">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-brand-red text-white tracking-widest inline-flex items-center gap-1 shadow-2xs">
+                  <span className="text-[10px] font-black uppercase px-2.5 py-1 rounded-full bg-brand-red text-white tracking-widest inline-flex items-center gap-1 shadow-sm">
                     <Flame className="w-3 h-3 animate-pulse" />
                     <span>{siteSettings.ref_banner_badge || 'MONTHLY EVENT'}</span>
                   </span>
 
-                  {/* Clean Resets-in Pill */}
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white border border-orange-200 text-slate-700 text-xs font-mono font-bold shadow-2xs">
-                    <Timer className="w-3 h-3 text-brand-orange" />
-                    <span className="text-[10px] text-slate-400 font-sans uppercase font-bold">{isBangla ? 'রিসেট:' : 'RESETS IN:'}</span>
-                    <span className="text-slate-900 font-black">
-                      {timeLeft.days}d {String(timeLeft.hours).padStart(2, '0')}h {String(timeLeft.minutes).padStart(2, '0')}m <span className="text-brand-orange">{String(timeLeft.seconds).padStart(2, '0')}s</span>
+                  {/* High-Contrast Resets-in Pill */}
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/90 border border-orange-500/40 text-orange-400 text-xs font-mono font-bold shadow-sm">
+                    <Timer className="w-3.5 h-3.5 text-brand-orange animate-spin" />
+                    <span className="text-[10px] text-slate-300 font-sans uppercase font-bold">{isBangla ? 'রিসেট:' : 'RESETS IN:'}</span>
+                    <span className="text-white font-black">
+                      {timeLeft.days}d {String(timeLeft.hours).padStart(2, '0')}h {String(timeLeft.minutes).padStart(2, '0')}m <span className="text-amber-400">{String(timeLeft.seconds).padStart(2, '0')}s</span>
                     </span>
                   </div>
                 </div>
 
-                <h2 className="font-heading font-black text-xl sm:text-2xl text-slate-900 leading-tight">
+                <h2 className="font-heading font-black text-xl sm:text-2xl text-white leading-tight">
                   {siteSettings.ref_banner_title || 'REFERRAL REWARDS CRUSADE'}
                 </h2>
-                <p className="text-xs text-slate-600 max-w-xl">
+                <p className="text-xs text-slate-300 max-w-xl">
                   {siteSettings.ref_banner_desc || 'Invite friends to Black Rock Arena. Rewards credit to your Promo Wallet to join tournaments for free!'}
                 </p>
               </div>
@@ -293,46 +279,46 @@ export default function HomePage() {
               <div className="flex items-center gap-2 self-stretch sm:self-auto">
                 <Link
                   href={siteSettings.ref_btn_1_link || '/profile'}
-                  className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange hover:from-brand-red/90 hover:to-brand-orange/90 text-white font-heading font-black text-xs shadow-sm hover:shadow-md transition-all flex items-center justify-center space-x-1.5 whitespace-nowrap cursor-pointer"
+                  className="flex-1 sm:flex-initial px-5 py-3 rounded-xl bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold hover:brightness-110 text-white font-heading font-black text-xs shadow-neon-red transition-all flex items-center justify-center space-x-1.5 whitespace-nowrap cursor-pointer"
                 >
-                  <Users className="w-3.5 h-3.5" />
+                  <Users className="w-4 h-4" />
                   <span>{siteSettings.ref_btn_1_text || 'GET REFERRAL LINK'}</span>
                 </Link>
 
                 <Link
                   href={siteSettings.ref_btn_2_link || '/lfg'}
-                  className="px-3.5 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-heading font-bold text-xs border border-slate-200 hover:border-slate-300 transition-all flex items-center justify-center space-x-1.5 whitespace-nowrap cursor-pointer shadow-2xs"
+                  className="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-heading font-bold text-xs border border-slate-700 hover:border-slate-600 transition-all flex items-center justify-center space-x-1.5 whitespace-nowrap cursor-pointer shadow-sm"
                 >
-                  <Users className="w-3.5 h-3.5 text-brand-orange" />
+                  <Users className="w-4 h-4 text-brand-cyan" />
                   <span>{siteSettings.ref_btn_2_text || 'FIND SQUAD (LFG)'}</span>
                 </Link>
               </div>
             </div>
 
             {/* Compact Milestone Stages Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 relative z-10">
-              <div className="p-3 rounded-xl bg-white/90 border border-orange-100 shadow-2xs space-y-0.5 text-center">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-5 relative z-10">
+              <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/80 shadow-inner space-y-1 text-center hover:border-orange-500/40 transition-colors">
                 <div className="text-[10px] text-slate-400 font-bold uppercase">10 Referrals</div>
-                <div className="text-base font-heading font-black text-amber-600">50 Coins 🪙</div>
-                <div className="text-[9px] text-slate-400 font-mono">Stage 1 Reward</div>
+                <div className="text-lg font-heading font-black text-yellow-400">50 Coins 🪙</div>
+                <div className="text-[10px] text-slate-500 font-mono">Stage 1 Reward</div>
               </div>
 
-              <div className="p-3 rounded-xl bg-white/90 border border-orange-100 shadow-2xs space-y-0.5 text-center">
+              <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/80 shadow-inner space-y-1 text-center hover:border-orange-500/40 transition-colors">
                 <div className="text-[10px] text-slate-400 font-bold uppercase">50 Referrals</div>
-                <div className="text-base font-heading font-black text-amber-600">100 Coins 🪙</div>
-                <div className="text-[9px] text-slate-400 font-mono">Stage 2 Reward</div>
+                <div className="text-lg font-heading font-black text-yellow-400">100 Coins 🪙</div>
+                <div className="text-[10px] text-slate-500 font-mono">Stage 2 Reward</div>
               </div>
 
-              <div className="p-3 rounded-xl bg-white/90 border border-orange-100 shadow-2xs space-y-0.5 text-center">
+              <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/80 shadow-inner space-y-1 text-center hover:border-orange-500/40 transition-colors">
                 <div className="text-[10px] text-slate-400 font-bold uppercase">100 Referrals</div>
-                <div className="text-base font-heading font-black text-amber-600">200 Coins 🪙</div>
-                <div className="text-[9px] text-slate-400 font-mono">Stage 3 Reward</div>
+                <div className="text-lg font-heading font-black text-yellow-400">200 Coins 🪙</div>
+                <div className="text-[10px] text-slate-500 font-mono">Stage 3 Reward</div>
               </div>
 
-              <div className="p-3 rounded-xl bg-gradient-to-r from-orange-500/10 to-amber-500/10 border border-brand-orange/40 shadow-2xs space-y-0.5 text-center">
-                <div className="text-[10px] text-brand-orange font-bold uppercase">300 Referrals</div>
-                <div className="text-base font-heading font-black text-brand-red">৳ 500 CASH 🔥</div>
-                <div className="text-[9px] text-brand-orange font-mono font-bold">Grand Prize</div>
+              <div className="p-3.5 rounded-2xl bg-gradient-to-tr from-brand-red/30 to-brand-orange/30 border-2 border-brand-orange/70 shadow-neon-orange space-y-1 text-center">
+                <div className="text-[10px] text-brand-gold font-bold uppercase">300 Referrals</div>
+                <div className="text-lg font-heading font-black text-white">৳ 500 CASH 🔥</div>
+                <div className="text-[10px] text-brand-orange font-mono font-bold">Grand Prize</div>
               </div>
             </div>
 
@@ -375,62 +361,7 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* Featured Tournaments Section */}
-      <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
-          <div>
-            <div className="flex items-center space-x-2 text-brand-orange text-xs font-bold uppercase tracking-widest mb-1">
-              <Gamepad2 className="w-4 h-4" />
-              <span>Active Competitions</span>
-            </div>
-            <h2 className="font-heading font-black text-4xl text-slate-900">
-              FEATURED TOURNAMENTS
-            </h2>
-          </div>
 
-          {/* Filter Tabs */}
-          <div className="flex items-center space-x-1.5 bg-white p-1.5 rounded-2xl border border-slate-200 overflow-x-auto shadow-sm">
-            {[
-              { id: 'ALL', label: '🎮 All Games' },
-              { id: 'FREE_FIRE', label: '🔥 Free Fire' },
-              { id: 'EFOOTBALL', label: '⚽ eFootball' },
-              { id: 'PUBG_MOBILE', label: '🪖 PUBG Mobile' },
-              { id: 'VALORANT', label: '🎯 Valorant' },
-              { id: 'SOLO', label: 'Solo 1v1' },
-              { id: 'SQUAD', label: 'Squad' },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-                  activeTab === tab.id
-                    ? 'bg-gradient-to-r from-brand-red to-brand-orange text-white shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Tournament Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredTournaments.map((t) => (
-            <TournamentCard key={t.id} tournament={t} />
-          ))}
-        </div>
-
-        <div className="text-center mt-12">
-          <Link
-            href="/tournaments"
-            className="inline-flex items-center space-x-2 px-8 py-3.5 rounded-xl bg-white border border-slate-200 hover:border-brand-orange text-slate-900 font-heading font-bold text-sm transition-all shadow-sm"
-          >
-            <span>VIEW ALL TOURNAMENTS ({tournaments.length})</span>
-            <ChevronRight className="w-4 h-4 text-brand-orange" />
-          </Link>
-        </div>
-      </section>
 
       {/* Global Leaderboard Preview */}
       <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
