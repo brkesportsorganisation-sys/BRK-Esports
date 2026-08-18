@@ -3,6 +3,7 @@ import "./globals.css";
 import MobileBottomNav from "@/components/ui/MobileBottomNav";
 import AIAssistantWidget from "@/components/ai/AIAssistantWidget";
 import InstallPwaModal from "@/components/ui/InstallPwaModal";
+import PushNotificationPrompt from "@/components/notifications/PushNotificationPrompt";
 import { LanguageProvider } from "@/lib/language-context";
 
 export const metadata: Metadata = {
@@ -34,6 +35,7 @@ export default function RootLayout({
           <MobileBottomNav />
           <AIAssistantWidget />
           <InstallPwaModal />
+          <PushNotificationPrompt />
         </LanguageProvider>
       </body>
     </html>

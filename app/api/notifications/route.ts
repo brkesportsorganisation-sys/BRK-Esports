@@ -13,11 +13,11 @@ export async function GET(req: NextRequest) {
     const limitParam = parseInt(searchParams.get('limit') || '50', 10);
     const limit = isNaN(limitParam) ? 50 : Math.min(limitParam, 100);
 
-    // Fetch user notifications
+    // Fetch user notifications (personal + broadcast notifications)
     const { data: notifications, error } = await supabaseAdmin
       .from('Notification')
       .select('*')
-      .eq('userId', userId)
+      .or(`userId.eq.${userId},userId.eq.ALL,userId.eq.BROADCAST,userId.is.null`)
       .order('createdAt', { ascending: false })
       .limit(limit);
 
