@@ -596,13 +596,13 @@ export default function Navbar() {
                 </div>
               </>
             ) : (
-              /* If NOT logged in: Render clean LOGIN / REGISTER Button ONLY */
+              /* If NOT logged in: Render clean LOGIN Button ONLY */
               <Link
                 href="/login"
-                className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-black text-xs shadow-neon-red hover:brightness-110 transition-all flex items-center space-x-2"
+                className="px-4 py-2 rounded-2xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-black text-xs shadow-neon-red hover:brightness-110 transition-all flex items-center space-x-2 whitespace-nowrap"
               >
                 <User className="w-4 h-4" />
-                <span>{t('nav_login', 'LOGIN')} / {t('nav_register', 'REGISTER')}</span>
+                <span>{t('nav_login', 'LOGIN')}</span>
               </Link>
             )}
 
@@ -734,7 +734,7 @@ export default function Navbar() {
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="block text-center py-3 rounded-2xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-black text-xs"
               >
-                {t('nav_login', 'LOGIN')} / {t('nav_register', 'REGISTER')}
+                {t('nav_login', 'LOGIN')}
               </Link>
             )}
           </motion.div>
