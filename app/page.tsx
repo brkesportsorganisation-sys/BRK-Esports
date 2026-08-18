@@ -23,15 +23,13 @@ import {
 } from 'lucide-react';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
-import { Tournament, LeaderboardEntry, Announcement } from '@/lib/types';
-import { playerLeaderboard } from '@/lib/mock-data';
+import { Tournament, Announcement } from '@/lib/types';
 import { useLanguage } from '@/lib/language-context';
 
 export default function HomePage() {
   const { t, isBangla } = useLanguage();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(playerLeaderboard);
   const [siteSettings, setSiteSettings] = useState<Record<string, string>>({});
 
   // Real-time Monthly Event Reset Countdown Timer
@@ -111,24 +109,9 @@ export default function HomePage() {
       }
     };
 
-    const loadLeaderboard = async () => {
-      try {
-        const res = await fetch('/api/leaderboard');
-        if (res.ok) {
-          const payload = await res.json();
-          if (payload.players && payload.players.length > 0) {
-            setLeaderboard(payload.players);
-          }
-        }
-      } catch (err) {
-        console.warn('Using cached leaderboard for homepage:', err);
-      }
-    };
-
     void loadSettings();
     void loadTournaments();
     void loadAnnouncements();
-    void loadLeaderboard();
   }, []);
 
   return (
@@ -362,83 +345,6 @@ export default function HomePage() {
       )}
 
 
-
-      {/* Global Leaderboard Preview */}
-      <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-          
-          <div className="lg:col-span-5 space-y-4">
-            <span className="text-xs font-bold text-brand-gold uppercase tracking-widest flex items-center gap-1.5">
-              <Award className="w-4 h-4 text-brand-gold" />
-              <span>Hall of Champions</span>
-            </span>
-            <h2 className="font-heading font-black text-4xl text-slate-900">
-              GLOBAL PLAYER LEADERBOARD
-            </h2>
-            <p className="text-slate-600 text-sm leading-relaxed">
-              Top fraggers and legendary clan captains commanding the highest win rates and earnings this season.
-            </p>
-
-            <Link
-              href="/leaderboard"
-              className="inline-flex items-center space-x-2 px-6 py-3 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-bold text-sm shadow-neon-red hover:scale-105 transition-all"
-            >
-              <span>VIEW FULL RANKINGS</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-
-          <div className="lg:col-span-7">
-            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-2">
-              {leaderboard.slice(0, 4).map((player) => (
-                <div
-                  key={player.id}
-                  className="flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors"
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-heading font-black text-sm ${
-                      player.rank === 1 ? 'bg-brand-gold text-white shadow-sm' :
-                      player.rank === 2 ? 'bg-slate-300 text-slate-800' :
-                      player.rank === 3 ? 'bg-amber-700 text-white' :
-                      'bg-slate-200 text-slate-700 font-bold'
-                    }`}>
-                      #{player.rank}
-                    </div>
-
-                    <img
-                      src={player.avatar}
-                      alt={player.name}
-                      className="w-10 h-10 rounded-xl object-cover border border-brand-orange/40"
-                    />
-
-                    <div>
-                      <div className="font-heading font-bold text-slate-900 text-base leading-tight flex items-center gap-2">
-                        <span>{player.name}</span>
-                        {player.tag && (
-                          <span className="text-[10px] px-2 py-0.5 rounded bg-brand-red/10 text-brand-red font-extrabold uppercase">
-                            [{player.tag}]
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-xs text-slate-600 font-mono">FF UID: {player.ffUid}</div>
-                    </div>
-                  </div>
-
-                  <div className="text-right">
-                    <div className="font-heading font-black text-orange-500 text-lg">
-                      ৳ {player.earnings.toLocaleString()}
-                    </div>
-                    <div className="text-[11px] text-slate-600 font-semibold">
-                      {player.kills} Kills • {player.wins} Booyahs
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-        </div>
-      </section>
 
       <Footer />
     </div>
