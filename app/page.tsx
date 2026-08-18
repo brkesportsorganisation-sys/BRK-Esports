@@ -200,33 +200,7 @@ export default function HomePage() {
                 </Link>
               </div>
 
-              {/* Trust Badges */}
-              <div className="pt-6 grid grid-cols-3 gap-4 border-t border-slate-200 max-w-md mx-auto lg:mx-0 text-center lg:text-left">
-                <div>
-                  <div className="font-heading font-extrabold text-2xl text-brand-gold">
-                    {siteSettings.hero_stat_1_val || '৳ 2.5 Lakh+'}
-                  </div>
-                  <div className="text-[11px] font-semibold text-slate-600 uppercase">
-                    {siteSettings.hero_stat_1_label || t('hero_stat_payouts', 'Prize Pool Paid')}
-                  </div>
-                </div>
-                <div>
-                  <div className="font-heading font-extrabold text-2xl text-brand-cyan">
-                    {siteSettings.hero_stat_2_val || '15,000+'}
-                  </div>
-                  <div className="text-[11px] font-semibold text-slate-600 uppercase">
-                    {siteSettings.hero_stat_2_label || t('stats_active_players', 'Active Players')}
-                  </div>
-                </div>
-                <div>
-                  <div className="font-heading font-extrabold text-2xl text-brand-red">
-                    {siteSettings.hero_stat_3_val || '100%'}
-                  </div>
-                  <div className="text-[11px] font-semibold text-slate-600 uppercase">
-                    {siteSettings.hero_stat_3_label || t('hero_stat_anticheat', 'Anti-Cheat Safe')}
-                  </div>
-                </div>
-              </div>
+
 
             </motion.div>
 
@@ -280,152 +254,85 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Real-Time Live Slot Running Counter Banner */}
-      <section className="bg-slate-900 text-white py-4 border-y border-slate-800 relative z-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center space-x-3">
-            <span className="flex h-3 w-3 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-            </span>
-            <div className="font-heading font-black text-sm uppercase tracking-wider text-brand-gold">
-              {siteSettings.ticker_title || 'LIVE ARENA SLOTS STATUS:'}
-            </div>
-          </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-bold">
-            <div className="px-3.5 py-1.5 rounded-xl bg-slate-800 border border-slate-700 flex items-center space-x-2">
-              <span className="text-slate-300">{siteSettings.ticker_am_label || 'AM Slots (Morning):'}</span>
-              <span className="text-green-400 font-mono">
-                {siteSettings.ticker_am_text || `${tournaments.filter(t => t.status === 'UPCOMING' && new Date(t.matchTime).getHours() < 12).length || 4} OPEN`}
-              </span>
-            </div>
 
-            <div className="px-3.5 py-1.5 rounded-xl bg-slate-800 border border-slate-700 flex items-center space-x-2">
-              <span className="text-slate-300">{siteSettings.ticker_pm_label || 'PM Slots (Prime Evening):'}</span>
-              <span className="text-orange-400 font-mono">
-                {siteSettings.ticker_pm_text || `${tournaments.filter(t => t.status === 'UPCOMING' && new Date(t.matchTime).getHours() >= 12).length || 8} OPEN`}
-              </span>
-            </div>
-
-            <Link
-              href={siteSettings.ticker_btn_link || '/tournaments'}
-              className="px-4 py-1.5 rounded-xl bg-brand-red hover:bg-brand-orange text-white font-bold text-xs transition-colors flex items-center gap-1"
-            >
-              <span>{siteSettings.ticker_btn_text || 'BOOK SLOT'}</span>
-              <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Free Fire Style Monthly Event & Referral Progress Bar */}
-      <section className="py-10 bg-gradient-to-b from-orange-50/50 to-white border-b border-slate-200">
+      {/* Referral Rewards & Monthly Event Progress Section */}
+      <section className="py-6 sm:py-8 bg-white border-b border-slate-200 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="rounded-3xl p-6 sm:p-8 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 text-white border-2 border-brand-orange/40 shadow-cyber relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-brand-orange/10 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="rounded-2xl p-5 sm:p-6 bg-gradient-to-br from-orange-50/70 via-white to-amber-50/40 border border-orange-200/80 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-80 h-80 bg-orange-400/10 rounded-full blur-3xl pointer-events-none"></div>
 
-            <div className="flex flex-col lg:flex-row items-center justify-between gap-6 relative z-10">
-              <div className="space-y-2.5 text-center lg:text-left">
-                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2.5">
-                  <span className="text-[10px] font-black uppercase px-3 py-1 rounded-full bg-brand-red text-white tracking-widest inline-flex items-center gap-1.5 shadow-xs">
+            {/* Top Bar: Title + Live Countdown + Actions */}
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-5 border-b border-orange-100/80 relative z-10">
+              <div className="space-y-1.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-brand-red text-white tracking-widest inline-flex items-center gap-1 shadow-2xs">
                     <Flame className="w-3 h-3 animate-pulse" />
-                    <span>{siteSettings.ref_banner_badge || 'MONTHLY EVENT • RESETS 1ST OF EVERY MONTH'}</span>
+                    <span>{siteSettings.ref_banner_badge || 'MONTHLY EVENT'}</span>
                   </span>
 
-                  {/* Dynamic Countdown Timer Badge */}
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/90 border border-orange-500/50 text-orange-400 text-[11px] font-mono font-bold shadow-xs">
-                    <Timer className="w-3.5 h-3.5 text-brand-orange animate-spin" />
-                    <span className="text-slate-300 uppercase text-[9px] tracking-wider">{isBangla ? 'রিসেট হতে বাকি:' : 'RESETS IN:'}</span>
-                    <span className="text-white font-black tracking-wider">
-                      {timeLeft.days}{isBangla ? ' দিন ' : 'd '} 
-                      {String(timeLeft.hours).padStart(2, '0')}{isBangla ? ' ঘণ্টা ' : 'h '} 
-                      {String(timeLeft.minutes).padStart(2, '0')}{isBangla ? ' মি. ' : 'm '} 
-                      <span className="text-amber-400">{String(timeLeft.seconds).padStart(2, '0')}{isBangla ? ' সে.' : 's'}</span>
+                  {/* Clean Resets-in Pill */}
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white border border-orange-200 text-slate-700 text-xs font-mono font-bold shadow-2xs">
+                    <Timer className="w-3 h-3 text-brand-orange" />
+                    <span className="text-[10px] text-slate-400 font-sans uppercase font-bold">{isBangla ? 'রিসেট:' : 'RESETS IN:'}</span>
+                    <span className="text-slate-900 font-black">
+                      {timeLeft.days}d {String(timeLeft.hours).padStart(2, '0')}h {String(timeLeft.minutes).padStart(2, '0')}m <span className="text-brand-orange">{String(timeLeft.seconds).padStart(2, '0')}s</span>
                     </span>
                   </div>
                 </div>
 
-                <h2 className="font-heading font-black text-2xl sm:text-3xl text-white">
+                <h2 className="font-heading font-black text-xl sm:text-2xl text-slate-900 leading-tight">
                   {siteSettings.ref_banner_title || 'REFERRAL REWARDS CRUSADE'}
                 </h2>
-                <p className="text-xs text-slate-300 max-w-xl">
+                <p className="text-xs text-slate-600 max-w-xl">
                   {siteSettings.ref_banner_desc || 'Invite friends to Black Rock Arena. Rewards credit to your Promo Wallet to join tournaments for free!'}
                 </p>
               </div>
 
-              {/* Action Buttons & Visual Timer Digits */}
-              <div className="flex flex-col sm:flex-row items-center gap-3">
-                {/* Visual Cyberpunk Countdown Box Grid */}
-                <div className="flex items-center gap-1.5 bg-slate-950/70 p-2 rounded-2xl border border-slate-800/90 shadow-inner">
-                  <div className="text-center px-2.5 py-1.5 bg-slate-900/90 rounded-xl border border-slate-800 min-w-[46px]">
-                    <div className="text-sm sm:text-base font-black font-heading text-orange-400 leading-none">{timeLeft.days}</div>
-                    <div className="text-[8px] text-slate-400 uppercase font-extrabold mt-0.5">{isBangla ? 'দিন' : 'DAYS'}</div>
-                  </div>
-                  <span className="text-orange-500 font-black text-xs animate-pulse">:</span>
-                  <div className="text-center px-2.5 py-1.5 bg-slate-900/90 rounded-xl border border-slate-800 min-w-[46px]">
-                    <div className="text-sm sm:text-base font-black font-heading text-orange-400 leading-none">{String(timeLeft.hours).padStart(2, '0')}</div>
-                    <div className="text-[8px] text-slate-400 uppercase font-extrabold mt-0.5">{isBangla ? 'ঘণ্টা' : 'HOURS'}</div>
-                  </div>
-                  <span className="text-orange-500 font-black text-xs animate-pulse">:</span>
-                  <div className="text-center px-2.5 py-1.5 bg-slate-900/90 rounded-xl border border-slate-800 min-w-[46px]">
-                    <div className="text-sm sm:text-base font-black font-heading text-orange-400 leading-none">{String(timeLeft.minutes).padStart(2, '0')}</div>
-                    <div className="text-[8px] text-slate-400 uppercase font-extrabold mt-0.5">{isBangla ? 'মিনিট' : 'MINS'}</div>
-                  </div>
-                  <span className="text-orange-500 font-black text-xs animate-pulse">:</span>
-                  <div className="text-center px-2.5 py-1.5 bg-slate-900/90 rounded-xl border border-slate-800 min-w-[46px]">
-                    <div className="text-sm sm:text-base font-black font-heading text-amber-400 leading-none">{String(timeLeft.seconds).padStart(2, '0')}</div>
-                    <div className="text-[8px] text-amber-400 uppercase font-extrabold mt-0.5">{isBangla ? 'সেকেন্ড' : 'SECS'}</div>
-                  </div>
-                </div>
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2 self-stretch sm:self-auto">
+                <Link
+                  href={siteSettings.ref_btn_1_link || '/profile'}
+                  className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange hover:from-brand-red/90 hover:to-brand-orange/90 text-white font-heading font-black text-xs shadow-sm hover:shadow-md transition-all flex items-center justify-center space-x-1.5 whitespace-nowrap cursor-pointer"
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  <span>{siteSettings.ref_btn_1_text || 'GET REFERRAL LINK'}</span>
+                </Link>
 
-                {/* Buttons */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <Link
-                    href={siteSettings.ref_btn_1_link || '/profile'}
-                    className="px-5 py-3 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-black text-xs shadow-neon-red hover:brightness-110 transition-all flex items-center space-x-2 whitespace-nowrap"
-                  >
-                    <Users className="w-4 h-4" />
-                    <span>{siteSettings.ref_btn_1_text || 'GET REFERRAL LINK'}</span>
-                  </Link>
-
-                  <Link
-                    href={siteSettings.ref_btn_2_link || '/lfg'}
-                    className="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-heading font-bold text-xs border border-slate-700 transition-all flex items-center space-x-2 whitespace-nowrap"
-                  >
-                    <Users className="w-4 h-4 text-brand-cyan" />
-                    <span>{siteSettings.ref_btn_2_text || 'FIND SQUAD (LFG)'}</span>
-                  </Link>
-                </div>
+                <Link
+                  href={siteSettings.ref_btn_2_link || '/lfg'}
+                  className="px-3.5 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-heading font-bold text-xs border border-slate-200 hover:border-slate-300 transition-all flex items-center justify-center space-x-1.5 whitespace-nowrap cursor-pointer shadow-2xs"
+                >
+                  <Users className="w-3.5 h-3.5 text-brand-orange" />
+                  <span>{siteSettings.ref_btn_2_text || 'FIND SQUAD (LFG)'}</span>
+                </Link>
               </div>
             </div>
 
-            {/* Event Milestone Stages Bar */}
-            <div className="mt-8 pt-6 border-t border-slate-800">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-                <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-1">
-                  <div className="text-[10px] text-slate-300 font-bold uppercase">10 Referrals</div>
-                  <div className="text-lg font-heading font-black text-yellow-400">50 Coins</div>
-                  <div className="text-[10px] text-slate-300 font-mono">Stage 1</div>
-                </div>
+            {/* Compact Milestone Stages Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 relative z-10">
+              <div className="p-3 rounded-xl bg-white/90 border border-orange-100 shadow-2xs space-y-0.5 text-center">
+                <div className="text-[10px] text-slate-400 font-bold uppercase">10 Referrals</div>
+                <div className="text-base font-heading font-black text-amber-600">50 Coins 🪙</div>
+                <div className="text-[9px] text-slate-400 font-mono">Stage 1 Reward</div>
+              </div>
 
-                <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-1">
-                  <div className="text-[10px] text-slate-300 font-bold uppercase">50 Referrals</div>
-                  <div className="text-lg font-heading font-black text-yellow-400">100 Coins</div>
-                  <div className="text-[10px] text-slate-300 font-mono">Stage 2</div>
-                </div>
+              <div className="p-3 rounded-xl bg-white/90 border border-orange-100 shadow-2xs space-y-0.5 text-center">
+                <div className="text-[10px] text-slate-400 font-bold uppercase">50 Referrals</div>
+                <div className="text-base font-heading font-black text-amber-600">100 Coins 🪙</div>
+                <div className="text-[9px] text-slate-400 font-mono">Stage 2 Reward</div>
+              </div>
 
-                <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-1">
-                  <div className="text-[10px] text-slate-300 font-bold uppercase">100 Referrals</div>
-                  <div className="text-lg font-heading font-black text-yellow-400">200 Coins</div>
-                  <div className="text-[10px] text-slate-300 font-mono">Stage 3</div>
-                </div>
+              <div className="p-3 rounded-xl bg-white/90 border border-orange-100 shadow-2xs space-y-0.5 text-center">
+                <div className="text-[10px] text-slate-400 font-bold uppercase">100 Referrals</div>
+                <div className="text-base font-heading font-black text-amber-600">200 Coins 🪙</div>
+                <div className="text-[9px] text-slate-400 font-mono">Stage 3 Reward</div>
+              </div>
 
-                <div className="p-3.5 rounded-2xl bg-gradient-to-tr from-brand-red/30 to-brand-orange/30 border border-brand-orange/50 space-y-1 shadow-neon-orange">
-                  <div className="text-[10px] text-brand-gold font-bold uppercase">300 Referrals</div>
-                  <div className="text-xl font-heading font-black text-white">৳ 500 CASH</div>
-                  <div className="text-[10px] text-brand-orange font-mono font-bold">Grand Prize</div>
-                </div>
+              <div className="p-3 rounded-xl bg-gradient-to-r from-orange-500/10 to-amber-500/10 border border-brand-orange/40 shadow-2xs space-y-0.5 text-center">
+                <div className="text-[10px] text-brand-orange font-bold uppercase">300 Referrals</div>
+                <div className="text-base font-heading font-black text-brand-red">৳ 500 CASH 🔥</div>
+                <div className="text-[9px] text-brand-orange font-mono font-bold">Grand Prize</div>
               </div>
             </div>
 
