@@ -118,7 +118,7 @@ Login to your account and book your slot today!`);
   const [nagadNo, setNagadNo] = useState('01812-998877');
   const [rocketNo, setRocketNo] = useState('01912-998877');
   const [minDeposit, setMinDeposit] = useState('20');
-  const [minWithdraw, setMinWithdraw] = useState('50');
+  const [minWithdraw, setMinWithdraw] = useState('100');
 
   // Contact Unlock & Messaging Monetization
   const [contactUnlockFee, setContactUnlockFee] = useState('20');
@@ -1206,28 +1206,43 @@ Login to your account and book your slot today!`);
               <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] p-6 space-y-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
                 <div className="flex items-center space-x-2 border-b border-[#F1F5F9] pb-3">
                   <ShieldCheck className="w-5 h-5 text-emerald-500" />
-                  <h2 className="text-[17px] font-bold text-[#0F172A]">Financial Limits & Cashout Thresholds</h2>
+                  <div>
+                    <h2 className="text-[17px] font-bold text-[#0F172A]">Financial Limits & Cashout Thresholds</h2>
+                    <p className="text-[11px] text-slate-500 mt-0.5">Control dynamic minimum deposit and withdrawal amounts enforced across the player wallet & APIs.</p>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                  <div>
-                    <label className="block text-[#475569] font-semibold mb-1">Minimum Deposit Amount (৳ BDT)</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-1">
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-[#0F172A] font-bold text-xs">Minimum Deposit Amount (৳ BDT)</label>
+                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Default ৳20</span>
+                    </div>
                     <input
                       type="number"
                       value={minDeposit}
                       onChange={(e) => setMinDeposit(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] font-bold text-xs text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
+                      placeholder="20"
+                      min={1}
+                      className="w-full px-3.5 py-2.5 rounded-[12px] bg-white border border-[#E2E8F0] font-black text-sm text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
                     />
+                    <p className="text-[10px] text-slate-500">Players cannot submit a bKash/Nagad deposit below this amount.</p>
                   </div>
 
-                  <div>
-                    <label className="block text-[#475569] font-semibold mb-1">Minimum Withdrawal / Cashout (৳ BDT)</label>
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-[#0F172A] font-bold text-xs">Minimum Withdrawal / Cashout (৳ BDT)</label>
+                      <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">Default ৳100</span>
+                    </div>
                     <input
                       type="number"
                       value={minWithdraw}
                       onChange={(e) => setMinWithdraw(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] font-bold text-xs text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
+                      placeholder="100"
+                      min={1}
+                      className="w-full px-3.5 py-2.5 rounded-[12px] bg-white border border-[#E2E8F0] font-black text-sm text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
                     />
+                    <p className="text-[10px] text-slate-500">Players cannot request a Winning Wallet cashout below this amount.</p>
                   </div>
                 </div>
               </div>

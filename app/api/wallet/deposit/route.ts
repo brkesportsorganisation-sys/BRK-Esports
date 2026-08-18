@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { saveBase64Image } from '@/lib/upload';
 
-const MIN_DEPOSIT_BDT = 20;
+const DEFAULT_MIN_DEPOSIT_BDT = 20;
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,9 +13,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'User ID, payment method, amount, and TrxID are required.' }, { status: 400 });
     }
 
+    // Fetch dynamic minimum deposit limit from SiteSetting table
+    let minDeposit = DEFAULT_MIN_DEPOSIT_BDT;
+    try {
+      const { data: settingData } = await supabaseAdmin
+        .from('SiteSetting')
+        .select('value')
+        .eq('key', 'min_deposit')
+        .maybeSingle();
+
+      if (settingData?.value) {
+        const parsed = Number(settingData.value);
+        if (!isNaN(parsed) && parsed > 0) {
+          minDeposit = parsed;
+        }
+      }
+    } catch (settingErr) {
+      console.warn('[POST /api/wallet/deposit] Setting fetch fallback:', settingErr);
+    }
+
     const numAmount = Number(amount);
-    if (isNaN(numAmount) || numAmount < MIN_DEPOSIT_BDT) {
-      return NextResponse.json({ message: `Minimum deposit amount is ৳${MIN_DEPOSIT_BDT}.` }, { status: 400 });
+    if (isNaN(numAmount) || numAmount < minDeposit) {
+      return NextResponse.json({ message: `Minimum deposit amount is ৳${minDeposit}. (ন্যূনতম ডিপোজিট ৳${minDeposit})` }, { status: 400 });
     }
 
     const trimmedTrx = trxId.trim().toUpperCase();

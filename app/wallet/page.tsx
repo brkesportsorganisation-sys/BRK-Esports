@@ -42,7 +42,7 @@ export default function WalletPage() {
   const [nagadNo, setNagadNo] = useState('01812-998877');
   const [rocketNo, setRocketNo] = useState('01912-998877');
   const [minDeposit, setMinDeposit] = useState(20);
-  const [minWithdraw, setMinWithdraw] = useState(50);
+  const [minWithdraw, setMinWithdraw] = useState(100);
   const [copiedText, setCopiedText] = useState<string | null>(null);
 
   // Deposit Modal State
@@ -77,7 +77,7 @@ export default function WalletPage() {
         if (s.nagad_no) setNagadNo(s.nagad_no);
         if (s.rocket_no) setRocketNo(s.rocket_no);
         if (s.min_deposit) setMinDeposit(Number(s.min_deposit) || 20);
-        if (s.min_withdraw) setMinWithdraw(Number(s.min_withdraw) || 50);
+        if (s.min_withdraw) setMinWithdraw(Number(s.min_withdraw) || 100);
       }
     } catch (err) {
       console.warn('Failed to load settings:', err);
@@ -218,11 +218,16 @@ export default function WalletPage() {
       return;
     }
     if (withdrawAmount < minWithdraw) {
-      alert(`Minimum withdrawal amount is ৳${minWithdraw}.`);
+      alert(`Minimum withdrawal amount is ৳${minWithdraw}. (ন্যূনতম উইথড্র পরিমাণ ৳${minWithdraw})`);
       return;
     }
-    if (!accountNumber.trim()) {
-      alert('Please enter your mobile banking number.');
+    const trimmedAccount = accountNumber.trim();
+    if (!trimmedAccount) {
+      alert('Please enter your mobile banking account number.');
+      return;
+    }
+    if (trimmedAccount.length < 11 || !/^01[3-9]\d{8}$/.test(trimmedAccount)) {
+      alert('অনুগ্রহ করে সঠিক ১১ ডিজিটের মোবাইল ব্যাংকিং নাম্বার দিন (যেমন: 017XXXXXXXX)।');
       return;
     }
 
@@ -235,7 +240,7 @@ export default function WalletPage() {
           userId: user.id,
           method: withdrawMethod,
           amount: withdrawAmount,
-          accountNumber: accountNumber.trim(),
+          accountNumber: trimmedAccount,
         }),
       });
 
@@ -247,7 +252,7 @@ export default function WalletPage() {
         return;
       }
 
-      alert(data.message || 'Withdrawal request submitted successfully!');
+      alert(data.message || `৳${withdrawAmount} উইথড্র রিকোয়েস্ট সফলভাবে জমা হয়েছে! এডমিন যাচাই করে আপনার ${withdrawMethod} নাম্বারে (${trimmedAccount}) টাকা পাঠিয়ে রিকোয়েস্ট Approve করবেন।`);
       setIsWithdrawOpen(false);
       setAccountNumber('');
       await refreshUserData(user);
@@ -551,53 +556,74 @@ export default function WalletPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredPayments.map((p) => (
-                    <tr key={p.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-mono text-xs font-bold text-blue-600">{p.trxId}</span>
-                          <button
-                            onClick={() => copyToClipboard(p.trxId, p.trxId)}
-                            className="p-1 text-slate-400 hover:text-slate-600 transition-colors"
-                            title="Copy TrxID"
-                          >
-                            {copiedText === p.trxId ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
-                          </button>
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4 font-bold text-slate-900 uppercase text-xs">
-                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold ${
-                          p.method === 'BKASH' ? 'bg-pink-50 text-pink-600 border border-pink-200' :
-                          p.method === 'NAGAD' ? 'bg-orange-50 text-orange-600 border border-orange-200' :
-                          p.method === 'ROCKET' ? 'bg-purple-50 text-purple-600 border border-purple-200' :
-                          'bg-blue-50 text-blue-600 border border-blue-200'
-                        }`}>
-                          {p.method}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 font-heading font-extrabold text-slate-900 text-sm">
-                        ৳ {p.amount}
-                      </td>
-                      <td className="py-3.5 px-4 text-xs font-bold text-slate-600 uppercase">
-                        {p.walletType || 'WINNING'}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                          p.status === 'VERIFIED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-                          p.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
-                          'bg-red-50 text-red-700 border border-red-200'
-                        }`}>
-                          {p.status === 'VERIFIED' && <CheckCircle2 className="w-3 h-3 text-emerald-600" />}
-                          {p.status === 'PENDING' && <Clock className="w-3 h-3 text-amber-600 animate-pulse" />}
-                          {p.status === 'REJECTED' && <AlertCircle className="w-3 h-3 text-red-600" />}
-                          <span>{p.status}</span>
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-right text-xs text-slate-500 font-medium">
-                        {new Date(p.createdAt).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  ))
+                  filteredPayments.map((p) => {
+                    const isWithdrawal = p.trxId?.startsWith('WTH-') || (p.notes && p.notes.toLowerCase().includes('withdrawal'));
+                    const destinationPhone = p.senderNumber || (p.notes ? p.notes.match(/01[3-9]\d{8}/)?.[0] : null);
+
+                    return (
+                      <tr key={p.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="py-3.5 px-4">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono text-xs font-bold text-blue-600">{p.trxId}</span>
+                            <button
+                              onClick={() => copyToClipboard(p.trxId, p.trxId)}
+                              className="p-1 text-slate-400 hover:text-slate-600 transition-colors"
+                              title="Copy TrxID"
+                            >
+                              {copiedText === p.trxId ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                            </button>
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-4 text-xs">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase ${
+                              p.method === 'BKASH' ? 'bg-pink-50 text-pink-600 border border-pink-200' :
+                              p.method === 'NAGAD' ? 'bg-orange-50 text-orange-600 border border-orange-200' :
+                              p.method === 'ROCKET' ? 'bg-purple-50 text-purple-600 border border-purple-200' :
+                              'bg-blue-50 text-blue-600 border border-blue-200'
+                            }`}>
+                              {p.method}
+                            </span>
+                            <span className="font-bold text-slate-700">
+                              {isWithdrawal ? 'Cashout' : 'Deposit'}
+                            </span>
+                          </div>
+                          {isWithdrawal && destinationPhone && (
+                            <div className="text-[11px] font-mono text-slate-500 font-semibold mt-0.5">
+                              To: {destinationPhone}
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-4 font-heading font-extrabold text-sm">
+                          <span className={isWithdrawal ? 'text-amber-600' : 'text-emerald-600'}>
+                            {isWithdrawal ? `- ৳${p.amount}` : `+ ৳${p.amount}`}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-xs font-bold text-slate-600 uppercase">
+                          {p.walletType || 'WINNING'}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                            p.status === 'VERIFIED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                            p.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+                            'bg-red-50 text-red-700 border border-red-200'
+                          }`}>
+                            {p.status === 'VERIFIED' && <CheckCircle2 className="w-3 h-3 text-emerald-600" />}
+                            {p.status === 'PENDING' && <Clock className="w-3 h-3 text-amber-600 animate-pulse" />}
+                            {p.status === 'REJECTED' && <AlertCircle className="w-3 h-3 text-red-600" />}
+                            <span>
+                              {p.status === 'VERIFIED' ? (isWithdrawal ? 'Paid / Sent' : 'Verified') : 
+                               p.status === 'PENDING' ? (isWithdrawal ? 'Pending Payout' : 'Pending Review') : 
+                               'Refunded'}
+                            </span>
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-right text-xs text-slate-500 font-medium">
+                          {new Date(p.createdAt).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -630,11 +656,7 @@ export default function WalletPage() {
                       type="button"
                       onClick={() => setDepositMethod(m)}
                       className={`p-2.5 rounded-xl border font-bold text-center transition-all ${
-                        depositMethod === m 
-                          ? m === 'BKASH' ? 'bg-pink-600 text-white border-pink-600 shadow-xs' :
-                            m === 'NAGAD' ? 'bg-orange-600 text-white border-orange-600 shadow-xs' :
-                            'bg-purple-600 text-white border-purple-600 shadow-xs'
-                          : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                        depositMethod === m ? 'bg-slate-900 text-white border-slate-900 shadow-xs' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                       }`}
                     >
                       {m}
@@ -673,7 +695,9 @@ export default function WalletPage() {
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="font-bold text-slate-700">Deposit Amount (৳ BDT) *</label>
-                  <span className="text-[10px] text-slate-500 font-bold">Min: ৳{minDeposit}</span>
+                  <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                    Min: ৳{minDeposit}
+                  </span>
                 </div>
                 <input
                   type="number"
@@ -685,19 +709,21 @@ export default function WalletPage() {
                 />
 
                 {/* Quick Chips */}
-                <div className="flex gap-1.5 mt-2">
-                  {[50, 100, 200, 500, 1000].map((amt) => (
-                    <button
-                      key={amt}
-                      type="button"
-                      onClick={() => setDepositAmount(amt)}
-                      className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all ${
-                        depositAmount === amt ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                      }`}
-                    >
-                      ৳{amt}
-                    </button>
-                  ))}
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {[minDeposit, 50, 100, 200, 500, 1000]
+                    .filter((amt, i, arr) => amt >= minDeposit && arr.indexOf(amt) === i)
+                    .map((amt) => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => setDepositAmount(amt)}
+                        className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all ${
+                          depositAmount === amt ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        ৳{amt}
+                      </button>
+                    ))}
                 </div>
               </div>
 
@@ -781,9 +807,12 @@ export default function WalletPage() {
       {/* ── 2. Withdraw Modal ── */}
       {isWithdrawOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full border border-slate-200 shadow-2xl space-y-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full border border-slate-200 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-heading font-black text-xl text-slate-900">WITHDRAW WINNING EARNINGS</h3>
+              <div>
+                <h3 className="font-heading font-black text-xl text-slate-900">WITHDRAW WINNINGS</h3>
+                <p className="text-[11px] text-slate-500 mt-0.5">Cashout your tournament earnings to bKash/Nagad</p>
+              </div>
               <button 
                 onClick={() => setIsWithdrawOpen(false)}
                 className="p-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500"
@@ -793,8 +822,13 @@ export default function WalletPage() {
             </div>
             
             <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-xs space-y-1">
-              <div className="font-black text-amber-800 text-sm">Available Winning Balance: ৳{winningBalance.toLocaleString()}</div>
-              <div className="text-[11px] text-slate-600">Match winnings are paid out directly to your bKash / Nagad. Min cashout: ৳{minWithdraw}.</div>
+              <div className="font-black text-amber-900 text-sm flex items-center justify-between">
+                <span>Available Winning Balance:</span>
+                <span className="text-base text-amber-700">৳{winningBalance.toLocaleString()}</span>
+              </div>
+              <div className="text-[11px] text-slate-600">
+                ম্যাচ ও টুর্নামেন্ট জয়ের টাকা সরাসরি ক্যাশআউট করুন। <strong>ন্যূনতম উইথড্র: ৳{minWithdraw}</strong>
+              </div>
             </div>
 
             <form onSubmit={handleWithdrawSubmit} className="space-y-4 text-xs font-medium">
@@ -824,20 +858,20 @@ export default function WalletPage() {
                   onChange={(e) => setAccountNumber(e.target.value)}
                   required
                   placeholder="017XXXXXXXX"
-                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 font-mono font-bold focus:outline-none focus:border-brand-orange"
+                  maxLength={11}
+                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 font-mono font-bold text-sm focus:outline-none focus:border-amber-500"
                 />
+                <span className="text-[10px] text-slate-500 mt-1 block">
+                  Enter your 11-digit Personal {withdrawMethod} number.
+                </span>
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="font-bold text-slate-700">Withdraw Amount (৳ BDT) *</label>
-                  <button
-                    type="button"
-                    onClick={() => setWithdrawAmount(winningBalance)}
-                    className="text-[10px] font-bold text-amber-600 hover:underline"
-                  >
-                    Max (৳{winningBalance})
-                  </button>
+                  <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200">
+                    Min: ৳{minWithdraw}
+                  </span>
                 </div>
                 <input
                   type="number"
@@ -846,8 +880,48 @@ export default function WalletPage() {
                   required
                   min={minWithdraw}
                   max={winningBalance}
-                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 font-black text-base focus:outline-none focus:border-brand-orange"
+                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 font-black text-base focus:outline-none focus:border-amber-500"
                 />
+
+                {/* Quick Chips for Withdrawal */}
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {[minWithdraw, 200, 500, 1000]
+                    .filter((amt, i, arr) => amt >= minWithdraw && arr.indexOf(amt) === i && amt <= (winningBalance || minWithdraw))
+                    .map((amt) => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => setWithdrawAmount(amt)}
+                        className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all ${
+                          withdrawAmount === amt ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        ৳{amt}
+                      </button>
+                    ))}
+                  {winningBalance >= minWithdraw && (
+                    <button
+                      type="button"
+                      onClick={() => setWithdrawAmount(winningBalance)}
+                      className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all ${
+                        withdrawAmount === winningBalance ? 'bg-amber-600 text-white' : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                      }`}
+                    >
+                      Max (৳{winningBalance})
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Informative Note */}
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 text-[11px] text-slate-600 space-y-1">
+                <div className="font-bold text-slate-800 flex items-center gap-1">
+                  <Info className="w-3.5 h-3.5 text-amber-500" />
+                  <span>ক্যাশআউট প্রসেসিং তথ্য:</span>
+                </div>
+                <p>
+                  উইথড্র রিকোয়েস্ট করার পর অ্যাডমিন আপনার প্রদত্ত <strong>{withdrawMethod}</strong> নাম্বারে টাকা পাঠিয়ে রিকোয়েস্ট Approve করবেন।
+                </p>
               </div>
 
               <div className="flex gap-2 pt-2">

@@ -19,7 +19,7 @@ export async function GET() {
     const { data: withdrawals, error } = await supabaseAdmin
       .from('Payment')
       .select('*')
-      .ilike('trxId', 'WTH-%')
+      .or('trxId.ilike.WTH-%,notes.ilike.%Withdrawal%')
       .order('createdAt', { ascending: false });
 
     if (error) {
@@ -42,7 +42,7 @@ export async function PATCH(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { withdrawalId, action, rejectionReason } = body; // action: 'APPROVE' | 'REJECT'
+    const { withdrawalId, action, rejectionReason, adminTrxId, adminNote } = body; // action: 'APPROVE' | 'REJECT'
 
     if (!withdrawalId || !['APPROVE', 'REJECT'].includes(action)) {
       return NextResponse.json({ message: 'Withdrawal ID and action (APPROVE|REJECT) are required.' }, { status: 400 });
@@ -59,40 +59,47 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (action === 'APPROVE') {
+      const extraTrx = adminTrxId ? ` [TrxID: ${adminTrxId.trim()}]` : '';
+      const extraNote = adminNote ? ` - Note: ${adminNote.trim()}` : '';
+      const updatedNotes = `${payment.notes || ''} [Paid by ${session.username || session.email}${extraTrx}${extraNote}]`;
+
       await supabaseAdmin
         .from('Payment')
         .update({
           status: 'VERIFIED',
-          notes: `${payment.notes || ''} [Approved by ${session.username || session.email}]`,
+          notes: updatedNotes,
           updatedAt: new Date().toISOString(),
         })
         .eq('id', withdrawalId);
 
-      // Send in-app Notification to player (safely)
+      // Send in-app Notification to player
       try {
         const notifId = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
         await supabaseAdmin.from('Notification').insert([{
           id: notifId,
           userId: payment.userId,
-          title: 'Withdrawal Processed! 💸',
-          message: `Your payout of ৳${payment.amount} via ${payment.method} has been sent successfully! Check your mobile banking account.`,
+          title: 'উইথড্র সফল হয়েছে! 💸',
+          message: `আপনার ৳${payment.amount} ক্যাশআউট (${payment.method}) সফলভাবে পাঠানো হয়েছে! ${adminTrxId ? `(TrxID: ${adminTrxId}) ` : ''}আপনার ${payment.method} একাউন্ট ব্যালেন্স চেক করুন।`,
           isRead: false,
           createdAt: new Date().toISOString(),
         }]);
       } catch {}
 
-      logAdminAction(
+      await logAdminAction(
         session.username || session.email,
         'WITHDRAWAL_APPROVED',
-        `Approved payout of ৳${payment.amount} to ${payment.userName} (${payment.method})`,
         'Payment',
-        withdrawalId
+        withdrawalId,
+        `Approved and sent payout of ৳${payment.amount} to ${payment.userName} via ${payment.method} (${payment.senderNumber || payment.notes})`
       );
 
-      return NextResponse.json({ message: `Withdrawal of ৳${payment.amount} approved and marked completed.` });
+      return NextResponse.json({ 
+        success: true,
+        message: `Withdrawal of ৳${payment.amount} approved and marked completed.` 
+      });
     }
 
-    // If REJECTED -> refund the deducted amount back to user's winningBalance
+    // If REJECTED -> refund the deducted amount back to user's winningBalance and walletBalance
     const { data: user } = await supabaseAdmin
       .from('User')
       .select('id, winningBalance, walletBalance')
@@ -115,35 +122,39 @@ export async function PATCH(request: NextRequest) {
       .from('Payment')
       .update({
         status: 'REJECTED',
-        notes: `${payment.notes || ''} [Rejected: ${reasonText}]`,
+        notes: `${payment.notes || ''} [Rejected & Refunded by ${session.username || session.email}: ${reasonText}]`,
         updatedAt: new Date().toISOString(),
       })
       .eq('id', withdrawalId);
 
-    // Send in-app Notification to player (safely)
+    // Send in-app Notification to player
     try {
       const notifId = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
       await supabaseAdmin.from('Notification').insert([{
         id: notifId,
         userId: payment.userId,
-        title: 'Withdrawal Declined & Refunded 🔄',
-        message: `Your payout request of ৳${payment.amount} was rejected (${reasonText}). ৳${payment.amount} has been safely refunded to your Winning Wallet.`,
+        title: 'উইথড্র বাতিল ও রিফান্ড 🔄',
+        message: `আপনার ৳${payment.amount} উইথড্র রিকোয়েস্ট বাতিল করা হয়েছে (${reasonText})। ৳${payment.amount} আপনার Winning Wallet এ রিফান্ড করা হয়েছে।`,
         isRead: false,
         createdAt: new Date().toISOString(),
       }]);
     } catch {}
 
-    logAdminAction(
+    await logAdminAction(
       session.username || session.email,
       'WITHDRAWAL_REJECTED',
-      `Rejected payout of ৳${payment.amount} to ${payment.userName} (Refunded to wallet)`,
       'Payment',
-      withdrawalId
+      withdrawalId,
+      `Rejected payout of ৳${payment.amount} for ${payment.userName} and refunded to winning balance (Reason: ${reasonText})`
     );
 
-    return NextResponse.json({ message: `Withdrawal rejected and ৳${payment.amount} refunded back to player wallet.` });
+    return NextResponse.json({ 
+      success: true,
+      message: `Withdrawal rejected and ৳${payment.amount} refunded back to player wallet.` 
+    });
   } catch (error: any) {
     console.error('[PATCH /api/admin/withdrawals]', error);
     return NextResponse.json({ message: error?.message || 'Failed to process withdrawal.' }, { status: 500 });
   }
 }
+

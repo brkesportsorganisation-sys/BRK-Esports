@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 
-const MIN_WITHDRAW_BDT = 100;
+const DEFAULT_MIN_WITHDRAW_BDT = 100;
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,15 +9,45 @@ export async function POST(request: NextRequest) {
     const { userId, method, amount, accountNumber } = body;
 
     if (!userId || !method || !amount || !accountNumber) {
-      return NextResponse.json({ message: 'User ID, method, amount, and mobile banking number are required.' }, { status: 400 });
+      return NextResponse.json({ 
+        message: 'User ID, method, amount, and mobile banking account number are required.' 
+      }, { status: 400 });
+    }
+
+    const trimmedAccount = String(accountNumber).trim();
+    if (trimmedAccount.length < 11) {
+      return NextResponse.json({ 
+        message: 'Please provide a valid 11-digit mobile banking number (e.g. 017XXXXXXXX).' 
+      }, { status: 400 });
+    }
+
+    // 1. Fetch dynamic minimum withdrawal limit from SiteSetting table
+    let minWithdraw = DEFAULT_MIN_WITHDRAW_BDT;
+    try {
+      const { data: settingData } = await supabaseAdmin
+        .from('SiteSetting')
+        .select('value')
+        .eq('key', 'min_withdraw')
+        .maybeSingle();
+
+      if (settingData?.value) {
+        const parsed = Number(settingData.value);
+        if (!isNaN(parsed) && parsed > 0) {
+          minWithdraw = parsed;
+        }
+      }
+    } catch (settingErr) {
+      console.warn('[POST /api/wallet/withdraw] Setting fetch fallback:', settingErr);
     }
 
     const numAmount = Number(amount);
-    if (isNaN(numAmount) || numAmount < MIN_WITHDRAW_BDT) {
-      return NextResponse.json({ message: `Minimum withdrawal amount is ৳${MIN_WITHDRAW_BDT}.` }, { status: 400 });
+    if (isNaN(numAmount) || numAmount < minWithdraw) {
+      return NextResponse.json({ 
+        message: `Minimum withdrawal amount is ৳${minWithdraw}. (ন্যূনতম উইথড্র ৳${minWithdraw})` 
+      }, { status: 400 });
     }
 
-    // Fetch user balances
+    // 2. Fetch user balances
     const { data: user, error: userError } = await supabaseAdmin
       .from('User')
       .select('*')
@@ -25,19 +55,19 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (userError || !user) {
-      return NextResponse.json({ message: 'User not found.' }, { status: 404 });
+      return NextResponse.json({ message: 'User account not found.' }, { status: 404 });
     }
 
     // Dual-Wallet Enforcement: Only winningBalance is withdrawable!
     const availableWinning = Number(user.winningBalance || 0);
     if (numAmount > availableWinning) {
       return NextResponse.json({
-        message: `Insufficient Winning Wallet balance. You can only withdraw from tournament earnings (Available Winning Balance: ৳${availableWinning}). Promo bonus cannot be withdrawn.`,
+        message: `Insufficient Winning Wallet balance. You can only withdraw match earnings (Available: ৳${availableWinning}). Promo bonus cannot be withdrawn.`,
       }, { status: 400 });
     }
 
-    // Deduct winning balance and total balance
-    const newWinning = availableWinning - numAmount;
+    // 3. Deduct winning balance and total wallet balance
+    const newWinning = Math.max(0, availableWinning - numAmount);
     const newTotal = Math.max(0, Number(user.walletBalance || 0) - numAmount);
 
     const { error: updateError } = await supabaseAdmin
@@ -51,28 +81,42 @@ export async function POST(request: NextRequest) {
 
     if (updateError) throw new Error(updateError.message);
 
-    // Create withdrawal payment record
+    // 4. Create withdrawal payment record (PENDING state for Admin Review)
     const withdrawalId = `wth_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     const trxId = `WTH-${Date.now().toString().slice(-6)}`;
 
     await supabaseAdmin.from('Payment').insert([{
       id: withdrawalId,
       userId,
-      userName: user.name,
-      userEmail: user.email,
+      userName: user.name || 'Player',
+      userEmail: user.email || '',
       method,
       amount: numAmount,
       trxId,
+      senderNumber: trimmedAccount,
       status: 'PENDING',
       walletType: 'WINNING',
-      notes: `Withdrawal to ${accountNumber} (${method})`,
+      notes: `Withdrawal to ${trimmedAccount} (${method})`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }]);
 
+    // 5. Send in-app Notification to player
+    try {
+      const notifId = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      await supabaseAdmin.from('Notification').insert([{
+        id: notifId,
+        userId: userId,
+        title: 'উইথড্র রিকোয়েস্ট জমা হয়েছে! ⏳',
+        message: `আপনার ৳${numAmount} ক্যাশআউট রিকোয়েস্ট (${method}: ${trimmedAccount}) সাবমিট হয়েছে। এডমিন যাচাই করে আপনার নাম্বারে টাকা পাঠিয়ে রিকোয়েস্ট Approve করবেন।`,
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      }]);
+    } catch {}
+
     return NextResponse.json({
       success: true,
-      message: `Withdrawal request of ৳${numAmount} submitted. Funds will be sent to your ${method} account (${accountNumber}) shortly.`,
+      message: `Withdrawal request of ৳${numAmount} submitted. Admin will review and send funds to your ${method} account (${trimmedAccount}) shortly.`,
       winningBalance: newWinning,
       walletBalance: newTotal,
     });
@@ -81,3 +125,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: error?.message || 'Withdrawal request failed.' }, { status: 500 });
   }
 }
+
