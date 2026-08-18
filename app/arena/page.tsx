@@ -23,7 +23,8 @@ import {
   Users,
   CheckCircle2,
   Clock,
-  Sparkles
+  Sparkles,
+  ArrowRight
 } from 'lucide-react';
 import { DuelChallenge, User } from '@/lib/types';
 import { useRealtimeBroadcast } from '@/lib/use-realtime';
@@ -101,20 +102,12 @@ export default function ArenaPage() {
       if (res.ok) {
         setCreateModalOpen(false);
         loadDuels();
-        // Update user local balance
-        const updated = { ...currentUser };
-        if (stakeType === 'COINS') {
-          updated.coinBalance = Math.max(0, (updated.coinBalance || 0) - entryFee);
-        } else {
-          updated.walletBalance = Math.max(0, (updated.walletBalance || 0) - entryFee);
-        }
-        setCurrentUser(updated);
-        db.setCurrentUser(updated);
+        setActiveTab('MY_DUELS');
       } else {
-        alert(data.message || 'Failed to create duel.');
+        alert(data.message || 'Failed to create duel challenge.');
       }
     } catch (err: any) {
-      alert(err.message || 'Error creating duel challenge.');
+      alert(err.message || 'Error creating challenge.');
     } finally {
       setIsSubmitting(false);
     }
@@ -126,7 +119,7 @@ export default function ArenaPage() {
       return;
     }
 
-    if (confirm(`Accept ${duel.mode.replace('_', ' ')} Duel for ৳${duel.entryFee} / ${duel.entryFee} Coins? Winner gets ৳${duel.prizePool}!`)) {
+    if (confirm(`Do you want to accept this 1v1 duel for ৳${duel.entryFee}?`)) {
       try {
         const res = await fetch('/api/arena', {
           method: 'POST',
@@ -170,23 +163,25 @@ export default function ArenaPage() {
   });
 
   return (
-    <div className="min-h-screen bg-[#06090e] text-slate-100 font-sans flex flex-col selection:bg-orange-500 selection:text-black">
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans flex flex-col selection:bg-brand-orange selection:text-white">
       <Navbar />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         
-        {/* Hero Header */}
-        <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-red-950/50 via-orange-950/40 to-slate-900 border border-red-500/30 p-6 md:p-10 shadow-2xl shadow-red-950/30">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-bold">
-                <Swords className="w-3.5 h-3.5 animate-pulse" />
-                INSTANT 1V1 & 2V2 DUEL ARENA
+        {/* Hero Header matching Black Rock signature theme */}
+        <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border-2 border-orange-500/40 p-6 md:p-10 shadow-xl shadow-orange-500/10 text-white">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-brand-orange/20 rounded-full blur-3xl pointer-events-none"></div>
+          
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+            <div className="space-y-3">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-red/20 border border-brand-red/40 text-orange-400 text-xs font-bold uppercase tracking-wider shadow-sm">
+                <Flame className="w-4 h-4 text-brand-red animate-pulse" />
+                <span>INSTANT 1V1 & 2V2 DUEL ARENA</span>
               </div>
-              <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight">
-                Challenge & <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-orange-400 to-amber-400">Win Instantly</span>
+              <h1 className="font-heading text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-none">
+                CHALLENGE & <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold">WIN INSTANTLY</span>
               </h1>
-              <p className="text-xs md:text-sm text-slate-300 max-w-xl leading-relaxed">
+              <p className="text-xs sm:text-sm text-slate-300 max-w-xl leading-relaxed">
                 No need to wait for tournaments! Stake your entry, duel 1v1 against top players in Free Fire, and win instant cash directly into your wallet!
               </p>
             </div>
@@ -199,33 +194,33 @@ export default function ArenaPage() {
                 }
                 setCreateModalOpen(true);
               }}
-              className="px-6 py-3.5 bg-gradient-to-r from-red-500 via-orange-500 to-amber-500 hover:from-red-600 hover:to-amber-600 text-black font-black text-xs uppercase tracking-wider rounded-2xl transition-all shadow-xl shadow-red-500/25 flex items-center justify-center gap-2 flex-shrink-0"
+              className="px-6 py-4 bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold hover:brightness-110 active:scale-95 text-white font-heading font-black text-sm uppercase tracking-wider rounded-2xl transition-all shadow-neon-red flex items-center justify-center gap-2 flex-shrink-0 cursor-pointer"
             >
-              <Plus className="w-4 h-4" />
-              Create 1v1 Challenge
+              <Plus className="w-5 h-5" />
+              <span>Create 1v1 Challenge</span>
             </button>
           </div>
         </div>
 
         {/* Tab & Filters */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center bg-slate-900/80 p-1.5 rounded-2xl border border-slate-800 gap-2">
+          <div className="flex items-center bg-slate-200/80 p-1.5 rounded-2xl border border-slate-300/60 gap-1.5">
             <button
               onClick={() => setActiveTab('OPEN')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`px-5 py-2.5 rounded-xl text-xs font-heading font-black transition-all cursor-pointer ${
                 activeTab === 'OPEN'
-                  ? 'bg-gradient-to-r from-red-500 to-orange-500 text-black shadow-md'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-gradient-to-r from-brand-red to-brand-orange text-white shadow-md'
+                  : 'text-slate-700 hover:text-slate-900 hover:bg-slate-200'
               }`}
             >
               Open Challenges ({duels.filter(d => d.status === 'OPEN').length})
             </button>
             <button
               onClick={() => setActiveTab('MY_DUELS')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`px-5 py-2.5 rounded-xl text-xs font-heading font-black transition-all cursor-pointer ${
                 activeTab === 'MY_DUELS'
-                  ? 'bg-gradient-to-r from-red-500 to-orange-500 text-black shadow-md'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-gradient-to-r from-brand-red to-brand-orange text-white shadow-md'
+                  : 'text-slate-700 hover:text-slate-900 hover:bg-slate-200'
               }`}
             >
               My Active Duels
@@ -238,13 +233,13 @@ export default function ArenaPage() {
                 <button
                   key={f}
                   onClick={() => setSelectedFilter(f)}
-                  className={`px-3 py-1.5 rounded-xl border transition-all ${
+                  className={`px-3.5 py-2 rounded-xl border transition-all cursor-pointer ${
                     selectedFilter === f
-                      ? 'bg-orange-500/20 border-orange-500/50 text-orange-400 font-bold'
-                      : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-white'
+                      ? 'bg-orange-50 border-brand-orange text-brand-orange font-black shadow-xs'
+                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
                   }`}
                 >
-                  {f === 'ALL' ? 'All Modes' : f.replace('_', ' ')}
+                  {f === 'ALL' ? '🎮 All Modes' : f.replace('_', ' ')}
                 </button>
               ))}
             </div>
@@ -253,22 +248,22 @@ export default function ArenaPage() {
 
         {/* Challenges Grid */}
         {loading ? (
-          <div className="p-16 text-center text-slate-400 space-y-3">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto text-orange-400" />
-            <p className="text-sm">Loading matchmaking duel feed...</p>
+          <div className="p-16 text-center text-slate-500 space-y-3">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto text-brand-orange" />
+            <p className="text-sm font-bold">Loading matchmaking duel feed...</p>
           </div>
         ) : filteredDuels.length === 0 ? (
-          <div className="p-16 text-center bg-slate-900/40 border border-slate-800 rounded-3xl space-y-4 max-w-xl mx-auto">
-            <Swords className="w-12 h-12 mx-auto text-slate-600" />
-            <h3 className="text-lg font-bold text-white">No Challenges Found</h3>
-            <p className="text-xs text-slate-400">
+          <div className="p-16 text-center bg-white border border-slate-200 rounded-3xl space-y-4 max-w-xl mx-auto shadow-sm">
+            <Swords className="w-12 h-12 mx-auto text-slate-300" />
+            <h3 className="font-heading font-black text-xl text-slate-900">No Challenges Found</h3>
+            <p className="text-xs text-slate-600 leading-relaxed">
               {activeTab === 'MY_DUELS'
                 ? 'You do not have any active or ongoing duel challenges.'
                 : 'Be the first to post a 1v1 challenge and wait for an opponent to match!'}
             </p>
             <button
               onClick={() => setCreateModalOpen(true)}
-              className="px-5 py-2.5 bg-red-500 text-black font-black text-xs rounded-xl"
+              className="px-5 py-2.5 bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-black text-xs rounded-xl shadow-md cursor-pointer"
             >
               Post First 1v1 Challenge
             </button>
@@ -283,88 +278,91 @@ export default function ArenaPage() {
               return (
                 <div
                   key={duel.id}
-                  className={`p-6 rounded-3xl border transition-all space-y-5 shadow-xl ${
+                  className={`p-6 rounded-3xl border transition-all space-y-5 bg-white shadow-sm hover:shadow-xl hover:border-brand-orange/60 ${
                     duel.status === 'IN_PROGRESS'
-                      ? 'bg-gradient-to-b from-red-950/30 via-slate-900 to-slate-900 border-red-500/50 shadow-red-950/30'
-                      : 'bg-slate-900/70 border-slate-800 hover:border-orange-500/50'
+                      ? 'border-brand-orange/60 bg-gradient-to-b from-orange-50/50 via-white to-white'
+                      : 'border-slate-200'
                   }`}
                 >
                   {/* Card Header */}
-                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                    <span className="px-2.5 py-0.5 rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 font-black text-xs uppercase">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <span className="px-3 py-1 rounded-xl bg-orange-50 text-brand-orange border border-brand-orange/20 font-black text-xs uppercase inline-flex items-center gap-1.5">
+                      <Swords className="w-3.5 h-3.5" />
                       {duel.mode.replace('_', ' ')}
                     </span>
-                    <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md ${
+                    <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-full ${
                       duel.status === 'OPEN'
-                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                        : 'bg-amber-500/20 text-amber-400 border border-amber-500/30 animate-pulse'
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        : 'bg-amber-50 text-amber-700 border border-amber-200 animate-pulse'
                     }`}>
-                      {duel.status === 'OPEN' ? 'OPEN FOR DUEL' : 'IN BATTLE'}
+                      {duel.status === 'OPEN' ? '🟢 OPEN FOR DUEL' : '⚔️ IN BATTLE'}
                     </span>
                   </div>
 
                   {/* Players / Versus */}
-                  <div className="grid grid-cols-5 items-center text-center py-1">
+                  <div className="grid grid-cols-5 items-center text-center py-2">
                     <div className="col-span-2 space-y-1">
-                      <div className="w-10 h-10 rounded-full bg-slate-800 text-orange-400 font-black text-xs flex items-center justify-center mx-auto border border-slate-700">
+                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-red/15 to-brand-orange/15 text-brand-orange font-heading font-black text-sm flex items-center justify-center mx-auto border border-brand-orange/30 shadow-xs">
                         {duel.creatorIgn.slice(0, 2).toUpperCase()}
                       </div>
-                      <h4 className="font-bold text-xs text-white truncate">{duel.creatorIgn}</h4>
-                      <span className="text-[10px] text-slate-500 block">Host</span>
+                      <h4 className="font-bold text-xs text-slate-900 truncate">{duel.creatorIgn}</h4>
+                      <span className="text-[10px] text-slate-500 font-semibold block">Host</span>
                     </div>
 
-                    <div className="col-span-1 text-red-500 font-black text-sm italic">
-                      VS
+                    <div className="col-span-1 flex justify-center">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-black text-xs italic shadow-md flex items-center justify-center">
+                        VS
+                      </div>
                     </div>
 
                     <div className="col-span-2 space-y-1">
-                      <div className="w-10 h-10 rounded-full bg-slate-800 text-amber-400 font-black text-xs flex items-center justify-center mx-auto border border-slate-700">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-700 font-heading font-black text-sm flex items-center justify-center mx-auto border border-slate-200 shadow-xs">
                         {duel.challengerIgn ? duel.challengerIgn.slice(0, 2).toUpperCase() : '?'}
                       </div>
-                      <h4 className="font-bold text-xs text-white truncate">
+                      <h4 className="font-bold text-xs text-slate-900 truncate">
                         {duel.challengerIgn || 'Waiting...'}
                       </h4>
-                      <span className="text-[10px] text-slate-500 block">Opponent</span>
+                      <span className="text-[10px] text-slate-500 font-semibold block">Opponent</span>
                     </div>
                   </div>
 
                   {/* Rules & Stakes */}
-                  <div className="bg-slate-950/60 p-3 rounded-2xl border border-slate-800/80 space-y-2 text-xs">
+                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/90 space-y-2.5 text-xs">
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-400">Entry Stake:</span>
-                      <strong className="text-white">
+                      <span className="text-slate-600 font-semibold">Entry Stake:</span>
+                      <strong className="text-slate-900 font-mono font-bold">
                         {duel.stakeType === 'COINS' ? `${duel.entryFee} Coins` : `৳ ${duel.entryFee}`}
                       </strong>
                     </div>
-                    <div className="flex items-center justify-between border-t border-slate-800/60 pt-1.5">
-                      <span className="text-slate-400 font-bold">Winner Takes:</span>
-                      <strong className="text-emerald-400 font-black text-sm">
+                    <div className="flex items-center justify-between border-t border-slate-200/70 pt-2">
+                      <span className="text-slate-700 font-bold">Winner Takes:</span>
+                      <strong className="text-emerald-600 font-heading font-black text-lg">
                         {duel.stakeType === 'COINS' ? `${duel.prizePool} Coins` : `৳ ${duel.prizePool}`}
                       </strong>
                     </div>
-                    <p className="text-[10px] text-slate-400 italic pt-1 border-t border-slate-800/60">
+                    <p className="text-[10px] text-slate-500 italic pt-1 border-t border-slate-200/70">
                       Rules: {duel.customRules}
                     </p>
                   </div>
 
                   {/* In Progress Room ID Details */}
                   {duel.status === 'IN_PROGRESS' && isInDuel && (
-                    <div className="bg-slate-950 p-3 rounded-2xl border border-red-500/40 space-y-2">
-                      <div className="text-[10px] uppercase font-bold text-slate-400">Match Custom Room</div>
+                    <div className="bg-slate-900 text-white p-4 rounded-2xl border border-brand-orange/40 space-y-2.5 shadow-md">
+                      <div className="text-[10px] uppercase font-black text-orange-400 tracking-wider">Match Custom Room</div>
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-slate-400">Room ID: <strong className="text-orange-400 font-mono">{duel.roomId}</strong></span>
+                        <span className="text-slate-300">Room ID: <strong className="text-orange-400 font-mono">{duel.roomId}</strong></span>
                         <button
                           onClick={() => handleCopy(duel.roomId!, `${duel.id}_room`)}
-                          className="text-[10px] bg-slate-800 px-2 py-1 rounded text-slate-300 hover:text-white"
+                          className="text-[10px] bg-slate-800 hover:bg-slate-700 px-2.5 py-1 rounded-lg text-slate-200 font-bold cursor-pointer"
                         >
                           {copiedId === `${duel.id}_room` ? 'Copied' : 'Copy'}
                         </button>
                       </div>
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-slate-400">Password: <strong className="text-white font-mono">{duel.roomPass}</strong></span>
+                        <span className="text-slate-300">Password: <strong className="text-white font-mono">{duel.roomPass}</strong></span>
                         <button
                           onClick={() => handleCopy(duel.roomPass!, `${duel.id}_pass`)}
-                          className="text-[10px] bg-slate-800 px-2 py-1 rounded text-slate-300 hover:text-white"
+                          className="text-[10px] bg-slate-800 hover:bg-slate-700 px-2.5 py-1 rounded-lg text-slate-200 font-bold cursor-pointer"
                         >
                           {copiedId === `${duel.id}_pass` ? 'Copied' : 'Copy'}
                         </button>
@@ -377,10 +375,10 @@ export default function ArenaPage() {
                     <button
                       onClick={() => handleAcceptDuel(duel)}
                       disabled={isCreator}
-                      className="w-full py-3 bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 disabled:opacity-40 text-black font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-red-500/20 flex items-center justify-center gap-2"
+                      className="w-full py-3.5 bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold hover:brightness-110 disabled:opacity-40 text-white font-heading font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-neon-orange flex items-center justify-center gap-2 cursor-pointer"
                     >
                       <Crosshair className="w-4 h-4" />
-                      {isCreator ? 'Your Challenge (Waiting)' : `Accept Duel (৳${duel.entryFee})`}
+                      <span>{isCreator ? 'Your Challenge (Waiting)' : `Accept Duel (৳${duel.entryFee})`}</span>
                     </button>
                   )}
                 </div>
@@ -391,25 +389,27 @@ export default function ArenaPage() {
 
       </main>
 
-      {/* Create Modal */}
+      {/* Create Challenge Modal */}
       {createModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
-          <div className="bg-slate-900 border border-red-500/40 rounded-3xl p-6 md:p-8 max-w-lg w-full space-y-6 shadow-2xl shadow-red-950/40">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-              <div className="flex items-center gap-2">
-                <Swords className="w-5 h-5 text-red-400" />
-                <h3 className="text-base font-black text-white">Create 1v1 / 2v2 Challenge</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 max-w-lg w-full space-y-6 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-2.5">
+                <span className="p-2 rounded-xl bg-orange-50 text-brand-orange border border-orange-200">
+                  <Swords className="w-5 h-5" />
+                </span>
+                <h3 className="font-heading font-black text-lg text-slate-900">Create 1v1 / 2v2 Challenge</h3>
               </div>
-              <button onClick={() => setCreateModalOpen(false)} className="text-slate-500 hover:text-white">✕</button>
+              <button onClick={() => setCreateModalOpen(false)} className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-sm cursor-pointer">✕</button>
             </div>
 
             <form onSubmit={handleCreateDuel} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-300">Duel Mode</label>
+                <label className="text-xs font-bold text-slate-700 uppercase">Duel Mode</label>
                 <select
                   value={mode}
                   onChange={(e) => setMode(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-bold focus:outline-none focus:border-brand-orange"
                 >
                   <option value="1v1_CS">1v1 Clash Squad (Standard)</option>
                   <option value="1v1_SNIPER">1v1 Sniper Battle (AWM / M82B)</option>
@@ -421,18 +421,18 @@ export default function ArenaPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-300">Stake Currency</label>
+                  <label className="text-xs font-bold text-slate-700 uppercase">Stake Currency</label>
                   <select
                     value={stakeType}
                     onChange={(e: any) => setStakeType(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-bold focus:outline-none focus:border-brand-orange"
                   >
                     <option value="BDT">Real Wallet (৳ BDT)</option>
                     <option value="COINS">BRK Coins 🪙</option>
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-300">Entry Fee</label>
+                  <label className="text-xs font-bold text-slate-700 uppercase">Entry Fee</label>
                   <input
                     type="number"
                     min={20}
@@ -440,43 +440,60 @@ export default function ArenaPage() {
                     required
                     value={entryFee}
                     onChange={(e) => setEntryFee(Number(e.target.value))}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono font-bold focus:outline-none focus:border-red-500"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-mono font-bold focus:outline-none focus:border-brand-orange"
                   />
                 </div>
               </div>
 
-              <div className="p-3 bg-slate-950 rounded-2xl border border-slate-800 text-xs flex items-center justify-between">
-                <span className="text-slate-400">Winner Prize (90%):</span>
-                <strong className="text-emerald-400 font-black text-sm">
+              {/* Stake Quick Presets */}
+              <div className="flex items-center gap-2 pt-0.5">
+                <span className="text-[10px] font-bold text-slate-500">Quick Stakes:</span>
+                {[30, 50, 100, 200, 500].map((amt) => (
+                  <button
+                    key={amt}
+                    type="button"
+                    onClick={() => setEntryFee(amt)}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer ${
+                      entryFee === amt ? 'bg-orange-50 border-brand-orange text-brand-orange' : 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    ৳{amt}
+                  </button>
+                ))}
+              </div>
+
+              <div className="p-3.5 bg-orange-50/70 rounded-2xl border border-brand-orange/20 text-xs flex items-center justify-between">
+                <span className="text-slate-700 font-bold">Winner Prize (90% Payout):</span>
+                <strong className="text-emerald-600 font-heading font-black text-base">
                   {stakeType === 'COINS' ? `${Math.floor(entryFee * 2 * 0.9)} Coins` : `৳ ${Math.floor(entryFee * 2 * 0.9)}`}
                 </strong>
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-300">Custom Match Rules</label>
+                <label className="text-xs font-bold text-slate-700 uppercase">Custom Match Rules</label>
                 <input
                   type="text"
                   value={customRules}
                   onChange={(e) => setCustomRules(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-brand-orange"
                 />
               </div>
 
-              <div className="pt-3 flex items-center justify-end gap-3 border-t border-slate-800">
+              <div className="pt-3 flex items-center justify-end gap-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setCreateModalOpen(false)}
-                  className="px-4 py-2 bg-slate-800 text-slate-300 text-xs font-bold rounded-xl"
+                  className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2.5 bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-red-500/25 flex items-center gap-2"
+                  className="px-6 py-2.5 bg-gradient-to-r from-brand-red to-brand-orange hover:brightness-110 text-white font-heading font-black text-xs uppercase tracking-wider rounded-xl shadow-md flex items-center gap-2 cursor-pointer"
                 >
                   {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Swords className="w-4 h-4" />}
-                  Post Duel Challenge
+                  <span>Post Duel Challenge</span>
                 </button>
               </div>
             </form>
