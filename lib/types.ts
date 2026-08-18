@@ -440,9 +440,18 @@ export const DIAMOND_PRODUCTS: DiamondProduct[] = [
 export type VendorAccessLevel = 'FULL_ACCESS' | 'LIMITED_ACCESS';
 
 export type VendorPermissionKey =
+  | 'create_tournaments'
+  | 'edit_own_tournaments'
+  | 'manage_own_slots'
+  | 'submit_results'
+  | 'view_own_earnings'
+  | 'request_payout'
+  | 'edit_store_profile'
+  | 'auto_publish_live'
+  | 'set_custom_entry_fees'
+  | 'view_registrations'
   | 'manage_room_details'
   | 'enter_match_results'
-  | 'view_registrations'
   | 'manage_tournaments'
   | 'view_analytics';
 
@@ -455,54 +464,137 @@ export interface VendorPermissionMeta {
 
 export const VENDOR_PERMISSIONS_LIST: VendorPermissionMeta[] = [
   {
-    key: 'manage_room_details',
-    label: 'Manage Room ID & Password',
-    category: 'Rooms',
-    description: 'Update Room ID, Room Password, and Unlock countdown timers for assigned matches.',
+    key: 'create_tournaments',
+    label: 'Create Tournaments',
+    category: 'Tournaments',
+    description: 'Create new tournaments and configure format, mode, and slots.',
   },
   {
-    key: 'enter_match_results',
-    label: 'Enter Match Results & Points',
+    key: 'edit_own_tournaments',
+    label: 'Edit Own Tournaments',
+    category: 'Tournaments',
+    description: 'Edit tournament rules, schedules, and details for own tournaments.',
+  },
+  {
+    key: 'manage_own_slots',
+    label: 'Manage Slots & Room Passwords',
+    category: 'Rooms',
+    description: 'Update Room ID, Room Password, and release countdown timers for own matches.',
+  },
+  {
+    key: 'submit_results',
+    label: 'Submit Match Results',
     category: 'Results',
-    description: 'Submit kill counts, placements, and final match scoreboard points.',
+    description: 'Submit kill counts, placements, and scoreboard points for own matches.',
   },
   {
     key: 'view_registrations',
-    label: 'View Team Rosters & Players',
+    label: 'View Squad Rosters & WhatsApp',
     category: 'Registrations',
-    description: 'Inspect registered team squad rosters, in-game names, and captain WhatsApp contacts.',
+    description: 'Inspect registered team squad rosters, player IGNs, and captain contacts.',
   },
   {
-    key: 'manage_tournaments',
-    label: 'Create & Edit Tournaments',
+    key: 'view_own_earnings',
+    label: 'View Own Earnings & Escrow',
+    category: 'Finance',
+    description: 'Inspect revenue share breakdown, net earnings, and escrow balances.',
+  },
+  {
+    key: 'request_payout',
+    label: 'Request Earnings Payout',
+    category: 'Finance',
+    description: 'Submit withdrawal payout requests for completed tournament earnings.',
+  },
+  {
+    key: 'edit_store_profile',
+    label: 'Edit Public Storefront Profile',
+    category: 'Profile',
+    description: 'Customize public vendor storefront logo, banner, and organization bio.',
+  },
+  {
+    key: 'auto_publish_live',
+    label: 'Auto-Publish Tournaments Live',
     category: 'Tournaments',
-    description: 'Create new tournaments and edit tournament formats, slots, schedules, and prize pools.',
+    description: 'Publish tournaments immediately without requiring Admin pre-approval review.',
   },
   {
-    key: 'view_analytics',
-    label: 'View Slot & Revenue Analytics',
-    category: 'Analytics',
-    description: 'View registration fill rates and match participation metrics.',
+    key: 'set_custom_entry_fees',
+    label: 'Custom Entry Fee Pricing',
+    category: 'Tournaments',
+    description: 'Set custom entry fees and prize pool ratios outside default ranges.',
   },
+];
+
+export const LIMITED_TIER_DEFAULT_PERMISSIONS: VendorPermissionKey[] = [
+  'create_tournaments',
+  'edit_own_tournaments',
+  'manage_own_slots',
+  'submit_results',
+  'view_registrations',
+  'view_own_earnings',
+  'request_payout',
+  'manage_room_details',
+  'enter_match_results',
+];
+
+export const FULL_TIER_DEFAULT_PERMISSIONS: VendorPermissionKey[] = [
+  'create_tournaments',
+  'edit_own_tournaments',
+  'manage_own_slots',
+  'submit_results',
+  'view_registrations',
+  'view_own_earnings',
+  'request_payout',
+  'edit_store_profile',
+  'auto_publish_live',
+  'set_custom_entry_fees',
+  'manage_room_details',
+  'enter_match_results',
+  'manage_tournaments',
+  'view_analytics',
 ];
 
 export interface VendorAccount {
   id: string;
   vendorId: string; // e.g. VND-8492 or vendor_01
   name: string;
+  orgName?: string;
   email: string;
   password?: string;
   passwordHash?: string;
   phone?: string;
   whatsApp?: string;
+  logo?: string;
+  banner?: string;
+  bio?: string;
   status: 'ACTIVE' | 'SUSPENDED';
   accessLevel: VendorAccessLevel; // FULL_ACCESS vs LIMITED_ACCESS
   permissions: VendorPermissionKey[];
-  assignedTournaments: string[]; // List of tournament IDs or ['ALL'] for full access
+  assignedTournaments: string[]; // List of tournament IDs or ['ALL']
+  commissionRate?: number; // % kept by vendor (e.g. 80 = 80% vendor, 20% platform)
+  walletBalance?: number;
+  escrowBalance?: number;
+  totalEarnings?: number;
   notes?: string;
   createdBy?: string;
   createdAt: string;
   updatedAt: string;
 }
+
+export interface VendorPayoutRequest {
+  id: string;
+  vendorId: string;
+  vendorName: string;
+  amount: number;
+  method: 'BKASH' | 'NAGAD' | 'ROCKET' | 'BANK';
+  accountNumber: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  trxId?: string;
+  notes?: string;
+  reviewedBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 
 

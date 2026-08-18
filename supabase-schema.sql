@@ -687,26 +687,42 @@ CREATE TABLE IF NOT EXISTS "VendorAccount" (
     "id" TEXT PRIMARY KEY,
     "vendorId" TEXT UNIQUE NOT NULL,
     "name" TEXT NOT NULL,
+    "orgName" TEXT,
     "email" TEXT UNIQUE NOT NULL,
     "passwordHash" TEXT NOT NULL,
     "phone" TEXT,
     "whatsApp" TEXT,
+    "logo" TEXT,
+    "banner" TEXT,
+    "bio" TEXT,
     "status" TEXT NOT NULL DEFAULT 'ACTIVE',
     "accessLevel" TEXT NOT NULL DEFAULT 'LIMITED_ACCESS',
     "permissions" TEXT[] DEFAULT ARRAY[]::TEXT[],
     "assignedTournaments" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "commissionRate" DOUBLE PRECISION NOT NULL DEFAULT 80.0,
+    "walletBalance" DOUBLE PRECISION NOT NULL DEFAULT 0.0,
+    "escrowBalance" DOUBLE PRECISION NOT NULL DEFAULT 0.0,
+    "totalEarnings" DOUBLE PRECISION NOT NULL DEFAULT 0.0,
     "notes" TEXT,
     "createdBy" TEXT,
     "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+ALTER TABLE "VendorAccount" ADD COLUMN IF NOT EXISTS "orgName" TEXT;
 ALTER TABLE "VendorAccount" ADD COLUMN IF NOT EXISTS "phone" TEXT;
 ALTER TABLE "VendorAccount" ADD COLUMN IF NOT EXISTS "whatsApp" TEXT;
+ALTER TABLE "VendorAccount" ADD COLUMN IF NOT EXISTS "logo" TEXT;
+ALTER TABLE "VendorAccount" ADD COLUMN IF NOT EXISTS "banner" TEXT;
+ALTER TABLE "VendorAccount" ADD COLUMN IF NOT EXISTS "bio" TEXT;
 ALTER TABLE "VendorAccount" ADD COLUMN IF NOT EXISTS "status" TEXT NOT NULL DEFAULT 'ACTIVE';
 ALTER TABLE "VendorAccount" ADD COLUMN IF NOT EXISTS "accessLevel" TEXT NOT NULL DEFAULT 'LIMITED_ACCESS';
 ALTER TABLE "VendorAccount" ADD COLUMN IF NOT EXISTS "permissions" TEXT[] DEFAULT ARRAY[]::TEXT[];
 ALTER TABLE "VendorAccount" ADD COLUMN IF NOT EXISTS "assignedTournaments" TEXT[] DEFAULT ARRAY[]::TEXT[];
+ALTER TABLE "VendorAccount" ADD COLUMN IF NOT EXISTS "commissionRate" DOUBLE PRECISION NOT NULL DEFAULT 80.0;
+ALTER TABLE "VendorAccount" ADD COLUMN IF NOT EXISTS "walletBalance" DOUBLE PRECISION NOT NULL DEFAULT 0.0;
+ALTER TABLE "VendorAccount" ADD COLUMN IF NOT EXISTS "escrowBalance" DOUBLE PRECISION NOT NULL DEFAULT 0.0;
+ALTER TABLE "VendorAccount" ADD COLUMN IF NOT EXISTS "totalEarnings" DOUBLE PRECISION NOT NULL DEFAULT 0.0;
 ALTER TABLE "VendorAccount" ADD COLUMN IF NOT EXISTS "notes" TEXT;
 ALTER TABLE "VendorAccount" ADD COLUMN IF NOT EXISTS "createdBy" TEXT;
 ALTER TABLE "VendorAccount" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL;
@@ -714,5 +730,28 @@ ALTER TABLE "VendorAccount" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP WITH 
 CREATE INDEX IF NOT EXISTS "idx_vendoraccount_vendorId" ON "VendorAccount"("vendorId");
 CREATE INDEX IF NOT EXISTS "idx_vendoraccount_email" ON "VendorAccount"("email");
 CREATE INDEX IF NOT EXISTS "idx_vendoraccount_status" ON "VendorAccount"("status");
+
+
+-- =========================================================
+-- 21. VendorPayoutRequest Table (Earnings Cashout Review)
+-- =========================================================
+CREATE TABLE IF NOT EXISTS "VendorPayoutRequest" (
+    "id" TEXT PRIMARY KEY,
+    "vendorId" TEXT NOT NULL,
+    "vendorName" TEXT,
+    "amount" DOUBLE PRECISION NOT NULL DEFAULT 0.0,
+    "method" TEXT NOT NULL DEFAULT 'BKASH',
+    "accountNumber" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'PENDING',
+    "trxId" TEXT,
+    "notes" TEXT,
+    "reviewedBy" TEXT,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS "idx_vendorpayout_vendorId" ON "VendorPayoutRequest"("vendorId");
+CREATE INDEX IF NOT EXISTS "idx_vendorpayout_status" ON "VendorPayoutRequest"("status");
+
 
 

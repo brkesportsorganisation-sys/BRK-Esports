@@ -1,195 +1,158 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { Store, Lock, User, Loader2, ArrowLeft, ShieldCheck, Sparkles } from 'lucide-react';
+import { Store, Eye, EyeOff, User as UserIcon, Lock, AlertCircle, Loader2 } from 'lucide-react';
 
 export default function VendorLoginPage() {
   const router = useRouter();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setError('');
+  useEffect(() => {
+    const verifySession = async () => {
+      try {
+        const res = await fetch('/api/vendor/session', { credentials: 'include' });
+        if (res.ok) {
+          router.replace('/vendor');
+        }
+      } catch {
+        // Allow vendor to login manually
+      }
+    };
+
+    void verifySession();
+  }, [router]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setLoading(true);
+    setError('');
 
     try {
-      const res = await fetch('/api/vendor/login', {
+      const response = await fetch('/api/vendor/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ identifier, password }),
       });
 
-      const data = await res.json();
-      if (res.ok && data.vendor) {
-        router.push('/vendor');
-      } else {
-        setError(data.message || 'Vendor credentials are invalid.');
+      const data = await response.json();
+      if (!response.ok) {
+        setError(data.message || 'Login failed. Please verify your vendor credentials.');
+        setLoading(false);
+        return;
       }
+
+      router.replace('/vendor');
     } catch {
-      setError('An error occurred connecting to the vendor authentication server.');
-    } finally {
+      setError('Network connection error. Please try again.');
       setLoading(false);
     }
   };
 
-  const handleDemoFill = (id: string, pass: string) => {
-    setIdentifier(id);
-    setPassword(pass);
-  };
-
   return (
-    <div className="min-h-screen bg-[#07090E] text-white flex flex-col justify-center items-center px-4 py-10 relative overflow-hidden font-sans">
+    <div className="min-h-screen bg-[#0d071e] flex flex-col items-center justify-center px-4 py-10 relative font-sans selection:bg-violet-600 selection:text-white">
       
-      {/* Ambient background glow */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-violet-600/15 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-10 right-1/4 w-80 h-80 bg-fuchsia-600/10 rounded-full blur-3xl pointer-events-none" />
+      {/* Background glow accent */}
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-violet-600/20 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="w-full max-w-md relative z-10 space-y-6">
+      <div className="w-full max-w-sm rounded-xl bg-white shadow-2xl overflow-hidden flex flex-col relative z-10 border border-violet-900/20">
         
-        {/* Top Back Link */}
-        <div className="flex items-center justify-between">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Back to Home</span>
-          </Link>
-
-          <Link
-            href="/admin/login"
-            className="text-[11px] text-violet-400 hover:underline font-semibold"
-          >
-            Admin Panel Login →
-          </Link>
+        {/* Header Area */}
+        <div className="bg-[#17092b] pt-8 pb-6 px-6 flex flex-col items-center justify-center text-center">
+          <div className="w-10 h-10 rounded-xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-300 mb-3 shadow-inner">
+            <Store className="h-5 w-5" />
+          </div>
+          <h1 className="text-xl font-bold text-white mb-1 tracking-wide">Vendor Panel</h1>
+          <p className="text-sm font-medium text-violet-200/80 mb-2">Black Rock</p>
+          <p className="text-[10px] text-violet-400 font-medium">Secure Vendor Access</p>
         </div>
 
-        {/* Card Container */}
-        <div className="rounded-3xl border border-violet-500/20 bg-[#0C101A]/95 p-6 sm:p-8 shadow-2xl shadow-violet-950/40 backdrop-blur-xl">
-          
-          {/* Header */}
-          <div className="mb-6 flex items-center gap-3.5">
-            <div className="rounded-2xl border border-violet-500/30 bg-gradient-to-br from-violet-600/20 to-fuchsia-600/20 p-3 text-violet-300 shadow-inner">
-              <Store className="h-7 w-7" />
-            </div>
+        {/* Form Area */}
+        <div className="p-8 bg-white">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] uppercase font-mono tracking-[0.25em] text-violet-400 font-bold">
-                  PORTAL ACCESS
-                </span>
-                <span className="px-1.5 py-0.2 rounded bg-violet-500/20 text-violet-300 text-[9px] font-mono font-bold">
-                  v2.0
-                </span>
-              </div>
-              <h1 className="text-xl sm:text-2xl font-black text-white font-heading">
-                BLACKROCK VENDOR
-              </h1>
-            </div>
-          </div>
-
-          {/* Quick Demo Credentials Pill */}
-          <div className="mb-6 rounded-2xl border border-violet-500/20 bg-violet-950/20 p-3.5 text-xs text-slate-300 space-y-2">
-            <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-violet-300">
-              <span className="flex items-center gap-1">
-                <Sparkles className="w-3 h-3" />
-                <span>Quick Test Logins</span>
-              </span>
-              <span className="text-slate-500">Click to fill</span>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => handleDemoFill('VND-1001', 'vendor123')}
-                className="p-2 rounded-xl bg-slate-900/80 hover:bg-violet-900/30 border border-slate-800 text-left transition-colors cursor-pointer"
-              >
-                <div className="font-bold text-white text-[11px]">Full Access Vendor</div>
-                <div className="text-[10px] font-mono text-violet-300">VND-1001</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleDemoFill('VND-2002', 'vendor123')}
-                className="p-2 rounded-xl bg-slate-900/80 hover:bg-violet-900/30 border border-slate-800 text-left transition-colors cursor-pointer"
-              >
-                <div className="font-bold text-white text-[11px]">Limited Host Vendor</div>
-                <div className="text-[10px] font-mono text-amber-300">VND-2002</div>
-              </button>
-            </div>
-          </div>
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-            <div>
-              <label className="mb-1.5 block text-slate-300 font-bold uppercase tracking-wider text-[10px]">
-                Vendor ID or Registered Email
+              <label className="mb-1.5 block text-xs font-semibold text-slate-700">
+                Vendor ID or Email
               </label>
-              <div className="flex items-center rounded-2xl border border-slate-800 bg-[#07090E] px-4 py-3 focus-within:border-violet-500 transition-colors">
-                <User className="mr-2.5 h-4 w-4 text-slate-400" />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <UserIcon className="h-4 w-4" />
+                </div>
                 <input
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  className="w-full bg-transparent text-white font-medium outline-none placeholder-slate-500 text-sm"
+                  className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-800 outline-none transition focus:border-violet-600 focus:ring-1 focus:ring-violet-600 placeholder-slate-400 font-medium"
                   type="text"
-                  placeholder="e.g. VND-1001 or vendor@blackrock.gg"
+                  placeholder="Enter your Vendor ID or Email"
                   required
                 />
               </div>
             </div>
 
             <div>
-              <label className="mb-1.5 block text-slate-300 font-bold uppercase tracking-wider text-[10px]">
+              <label className="mb-1.5 block text-xs font-semibold text-slate-700">
                 Password
               </label>
-              <div className="flex items-center rounded-2xl border border-slate-800 bg-[#07090E] px-4 py-3 focus-within:border-violet-500 transition-colors">
-                <Lock className="mr-2.5 h-4 w-4 text-slate-400" />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <Lock className="h-4 w-4" />
+                </div>
                 <input
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-transparent text-white font-medium outline-none placeholder-slate-500 text-sm font-mono"
-                  type="password"
-                  placeholder="••••••••"
+                  className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-10 pr-10 text-sm text-slate-800 outline-none transition focus:border-violet-600 focus:ring-1 focus:ring-violet-600 placeholder-slate-400 font-medium"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Enter your password"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-700"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
             </div>
 
-            {error && (
-              <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-300 font-medium animate-fadeIn">
+            {error ? (
+              <p className="rounded-md bg-red-50 p-2.5 text-center text-xs font-medium text-red-600 border border-red-100">
                 {error}
-              </div>
-            )}
+              </p>
+            ) : null}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-2xl bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 px-4 py-3.5 font-bold text-white transition-all shadow-lg shadow-violet-600/30 flex items-center justify-center space-x-2 disabled:opacity-50 cursor-pointer text-sm"
+              className="w-full rounded-lg bg-[#17092b] hover:bg-[#251044] py-3 text-sm font-semibold text-white transition disabled:opacity-70 flex justify-center items-center gap-2 mt-2 shadow-sm cursor-pointer"
             >
               {loading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>AUTHENTICATING...</span>
+                  <Loader2 className="h-4 w-4 animate-spin text-violet-300" />
+                  <span>Authenticating…</span>
                 </>
               ) : (
                 <>
-                  <Store className="w-4 h-4" />
-                  <span>SIGN IN TO VENDOR PORTAL</span>
+                  <Lock className="h-4 w-4 text-violet-300" />
+                  <span>Login to Vendor Panel</span>
                 </>
               )}
             </button>
           </form>
+        </div>
 
-          {/* Security footnote */}
-          <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-center gap-1.5 text-[10px] text-slate-500 font-mono">
-            <ShieldCheck className="w-3.5 h-3.5 text-violet-400" />
-            <span>Blackrock Esports Role Guarded Protocol</span>
+        {/* Footer Area */}
+        <div className="border-t border-slate-100 bg-slate-50/70 py-4 px-6 text-center flex flex-col items-center justify-center gap-1.5">
+          <div className="flex items-center gap-1 text-[10px] text-amber-700 font-bold">
+            <AlertCircle className="h-3.5 w-3.5 text-amber-600" />
+            <span>Authorized tournament host personnel only</span>
           </div>
-
+          <p className="text-[10px] text-slate-500 font-medium">For security reasons, you must login fresh each time</p>
         </div>
 
       </div>

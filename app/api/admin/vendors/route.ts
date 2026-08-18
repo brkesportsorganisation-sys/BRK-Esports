@@ -21,7 +21,7 @@ export async function GET() {
   try {
     const { data: dbVendors, error } = await supabaseAdmin
       .from('VendorAccount')
-      .select('id, vendorId, name, email, phone, whatsApp, status, accessLevel, permissions, assignedTournaments, notes, createdBy, createdAt, updatedAt')
+      .select('id, vendorId, name, orgName, email, phone, whatsApp, logo, banner, bio, status, accessLevel, permissions, assignedTournaments, commissionRate, walletBalance, escrowBalance, totalEarnings, notes, createdBy, createdAt, updatedAt')
       .order('createdAt', { ascending: false });
 
     if (!error && dbVendors && dbVendors.length > 0) {
@@ -50,6 +50,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const {
       name,
+      orgName,
       email,
       password,
       vendorId: customVendorId,
@@ -58,6 +59,7 @@ export async function POST(request: NextRequest) {
       accessLevel = 'LIMITED_ACCESS',
       permissions = [],
       assignedTournaments = [],
+      commissionRate = 80,
       notes,
     } = body;
 
@@ -67,6 +69,7 @@ export async function POST(request: NextRequest) {
 
     const cleanEmail = email.trim().toLowerCase();
     const cleanName = name.trim();
+    const cleanOrgName = orgName ? orgName.trim() : cleanName;
     const cleanPassword = password.trim();
 
     if (cleanPassword.length < 6) {
@@ -102,9 +105,18 @@ export async function POST(request: NextRequest) {
     const finalPermissions: VendorPermissionKey[] =
       finalAccessLevel === 'FULL_ACCESS'
         ? [
+            'create_tournaments',
+            'edit_own_tournaments',
+            'manage_own_slots',
+            'submit_results',
+            'view_registrations',
+            'view_own_earnings',
+            'request_payout',
+            'edit_store_profile',
+            'auto_publish_live',
+            'set_custom_entry_fees',
             'manage_room_details',
             'enter_match_results',
-            'view_registrations',
             'manage_tournaments',
             'view_analytics',
           ]
@@ -121,6 +133,7 @@ export async function POST(request: NextRequest) {
       id: accountId,
       vendorId: finalVendorId,
       name: cleanName,
+      orgName: cleanOrgName,
       email: cleanEmail,
       passwordHash,
       phone: phone?.trim() || null,
@@ -129,6 +142,10 @@ export async function POST(request: NextRequest) {
       accessLevel: finalAccessLevel,
       permissions: finalPermissions,
       assignedTournaments: finalTournaments,
+      commissionRate: Number(commissionRate) || 80,
+      walletBalance: 0,
+      escrowBalance: 0,
+      totalEarnings: 0,
       notes: notes?.trim() || null,
       createdBy: session?.username || session?.email || 'Admin',
       createdAt: new Date().toISOString(),
@@ -136,19 +153,10 @@ export async function POST(request: NextRequest) {
     };
 
     // Save to Supabase
-    let savedInDb = false;
     try {
-      const { data, error } = await supabaseAdmin
+      await supabaseAdmin
         .from('VendorAccount')
-        .insert([newVendorRecord])
-        .select('id, vendorId, name, email, phone, whatsApp, status, accessLevel, permissions, assignedTournaments, notes, createdBy, createdAt, updatedAt')
-        .single();
-
-      if (!error && data) {
-        savedInDb = true;
-      } else if (error) {
-        console.warn('[POST /api/admin/vendors] Supabase insert warning:', error.message);
-      }
+        .insert([newVendorRecord]);
     } catch (dbErr) {
       console.warn('[POST /api/admin/vendors] DB error fallback:', dbErr);
     }
@@ -157,6 +165,7 @@ export async function POST(request: NextRequest) {
     db.createVendorAccount({
       vendorId: finalVendorId,
       name: cleanName,
+      orgName: cleanOrgName,
       email: cleanEmail,
       password: cleanPassword,
       phone: phone?.trim() || '',
@@ -165,6 +174,7 @@ export async function POST(request: NextRequest) {
       accessLevel: finalAccessLevel,
       permissions: finalPermissions,
       assignedTournaments: finalTournaments,
+      commissionRate: Number(commissionRate) || 80,
       notes: notes?.trim() || '',
       createdBy: session?.username || 'Admin',
     });
@@ -206,6 +216,7 @@ export async function PATCH(request: NextRequest) {
     const {
       id,
       name,
+      orgName,
       password,
       phone,
       whatsApp,
@@ -213,6 +224,7 @@ export async function PATCH(request: NextRequest) {
       accessLevel,
       permissions,
       assignedTournaments,
+      commissionRate,
       notes,
     } = body;
 
@@ -225,9 +237,11 @@ export async function PATCH(request: NextRequest) {
     };
 
     if (name) updates.name = name.trim();
+    if (orgName !== undefined) updates.orgName = orgName.trim();
     if (phone !== undefined) updates.phone = phone.trim();
     if (whatsApp !== undefined) updates.whatsApp = whatsApp.trim();
     if (status) updates.status = status;
+    if (commissionRate !== undefined) updates.commissionRate = Number(commissionRate);
     if (notes !== undefined) updates.notes = notes.trim();
 
     if (password && password.trim().length >= 6) {
@@ -238,9 +252,18 @@ export async function PATCH(request: NextRequest) {
       updates.accessLevel = accessLevel === 'FULL_ACCESS' ? 'FULL_ACCESS' : 'LIMITED_ACCESS';
       if (accessLevel === 'FULL_ACCESS') {
         updates.permissions = [
+          'create_tournaments',
+          'edit_own_tournaments',
+          'manage_own_slots',
+          'submit_results',
+          'view_registrations',
+          'view_own_earnings',
+          'request_payout',
+          'edit_store_profile',
+          'auto_publish_live',
+          'set_custom_entry_fees',
           'manage_room_details',
           'enter_match_results',
-          'view_registrations',
           'manage_tournaments',
           'view_analytics',
         ];

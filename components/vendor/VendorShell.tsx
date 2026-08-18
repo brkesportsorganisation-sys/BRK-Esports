@@ -19,7 +19,8 @@ import {
   ChevronRight,
   ShieldAlert,
   Clock,
-  Settings
+  Settings,
+  DollarSign
 } from 'lucide-react';
 import { VendorAccessLevel, VendorPermissionKey } from '@/lib/types';
 
@@ -97,31 +98,45 @@ export default function VendorShell({ children }: { children: React.ReactNode })
   const navLinks = [
     {
       href: '/vendor',
-      label: 'Dashboard Overview',
-      icon: LayoutGrid,
+      label: 'My Tournaments',
+      icon: Trophy,
       show: true,
       color: 'text-violet-400',
     },
     {
       href: '/vendor/settings',
-      label: 'Tournament Rooms & Pass',
+      label: 'My Slots & Room Pass',
       icon: KeyRound,
-      show: hasPerm('manage_room_details'),
+      show: hasPerm('manage_own_slots') || hasPerm('manage_room_details'),
       color: 'text-amber-400',
     },
     {
       href: '/vendor/matches',
-      label: 'Enter Match Results',
+      label: 'My Match Results',
       icon: Gamepad2,
-      show: hasPerm('enter_match_results'),
+      show: hasPerm('submit_results') || hasPerm('enter_match_results'),
       color: 'text-emerald-400',
     },
     {
       href: '/vendor/registrations',
-      label: 'Player Rosters & Teams',
+      label: 'Player Rosters & WhatsApp',
       icon: Users,
       show: hasPerm('view_registrations'),
       color: 'text-cyan-400',
+    },
+    {
+      href: '/vendor/earnings',
+      label: 'My Earnings & Cashout',
+      icon: DollarSign,
+      show: hasPerm('view_own_earnings') || hasPerm('request_payout'),
+      color: 'text-emerald-400',
+    },
+    {
+      href: '/vendor/profile',
+      label: 'My Storefront Profile',
+      icon: Store,
+      show: hasPerm('edit_store_profile') || isFull,
+      color: 'text-fuchsia-400',
     },
   ];
 

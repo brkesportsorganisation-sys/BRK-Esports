@@ -8,10 +8,12 @@ export interface VendorSessionPayload {
   sub: string; // Account ID
   vendorId: string; // e.g. VND-8492
   name: string;
+  orgName?: string;
   email: string;
   accessLevel: VendorAccessLevel;
   permissions: VendorPermissionKey[];
   assignedTournaments: string[];
+  commissionRate?: number;
   iat: number;
   exp: number;
 }
@@ -45,10 +47,12 @@ export function createVendorToken(vendor: VendorAccount): string {
     sub: vendor.id,
     vendorId: vendor.vendorId,
     name: vendor.name,
+    orgName: vendor.orgName || vendor.name,
     email: vendor.email,
     accessLevel: vendor.accessLevel,
     permissions: vendor.permissions || [],
     assignedTournaments: vendor.assignedTournaments || [],
+    commissionRate: vendor.commissionRate ?? 80,
     iat: Math.floor(Date.now() / 1000),
     exp: Math.floor((Date.now() + SESSION_TTL_MS) / 1000),
   };
@@ -88,8 +92,21 @@ export function hasVendorPermission(
     if (!isAssigned) return false;
   }
 
+  const perms = session.permissions || [];
+
+  // Alias compatibility checks
+  if (permission === 'manage_own_slots' || permission === 'manage_room_details') {
+    return perms.includes('manage_own_slots') || perms.includes('manage_room_details');
+  }
+  if (permission === 'submit_results' || permission === 'enter_match_results') {
+    return perms.includes('submit_results') || perms.includes('enter_match_results');
+  }
+  if (permission === 'create_tournaments' || permission === 'manage_tournaments') {
+    return perms.includes('create_tournaments') || perms.includes('manage_tournaments');
+  }
+
   // Check if specific permission is granted
-  return session.permissions?.includes(permission) ?? false;
+  return perms.includes(permission);
 }
 
 export function isVendorTournamentAccessible(
