@@ -66,7 +66,19 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // 4. Attach Enterprise Security Headers
+  // 4. Vendor Route Authentication Enforcement
+  const vendorSession = request.cookies.get('vendor_session')?.value;
+  if (
+    (pathname.startsWith('/vendor') || pathname.startsWith('/vandor')) &&
+    !pathname.startsWith('/vendor/login') &&
+    !pathname.startsWith('/vandor/login')
+  ) {
+    if (!vendorSession) {
+      return NextResponse.redirect(new URL('/vendor/login', request.url));
+    }
+  }
+
+  // 5. Attach Enterprise Security Headers
   const response = NextResponse.next();
   return applySecurityHeaders(response);
 }

@@ -405,6 +405,113 @@ class LocalDatabase {
     this.adSettings = settings;
     this.save();
   }
+
+  // Vendor Accounts (Custom Credentials & Permissions)
+  private vendors: import('./types').VendorAccount[] = [
+    {
+      id: 'vendor_001',
+      vendorId: 'VND-1001',
+      name: 'Blackrock Host Vendor',
+      email: 'vendor@helian.gg',
+      password: 'vendor123',
+      phone: '01711223344',
+      whatsApp: '+8801711223344',
+      status: 'ACTIVE',
+      accessLevel: 'FULL_ACCESS',
+      permissions: [
+        'manage_room_details',
+        'enter_match_results',
+        'view_registrations',
+        'manage_tournaments',
+        'view_analytics',
+      ],
+      assignedTournaments: ['ALL'],
+      notes: 'Internal primary host vendor with full platform access',
+      createdBy: 'Owner',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      id: 'vendor_002',
+      vendorId: 'VND-2002',
+      name: 'New Host Moderator',
+      email: 'host@blackrock.gg',
+      password: 'vendor123',
+      phone: '01811223344',
+      whatsApp: '+8801811223344',
+      status: 'ACTIVE',
+      accessLevel: 'LIMITED_ACCESS',
+      permissions: [
+        'manage_room_details',
+        'enter_match_results',
+        'view_registrations',
+      ],
+      assignedTournaments: ['tour_1'],
+      notes: 'New external host vendor with limited access for tournament rooms',
+      createdBy: 'Owner',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+  ];
+
+  getVendors(): import('./types').VendorAccount[] {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('helian_vendors');
+      if (saved) {
+        try {
+          this.vendors = JSON.parse(saved);
+        } catch {}
+      }
+    }
+    return this.vendors;
+  }
+
+  getVendorById(id: string): import('./types').VendorAccount | undefined {
+    return this.getVendors().find((v) => v.id === id || v.vendorId.toLowerCase() === id.toLowerCase());
+  }
+
+  createVendorAccount(data: Omit<import('./types').VendorAccount, 'id' | 'createdAt' | 'updatedAt'>): import('./types').VendorAccount {
+    const newVendor: import('./types').VendorAccount = {
+      ...data,
+      id: `vendor_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    this.vendors.unshift(newVendor);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('helian_vendors', JSON.stringify(this.vendors));
+    }
+    return newVendor;
+  }
+
+  updateVendorAccount(id: string, updates: Partial<import('./types').VendorAccount>): import('./types').VendorAccount | null {
+    const list = this.getVendors();
+    const idx = list.findIndex((v) => v.id === id || v.vendorId === id);
+    if (idx === -1) return null;
+
+    list[idx] = {
+      ...list[idx],
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+    this.vendors = list;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('helian_vendors', JSON.stringify(this.vendors));
+    }
+    return list[idx];
+  }
+
+  deleteVendorAccount(id: string): boolean {
+    const list = this.getVendors();
+    const filtered = list.filter((v) => v.id !== id && v.vendorId !== id);
+    if (filtered.length === list.length) return false;
+    this.vendors = filtered;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('helian_vendors', JSON.stringify(this.vendors));
+    }
+    return true;
+  }
 }
 
 export const db = new LocalDatabase();
+

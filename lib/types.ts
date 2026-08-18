@@ -156,11 +156,13 @@ export interface Payment {
 export interface MatchResult {
   id: string;
   tournamentId: string;
-  teamOrPlayerName: string;
-  ffUid: string;
+  teamOrPlayerName?: string;
+  playerName?: string;
+  ffUid?: string;
   kills: number;
   placement: number;
   points: number;
+  createdAt?: string;
 }
 
 export interface LeaderboardEntry {
@@ -434,4 +436,73 @@ export const DIAMOND_PRODUCTS: DiamondProduct[] = [
   { id: 'mem_monthly', name: 'Monthly Membership (2600💎 Total)', diamonds: 2600, priceBdt: 860, priceCoins: 43000, icon: '👑', badge: 'VIP', category: 'MEMBERSHIP' },
   { id: 'pass_lvlup', name: 'Level Up Pass (800💎)', diamonds: 800, priceBdt: 190, priceCoins: 9500, icon: '⚡', category: 'SPECIAL' },
 ];
+
+export type VendorAccessLevel = 'FULL_ACCESS' | 'LIMITED_ACCESS';
+
+export type VendorPermissionKey =
+  | 'manage_room_details'
+  | 'enter_match_results'
+  | 'view_registrations'
+  | 'manage_tournaments'
+  | 'view_analytics';
+
+export interface VendorPermissionMeta {
+  key: VendorPermissionKey;
+  label: string;
+  category: string;
+  description: string;
+}
+
+export const VENDOR_PERMISSIONS_LIST: VendorPermissionMeta[] = [
+  {
+    key: 'manage_room_details',
+    label: 'Manage Room ID & Password',
+    category: 'Rooms',
+    description: 'Update Room ID, Room Password, and Unlock countdown timers for assigned matches.',
+  },
+  {
+    key: 'enter_match_results',
+    label: 'Enter Match Results & Points',
+    category: 'Results',
+    description: 'Submit kill counts, placements, and final match scoreboard points.',
+  },
+  {
+    key: 'view_registrations',
+    label: 'View Team Rosters & Players',
+    category: 'Registrations',
+    description: 'Inspect registered team squad rosters, in-game names, and captain WhatsApp contacts.',
+  },
+  {
+    key: 'manage_tournaments',
+    label: 'Create & Edit Tournaments',
+    category: 'Tournaments',
+    description: 'Create new tournaments and edit tournament formats, slots, schedules, and prize pools.',
+  },
+  {
+    key: 'view_analytics',
+    label: 'View Slot & Revenue Analytics',
+    category: 'Analytics',
+    description: 'View registration fill rates and match participation metrics.',
+  },
+];
+
+export interface VendorAccount {
+  id: string;
+  vendorId: string; // e.g. VND-8492 or vendor_01
+  name: string;
+  email: string;
+  password?: string;
+  passwordHash?: string;
+  phone?: string;
+  whatsApp?: string;
+  status: 'ACTIVE' | 'SUSPENDED';
+  accessLevel: VendorAccessLevel; // FULL_ACCESS vs LIMITED_ACCESS
+  permissions: VendorPermissionKey[];
+  assignedTournaments: string[]; // List of tournament IDs or ['ALL'] for full access
+  notes?: string;
+  createdBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 

@@ -679,3 +679,40 @@ INSERT INTO "SiteSetting" ("id", "key", "value") VALUES
     ('setting_telegram_channel', 'telegram_channel', 'https://t.me/blackrock_esports')
 ON CONFLICT ("key") DO NOTHING;
 
+
+-- =========================================================
+-- 20. VendorAccount Table (Vendor Credential & Access Matrix)
+-- =========================================================
+CREATE TABLE IF NOT EXISTS "VendorAccount" (
+    "id" TEXT PRIMARY KEY,
+    "vendorId" TEXT UNIQUE NOT NULL,
+    "name" TEXT NOT NULL,
+    "email" TEXT UNIQUE NOT NULL,
+    "passwordHash" TEXT NOT NULL,
+    "phone" TEXT,
+    "whatsApp" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'ACTIVE',
+    "accessLevel" TEXT NOT NULL DEFAULT 'LIMITED_ACCESS',
+    "permissions" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "assignedTournaments" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "notes" TEXT,
+    "createdBy" TEXT,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE "VendorAccount" ADD COLUMN IF NOT EXISTS "phone" TEXT;
+ALTER TABLE "VendorAccount" ADD COLUMN IF NOT EXISTS "whatsApp" TEXT;
+ALTER TABLE "VendorAccount" ADD COLUMN IF NOT EXISTS "status" TEXT NOT NULL DEFAULT 'ACTIVE';
+ALTER TABLE "VendorAccount" ADD COLUMN IF NOT EXISTS "accessLevel" TEXT NOT NULL DEFAULT 'LIMITED_ACCESS';
+ALTER TABLE "VendorAccount" ADD COLUMN IF NOT EXISTS "permissions" TEXT[] DEFAULT ARRAY[]::TEXT[];
+ALTER TABLE "VendorAccount" ADD COLUMN IF NOT EXISTS "assignedTournaments" TEXT[] DEFAULT ARRAY[]::TEXT[];
+ALTER TABLE "VendorAccount" ADD COLUMN IF NOT EXISTS "notes" TEXT;
+ALTER TABLE "VendorAccount" ADD COLUMN IF NOT EXISTS "createdBy" TEXT;
+ALTER TABLE "VendorAccount" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL;
+
+CREATE INDEX IF NOT EXISTS "idx_vendoraccount_vendorId" ON "VendorAccount"("vendorId");
+CREATE INDEX IF NOT EXISTS "idx_vendoraccount_email" ON "VendorAccount"("email");
+CREATE INDEX IF NOT EXISTS "idx_vendoraccount_status" ON "VendorAccount"("status");
+
+

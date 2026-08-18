@@ -168,6 +168,7 @@ export default function AdminShell({ children }: AdminShellProps) {
       title: 'OPERATIONS & TOURNAMENTS',
       links: [
         { href: '/admin/tournaments', label: 'All Tournaments', icon: Trophy, colorClass: 'text-pink-500', permission: 'manage_tournaments' },
+        { href: '/admin/vendors', label: 'Vendors & Hosts (🏪)', icon: Store, colorClass: 'text-violet-600', permission: 'manage_tournaments' },
         { href: '/admin/registrations', label: 'Slot Registrations', icon: ClipboardList, colorClass: 'text-purple-500', badge: pendingCount, permission: 'manage_tournaments' },
         { href: '/admin/matches', label: 'Match Results & Rooms', icon: Gamepad2, colorClass: 'text-amber-600', permission: 'enter_results' },
         { href: '/admin/shop', label: 'Diamond Orders (💎)', icon: Diamond, colorClass: 'text-cyan-500', permission: 'manage_deposits' },
