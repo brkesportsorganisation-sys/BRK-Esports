@@ -708,6 +708,17 @@ CREATE TABLE IF NOT EXISTS "AdminAccount" (
     "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- Safe migrations for AdminAccount if table already exists
+ALTER TABLE "AdminAccount" ADD COLUMN IF NOT EXISTS "username" TEXT;
+ALTER TABLE "AdminAccount" ADD COLUMN IF NOT EXISTS "email" TEXT;
+ALTER TABLE "AdminAccount" ADD COLUMN IF NOT EXISTS "passwordHash" TEXT;
+ALTER TABLE "AdminAccount" ADD COLUMN IF NOT EXISTS "displayName" TEXT;
+ALTER TABLE "AdminAccount" ADD COLUMN IF NOT EXISTS "role" TEXT NOT NULL DEFAULT 'ADMIN';
+ALTER TABLE "AdminAccount" ADD COLUMN IF NOT EXISTS "permissions" TEXT[] DEFAULT ARRAY[]::TEXT[];
+ALTER TABLE "AdminAccount" ADD COLUMN IF NOT EXISTS "isActive" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "AdminAccount" ADD COLUMN IF NOT EXISTS "createdBy" TEXT DEFAULT 'Owner';
+ALTER TABLE "AdminAccount" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL;
+
 CREATE TABLE IF NOT EXISTS "AdminActivityLog" (
     "id" TEXT PRIMARY KEY,
     "adminUsername" TEXT NOT NULL,
@@ -761,6 +772,10 @@ CREATE TABLE IF NOT EXISTS "VendorAccount" (
     "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+ALTER TABLE "VendorAccount" ADD COLUMN IF NOT EXISTS "vendorId" TEXT;
+ALTER TABLE "VendorAccount" ADD COLUMN IF NOT EXISTS "name" TEXT NOT NULL DEFAULT 'Vendor';
+ALTER TABLE "VendorAccount" ADD COLUMN IF NOT EXISTS "email" TEXT;
+ALTER TABLE "VendorAccount" ADD COLUMN IF NOT EXISTS "passwordHash" TEXT;
 ALTER TABLE "VendorAccount" ADD COLUMN IF NOT EXISTS "orgName" TEXT;
 ALTER TABLE "VendorAccount" ADD COLUMN IF NOT EXISTS "phone" TEXT;
 ALTER TABLE "VendorAccount" ADD COLUMN IF NOT EXISTS "whatsApp" TEXT;
