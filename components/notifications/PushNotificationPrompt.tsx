@@ -117,13 +117,13 @@ export default function PushNotificationPrompt() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="bg-[#0F172A] border border-orange-500/40 rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl shadow-orange-500/10 space-y-4 text-white relative animate-in slide-in-from-bottom-5 duration-300">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
+      <div className="bg-white border-2 border-red-200/90 rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl shadow-slate-900/15 space-y-4 text-slate-900 relative animate-in slide-in-from-bottom-5 duration-300">
         
         {/* Close Button */}
         <button
           onClick={handleDismiss}
-          className="absolute top-4 right-4 p-1.5 rounded-xl bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+          className="absolute top-4 right-4 p-1.5 rounded-xl bg-slate-100 text-slate-500 hover:text-slate-900 hover:bg-slate-200 transition-colors"
           title="Dismiss"
         >
           <X className="w-4 h-4" />
@@ -135,33 +135,33 @@ export default function PushNotificationPrompt() {
             <BellRing className="w-6 h-6" />
           </div>
           <div>
-            <div className="inline-flex items-center gap-1 text-[10px] font-black text-brand-orange bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider mb-0.5">
+            <div className="inline-flex items-center gap-1 text-[10px] font-black text-brand-orange bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full uppercase tracking-wider mb-0.5">
               <Sparkles className="w-2.5 h-2.5" />
               <span>Instant Phone Alerts</span>
             </div>
-            <h3 className="font-heading font-black text-lg sm:text-xl text-white leading-tight">
+            <h3 className="font-heading font-black text-lg sm:text-xl text-slate-900 leading-tight">
               নোটিফিকেশন চালু করুন! 🔔
             </h3>
           </div>
         </div>
 
         {/* Description & Feature list */}
-        <p className="text-xs text-slate-300 leading-relaxed font-medium">
+        <p className="text-xs text-slate-600 leading-relaxed font-medium">
           কাস্টম রুম পাসওয়ার্ড, প্রাইজমানি ক্যাশআউট এবং ডেইলি রিওয়ার্ডের নোটিফিকেশন সরাসরি আপনার মোবাইলের নোটিফিকেশন ড্রয়ারে পেতে এলাউ (Allow) করুন।
         </p>
 
         {/* Features Checklist */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 space-y-2 text-xs">
-          <div className="flex items-center gap-2.5 text-slate-200">
-            <span className="w-5 h-5 rounded-lg bg-orange-500/20 text-brand-orange flex items-center justify-center text-[10px] font-bold">🔑</span>
-            <span className="font-medium">ম্যাচ শুরুর ১০ মিনিট আগে <strong>Room ID & Password</strong> এলার্ট</span>
+        <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-3 space-y-2 text-xs">
+          <div className="flex items-center gap-2.5 text-slate-700">
+            <span className="w-5 h-5 rounded-lg bg-orange-100 text-brand-orange flex items-center justify-center text-[10px] font-bold">🔑</span>
+            <span className="font-medium">ম্যাচ শুরুর ১০ মিনিট আগে <strong className="text-slate-900">Room ID & Password</strong> এলার্ট</span>
           </div>
-          <div className="flex items-center gap-2.5 text-slate-200">
-            <span className="w-5 h-5 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-[10px] font-bold">💰</span>
-            <span className="font-medium">বিকাশ ও নগদে <strong>উইনিং ব্যালেন্স ক্যাশআউট</strong> কনফার্মেশন</span>
+          <div className="flex items-center gap-2.5 text-slate-700">
+            <span className="w-5 h-5 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-bold">💰</span>
+            <span className="font-medium">বিকাশ ও নগদে <strong className="text-slate-900">উইনিং ব্যালেন্স ক্যাশআউট</strong> কনফার্মেশন</span>
           </div>
-          <div className="flex items-center gap-2.5 text-slate-200">
-            <span className="w-5 h-5 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-[10px] font-bold">🎁</span>
+          <div className="flex items-center gap-2.5 text-slate-700">
+            <span className="w-5 h-5 rounded-lg bg-cyan-100 text-cyan-700 flex items-center justify-center text-[10px] font-bold">🎁</span>
             <span className="font-medium">ফ্রি ডায়মন্ড গিভঅ্যাওয়ে ও স্পিন রিওয়ার্ড আপডেট</span>
           </div>
         </div>
@@ -171,7 +171,7 @@ export default function PushNotificationPrompt() {
           <button
             type="button"
             onClick={handleDismiss}
-            className="flex-1 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-colors cursor-pointer"
+            className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
           >
             পরে (Later)
           </button>

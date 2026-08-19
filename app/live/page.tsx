@@ -46,15 +46,15 @@ export default async function LivePage() {
     .limit(4);
 
   return (
-    <div className="min-h-screen bg-[#0B0F19] text-white flex flex-col font-sans selection:bg-red-600 selection:text-white">
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 flex flex-col font-sans selection:bg-red-600 selection:text-white">
       <Navbar />
 
       <main className="flex-grow pt-8 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full space-y-8">
         
         {/* Stream Broadcast Banner Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6">
           <div className="space-y-2">
-            <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-red-500/10 border border-red-500/30 text-red-500 font-bold uppercase tracking-widest text-xs">
+            <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-red-50 border border-red-200 text-brand-red font-bold uppercase tracking-widest text-xs">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
@@ -63,11 +63,11 @@ export default async function LivePage() {
               <span>{isLive ? 'Live YouTube Stream' : 'Official Broadcast Channel'}</span>
             </div>
 
-            <h1 className="text-2xl sm:text-4xl font-black font-heading text-white tracking-tight leading-tight">
+            <h1 className="text-2xl sm:text-4xl font-black font-heading text-slate-900 tracking-tight leading-tight">
               {streamTitle}
             </h1>
 
-            <p className="text-slate-300 text-xs sm:text-sm max-w-3xl">
+            <p className="text-slate-600 text-xs sm:text-sm max-w-3xl">
               {streamDesc}
             </p>
           </div>
@@ -77,7 +77,7 @@ export default async function LivePage() {
               href={channelUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-lg shadow-red-600/30 hover:brightness-110 transition-all cursor-pointer"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md shadow-red-600/20 hover:brightness-110 transition-all cursor-pointer"
             >
               <Youtube className="w-4 h-4" />
               <span>Subscribe on YouTube</span>
@@ -91,7 +91,7 @@ export default async function LivePage() {
           
           {/* Main 16:9 Video Embed Player */}
           <div className="lg:col-span-2 space-y-4">
-            <div className="aspect-video w-full rounded-3xl overflow-hidden bg-black relative group shadow-2xl border border-slate-800 shadow-red-950/20">
+            <div className="aspect-video w-full rounded-3xl overflow-hidden bg-slate-950 relative group shadow-lg border border-slate-200">
               {videoId ? (
                 <iframe
                   width="100%"
@@ -103,7 +103,7 @@ export default async function LivePage() {
                   className="absolute inset-0 border-0 w-full h-full"
                 />
               ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center space-y-4 bg-slate-900/60">
+                <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center space-y-4 bg-slate-900">
                   <div className="w-16 h-16 rounded-3xl bg-red-500/10 text-red-500 flex items-center justify-center border border-red-500/20">
                     <Youtube className="w-8 h-8" />
                   </div>
@@ -127,19 +127,19 @@ export default async function LivePage() {
             </div>
 
             {/* Video Controls & Social Info Bar */}
-            <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-2 text-emerald-400 font-bold">
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs shadow-sm">
+              <div className="flex items-center gap-2 text-emerald-600 font-bold">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 <span>1080p 60FPS Low-Latency Feed</span>
               </div>
 
-              <div className="flex items-center gap-4 text-slate-300">
-                <span className="flex items-center gap-1">
-                  <Users className="w-3.5 h-3.5 text-blue-400" />
+              <div className="flex items-center gap-4 text-slate-600">
+                <span className="flex items-center gap-1 font-medium">
+                  <Users className="w-3.5 h-3.5 text-blue-500" />
                   <span>BRK Arena Spectator</span>
                 </span>
-                <span className="flex items-center gap-1">
-                  <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                <span className="flex items-center gap-1 font-medium">
+                  <Trophy className="w-3.5 h-3.5 text-amber-500" />
                   <span>Official Tournament Feed</span>
                 </span>
               </div>
@@ -148,13 +148,13 @@ export default async function LivePage() {
 
           {/* Right Sidebar: Active Match Rooms & Arena Links */}
           <div className="space-y-5">
-            <div className="p-5 rounded-3xl bg-slate-900/80 border border-slate-800 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                <h3 className="font-heading font-black text-sm text-white flex items-center gap-2">
+            <div className="p-5 rounded-3xl bg-white border border-slate-200 space-y-4 shadow-sm">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 className="font-heading font-black text-sm text-slate-900 flex items-center gap-2">
                   <Trophy className="w-4 h-4 text-amber-500" />
                   <span>FEATURED ARENA MATCHES</span>
                 </h3>
-                <Link href="/tournaments" className="text-[11px] font-bold text-orange-400 hover:underline">
+                <Link href="/tournaments" className="text-[11px] font-bold text-brand-orange hover:underline">
                   All Matches →
                 </Link>
               </div>
@@ -165,20 +165,20 @@ export default async function LivePage() {
                     <Link
                       key={t.id}
                       href={`/tournaments/${t.id}`}
-                      className="block p-3.5 rounded-2xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-orange-500/40 transition-all group"
+                      className="block p-3.5 rounded-2xl bg-slate-50 hover:bg-orange-50/40 border border-slate-200 hover:border-brand-orange/40 transition-all group"
                     >
                       <div className="flex items-center justify-between text-[11px] mb-1">
-                        <span className="px-2 py-0.5 rounded-md bg-orange-500/20 text-orange-400 font-bold uppercase">
+                        <span className="px-2 py-0.5 rounded-md bg-orange-100 text-brand-orange font-bold uppercase">
                           {t.mode}
                         </span>
-                        <span className="text-emerald-400 font-bold">৳ {t.prizePool} PRIZE</span>
+                        <span className="text-emerald-600 font-bold">৳ {t.prizePool} PRIZE</span>
                       </div>
-                      <div className="font-bold text-xs text-white group-hover:text-orange-400 transition-colors truncate">
+                      <div className="font-bold text-xs text-slate-900 group-hover:text-brand-orange transition-colors truncate">
                         {t.title}
                       </div>
-                      <div className="text-[11px] text-slate-300 mt-1 flex items-center justify-between">
+                      <div className="text-[11px] text-slate-500 mt-1 flex items-center justify-between">
                         <span>Entry: ৳{t.entryFee}</span>
-                        <span className="text-slate-200 font-semibold group-hover:translate-x-0.5 transition-transform">
+                        <span className="text-brand-orange font-semibold group-hover:translate-x-0.5 transition-transform">
                           Join Slot →
                         </span>
                       </div>
@@ -193,21 +193,21 @@ export default async function LivePage() {
             </div>
 
             {/* Support & Channel Card */}
-            <div className="p-5 rounded-3xl bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 space-y-3">
-              <div className="font-bold text-xs text-white flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-brand-gold" />
+            <div className="p-5 rounded-3xl bg-gradient-to-br from-white via-red-50/20 to-orange-50/30 border border-red-200/80 space-y-3 shadow-sm">
+              <div className="font-bold text-xs text-slate-900 flex items-center gap-1.5 font-heading">
+                <Sparkles className="w-4 h-4 text-brand-orange" />
                 <span>Never Miss A Stream</span>
               </div>
-              <p className="text-slate-300 text-xs leading-relaxed">
+              <p className="text-slate-600 text-xs leading-relaxed">
                 Subscribe to our YouTube channel and turn on all notifications so you are alerted the exact second tournament custom rooms go live!
               </p>
               <a
                 href={channelUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center justify-center gap-2 border border-slate-700 transition-colors"
+                className="w-full py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs flex items-center justify-center gap-2 border border-slate-200 transition-colors shadow-2xs"
               >
-                <Youtube className="w-4 h-4 text-red-500" />
+                <Youtube className="w-4 h-4 text-red-600" />
                 <span>Open YouTube Channel</span>
               </a>
             </div>

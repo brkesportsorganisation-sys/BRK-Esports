@@ -109,20 +109,20 @@ export default function SlotGrid({
     <div className="space-y-6">
       
       {/* Room ID & Match Timer Status Banner */}
-      <div className="p-6 bg-gradient-to-r from-orange-950/60 via-slate-900 to-slate-900 border border-orange-500/40 rounded-3xl shadow-2xl space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+      <div className="p-6 bg-gradient-to-br from-white via-red-50/25 to-orange-50/35 border-2 border-red-200/90 rounded-3xl shadow-sm space-y-4 text-slate-900">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/90 pb-4">
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-2xl bg-orange-500/20 text-orange-400 border border-orange-500/30">
+            <div className="p-3 rounded-2xl bg-orange-50 text-brand-orange border border-orange-200">
               <Gamepad2 className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-lg font-black text-white flex items-center gap-2">
+              <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
                 Custom Match Room Table (12-Slot Grid)
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-bold">
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold">
                   LIVE SLOTS
                 </span>
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600">
                 Join your assigned slot number in Free Fire custom room on time.
               </p>
             </div>
@@ -130,11 +130,11 @@ export default function SlotGrid({
 
           {/* Live Countdown */}
           {timeLeft && (
-            <div className="flex items-center gap-3 bg-slate-950/80 px-4 py-2 rounded-2xl border border-slate-800">
-              <Clock className="w-4 h-4 text-orange-400 animate-spin" />
+            <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-2xl border border-slate-200 shadow-2xs">
+              <Clock className="w-4 h-4 text-brand-orange animate-spin" />
               <div className="text-xs">
                 <span className="text-slate-500 block text-[9px] uppercase font-bold">Match Countdown</span>
-                <span className="text-white font-mono font-black text-sm">
+                <span className="text-slate-900 font-mono font-black text-sm">
                   {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}
                 </span>
               </div>
@@ -145,44 +145,44 @@ export default function SlotGrid({
         {/* Room ID / Pass Display or Lock Status */}
         {roomId && isUserRegistered ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1 animate-fadeIn">
-            <div className="p-4 bg-slate-950/90 border border-orange-500/50 rounded-2xl flex items-center justify-between">
+            <div className="p-4 bg-white border border-red-200/90 shadow-2xs rounded-2xl flex items-center justify-between">
               <div>
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">Custom Room ID</span>
-                <span className="text-lg font-mono font-black text-orange-400 tracking-wider">{roomId}</span>
+                <span className="text-[10px] uppercase font-bold text-slate-500 block">Custom Room ID</span>
+                <span className="text-lg font-mono font-black text-brand-orange tracking-wider">{roomId}</span>
               </div>
               <button
                 onClick={() => handleCopy(roomId, 'ROOM')}
-                className="px-3 py-2 bg-orange-500/20 hover:bg-orange-500/30 border border-orange-500/40 text-orange-400 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5"
+                className="px-3 py-2 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-brand-orange rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
               >
-                {copiedRoom ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                {copiedRoom ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
                 {copiedRoom ? 'Copied' : 'Copy'}
               </button>
             </div>
 
-            <div className="p-4 bg-slate-950/90 border border-orange-500/50 rounded-2xl flex items-center justify-between">
+            <div className="p-4 bg-white border border-red-200/90 shadow-2xs rounded-2xl flex items-center justify-between">
               <div>
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">Room Password</span>
-                <span className="text-lg font-mono font-black text-white tracking-wider">{roomPassword || 'None'}</span>
+                <span className="text-[10px] uppercase font-bold text-slate-500 block">Room Password</span>
+                <span className="text-lg font-mono font-black text-slate-900 tracking-wider">{roomPassword || 'None'}</span>
               </div>
               {roomPassword && (
                 <button
                   onClick={() => handleCopy(roomPassword, 'PASS')}
-                  className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5"
+                  className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
                 >
-                  {copiedPass ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                  {copiedPass ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
                   {copiedPass ? 'Copied' : 'Copy'}
                 </button>
               )}
             </div>
           </div>
         ) : (
-          <div className="p-4 bg-slate-950/60 border border-slate-800/80 rounded-2xl flex items-center justify-between text-xs text-slate-400">
+          <div className="p-4 bg-white/90 border border-slate-200 rounded-2xl flex items-center justify-between text-xs text-slate-600">
             <div className="flex items-center gap-2">
-              <Lock className="w-4 h-4 text-amber-400" />
-              <span>Room ID & Password will unlock <strong>10-15 minutes before match start</strong> for registered players.</span>
+              <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>Room ID & Password will unlock <strong className="text-slate-900">10-15 minutes before match start</strong> for registered players.</span>
             </div>
             {!isUserRegistered && (
-              <span className="text-[10px] font-bold text-orange-400 bg-orange-500/10 px-2.5 py-1 rounded-lg border border-orange-500/30">
+              <span className="text-[10px] font-bold text-brand-orange bg-orange-50 px-2.5 py-1 rounded-lg border border-orange-200 shrink-0">
                 Register Slot to View
               </span>
             )}
@@ -197,21 +197,21 @@ export default function SlotGrid({
             key={slotNumber}
             className={`p-4 rounded-2xl border transition-all space-y-3 ${
               participant
-                ? 'bg-slate-900/80 border-orange-500/40 shadow-lg shadow-orange-950/20'
-                : 'bg-slate-950/40 border-slate-800/80 border-dashed opacity-60'
+                ? 'bg-white border-2 border-brand-orange/40 shadow-md shadow-orange-500/5'
+                : 'bg-white/60 border-slate-300 border-dashed opacity-75'
             }`}
           >
             {/* Slot Header */}
-            <div className="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
-              <span className="px-2.5 py-0.5 rounded-lg bg-orange-500/20 border border-orange-500/40 text-orange-400 font-mono font-black text-xs">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+              <span className="px-2.5 py-0.5 rounded-lg bg-orange-50 border border-orange-200 text-brand-orange font-mono font-black text-xs">
                 SLOT #{slotNumber}
               </span>
               <span className={`text-[10px] font-bold uppercase ${
-                participant ? 'text-emerald-400 flex items-center gap-1' : 'text-slate-500'
+                participant ? 'text-emerald-700 flex items-center gap-1 font-extrabold' : 'text-slate-400'
               }`}>
                 {participant ? (
                   <>
-                    <CheckCircle2 className="w-3 h-3" />
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                     CONFIRMED
                   </>
                 ) : (
@@ -224,45 +224,45 @@ export default function SlotGrid({
             {participant ? (
               <div className="space-y-2">
                 <div>
-                  <h4 className="text-sm font-black text-white truncate">{participant.squadName}</h4>
+                  <h4 className="text-sm font-black text-slate-900 truncate">{participant.squadName}</h4>
                   {participant.iglName && (
-                    <span className="text-[11px] text-slate-400 block truncate">
-                      IGL: <strong className="text-slate-300">{participant.iglName}</strong>
+                    <span className="text-[11px] text-slate-500 block truncate">
+                      IGL: <strong className="text-slate-800">{participant.iglName}</strong>
                     </span>
                   )}
                 </div>
 
                 {/* Team Members List */}
-                <div className="space-y-1 pt-1 text-[11px] text-slate-400 font-mono">
+                <div className="space-y-1 pt-1 text-[11px] text-slate-600 font-mono">
                   {participant.player1Name && (
                     <div className="flex items-center gap-1.5 truncate">
-                      <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-brand-orange" />
                       <span className="truncate">{participant.player1Name}</span>
                     </div>
                   )}
                   {participant.player2Name && (
                     <div className="flex items-center gap-1.5 truncate">
-                      <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-brand-orange" />
                       <span className="truncate">{participant.player2Name}</span>
                     </div>
                   )}
                   {participant.player3Name && (
                     <div className="flex items-center gap-1.5 truncate">
-                      <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-brand-orange" />
                       <span className="truncate">{participant.player3Name}</span>
                     </div>
                   )}
                   {participant.player4Name && (
                     <div className="flex items-center gap-1.5 truncate">
-                      <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-brand-orange" />
                       <span className="truncate">{participant.player4Name}</span>
                     </div>
                   )}
                 </div>
               </div>
             ) : (
-              <div className="py-6 text-center text-xs text-slate-600 space-y-1">
-                <Users className="w-6 h-6 mx-auto text-slate-700" />
+              <div className="py-6 text-center text-xs text-slate-400 space-y-1">
+                <Users className="w-6 h-6 mx-auto text-slate-300" />
                 <p>Slot Available</p>
               </div>
             )}

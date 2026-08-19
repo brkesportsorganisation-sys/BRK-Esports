@@ -347,22 +347,22 @@ export default function ArenaPage() {
 
                   {/* In Progress Room ID Details */}
                   {duel.status === 'IN_PROGRESS' && isInDuel && (
-                    <div className="bg-slate-900 text-white p-4 rounded-2xl border border-brand-orange/40 space-y-2.5 shadow-md">
-                      <div className="text-[10px] uppercase font-black text-orange-400 tracking-wider">Match Custom Room</div>
+                    <div className="bg-gradient-to-br from-white via-red-50/20 to-orange-50/30 text-slate-900 p-4 rounded-2xl border-2 border-red-200/90 space-y-2.5 shadow-sm">
+                      <div className="text-[10px] uppercase font-black text-brand-orange tracking-wider">Match Custom Room</div>
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-slate-300">Room ID: <strong className="text-orange-400 font-mono">{duel.roomId}</strong></span>
+                        <span className="text-slate-600">Room ID: <strong className="text-brand-orange font-mono font-black">{duel.roomId}</strong></span>
                         <button
                           onClick={() => handleCopy(duel.roomId!, `${duel.id}_room`)}
-                          className="text-[10px] bg-slate-800 hover:bg-slate-700 px-2.5 py-1 rounded-lg text-slate-200 font-bold cursor-pointer"
+                          className="text-[10px] bg-orange-50 hover:bg-orange-100 border border-orange-200 px-2.5 py-1 rounded-lg text-brand-orange font-bold cursor-pointer transition-colors"
                         >
                           {copiedId === `${duel.id}_room` ? 'Copied' : 'Copy'}
                         </button>
                       </div>
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-slate-300">Password: <strong className="text-white font-mono">{duel.roomPass}</strong></span>
+                        <span className="text-slate-600">Password: <strong className="text-slate-900 font-mono font-black">{duel.roomPass}</strong></span>
                         <button
                           onClick={() => handleCopy(duel.roomPass!, `${duel.id}_pass`)}
-                          className="text-[10px] bg-slate-800 hover:bg-slate-700 px-2.5 py-1 rounded-lg text-slate-200 font-bold cursor-pointer"
+                          className="text-[10px] bg-slate-100 hover:bg-slate-200 border border-slate-200 px-2.5 py-1 rounded-lg text-slate-700 font-bold cursor-pointer transition-colors"
                         >
                           {copiedId === `${duel.id}_pass` ? 'Copied' : 'Copy'}
                         </button>

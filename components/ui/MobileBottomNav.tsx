@@ -39,7 +39,7 @@ export default function MobileBottomNav() {
   ];
 
   return (
-    <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0B0F19]/95 border-t border-slate-800/90 backdrop-blur-2xl px-2 py-2 shadow-2xl">
+    <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 border-t border-slate-200/90 backdrop-blur-2xl px-2 py-1.5 shadow-xl shadow-slate-900/5">
       <div className="flex items-center justify-around">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -48,18 +48,18 @@ export default function MobileBottomNav() {
             <Link
               key={tab.name}
               href={tab.href}
-              className={`flex flex-col items-center py-1 px-2.5 rounded-2xl transition-all duration-200 cursor-pointer ${
+              className={`flex flex-col items-center py-1 px-2 rounded-2xl transition-all duration-200 cursor-pointer ${
                 isActive
                   ? 'scale-105'
-                  : 'hover:opacity-90'
+                  : 'hover:opacity-80'
               }`}
             >
               <div className={`relative p-1.5 rounded-xl transition-all ${
                 isActive 
-                  ? 'bg-gradient-to-r from-brand-red to-brand-orange text-white shadow-lg shadow-orange-500/30' 
-                  : 'bg-transparent text-slate-400'
+                  ? 'bg-gradient-to-r from-brand-red to-brand-orange text-white shadow-md shadow-orange-500/30' 
+                  : 'bg-transparent text-slate-500'
               }`}>
-                <Icon className={`w-5 h-5 ${tab.isLive ? 'text-red-400 animate-pulse' : ''}`} />
+                <Icon className={`w-4.5 h-4.5 ${tab.isLive ? 'text-brand-red animate-pulse' : ''}`} />
                 {tab.isLive && (
                   <span className="absolute top-0 right-0 flex h-2.5 w-2.5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
@@ -67,10 +67,10 @@ export default function MobileBottomNav() {
                   </span>
                 )}
               </div>
-              <span className={`text-[10px] font-heading uppercase font-bold mt-1 tracking-wider ${
+              <span className={`text-[10px] font-heading uppercase font-bold mt-0.5 tracking-wider ${
                 isActive 
-                  ? 'text-orange-400 font-black drop-shadow-xs' 
-                  : 'text-slate-400 font-semibold'
+                  ? 'text-brand-orange font-black drop-shadow-xs' 
+                  : 'text-slate-500 font-semibold'
               }`}>
                 {tab.name}
               </span>

@@ -4,9 +4,11 @@ import * as googleTTS from 'google-tts-api';
 function cleanBanglaText(rawText: string): string {
   return rawText
     .replace(/https?:\/\/[^\s]+/g, 'ওয়েবসাইট লিংক')
-    .replace(/[*#_`~>\[\]\(\)]/g, ' ')
+    .replace(/[*#_`~>\[\]\(\)\{\}\^\$\+\=\|\\]/g, ' ')
     .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
-    .replace(/[🎮🏆🔥💰⚡🎯🛡️💎🔑👉📌✨⚠️•]/g, '')
+    .replace(/[\u{2600}-\u{26FF}]/gu, '')
+    .replace(/[\u{2700}-\u{27BF}]/gu, '')
+    .replace(/[🎮🏆🔥💰⚡🎯🛡️💎🔑👉📌✨⚠️•🔔👑⚽🪖⚔️🎁]/g, '')
     .replace(/\s+/g, ' ')
     .trim();
 }

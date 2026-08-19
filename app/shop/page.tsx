@@ -102,40 +102,40 @@ export default function DiamondShopPage() {
   });
 
   return (
-    <div className="min-h-screen bg-[#06090e] text-slate-100 font-sans flex flex-col selection:bg-orange-500 selection:text-black">
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans flex flex-col selection:bg-orange-500 selection:text-white">
       <Navbar />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         
         {/* Hero Header */}
-        <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-cyan-950/40 via-blue-950/30 to-slate-900 border border-cyan-500/30 p-6 md:p-10 shadow-2xl shadow-cyan-950/30">
+        <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-cyan-50 via-white to-orange-50/40 border border-cyan-200/80 p-6 md:p-10 shadow-sm">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 text-xs font-bold">
-                <Diamond className="w-3.5 h-3.5 animate-pulse" />
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-100/70 border border-cyan-300 text-cyan-800 text-xs font-bold">
+                <Diamond className="w-3.5 h-3.5 animate-pulse text-cyan-600" />
                 INSTANT DIAMOND TOP-UP & REDEEM HUB
               </div>
-              <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight">
-                Free Fire <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-400 to-indigo-400">Diamonds Store</span>
+              <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight font-heading">
+                Free Fire <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600">Diamonds Store</span>
               </h1>
-              <p className="text-xs md:text-sm text-slate-300 max-w-xl leading-relaxed">
+              <p className="text-xs md:text-sm text-slate-600 max-w-xl leading-relaxed">
                 Use your tournament winning cash or BRK Coins to buy official Free Fire Diamonds, Weekly Memberships, and Level Up Passes with instant UID delivery!
               </p>
             </div>
 
             {currentUser && (
-              <div className="bg-slate-950/80 border border-cyan-500/30 rounded-2xl p-4 md:p-5 flex items-center gap-6 shadow-lg flex-shrink-0">
+              <div className="bg-white border border-slate-200 rounded-2xl p-4 md:p-5 flex items-center gap-6 shadow-sm flex-shrink-0">
                 <div className="space-y-0.5">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Your Wallet</span>
-                  <div className="text-xl md:text-2xl font-black text-emerald-400 flex items-center gap-1.5">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Your Wallet</span>
+                  <div className="text-xl md:text-2xl font-black text-emerald-600 flex items-center gap-1.5 font-heading">
                     <DollarSign className="w-5 h-5" />
                     ৳ {(currentUser.walletBalance || 0).toLocaleString()}
                   </div>
                 </div>
-                <div className="h-10 w-[1px] bg-slate-800" />
+                <div className="h-10 w-[1px] bg-slate-200" />
                 <div className="space-y-0.5">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Your Coins</span>
-                  <div className="text-xl md:text-2xl font-black text-amber-400 flex items-center gap-1.5">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Your Coins</span>
+                  <div className="text-xl md:text-2xl font-black text-amber-600 flex items-center gap-1.5 font-heading">
                     <Coins className="w-5 h-5" />
                     {(currentUser.coinBalance || 0).toLocaleString()}
                   </div>
@@ -156,10 +156,10 @@ export default function DiamondShopPage() {
             <button
               key={cat.id}
               onClick={() => setSelectedCategory(cat.id)}
-              className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all border ${
+              className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all border cursor-pointer ${
                 selectedCategory === cat.id
-                  ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-black border-cyan-400 shadow-lg shadow-cyan-500/20'
-                  : 'bg-slate-900/70 border-slate-800 text-slate-400 hover:text-white'
+                  ? 'bg-gradient-to-r from-brand-red to-brand-orange text-white border-brand-red shadow-sm'
+                  : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50'
               }`}
             >
               {cat.label}
@@ -172,48 +172,50 @@ export default function DiamondShopPage() {
           {filteredProducts.map((product) => (
             <div
               key={product.id}
-              className="p-6 bg-slate-900/70 border border-slate-800 hover:border-cyan-500/50 rounded-3xl space-y-5 transition-all shadow-xl hover:shadow-cyan-950/20 group relative overflow-hidden"
+              className="p-6 bg-white border border-slate-200 hover:border-brand-orange/60 rounded-3xl space-y-5 transition-all shadow-sm hover:shadow-lg group relative overflow-hidden flex flex-col justify-between"
             >
               {product.badge && (
-                <div className="absolute top-3 right-3 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-gradient-to-r from-amber-500 to-orange-500 text-black shadow-md">
+                <div className="absolute top-3 right-3 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-xs">
                   {product.badge}
                 </div>
               )}
 
               {/* Product Header */}
-              <div className="flex items-center gap-3">
-                <div className="text-3xl p-3 bg-slate-950 rounded-2xl border border-slate-800 group-hover:scale-110 transition-transform">
-                  {product.icon}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="text-3xl p-3 bg-slate-50 rounded-2xl border border-slate-200 group-hover:scale-110 transition-transform">
+                    {product.icon}
+                  </div>
+                  <div>
+                    <h3 className="font-black text-sm text-slate-900 leading-tight">{product.name}</h3>
+                    {product.bonusDiamonds && (
+                      <span className="text-[10px] text-amber-600 font-bold block">
+                        +{product.bonusDiamonds} Bonus 💎 Included
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-black text-sm text-white leading-tight">{product.name}</h3>
-                  {product.bonusDiamonds && (
-                    <span className="text-[10px] text-amber-400 font-bold block">
-                      +{product.bonusDiamonds} Bonus 💎 Included
-                    </span>
-                  )}
-                </div>
-              </div>
 
-              {/* Price Badges */}
-              <div className="bg-slate-950/70 p-3 rounded-2xl border border-slate-800/80 space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-400">Cash Price:</span>
-                  <strong className="text-emerald-400 font-black text-sm">৳ {product.priceBdt}</strong>
-                </div>
-                <div className="flex items-center justify-between text-xs border-t border-slate-800/60 pt-1.5">
-                  <span className="text-slate-400">Or Pay with Coins:</span>
-                  <strong className="text-amber-400 font-black flex items-center gap-1">
-                    <Coins className="w-3.5 h-3.5" />
-                    {product.priceCoins.toLocaleString()}
-                  </strong>
+                {/* Price Badges */}
+                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-500 font-semibold">Cash Price:</span>
+                    <strong className="text-emerald-600 font-black text-sm">৳ {product.priceBdt}</strong>
+                  </div>
+                  <div className="flex items-center justify-between text-xs border-t border-slate-200 pt-1.5">
+                    <span className="text-slate-500 font-semibold">Or Pay with Coins:</span>
+                    <strong className="text-amber-600 font-black flex items-center gap-1">
+                      <Coins className="w-3.5 h-3.5" />
+                      {product.priceCoins.toLocaleString()}
+                    </strong>
+                  </div>
                 </div>
               </div>
 
               {/* Buy CTA */}
               <button
                 onClick={() => setSelectedProduct(product)}
-                className="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-black font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2"
+                className="w-full py-3 bg-gradient-to-r from-brand-red to-brand-orange hover:brightness-110 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
               >
                 <ShoppingCart className="w-4 h-4" />
                 Buy / Redeem Now
@@ -226,78 +228,78 @@ export default function DiamondShopPage() {
 
       {/* Buy Modal */}
       {selectedProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
-          <div className="bg-slate-900 border border-cyan-500/40 rounded-3xl p-6 md:p-8 max-w-lg w-full space-y-6 shadow-2xl shadow-cyan-950/40">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white border-2 border-red-200/90 rounded-3xl p-6 md:p-8 max-w-lg w-full space-y-6 shadow-2xl text-slate-900">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div className="flex items-center gap-2">
-                <Diamond className="w-5 h-5 text-cyan-400" />
-                <h3 className="text-base font-black text-white">Purchase {selectedProduct.name}</h3>
+                <Diamond className="w-5 h-5 text-brand-orange" />
+                <h3 className="text-base font-black text-slate-900">Purchase {selectedProduct.name}</h3>
               </div>
-              <button onClick={() => setSelectedProduct(null)} className="text-slate-500 hover:text-white">✕</button>
+              <button onClick={() => setSelectedProduct(null)} className="text-slate-400 hover:text-slate-900 cursor-pointer">✕</button>
             </div>
 
             {orderSuccessMsg ? (
-              <div className="p-6 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-center space-y-3">
-                <Check className="w-10 h-10 text-emerald-400 mx-auto" />
-                <h4 className="font-bold text-emerald-400 text-sm">{orderSuccessMsg}</h4>
+              <div className="p-6 bg-emerald-50 border border-emerald-200 rounded-2xl text-center space-y-3">
+                <Check className="w-10 h-10 text-emerald-600 mx-auto" />
+                <h4 className="font-bold text-emerald-700 text-sm">{orderSuccessMsg}</h4>
               </div>
             ) : (
               <form onSubmit={handlePurchase} className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-300">Free Fire UID (Player ID)</label>
+                  <label className="text-xs font-bold text-slate-700">Free Fire UID (Player ID)</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. 192837465"
                     value={playerUid}
                     onChange={(e) => setPlayerUid(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono font-bold focus:outline-none focus:border-cyan-500"
+                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 font-mono font-bold focus:outline-none focus:border-brand-orange focus:bg-white"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-300">Payment Option</label>
+                  <label className="text-xs font-bold text-slate-700">Payment Option</label>
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       type="button"
                       onClick={() => setPaymentMethod('WALLET')}
-                      className={`p-3 rounded-xl border text-xs font-bold transition-all text-left ${
+                      className={`p-3 rounded-xl border text-xs font-bold transition-all text-left cursor-pointer ${
                         paymentMethod === 'WALLET'
-                          ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400'
-                          : 'bg-slate-800 border-slate-700 text-slate-400'
+                          ? 'bg-emerald-50 border-emerald-400 text-emerald-700 shadow-xs'
+                          : 'bg-slate-50 border-slate-200 text-slate-600'
                       }`}
                     >
-                      <div className="text-[10px] text-slate-400">Wallet Balance</div>
+                      <div className="text-[10px] text-slate-500 font-semibold">Wallet Balance</div>
                       <div className="text-sm font-black">৳ {selectedProduct.priceBdt}</div>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => setPaymentMethod('COINS')}
-                      className={`p-3 rounded-xl border text-xs font-bold transition-all text-left ${
+                      className={`p-3 rounded-xl border text-xs font-bold transition-all text-left cursor-pointer ${
                         paymentMethod === 'COINS'
-                          ? 'bg-amber-500/20 border-amber-500 text-amber-400'
-                          : 'bg-slate-800 border-slate-700 text-slate-400'
+                          ? 'bg-amber-50 border-amber-400 text-amber-800 shadow-xs'
+                          : 'bg-slate-50 border-slate-200 text-slate-600'
                       }`}
                     >
-                      <div className="text-[10px] text-slate-400">BRK Coins</div>
+                      <div className="text-[10px] text-slate-500 font-semibold">BRK Coins</div>
                       <div className="text-sm font-black">{selectedProduct.priceCoins.toLocaleString()} 🪙</div>
                     </button>
                   </div>
                 </div>
 
-                <div className="pt-3 flex items-center justify-end gap-3 border-t border-slate-800">
+                <div className="pt-3 flex items-center justify-end gap-3 border-t border-slate-100">
                   <button
                     type="button"
                     onClick={() => setSelectedProduct(null)}
-                    className="px-4 py-2 bg-slate-800 text-slate-300 text-xs font-bold rounded-xl"
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isPurchasing || !playerUid.trim()}
-                    className="px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-cyan-500/25 flex items-center gap-2 disabled:opacity-50"
+                    className="px-5 py-2.5 bg-gradient-to-r from-brand-red to-brand-orange hover:brightness-110 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                   >
                     {isPurchasing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                     Confirm Top-Up

@@ -141,33 +141,34 @@ export default function HomePage() {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
 
-          {/* Referral Rewards & Monthly Event Crusade Banner (Unified in Home Hero Section) */}
-          <div className="mt-12 rounded-3xl p-5 sm:p-7 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white border-2 border-orange-500/40 shadow-xl shadow-orange-500/10 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-brand-orange/15 rounded-full blur-3xl pointer-events-none"></div>
+          {/* Referral Rewards & Monthly Event Crusade Banner (Unified in Home Hero Section - Whitish & Light Red Esports Theme) */}
+          <div className="mt-12 rounded-3xl p-5 sm:p-7 bg-gradient-to-br from-white via-red-50/30 to-orange-50/40 text-slate-900 border-2 border-red-200/90 shadow-xl shadow-red-500/5 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-brand-orange/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div className="absolute -bottom-10 -left-10 w-80 h-80 bg-brand-red/5 rounded-full blur-3xl pointer-events-none"></div>
 
             {/* Top Bar: Title + Live Countdown + Actions */}
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-5 border-b border-slate-800 relative z-10">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-5 border-b border-slate-200/90 relative z-10">
               <div className="space-y-1.5">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[10px] font-black uppercase px-2.5 py-1 rounded-full bg-brand-red text-white tracking-widest inline-flex items-center gap-1 shadow-sm">
+                  <span className="text-[10px] font-black uppercase px-2.5 py-1 rounded-full bg-gradient-to-r from-brand-red to-brand-orange text-white tracking-widest inline-flex items-center gap-1 shadow-sm">
                     <Flame className="w-3 h-3 animate-pulse" />
                     <span>{siteSettings.ref_banner_badge || 'MONTHLY EVENT'}</span>
                   </span>
 
                   {/* High-Contrast Resets-in Pill */}
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/90 border border-orange-500/40 text-orange-400 text-xs font-mono font-bold shadow-sm">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-red-200/80 text-orange-600 text-xs font-mono font-bold shadow-xs">
                     <Timer className="w-3.5 h-3.5 text-brand-orange animate-spin" />
-                    <span className="text-[10px] text-slate-300 font-sans uppercase font-bold">{isBangla ? 'রিসেট:' : 'RESETS IN:'}</span>
-                    <span className="text-white font-black">
-                      {timeLeft.days}d {String(timeLeft.hours).padStart(2, '0')}h {String(timeLeft.minutes).padStart(2, '0')}m <span className="text-amber-400">{String(timeLeft.seconds).padStart(2, '0')}s</span>
+                    <span className="text-[10px] text-slate-500 font-sans uppercase font-bold">{isBangla ? 'রিসেট:' : 'RESETS IN:'}</span>
+                    <span className="text-slate-900 font-black">
+                      {timeLeft.days}d {String(timeLeft.hours).padStart(2, '0')}h {String(timeLeft.minutes).padStart(2, '0')}m <span className="text-brand-orange">{String(timeLeft.seconds).padStart(2, '0')}s</span>
                     </span>
                   </div>
                 </div>
 
-                <h2 className="font-heading font-black text-xl sm:text-2xl text-white leading-tight">
+                <h2 className="font-heading font-black text-xl sm:text-2xl text-slate-900 leading-tight">
                   {siteSettings.ref_banner_title || 'REFERRAL REWARDS CRUSADE'}
                 </h2>
-                <p className="text-xs text-slate-300 max-w-xl">
+                <p className="text-xs text-slate-600 max-w-xl">
                   {siteSettings.ref_banner_desc || 'Invite friends to Black Rock Arena. Rewards credit to your Promo Wallet to join tournaments for free!'}
                 </p>
               </div>
@@ -184,9 +185,9 @@ export default function HomePage() {
 
                 <Link
                   href={siteSettings.ref_btn_2_link || '/lfg'}
-                  className="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-heading font-bold text-xs border border-slate-700 hover:border-slate-600 transition-all flex items-center justify-center space-x-1.5 whitespace-nowrap cursor-pointer shadow-sm"
+                  className="px-4 py-3 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-heading font-bold text-xs border border-slate-200 hover:border-slate-300 transition-all flex items-center justify-center space-x-1.5 whitespace-nowrap cursor-pointer shadow-xs"
                 >
-                  <Users className="w-4 h-4 text-brand-cyan" />
+                  <Users className="w-4 h-4 text-brand-orange" />
                   <span>{siteSettings.ref_btn_2_text || 'FIND SQUAD (LFG)'}</span>
                 </Link>
               </div>
@@ -194,28 +195,28 @@ export default function HomePage() {
 
             {/* Compact Milestone Stages Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-5 relative z-10">
-              <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/80 shadow-inner space-y-1 text-center hover:border-orange-500/40 transition-colors">
-                <div className="text-[10px] text-slate-400 font-bold uppercase">10 Referrals</div>
-                <div className="text-lg font-heading font-black text-yellow-400">50 Coins 🪙</div>
-                <div className="text-[10px] text-slate-500 font-mono">Stage 1 Reward</div>
+              <div className="p-3.5 rounded-2xl bg-white/90 border border-slate-200/90 shadow-xs space-y-1 text-center hover:border-brand-orange/40 transition-colors">
+                <div className="text-[10px] text-slate-500 font-bold uppercase">10 Referrals</div>
+                <div className="text-lg font-heading font-black text-amber-600">50 Coins 🪙</div>
+                <div className="text-[10px] text-slate-400 font-mono">Stage 1 Reward</div>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/80 shadow-inner space-y-1 text-center hover:border-orange-500/40 transition-colors">
-                <div className="text-[10px] text-slate-400 font-bold uppercase">50 Referrals</div>
-                <div className="text-lg font-heading font-black text-yellow-400">100 Coins 🪙</div>
-                <div className="text-[10px] text-slate-500 font-mono">Stage 2 Reward</div>
+              <div className="p-3.5 rounded-2xl bg-white/90 border border-slate-200/90 shadow-xs space-y-1 text-center hover:border-brand-orange/40 transition-colors">
+                <div className="text-[10px] text-slate-500 font-bold uppercase">50 Referrals</div>
+                <div className="text-lg font-heading font-black text-amber-600">100 Coins 🪙</div>
+                <div className="text-[10px] text-slate-400 font-mono">Stage 2 Reward</div>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/80 shadow-inner space-y-1 text-center hover:border-orange-500/40 transition-colors">
-                <div className="text-[10px] text-slate-400 font-bold uppercase">100 Referrals</div>
-                <div className="text-lg font-heading font-black text-yellow-400">200 Coins 🪙</div>
-                <div className="text-[10px] text-slate-500 font-mono">Stage 3 Reward</div>
+              <div className="p-3.5 rounded-2xl bg-white/90 border border-slate-200/90 shadow-xs space-y-1 text-center hover:border-brand-orange/40 transition-colors">
+                <div className="text-[10px] text-slate-500 font-bold uppercase">100 Referrals</div>
+                <div className="text-lg font-heading font-black text-amber-600">200 Coins 🪙</div>
+                <div className="text-[10px] text-slate-400 font-mono">Stage 3 Reward</div>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-gradient-to-tr from-brand-red/30 to-brand-orange/30 border-2 border-brand-orange/70 shadow-neon-orange space-y-1 text-center">
-                <div className="text-[10px] text-brand-gold font-bold uppercase">300 Referrals</div>
-                <div className="text-lg font-heading font-black text-white">৳ 500 CASH 🔥</div>
-                <div className="text-[10px] text-brand-orange font-mono font-bold">Grand Prize</div>
+              <div className="p-3.5 rounded-2xl bg-gradient-to-tr from-brand-red/10 to-brand-orange/15 border-2 border-brand-orange/60 shadow-xs space-y-1 text-center">
+                <div className="text-[10px] text-brand-orange font-bold uppercase">300 Referrals</div>
+                <div className="text-lg font-heading font-black text-brand-red">৳ 500 CASH 🔥</div>
+                <div className="text-[10px] text-orange-600 font-mono font-bold">Grand Prize</div>
               </div>
             </div>
 

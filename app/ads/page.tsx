@@ -369,41 +369,41 @@ export default function RewardsHubPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#06090e] text-slate-100 font-sans flex flex-col selection:bg-orange-500 selection:text-black">
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans flex flex-col selection:bg-orange-500 selection:text-white">
       <Navbar />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         
         {/* Hero Header */}
-        <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-orange-950/40 via-amber-950/30 to-slate-900 border border-orange-500/30 p-6 md:p-10 shadow-2xl shadow-orange-950/30">
+        <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-white via-red-50/25 to-orange-50/35 border border-red-200/80 p-6 md:p-10 shadow-sm">
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/20 border border-orange-500/30 text-orange-400 text-xs font-bold">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-brand-orange text-xs font-bold">
                 <Sparkles className="w-3.5 h-3.5" />
                 FREE REWARDS & CASH HUB
               </div>
-              <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight">
-                Earn Rewards & <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-400 to-yellow-400">Lottery Wheel</span>
+              <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight font-heading">
+                Earn Rewards & <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-red via-brand-orange to-amber-500">Lottery Wheel</span>
               </h1>
-              <p className="text-xs md:text-sm text-slate-300 max-w-xl leading-relaxed">
+              <p className="text-xs md:text-sm text-slate-600 max-w-xl leading-relaxed">
                 Watch video ads to earn BRK Coins, spin the high-reward lottery wheel for real bKash cash & diamonds, or convert coins directly to wallet balance.
               </p>
             </div>
 
             {/* User Coin & Balance Widget */}
             {currentUser && (
-              <div className="bg-slate-950/80 border border-orange-500/30 rounded-2xl p-4 md:p-5 flex items-center gap-6 shadow-lg flex-shrink-0">
+              <div className="bg-white border border-slate-200 rounded-2xl p-4 md:p-5 flex items-center gap-6 shadow-sm flex-shrink-0">
                 <div className="space-y-0.5">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Your Coins</span>
-                  <div className="text-xl md:text-2xl font-black text-amber-400 flex items-center gap-1.5">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Your Coins</span>
+                  <div className="text-xl md:text-2xl font-black text-amber-600 flex items-center gap-1.5 font-heading">
                     <Coins className="w-5 h-5" />
                     {(currentUser.coinBalance || 0).toLocaleString()}
                   </div>
                 </div>
-                <div className="h-10 w-[1px] bg-slate-800" />
+                <div className="h-10 w-[1px] bg-slate-200" />
                 <div className="space-y-0.5">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Real Cash</span>
-                  <div className="text-xl md:text-2xl font-black text-emerald-400 flex items-center gap-1.5">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Real Cash</span>
+                  <div className="text-xl md:text-2xl font-black text-emerald-600 flex items-center gap-1.5 font-heading">
                     <DollarSign className="w-5 h-5" />
                     ৳ {(currentUser.walletBalance || 0).toLocaleString()}
                   </div>
@@ -417,13 +417,13 @@ export default function RewardsHubPage() {
         <DailyQuests />
 
         {/* Tab Navigation */}
-        <div className="flex flex-wrap items-center justify-center sm:justify-start bg-slate-900/80 p-1.5 rounded-2xl border border-slate-800 gap-2 max-w-lg mx-auto sm:mx-0">
+        <div className="flex flex-wrap items-center justify-center sm:justify-start bg-white p-1.5 rounded-2xl border border-slate-200 gap-2 max-w-lg mx-auto sm:mx-0 shadow-2xs">
           <button
             onClick={() => setActiveTab('WATCH_EARN')}
-            className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-xs font-bold transition-all ${
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'WATCH_EARN'
-                ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-black shadow-lg shadow-orange-500/25 font-black'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-gradient-to-r from-brand-red to-brand-orange text-white shadow-md font-black'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
             }`}
           >
             <PlaySquare className="w-4 h-4" />
@@ -431,10 +431,10 @@ export default function RewardsHubPage() {
           </button>
           <button
             onClick={() => setActiveTab('LUCKY_SPIN')}
-            className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-xs font-bold transition-all ${
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'LUCKY_SPIN'
-                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/25 font-black'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md font-black'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
             }`}
           >
             <Gift className="w-4 h-4" />
@@ -442,10 +442,10 @@ export default function RewardsHubPage() {
           </button>
           <button
             onClick={() => setActiveTab('EXCHANGE')}
-            className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-xs font-bold transition-all ${
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'EXCHANGE'
-                ? 'bg-slate-800 text-white border border-slate-700 font-black'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-slate-800 text-white shadow-md font-black'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
             }`}
           >
             <RotateCw className="w-4 h-4" />
@@ -459,16 +459,16 @@ export default function RewardsHubPage() {
             <div className="lg:col-span-8 space-y-6">
               
               {/* Video Player Card */}
-              <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 space-y-4 shadow-2xl overflow-hidden">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="bg-white border border-slate-200 rounded-3xl p-6 space-y-4 shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
-                    <h3 className="font-black text-sm text-white">
+                    <h3 className="font-black text-sm text-slate-900">
                       {currentAd?.title || 'Free Fire Sponsored Tournament Ad'}
                     </h3>
                   </div>
                   {currentAd && (
-                    <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400 font-bold flex items-center gap-1">
+                    <span className="text-xs px-2.5 py-0.5 rounded-full bg-orange-50 border border-orange-200 text-brand-orange font-bold flex items-center gap-1">
                       <Coins className="w-3.5 h-3.5" />
                       +{currentAd.rewardAmount} Coins
                     </span>
@@ -476,17 +476,17 @@ export default function RewardsHubPage() {
                 </div>
 
                 {/* Video Frame */}
-                <div className="relative aspect-video rounded-2xl overflow-hidden bg-black border border-slate-800 shadow-inner flex items-center justify-center">
+                <div className="relative aspect-video rounded-2xl overflow-hidden bg-slate-950 border border-slate-200 shadow-inner flex items-center justify-center">
                   {loadingAds ? (
                     <div className="text-center text-slate-400 space-y-2">
-                      <Loader2 className="w-8 h-8 animate-spin mx-auto text-orange-400" />
+                      <Loader2 className="w-8 h-8 animate-spin mx-auto text-brand-orange" />
                       <p className="text-xs">Loading video ads stream...</p>
                     </div>
                   ) : !adsEnabled || activeAds.length === 0 ? (
                     <div className="text-center text-slate-400 p-8 space-y-3">
                       <VideoOff className="w-12 h-12 mx-auto text-slate-600" />
                       <h4 className="font-bold text-white text-sm">No Video Ads Available</h4>
-                      <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                      <p className="text-xs text-slate-400 max-w-sm mx-auto">
                         Check back in a few minutes or spin the Lottery Wheel to claim rewards!
                       </p>
                     </div>
@@ -494,7 +494,7 @@ export default function RewardsHubPage() {
                     <div className="text-center text-slate-300 p-8 space-y-3">
                       <CheckCircle2 className="w-12 h-12 mx-auto text-emerald-400" />
                       <h4 className="font-bold text-white text-base">You've Watched All Ads!</h4>
-                      <p className="text-xs text-slate-400">Awesome job! Come back tomorrow for fresh video ad rewards.</p>
+                      <p className="text-xs text-slate-300">Awesome job! Come back tomorrow for fresh video ad rewards.</p>
                     </div>
                   ) : (
                     <div id="yt-ad-player" className="w-full h-full" />
@@ -503,19 +503,19 @@ export default function RewardsHubPage() {
 
                 {/* Watch Progress & Claim Bar */}
                 {currentAd && watchStatus !== 'FINISHED_ALL' && (
-                  <div className="p-4 bg-slate-950/80 border border-slate-800 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
-                      <div className="p-2.5 rounded-xl bg-orange-500/20 text-orange-400">
+                      <div className="p-2.5 rounded-xl bg-orange-100 text-brand-orange">
                         <Clock className="w-5 h-5" />
                       </div>
                       <div>
-                        <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                        <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
                           {watchStatus === 'COMPLETED' || watchStatus === 'CLAIMED' ? (
-                            <span className="text-emerald-400 flex items-center gap-1">
+                            <span className="text-emerald-600 flex items-center gap-1">
                               <CheckCircle2 className="w-4 h-4" /> Watch requirement completed!
                             </span>
                           ) : (
-                            <span>Watch countdown: <strong className="text-amber-400">{watchSecondsRemaining}s</strong></span>
+                            <span>Watch countdown: <strong className="text-brand-orange">{watchSecondsRemaining}s</strong></span>
                           )}
                         </div>
                         <p className="text-[11px] text-slate-500">
@@ -528,7 +528,7 @@ export default function RewardsHubPage() {
                     <button
                       disabled={watchStatus !== 'COMPLETED' || isProcessingClaim || !currentUser}
                       onClick={handleClaimAdReward}
-                      className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-black font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-md disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
                     >
                       {isProcessingClaim ? (
                         <>
@@ -551,7 +551,7 @@ export default function RewardsHubPage() {
                 )}
 
                 {errorMsg && (
-                  <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-400 font-bold">
+                  <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-600 font-bold">
                     {errorMsg}
                   </div>
                 )}
@@ -560,32 +560,32 @@ export default function RewardsHubPage() {
 
             {/* Right Guide Card */}
             <div className="lg:col-span-4 space-y-6">
-              <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 space-y-4">
-                <h3 className="font-black text-sm text-white flex items-center gap-2 border-b border-slate-800 pb-3">
-                  <ShieldCheck className="w-4 h-4 text-orange-400" />
+              <div className="bg-white border border-slate-200 rounded-3xl p-6 space-y-4 shadow-sm">
+                <h3 className="font-black text-sm text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3 font-heading">
+                  <ShieldCheck className="w-4 h-4 text-brand-orange" />
                   Watch & Earn Rules
                 </h3>
-                <ul className="space-y-3 text-xs text-slate-300 leading-relaxed">
+                <ul className="space-y-3 text-xs text-slate-600 leading-relaxed">
                   <li className="flex items-start gap-2">
-                    <span className="text-orange-400 font-bold mt-0.5">•</span>
+                    <span className="text-brand-orange font-bold mt-0.5">•</span>
                     <span>Watch the entire video ad without switching tabs or skipping.</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-orange-400 font-bold mt-0.5">•</span>
+                    <span className="text-brand-orange font-bold mt-0.5">•</span>
                     <span>Each completed ad grants instant BRK coins directly to your balance.</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-orange-400 font-bold mt-0.5">•</span>
-                    <span>Daily limit is <strong>{dailyAdLimit} ads</strong> per account to ensure fair play.</span>
+                    <span className="text-brand-orange font-bold mt-0.5">•</span>
+                    <span>Daily limit is <strong className="text-slate-900">{dailyAdLimit} ads</strong> per account to ensure fair play.</span>
                   </li>
                 </ul>
 
                 <div className="pt-2">
                   <button
                     onClick={() => setActiveTab('LUCKY_SPIN')}
-                    className="w-full py-3 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/40 text-purple-300 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2"
+                    className="w-full py-3 bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    <Sparkles className="w-4 h-4 text-purple-400" />
+                    <Sparkles className="w-4 h-4 text-purple-600" />
                     Use Coins in Lottery Wheel
                   </button>
                 </div>
@@ -599,16 +599,16 @@ export default function RewardsHubPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             
             {/* Left: Interactive Wheel */}
-            <div className="lg:col-span-7 flex flex-col items-center justify-center p-6 bg-slate-900/60 border border-purple-500/30 rounded-3xl shadow-2xl shadow-purple-950/20 space-y-6">
+            <div className="lg:col-span-7 flex flex-col items-center justify-center p-6 bg-white border border-purple-200 rounded-3xl shadow-sm space-y-6">
               
               <div className="text-center space-y-1">
-                <span className="text-xs font-bold text-purple-400 uppercase tracking-widest flex items-center justify-center gap-1.5">
+                <span className="text-xs font-bold text-purple-600 uppercase tracking-widest flex items-center justify-center gap-1.5">
                   <Sparkles className="w-4 h-4" />
                   High-Reward Lucky Draw
                 </span>
-                <h2 className="text-2xl font-black text-white">Spin & Win Real Cash & Diamonds</h2>
-                <p className="text-xs text-slate-400">
-                  Cost per spin: <strong className="text-amber-400">{spinCoinCost} Coins</strong>
+                <h2 className="text-2xl font-black text-slate-900 font-heading">Spin & Win Real Cash & Diamonds</h2>
+                <p className="text-xs text-slate-600">
+                  Cost per spin: <strong className="text-amber-600">{spinCoinCost} Coins</strong>
                 </p>
               </div>
 
@@ -622,7 +622,7 @@ export default function RewardsHubPage() {
 
                 {/* Rotating SVG Wheel */}
                 <div
-                  className="w-full h-full rounded-full border-4 border-purple-500/50 shadow-[0_0_50px_rgba(168,85,247,0.3)] transition-transform duration-[5000ms] ease-out relative overflow-hidden"
+                  className="w-full h-full rounded-full border-4 border-purple-400/80 shadow-xl transition-transform duration-[5000ms] ease-out relative overflow-hidden"
                   style={{ transform: `rotate(${wheelRotation}deg)` }}
                 >
                   <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
@@ -652,7 +652,7 @@ export default function RewardsHubPage() {
                           <path
                             d={pathData}
                             fill={prize.color || (idx % 2 === 0 ? '#7C3AED' : '#4C1D95')}
-                            stroke="#0f172a"
+                            stroke="#ffffff"
                             strokeWidth="0.8"
                           />
                           <text
@@ -677,7 +677,7 @@ export default function RewardsHubPage() {
                 <button
                   disabled={isSpinning || !isLotteryActive || !currentUser}
                   onClick={handleSpinWheel}
-                  className="absolute z-20 w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-tr from-purple-600 via-indigo-600 to-purple-500 text-white font-black text-xs uppercase tracking-wider shadow-2xl shadow-purple-500/50 border-4 border-slate-950 flex flex-col items-center justify-center transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="absolute z-20 w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-tr from-purple-600 via-indigo-600 to-purple-500 text-white font-black text-xs uppercase tracking-wider shadow-xl border-4 border-white flex flex-col items-center justify-center transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   <RotateCw className={`w-5 h-5 mb-0.5 ${isSpinning ? 'animate-spin' : ''}`} />
                   <span>{isSpinning ? 'SPINNING' : 'SPIN'}</span>
@@ -688,7 +688,7 @@ export default function RewardsHubPage() {
               <button
                 disabled={isSpinning || !isLotteryActive || !currentUser}
                 onClick={handleSpinWheel}
-                className="w-full sm:w-80 py-4 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-sm uppercase tracking-wider rounded-2xl transition-all shadow-xl shadow-purple-500/30 disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full sm:w-80 py-4 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-sm uppercase tracking-wider rounded-2xl transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Gift className="w-5 h-5" />
                 Spin Wheel ({spinCoinCost} Coins)
@@ -697,9 +697,9 @@ export default function RewardsHubPage() {
 
             {/* Right: Prizes Table Showcase */}
             <div className="lg:col-span-5 space-y-6">
-              <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 space-y-4">
-                <h3 className="font-black text-base text-white flex items-center gap-2 border-b border-slate-800 pb-3">
-                  <Award className="w-5 h-5 text-purple-400" />
+              <div className="bg-white border border-slate-200 rounded-3xl p-6 space-y-4 shadow-sm">
+                <h3 className="font-black text-base text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3 font-heading">
+                  <Award className="w-5 h-5 text-purple-600" />
                   Available Lottery Prizes
                 </h3>
 
@@ -707,29 +707,29 @@ export default function RewardsHubPage() {
                   {lotteryRewards.map((reward, index) => (
                     <div
                       key={reward.id}
-                      className="p-3 bg-slate-950/70 border border-slate-800 rounded-xl flex items-center justify-between hover:border-purple-500/40 transition-all"
+                      className="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between hover:border-purple-300 transition-all"
                     >
                       <div className="flex items-center gap-3">
                         <span 
-                          className="w-7 h-7 rounded-lg text-black font-black text-xs flex items-center justify-center shadow-md font-mono"
+                          className="w-7 h-7 rounded-lg text-white font-black text-xs flex items-center justify-center shadow-2xs font-mono"
                           style={{ backgroundColor: reward.color || '#F59E0B' }}
                         >
                           #{index + 1}
                         </span>
                         <div>
-                          <h4 className="text-xs font-bold text-white">{reward.label}</h4>
-                          <span className="text-[10px] text-slate-400 uppercase font-mono">
+                          <h4 className="text-xs font-bold text-slate-900">{reward.label}</h4>
+                          <span className="text-[10px] text-slate-500 uppercase font-mono">
                             Type: {reward.type}
                           </span>
                         </div>
                       </div>
 
                       <div className="text-right">
-                        <span className="text-xs font-black text-purple-300 block">
+                        <span className="text-xs font-black text-purple-700 block">
                           {reward.probabilityPercent}% Chance
                         </span>
                         {reward.maxWinnersLimit && (
-                          <span className="text-[10px] text-slate-500 block">
+                          <span className="text-[10px] text-slate-400 block">
                             Left: {Math.max(0, reward.maxWinnersLimit - (reward.currentWonCount || 0))}
                           </span>
                         )}
@@ -744,29 +744,29 @@ export default function RewardsHubPage() {
 
         {/* TAB 3: COIN EXCHANGE */}
         {activeTab === 'EXCHANGE' && (
-          <div className="max-w-xl mx-auto bg-slate-900/60 border border-slate-800 rounded-3xl p-6 md:p-8 space-y-6 shadow-2xl">
-            <div className="border-b border-slate-800 pb-4 text-center space-y-1">
-              <h2 className="text-2xl font-black text-white flex items-center justify-center gap-2">
-                <Coins className="w-6 h-6 text-amber-400" />
+          <div className="max-w-xl mx-auto bg-white border border-slate-200 rounded-3xl p-6 md:p-8 space-y-6 shadow-sm">
+            <div className="border-b border-slate-100 pb-4 text-center space-y-1">
+              <h2 className="text-2xl font-black text-slate-900 flex items-center justify-center gap-2 font-heading">
+                <Coins className="w-6 h-6 text-amber-500" />
                 Coin to Real Cash Converter
               </h2>
-              <p className="text-xs text-slate-400">
-                Exchange rate: <strong className="text-white">{coinsToBdtRatio} Coins = ৳1 Real Wallet Cash</strong>
+              <p className="text-xs text-slate-600">
+                Exchange rate: <strong className="text-slate-900">{coinsToBdtRatio} Coins = ৳1 Real Wallet Cash</strong>
               </p>
             </div>
 
             {convertSuccessMsg && (
-              <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-emerald-400 text-xs font-bold flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-700 text-xs font-bold flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-emerald-600" />
                 {convertSuccessMsg}
               </div>
             )}
 
             <form onSubmit={handleConvertCoins} className="space-y-4">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex justify-between">
+                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex justify-between">
                   <span>Coins to Convert</span>
-                  <span className="text-amber-400">Available: {(currentUser?.coinBalance || 0)} Coins</span>
+                  <span className="text-amber-600 font-extrabold">Available: {(currentUser?.coinBalance || 0)} Coins</span>
                 </label>
                 <input
                   type="number"
@@ -775,14 +775,14 @@ export default function RewardsHubPage() {
                   max={currentUser?.coinBalance || 5000}
                   value={convertCoins}
                   onChange={(e) => setConvertCoins(parseInt(e.target.value, 10) || 50)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-500 font-bold"
+                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 focus:outline-none focus:border-amber-500 font-bold"
                 />
               </div>
 
               {/* Conversion Preview */}
-              <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl flex items-center justify-between text-xs">
-                <span className="text-slate-400">You Will Receive:</span>
-                <span className="text-lg font-black text-emerald-400 flex items-center gap-1">
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between text-xs">
+                <span className="text-slate-600 font-semibold">You Will Receive:</span>
+                <span className="text-lg font-black text-emerald-600 flex items-center gap-1 font-heading">
                   ৳ {(convertCoins / coinsToBdtRatio).toFixed(2)} Real Cash
                 </span>
               </div>
@@ -790,7 +790,7 @@ export default function RewardsHubPage() {
               <button
                 type="submit"
                 disabled={isConverting || !currentUser || convertCoins > (currentUser.coinBalance || 0)}
-                className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-black font-black text-xs uppercase tracking-wider rounded-2xl transition-all shadow-xl shadow-emerald-500/20 disabled:opacity-40 flex items-center justify-center gap-2"
+                className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-xs uppercase tracking-wider rounded-2xl transition-all shadow-md disabled:opacity-40 flex items-center justify-center gap-2 cursor-pointer"
               >
                 {isConverting ? (
                   <>
@@ -812,16 +812,16 @@ export default function RewardsHubPage() {
 
       {/* Lottery Winning Modal */}
       {showSpinWinModal && spinResult && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
-          <div className="bg-slate-900 border border-purple-500/40 rounded-3xl p-6 md:p-8 max-w-md w-full space-y-6 text-center shadow-2xl shadow-purple-950/40">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-purple-600 to-amber-500 text-white flex items-center justify-center mx-auto shadow-lg shadow-purple-500/30">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white border-2 border-purple-200 rounded-3xl p-6 md:p-8 max-w-md w-full space-y-6 text-center shadow-2xl text-slate-900">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-purple-600 to-amber-500 text-white flex items-center justify-center mx-auto shadow-md">
               <Gift className="w-8 h-8 animate-bounce" />
             </div>
 
             <div className="space-y-2">
-              <span className="text-xs font-bold uppercase tracking-widest text-purple-400">Lottery Wheel Result</span>
-              <h3 className="text-2xl font-black text-white">{spinResult.label}</h3>
-              <p className="text-xs text-slate-300">
+              <span className="text-xs font-bold uppercase tracking-widest text-purple-600">Lottery Wheel Result</span>
+              <h3 className="text-2xl font-black text-slate-900 font-heading">{spinResult.label}</h3>
+              <p className="text-xs text-slate-600">
                 {spinResult.value > 0 
                   ? 'Your reward has been instantly credited to your platform account!' 
                   : 'Better luck next time! Keep spinning to unlock massive cash prizes.'}
@@ -830,7 +830,7 @@ export default function RewardsHubPage() {
 
             <button
               onClick={() => setShowSpinWinModal(false)}
-              className="w-full py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs uppercase tracking-wider rounded-2xl transition-all shadow-lg shadow-purple-500/25"
+              className="w-full py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs uppercase tracking-wider rounded-2xl transition-all shadow-md cursor-pointer"
             >
               Collect & Continue
             </button>
