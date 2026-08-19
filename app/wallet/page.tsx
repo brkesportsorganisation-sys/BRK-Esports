@@ -469,15 +469,15 @@ export default function WalletPage() {
 
             {/* Filter Tabs */}
             <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl text-xs font-bold">
-              {(['ALL', 'DEPOSITS', 'WITHDRAWALS', 'EXCHANGES'] as const).map((tab) => (
+              {(['ALL', 'DEPOSITS', 'WITHDRAWALS'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-3 py-1.5 rounded-xl transition-all ${
+                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
                     activeTab === tab ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-900'
                   }`}
                 >
-                  {tab === 'ALL' ? 'All' : tab === 'DEPOSITS' ? 'Deposits' : tab === 'WITHDRAWALS' ? 'Cashouts' : 'Exchanges'}
+                  {tab === 'ALL' ? 'All' : tab === 'DEPOSITS' ? 'Deposits' : 'Cashouts'}
                 </button>
               ))}
             </div>
