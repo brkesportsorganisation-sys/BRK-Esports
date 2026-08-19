@@ -134,8 +134,33 @@ export default function AdminShell({ children }: AdminShellProps) {
 
   const handleLogout = async () => {
     await fetch('/api/admin/logout', { method: 'POST' });
-    router.replace('/admin/login');
+    router.replace('/admin/login?reason=logout');
   };
+
+  // 10-Minute Inactivity Auto-Logout Tracker
+  useEffect(() => {
+    if (pathname === '/admin/login') return;
+
+    let inactivityTimer: NodeJS.Timeout;
+    const INACTIVITY_LIMIT_MS = 10 * 60 * 1000; // 10 minutes
+
+    const resetInactivity = () => {
+      clearTimeout(inactivityTimer);
+      inactivityTimer = setTimeout(() => {
+        void handleLogout();
+      }, INACTIVITY_LIMIT_MS);
+    };
+
+    resetInactivity();
+
+    const activityEvents = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
+    activityEvents.forEach(evt => window.addEventListener(evt, resetInactivity));
+
+    return () => {
+      clearTimeout(inactivityTimer);
+      activityEvents.forEach(evt => window.removeEventListener(evt, resetInactivity));
+    };
+  }, [pathname]);
 
   if (pathname === '/admin/login') {
     return <>{children}</>;

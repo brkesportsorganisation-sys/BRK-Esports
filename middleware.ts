@@ -58,11 +58,27 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // 3. Admin Route Authentication Enforcement
+  // 3. Admin Route Authentication Enforcement (10-Minute TTL & Session Protection)
   const adminSession = request.cookies.get('admin_session')?.value;
   if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
     if (!adminSession) {
       return NextResponse.redirect(new URL('/admin/login', request.url));
+    }
+    try {
+      const [encoded] = adminSession.split('.');
+      if (encoded) {
+        const jsonStr = Buffer.from(encoded, 'base64url').toString('utf-8');
+        const payload = JSON.parse(jsonStr);
+        if (payload.exp && payload.exp * 1000 < Date.now()) {
+          const response = NextResponse.redirect(new URL('/admin/login?reason=expired', request.url));
+          response.cookies.set('admin_session', '', { maxAge: 0, path: '/' });
+          return response;
+        }
+      }
+    } catch {
+      const response = NextResponse.redirect(new URL('/admin/login', request.url));
+      response.cookies.set('admin_session', '', { maxAge: 0, path: '/' });
+      return response;
     }
   }
 

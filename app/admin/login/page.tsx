@@ -16,8 +16,19 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const reason = params.get('reason');
+      if (reason === 'expired' || reason === 'session_expired' || reason === 'timeout') {
+        setError('🔒 সিকিউরিটি অ্যালার্ট: ১০ মিনিট নিষ্ক্রিয়তা বা ব্রাউজার বন্ধের কারণে সিস্টেম থেকে অটো-লগআউট করা হয়েছে। পুনরায় লগইন করুন।');
+      }
+    }
+
     const verifySession = async () => {
       try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('reason')) return;
+
         const res = await fetch('/api/admin/session', { credentials: 'include' });
         if (res.ok) {
           router.replace('/admin');

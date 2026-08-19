@@ -22,7 +22,7 @@ interface LoginAttemptRecord {
   firstAttempt: number;
 }
 
-const SESSION_TTL_MS = 8 * 60 * 60 * 1000; // 8 hours as per spec
+const SESSION_TTL_MS = 10 * 60 * 1000; // Strictly 10 minutes session TTL
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOCKOUT_MS = 15 * 60 * 1000;
 const SESSION_SECRET = process.env.ADMIN_SESSION_SECRET || 'blackrock-esports-admin-secret-key-2026';
