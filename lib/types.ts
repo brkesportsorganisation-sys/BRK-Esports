@@ -54,6 +54,8 @@ export interface User {
   referredBy?: string;
   totalReferrals?: number;
   claimedMilestones?: number[];
+  currentStreak?: number;
+  lastStreakClaimDate?: string;
   adminPermissions?: string[];
   deviceToken?: string;
   isVerified?: boolean;

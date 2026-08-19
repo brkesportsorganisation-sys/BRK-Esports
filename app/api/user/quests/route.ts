@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { db } from '@/lib/db';
 
+const COOLDOWN_MS = 24 * 60 * 60 * 1000; // Exact 24 hours
+const STREAK_EXPIRY_MS = 48 * 60 * 60 * 1000; // 48 hours to maintain streak
+
 const STREAK_REWARDS = [
   { day: 1, label: '+15 Coins', type: 'COINS', value: 15 },
   { day: 2, label: '+25 Coins', type: 'COINS', value: 25 },
@@ -42,17 +45,42 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: 'User not found.' }, { status: 404 });
     }
 
-    const todayStr = new Date().toISOString().split('T')[0];
-    const lastClaim = user.lastStreakClaimDate ? user.lastStreakClaimDate.split('T')[0] : null;
-    const canClaimStreak = lastClaim !== todayStr;
-
+    const now = Date.now();
+    let canClaimStreak = true;
+    let remainingSeconds = 0;
+    let nextClaimAvailableAt: string | null = null;
     let currentStreakDay = user.currentStreak || 1;
-    if (currentStreakDay > 7) currentStreakDay = 1;
+
+    if (user.lastStreakClaimDate) {
+      const lastClaimTime = new Date(user.lastStreakClaimDate).getTime();
+      const timeSinceLastClaim = now - lastClaimTime;
+      const nextClaimTime = lastClaimTime + COOLDOWN_MS;
+
+      if (timeSinceLastClaim < COOLDOWN_MS) {
+        canClaimStreak = false;
+        remainingSeconds = Math.ceil((nextClaimTime - now) / 1000);
+        nextClaimAvailableAt = new Date(nextClaimTime).toISOString();
+      } else {
+        canClaimStreak = true;
+        remainingSeconds = 0;
+        // If user waited more than 48h since last claim, streak resets to Day 1
+        if (timeSinceLastClaim > STREAK_EXPIRY_MS) {
+          currentStreakDay = 1;
+        } else {
+          // Ready to claim next day!
+          currentStreakDay = (user.currentStreak % 7) + 1;
+        }
+      }
+    }
+
+    if (currentStreakDay > 7 || currentStreakDay < 1) currentStreakDay = 1;
 
     return NextResponse.json({
       success: true,
       currentStreakDay,
       canClaimStreak,
+      remainingSeconds,
+      nextClaimAvailableAt,
       streakRewards: STREAK_REWARDS,
       dailyQuests: [
         { id: 'q_tour', title: 'Play in 1 Free Fire Tournament Match', rewardCoins: 50, isCompleted: false },
@@ -96,17 +124,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'User not found.' }, { status: 404 });
     }
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const now = Date.now();
 
     // Handle Daily Login Streak Claim
     if (action === 'CLAIM_STREAK') {
-      const lastClaim = user.lastStreakClaimDate ? user.lastStreakClaimDate.split('T')[0] : null;
-      if (lastClaim === todayStr) {
-        return NextResponse.json({ message: 'You have already claimed today\'s login streak reward!' }, { status: 400 });
+      if (user.lastStreakClaimDate) {
+        const lastClaimTime = new Date(user.lastStreakClaimDate).getTime();
+        const timeSinceLastClaim = now - lastClaimTime;
+
+        if (timeSinceLastClaim < COOLDOWN_MS) {
+          const remainingSeconds = Math.ceil((COOLDOWN_MS - timeSinceLastClaim) / 1000);
+          const hours = Math.floor(remainingSeconds / 3600);
+          const mins = Math.floor((remainingSeconds % 3600) / 60);
+          return NextResponse.json({ 
+            message: `পরবর্তী রিওয়ার্ড ক্লেইম করতে আরও ${hours} ঘণ্টা ${mins} মিনিট অপেক্ষা করতে হবে।`,
+            canClaimStreak: false,
+            remainingSeconds,
+          }, { status: 400 });
+        }
       }
 
-      let streakDay = (user.currentStreak || 0) + 1;
-      if (streakDay > 7) streakDay = 1;
+      // Calculate streak day progression
+      let streakDay = 1;
+      if (user.lastStreakClaimDate) {
+        const lastClaimTime = new Date(user.lastStreakClaimDate).getTime();
+        const timeSinceLastClaim = now - lastClaimTime;
+
+        if (timeSinceLastClaim > STREAK_EXPIRY_MS) {
+          streakDay = 1; // Expired streak resets to Day 1
+        } else {
+          streakDay = ((user.currentStreak || 0) % 7) + 1;
+        }
+      } else {
+        streakDay = 1;
+      }
 
       const reward = STREAK_REWARDS[streakDay - 1] || STREAK_REWARDS[0];
 
@@ -158,6 +209,8 @@ export async function POST(request: NextRequest) {
         user: sanitizedUser,
         currentStreakDay: streakDay,
         canClaimStreak: false,
+        remainingSeconds: COOLDOWN_MS / 1000,
+        nextClaimAvailableAt: new Date(now + COOLDOWN_MS).toISOString(),
       });
     }
 
