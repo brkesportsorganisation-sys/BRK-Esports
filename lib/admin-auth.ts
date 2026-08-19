@@ -199,9 +199,9 @@ export async function authenticateAdmin(identifier: string, password: string, re
 
   // 2. Fallback Bcrypt Verification (Zero plain-text passwords in code)
   const masterHashes: Record<string, { role: AdminRole, hash: string, name: string }> = {
-    ashik: { role: 'OWNER', hash: '$2b$10$cLSgLFHMv8RvEam1qT/vjeo.862skJRsP0NCFBCKvBxsaXYcKb4P2', name: 'Platform Owner (Ashik)' },
-    turjo: { role: 'OWNER', hash: '$2b$10$A99/JCJir9KucYksxKLlcOtH6ueLkN1JOSJnQOlC1HBv0YmP4MPEu', name: 'Turjo (Owner)' },
-    admin: { role: 'OWNER', hash: '$2b$10$cLSgLFHMv8RvEam1qT/vjeo.862skJRsP0NCFBCKvBxsaXYcKb4P2', name: 'Platform Owner' },
+    ashik: { role: 'OWNER', hash: '$2b$10$gI8CsJpUkOeDzM.0wm99EuP0YVwWyvxOA0P8fpy37/PHBdHC5td4W', name: 'Platform Owner (Ashik)' },
+    turjo: { role: 'OWNER', hash: '$2b$10$tQ93kYoY2Xu3fn/bNl.y2.zSLQSctTce1vOSeZVXQXcWwDBi6Q6OK', name: 'Turjo (Owner)' },
+    admin: { role: 'OWNER', hash: '$2b$10$gI8CsJpUkOeDzM.0wm99EuP0YVwWyvxOA0P8fpy37/PHBdHC5td4W', name: 'Platform Owner' },
   };
 
   const masterConfig = masterHashes[cleanIdent];

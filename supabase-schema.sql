@@ -724,8 +724,8 @@ CREATE INDEX IF NOT EXISTS "idx_adminaccount_email" ON "AdminAccount"("email");
 -- Insert Master Owner Accounts into AdminAccount table with Bcrypt password hashes
 INSERT INTO "AdminAccount" ("id", "username", "email", "passwordHash", "displayName", "role", "permissions", "isActive")
 VALUES 
-    ('admin_owner_ashik', 'ashik', 'ashik@blackrock.gg', '$2b$10$cLSgLFHMv8RvEam1qT/vjeo.862skJRsP0NCFBCKvBxsaXYcKb4P2', 'Platform Owner (Ashik)', 'OWNER', ARRAY['view_dashboard','manage_tournaments','enter_results','manage_users','manage_bans','moderate_lfg','manage_deposits','manage_withdrawals','adjust_wallets','view_financial_reports','manage_referrals','manage_watch_earn','manage_roles','approve_deletes','send_notifications','manage_settings'], true),
-    ('admin_owner_turjo', 'turjo', 'turjo@blackrock.gg', '$2b$10$A99/JCJir9KucYksxKLlcOtH6ueLkN1JOSJnQOlC1HBv0YmP4MPEu', 'Turjo (Owner)', 'OWNER', ARRAY['view_dashboard','manage_tournaments','enter_results','manage_users','manage_bans','moderate_lfg','manage_deposits','manage_withdrawals','adjust_wallets','view_financial_reports','manage_referrals','manage_watch_earn','manage_roles','approve_deletes','send_notifications','manage_settings'], true)
+    ('admin_owner_ashik', 'ashik', 'ashik@blackrock.gg', '$2b$10$gI8CsJpUkOeDzM.0wm99EuP0YVwWyvxOA0P8fpy37/PHBdHC5td4W', 'Platform Owner (Ashik)', 'OWNER', ARRAY['view_dashboard','manage_tournaments','enter_results','manage_users','manage_bans','moderate_lfg','manage_deposits','manage_withdrawals','adjust_wallets','view_financial_reports','manage_referrals','manage_watch_earn','manage_roles','approve_deletes','send_notifications','manage_settings'], true),
+    ('admin_owner_turjo', 'turjo', 'turjo@blackrock.gg', '$2b$10$tQ93kYoY2Xu3fn/bNl.y2.zSLQSctTce1vOSeZVXQXcWwDBi6Q6OK', 'Turjo (Owner)', 'OWNER', ARRAY['view_dashboard','manage_tournaments','enter_results','manage_users','manage_bans','moderate_lfg','manage_deposits','manage_withdrawals','adjust_wallets','view_financial_reports','manage_referrals','manage_watch_earn','manage_roles','approve_deletes','send_notifications','manage_settings'], true)
 ON CONFLICT ("username") DO NOTHING;
 
 
