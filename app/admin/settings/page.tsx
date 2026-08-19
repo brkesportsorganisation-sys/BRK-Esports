@@ -221,6 +221,13 @@ Login to your account and book your slot today!`);
 
   useEffect(() => {
     loadSettings();
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab');
+      if (tabParam === 'PAYMENTS' || tabParam === 'HOMEPAGE' || tabParam === 'WELCOME_EMAIL' || tabParam === 'YOUTUBE_LIVE' || tabParam === 'GENERAL') {
+        setActiveTab(tabParam as any);
+      }
+    }
   }, []);
 
   const handleSaveAll = async (e: React.FormEvent) => {
@@ -1177,6 +1184,7 @@ Login to your account and book your slot today!`);
                       type="text"
                       value={bkashNo}
                       onChange={(e) => setBkashNo(e.target.value)}
+                      placeholder="e.g. 01712-998877"
                       className="w-full px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] font-mono font-bold text-xs text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
                     />
                   </div>
@@ -1187,6 +1195,7 @@ Login to your account and book your slot today!`);
                       type="text"
                       value={nagadNo}
                       onChange={(e) => setNagadNo(e.target.value)}
+                      placeholder="e.g. 01812-998877"
                       className="w-full px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] font-mono font-bold text-xs text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
                     />
                   </div>
@@ -1197,9 +1206,25 @@ Login to your account and book your slot today!`);
                       type="text"
                       value={rocketNo}
                       onChange={(e) => setRocketNo(e.target.value)}
+                      placeholder="e.g. 01912-998877"
                       className="w-full px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] font-mono font-bold text-xs text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
                     />
                   </div>
+                </div>
+
+                <div className="pt-2 flex items-center justify-between border-t border-slate-100 mt-3">
+                  <span className="text-[11px] text-slate-500">
+                    💡 Changing these numbers updates the Player Wallet Official Payment Numbers and Deposit Modal instantly.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleSaveAll}
+                    disabled={isSaving}
+                    className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                    <span>Save Payment Numbers</span>
+                  </button>
                 </div>
               </div>
 

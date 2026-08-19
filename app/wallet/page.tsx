@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Wallet as WalletIcon, 
+  Wallet, 
   ArrowDownLeft, 
   ArrowUpRight, 
   Coins,
@@ -125,10 +125,8 @@ export default function WalletPage() {
     setTimeout(() => setCopiedText(null), 2000);
   };
 
-  const winningBalance = Number(user?.winningBalance ?? 0);
-  const promoBalance = Number(user?.promoBalance ?? 0);
+  const walletBalance = Number(user?.walletBalance ?? (Number(user?.winningBalance ?? 0) + Number(user?.promoBalance ?? 0)));
   const coinBalance = Number(user?.coinBalance ?? 0);
-  const totalBalance = Number(user?.walletBalance ?? (winningBalance + promoBalance));
 
   const getMethodNumber = (method: PaymentMethod) => {
     switch (method) {
@@ -209,8 +207,8 @@ export default function WalletPage() {
   const handleWithdrawSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    if (withdrawAmount > winningBalance) {
-      alert(`Insufficient Winning Wallet balance! You can only withdraw match earnings (Available: ৳${winningBalance}). Promo bonus is for tournament slot bookings only.`);
+    if (withdrawAmount > walletBalance) {
+      alert(`Insufficient Wallet balance! (Available: ৳${walletBalance})`);
       return;
     }
     if (withdrawAmount < minWithdraw) {
@@ -276,14 +274,14 @@ export default function WalletPage() {
         <div className="absolute top-1/2 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
         
         <span className="text-xs font-bold text-amber-700 uppercase tracking-widest inline-flex items-center justify-center gap-1.5 px-3.5 py-1 rounded-full bg-amber-50 border border-amber-200 mb-1">
-          <WalletIcon className="w-3.5 h-3.5 text-amber-600" />
-          <span>Live Dual-Wallet Banking & Payouts</span>
+          <Wallet className="w-3.5 h-3.5 text-amber-600" />
+          <span>Official Gaming Wallet & Payouts</span>
         </span>
         <h1 className="font-heading font-black text-3xl sm:text-5xl text-slate-900 tracking-tight">
-          GAMING WALLET & CASHOUT
+          PLAYER WALLET & PAYOUTS
         </h1>
         <p className="text-slate-600 text-xs sm:text-sm mt-1 max-w-md mx-auto">
-          Manage Winning Cashouts, Promo Tournament Credits & Coin Exchanges
+          Manage match entry fees, bKash/Nagad deposits & instant cashouts
         </p>
       </div>
 
@@ -318,81 +316,55 @@ export default function WalletPage() {
           </div>
         </div>
 
-        {/* Dual Wallet Display Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          
-          {/* Winning Wallet (Withdrawable) */}
-          <div className="bg-white rounded-3xl p-6 sm:p-7 border-2 border-amber-300 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-5">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-200">
-                    <Trophy className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="font-heading font-black text-lg text-slate-900">WINNING WALLET</h3>
-                    <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider flex items-center gap-1">
-                      <ShieldCheck className="w-3.5 h-3.5" /> Withdrawable to bKash / Nagad
-                    </span>
-                  </div>
-                </div>
+        {/* Single Unified Wallet Card */}
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-orange-200 shadow-sm hover:shadow-md transition-all space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+            <div className="flex items-center space-x-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-red to-brand-orange text-white flex items-center justify-center shadow-md shadow-orange-500/20">
+                <Wallet className="w-6 h-6" />
               </div>
-
-              <div className="space-y-1">
-                <div className="text-3xl sm:text-5xl font-heading font-black text-amber-600 tracking-tight">
-                  ৳ {winningBalance.toLocaleString()}
-                </div>
-                <div className="text-xs text-slate-500 font-medium">
-                  Prize pool earnings won from tournament matches
-                </div>
+              <div>
+                <h3 className="font-heading font-black text-xl text-slate-900 tracking-tight">TOTAL WALLET BALANCE</h3>
+                <span className="text-xs font-bold text-emerald-600 flex items-center gap-1 mt-0.5">
+                  <ShieldCheck className="w-3.5 h-3.5" /> Instant bKash, Nagad & Rocket Supported
+                </span>
               </div>
             </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs px-3 py-1 rounded-full bg-slate-100 text-slate-700 font-bold border border-slate-200">
+                Main Account Wallet
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <div className="text-4xl sm:text-6xl font-heading font-black text-slate-900 tracking-tight">
+              ৳ {walletBalance.toLocaleString()}
+            </div>
+            <div className="text-xs sm:text-sm text-slate-500 font-medium">
+              টুর্নামেন্ট ম্যাচ এন্ট্রি ফি এবং সরাসরি bKash / Nagad / Rocket-এ উইথড্র করার জন্য প্রযোজ্য।
+            </div>
+          </div>
+
+          {/* Two Prominent Action Buttons: Deposit & Withdraw */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+            <button
+              onClick={() => setIsDepositOpen(true)}
+              className="w-full py-4 rounded-2xl bg-gradient-to-r from-brand-red to-brand-orange hover:from-red-600 hover:to-orange-600 text-white font-heading font-black text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center space-x-2 cursor-pointer active:scale-[0.99]"
+            >
+              <ArrowDownLeft className="w-5 h-5" />
+              <span>DEPOSIT MONEY (Min ৳{minDeposit})</span>
+            </button>
 
             <button
               onClick={() => setIsWithdrawOpen(true)}
-              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-heading font-bold text-xs shadow-xs hover:shadow-md transition-all flex items-center justify-center space-x-2"
+              className="w-full py-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-heading font-black text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center space-x-2 cursor-pointer active:scale-[0.99]"
             >
-              <ArrowUpRight className="w-4 h-4" />
-              <span>WITHDRAW EARNINGS (bKash / Nagad / Rocket)</span>
+              <ArrowUpRight className="w-5 h-5 text-amber-400" />
+              <span>WITHDRAW / CASHOUT (Min ৳{minWithdraw})</span>
             </button>
           </div>
-
-          {/* Promo Wallet (Tournament Slots Only) */}
-          <div className="bg-white rounded-3xl p-6 sm:p-7 border-2 border-orange-200 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-5">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 rounded-2xl bg-orange-50 text-brand-orange flex items-center justify-center border border-orange-200">
-                    <Gift className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="font-heading font-black text-lg text-slate-900">PROMO WALLET</h3>
-                    <span className="text-[10px] font-bold text-brand-orange uppercase tracking-wider">
-                      Sign-up, Referrals & Coin Credits
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <div className="text-3xl sm:text-5xl font-heading font-black text-orange-600 tracking-tight">
-                  ৳ {promoBalance.toLocaleString()}
-                </div>
-                <div className="text-xs text-slate-500 font-medium">
-                  Usable exclusively to register tournament match slots
-                </div>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setIsDepositOpen(true)}
-              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-bold text-xs shadow-xs hover:brightness-110 hover:shadow-md transition-all flex items-center justify-center space-x-2"
-            >
-              <ArrowDownLeft className="w-4 h-4" />
-              <span>DEPOSIT MONEY (Min ৳{minDeposit})</span>
-            </button>
-          </div>
-
         </div>
 
         {/* Live Mobile Banking Agent Numbers Box */}
@@ -488,9 +460,8 @@ export default function WalletPage() {
               <thead className="bg-[#F8FAFC] text-[11px] font-bold uppercase text-slate-500 border-b border-slate-200">
                 <tr>
                   <th className="py-3 px-4">TrxID</th>
-                  <th className="py-3 px-4">Method / Type</th>
+                  <th className="py-3 px-4">Method / Action</th>
                   <th className="py-3 px-4">Amount</th>
-                  <th className="py-3 px-4">Wallet Type</th>
                   <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-4 text-right">Date</th>
                 </tr>
@@ -498,7 +469,7 @@ export default function WalletPage() {
               <tbody className="divide-y divide-slate-100">
                 {filteredPayments.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="p-10 text-center text-slate-500 font-medium">
+                    <td colSpan={5} className="p-10 text-center text-slate-500 font-medium">
                       No transactions found for this filter.
                     </td>
                   </tr>
@@ -545,9 +516,6 @@ export default function WalletPage() {
                           <span className={isWithdrawal ? 'text-amber-600' : 'text-emerald-600'}>
                             {isWithdrawal ? `- ৳${p.amount}` : `+ ৳${p.amount}`}
                           </span>
-                        </td>
-                        <td className="py-3.5 px-4 text-xs font-bold text-slate-600 uppercase">
-                          {p.walletType || 'WINNING'}
                         </td>
                         <td className="py-3.5 px-4">
                           <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${
@@ -757,8 +725,8 @@ export default function WalletPage() {
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full border border-slate-200 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
-                <h3 className="font-heading font-black text-xl text-slate-900">WITHDRAW WINNINGS</h3>
-                <p className="text-[11px] text-slate-500 mt-0.5">Cashout your tournament earnings to bKash/Nagad</p>
+                <h3 className="font-heading font-black text-xl text-slate-900">WITHDRAW MONEY</h3>
+                <p className="text-[11px] text-slate-500 mt-0.5">Cashout balance to your bKash, Nagad or Rocket</p>
               </div>
               <button 
                 onClick={() => setIsWithdrawOpen(false)}
@@ -770,11 +738,11 @@ export default function WalletPage() {
             
             <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-xs space-y-1">
               <div className="font-black text-amber-900 text-sm flex items-center justify-between">
-                <span>Available Winning Balance:</span>
-                <span className="text-base text-amber-700">৳{winningBalance.toLocaleString()}</span>
+                <span>Available Wallet Balance:</span>
+                <span className="text-base text-amber-700">৳{walletBalance.toLocaleString()}</span>
               </div>
               <div className="text-[11px] text-slate-600">
-                ম্যাচ ও টুর্নামেন্ট জয়ের টাকা সরাসরি ক্যাশআউট করুন। <strong>ন্যূনতম উইথড্র: ৳{minWithdraw}</strong>
+                আপনার একাউন্ট ওয়ালেট ব্যালেন্স সরাসরি ক্যাশআউট করুন। <strong>ন্যূনতম উইথড্র: ৳{minWithdraw}</strong>
               </div>
             </div>
 
@@ -826,14 +794,14 @@ export default function WalletPage() {
                   onChange={(e) => setWithdrawAmount(Number(e.target.value))}
                   required
                   min={minWithdraw}
-                  max={winningBalance}
+                  max={walletBalance}
                   className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 font-black text-base focus:outline-none focus:border-amber-500"
                 />
 
                 {/* Quick Chips for Withdrawal */}
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {[minWithdraw, 200, 500, 1000]
-                    .filter((amt, i, arr) => amt >= minWithdraw && arr.indexOf(amt) === i && amt <= (winningBalance || minWithdraw))
+                    .filter((amt, i, arr) => amt >= minWithdraw && arr.indexOf(amt) === i && amt <= (walletBalance || minWithdraw))
                     .map((amt) => (
                       <button
                         key={amt}
@@ -846,15 +814,15 @@ export default function WalletPage() {
                         ৳{amt}
                       </button>
                     ))}
-                  {winningBalance >= minWithdraw && (
+                  {walletBalance >= minWithdraw && (
                     <button
                       type="button"
-                      onClick={() => setWithdrawAmount(winningBalance)}
+                      onClick={() => setWithdrawAmount(walletBalance)}
                       className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all ${
-                        withdrawAmount === winningBalance ? 'bg-amber-600 text-white' : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                        withdrawAmount === walletBalance ? 'bg-amber-600 text-white' : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
                       }`}
                     >
-                      Max (৳{winningBalance})
+                      Max (৳{walletBalance})
                     </button>
                   )}
                 </div>
@@ -881,7 +849,7 @@ export default function WalletPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={withdrawLoading || winningBalance < minWithdraw}
+                  disabled={withdrawLoading || walletBalance < minWithdraw}
                   className="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold flex items-center justify-center space-x-1 disabled:opacity-50 shadow-xs"
                 >
                   {withdrawLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>CONFIRM CASHOUT</span>}

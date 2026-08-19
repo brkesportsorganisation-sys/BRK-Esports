@@ -117,14 +117,24 @@ export default function AdminPaymentsPage() {
           </p>
         </div>
 
-        <button
-          onClick={refreshPayments}
-          disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 rounded-[12px] bg-white border border-[#E2E8F0] hover:bg-[#F8FAFC] text-[#475569] text-xs font-semibold shadow-xs self-start sm:self-auto transition-all"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-[#2563EB]' : ''}`} />
-          <span>Refresh Queue</span>
-        </button>
+        <div className="flex items-center gap-3 self-start sm:self-auto">
+          <Link
+            href="/admin/settings?tab=PAYMENTS"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-[12px] bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
+          >
+            <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Edit Payment Numbers</span>
+          </Link>
+
+          <button
+            onClick={refreshPayments}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 rounded-[12px] bg-white border border-[#E2E8F0] hover:bg-[#F8FAFC] text-[#475569] text-xs font-semibold shadow-xs transition-all cursor-pointer"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-[#2563EB]' : ''}`} />
+            <span>Refresh Queue</span>
+          </button>
+        </div>
       </div>
 
       {/* 2. Top Summary KPI Stats */}

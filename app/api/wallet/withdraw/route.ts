@@ -58,17 +58,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'User account not found.' }, { status: 404 });
     }
 
-    // Dual-Wallet Enforcement: Only winningBalance is withdrawable!
-    const availableWinning = Number(user.winningBalance || 0);
-    if (numAmount > availableWinning) {
+    // Single Unified Wallet Balance check
+    const currentWallet = Number(user.walletBalance ?? (Number(user.winningBalance || 0) + Number(user.promoBalance || 0)));
+    if (numAmount > currentWallet) {
       return NextResponse.json({
-        message: `Insufficient Winning Wallet balance. You can only withdraw match earnings (Available: ৳${availableWinning}). Promo bonus cannot be withdrawn.`,
+        message: `Insufficient Wallet balance. (Available: ৳${currentWallet}).`,
       }, { status: 400 });
     }
 
-    // 3. Deduct winning balance and total wallet balance
-    const newWinning = Math.max(0, availableWinning - numAmount);
-    const newTotal = Math.max(0, Number(user.walletBalance || 0) - numAmount);
+    // 3. Deduct total wallet balance and winning balance
+    const newTotal = Math.max(0, currentWallet - numAmount);
+    const newWinning = Math.max(0, Number(user.winningBalance || 0) - numAmount);
 
     const { error: updateError } = await supabaseAdmin
       .from('User')
