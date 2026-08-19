@@ -119,6 +119,7 @@ function FieldInput({
 export default function TournamentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const [tournament, setTournament] = useState<Tournament | null>(null);
+  const [loading, setLoading] = useState(true);
   // Dynamic status
   const [currentStatus, setCurrentStatus] = useState<'DRAFT' | 'UPCOMING' | 'LIVE' | 'FINISHED' | 'CANCELLED'>('DRAFT');
   const [countdown, setCountdown] = useState<string>('');
@@ -196,52 +197,75 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
   };
 
   useEffect(() => {
+    let isMounted = true;
     const loadTournament = async () => {
       try {
+        setLoading(true);
         const user = db.getCurrentUser();
-        setCurrentUser(user);
+        if (isMounted) setCurrentUser(user);
 
         const response = await fetch(`/api/tournaments/${resolvedParams.id}${user ? `?userId=${user.id}` : ''}`);
-        if (!response.ok) { setTournament(null); return; }
+        if (!response.ok) {
+          if (isMounted) {
+            setTournament(null);
+            setLoading(false);
+          }
+          return;
+        }
         const payload = await response.json();
         const tour = payload.tournament;
-        setTournament(tour || null);
-        
-        const registrations = payload.userRegistrations || [];
-        setMyRegistrations(registrations);
-
-        if (tour && user) {
-          if (registrations.length > 0) setIsJoined(true);
+        if (isMounted) {
+          setTournament(tour || null);
+          const registrations = payload.userRegistrations || [];
+          setMyRegistrations(registrations);
+          if (tour && user && registrations.length > 0) {
+            setIsJoined(true);
+          }
         }
 
         if (tour?.community?.enabled && !tour.community.isDisabled) {
-          setCommunityStatus('loading');
-          void fetch(`/api/tournaments/${resolvedParams.id}/community`, {
+          if (isMounted) setCommunityStatus('loading');
+          fetch(`/api/tournaments/${resolvedParams.id}/community`, {
             headers: { 'x-user-id': user?.id || '' },
           })
             .then(async (communityResponse) => {
               if (!communityResponse.ok) {
                 const data = await communityResponse.json().catch(() => ({}));
-                setCommunityMessage(data.message || 'Community access is locked.');
-                setCommunityStatus('locked');
+                if (isMounted) {
+                  setCommunityMessage(data.message || 'Community access is locked.');
+                  setCommunityStatus('locked');
+                }
                 return;
               }
               const data = await communityResponse.json();
-              setCommunityLink(data.inviteLink || '');
-              setCommunityName(data.communityName || 'Official Tournament Community');
-              setCommunityStatus('unlocked');
+              if (isMounted) {
+                setCommunityLink(data.inviteLink || '');
+                setCommunityName(data.communityName || 'Official Tournament Community');
+                setCommunityStatus('unlocked');
+              }
             })
             .catch(() => {
-              setCommunityMessage('Community access is unavailable right now.');
-              setCommunityStatus('locked');
+              if (isMounted) {
+                setCommunityMessage('Community access is unavailable right now.');
+                setCommunityStatus('locked');
+              }
             });
         } else {
-          setCommunityStatus('disabled');
-          setCommunityMessage('Community access is not enabled for this tournament.');
+          if (isMounted) {
+            setCommunityStatus('disabled');
+            setCommunityMessage('Community access is not enabled for this tournament.');
+          }
         }
-      } catch { setTournament(null); }
+      } catch {
+        if (isMounted) setTournament(null);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
     };
     void loadTournament();
+    return () => {
+      isMounted = false;
+    };
   }, [resolvedParams.id]);
 
   // Real-time Supabase WebSockets listener for live match updates
@@ -249,15 +273,76 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
     setTournament((prev) => prev ? { ...prev, ...updatedTour } : updatedTour);
   });
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] text-slate-900 flex flex-col font-body">
+        <Navbar />
+        {/* Banner Skeleton */}
+        <div className="relative h-80 sm:h-96 w-full overflow-hidden bg-slate-900 border-b border-slate-800 flex items-end">
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/60 to-transparent" />
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 relative z-10 w-full animate-pulse">
+            <div className="h-6 w-32 bg-slate-800 rounded-full mb-3" />
+            <div className="h-10 w-3/4 max-w-xl bg-slate-800 rounded-xl mb-4" />
+            <div className="flex flex-wrap gap-4">
+              <div className="h-6 w-24 bg-slate-800 rounded-lg" />
+              <div className="h-6 w-28 bg-slate-800 rounded-lg" />
+              <div className="h-6 w-32 bg-slate-800 rounded-lg" />
+            </div>
+          </div>
+        </div>
+
+        {/* Content Skeleton */}
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-8 animate-pulse">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-28 bg-white border border-slate-200 rounded-2xl p-4 flex flex-col justify-between shadow-xs">
+                <div className="h-4 w-1/2 bg-slate-100 rounded" />
+                <div className="h-7 w-3/4 bg-slate-200 rounded" />
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-6">
+              <div className="h-64 bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
+                <div className="h-6 w-40 bg-slate-200 rounded" />
+                <div className="h-4 w-full bg-slate-100 rounded" />
+                <div className="h-4 w-5/6 bg-slate-100 rounded" />
+                <div className="h-4 w-2/3 bg-slate-100 rounded" />
+              </div>
+            </div>
+            <div className="space-y-6">
+              <div className="h-72 bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
+                <div className="h-6 w-32 bg-slate-200 rounded" />
+                <div className="h-12 w-full bg-slate-100 rounded-xl" />
+                <div className="h-12 w-full bg-slate-200 rounded-xl" />
+              </div>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   if (!tournament) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center text-white">
+      <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-body">
         <Navbar />
-        <div className="text-center py-20">
-          <Trophy className="w-16 h-16 text-brand-red mx-auto mb-4 animate-bounce" />
-          <h2 className="font-heading font-black text-3xl">Tournament Not Found</h2>
-          <Link href="/tournaments" className="mt-4 inline-block text-brand-orange hover:underline font-bold">
-            Back to Tournaments
+        <div className="flex-1 flex flex-col items-center justify-center text-center py-20 px-4">
+          <div className="w-20 h-20 bg-red-50 border border-red-200 rounded-full flex items-center justify-center mb-5 shadow-xs">
+            <Trophy className="w-10 h-10 text-brand-red" />
+          </div>
+          <h2 className="font-heading font-black text-3xl text-slate-900">Tournament Not Found</h2>
+          <p className="text-slate-500 text-sm mt-2 max-w-md">
+            The tournament you are looking for might have expired, been deleted, or does not exist.
+          </p>
+          <Link
+            href="/tournaments"
+            className="mt-6 inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-orange text-white font-bold text-sm shadow-md hover:bg-orange-600 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Tournaments</span>
           </Link>
         </div>
         <Footer />

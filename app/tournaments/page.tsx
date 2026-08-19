@@ -120,6 +120,7 @@ const GAME_FILTER_CONFIGS: Record<string, GameFilterConfig> = {
 
 export default function TournamentsPage() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGame, setSelectedGame] = useState<string>('ALL');
   const [selectedMode, setSelectedMode] = useState<string>('ALL');
@@ -137,18 +138,27 @@ export default function TournamentsPage() {
   const activeConfig = GAME_FILTER_CONFIGS[selectedGame] || GAME_FILTER_CONFIGS.ALL;
 
   useEffect(() => {
+    let isMounted = true;
     const loadTournaments = async () => {
       try {
+        setLoading(true);
         const response = await fetch('/api/tournaments');
         if (!response.ok) return;
         const payload = await response.json();
-        setTournaments(payload.tournaments || []);
+        if (isMounted) {
+          setTournaments(payload.tournaments || []);
+        }
       } catch {
-        setTournaments([]);
+        if (isMounted) setTournaments([]);
+      } finally {
+        if (isMounted) setLoading(false);
       }
     };
 
     void loadTournaments();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const hasActiveFilters = 
@@ -404,11 +414,35 @@ export default function TournamentsPage() {
 
         {/* Results Info */}
         <div className="flex items-center justify-between text-xs text-slate-600 font-semibold px-1">
-          <span>Showing <strong className="text-slate-900 font-bold">{filteredTournaments.length}</strong> active tournaments</span>
+          {loading ? (
+            <span className="text-slate-400 font-medium animate-pulse">Loading tournaments...</span>
+          ) : (
+            <span>Showing <strong className="text-slate-900 font-bold">{filteredTournaments.length}</strong> active tournaments</span>
+          )}
         </div>
 
         {/* Tournaments Grid */}
-        {filteredTournaments.length > 0 ? (
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-xs">
+                <div className="h-44 bg-slate-200 w-full" />
+                <div className="p-5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="h-4 bg-slate-200 rounded w-1/3" />
+                    <div className="h-4 bg-slate-200 rounded w-1/4" />
+                  </div>
+                  <div className="h-6 bg-slate-200 rounded w-4/5" />
+                  <div className="grid grid-cols-2 gap-2 pt-2">
+                    <div className="h-10 bg-slate-100 rounded-xl" />
+                    <div className="h-10 bg-slate-100 rounded-xl" />
+                  </div>
+                  <div className="h-10 bg-slate-200 rounded-xl mt-2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : filteredTournaments.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredTournaments.map((t) => (
               <TournamentCard key={t.id} tournament={t} />
