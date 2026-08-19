@@ -9,6 +9,7 @@ import {
   Copy, 
   Check, 
   Mic, 
+  MicOff,
   Volume2, 
   VolumeX, 
   Headphones,
@@ -17,7 +18,9 @@ import {
   MessageSquare,
   Phone,
   RefreshCw,
-  ExternalLink
+  ExternalLink,
+  Loader2,
+  AlertCircle
 } from 'lucide-react';
 import { db } from '@/lib/db';
 import { User as UserType, SupportMessage } from '@/lib/types';
@@ -49,7 +52,7 @@ const DEFAULT_WELCOME_MESSAGE: Message = {
   id: 'welcome',
   role: 'assistant',
   senderName: 'BlackRock Support',
-  content: "👋 আসসালামু আলাইকুম! Black Rock Esports অফিসিয়াল সাপোর্ট ও এআই ডেস্কে স্বাগতম।\n\n📌 টুর্নামেন্ট রুম আইডি, বিকাশ পেমেন্ট বা যেকোনো সমস্যার দ্রুত সমাধানের জন্য আমাদের অফিসিয়াল Discord সার্ভারে জয়েন করুন:\n👉 https://discord.gg/blackrock-esports\n\nআপনার যেকোনো সমস্যার কথা এখানেও লিখে পাঠাতে পারেন। আমাদের এআই ও অ্যাডমিন টিম দ্রুত উত্তর দেবে।",
+  content: "👋 আসসালামু আলাইকুম! Black Rock Esports অফিসিয়াল সাপোর্ট ও এআই ডেস্কে স্বাগতম।\n\n📌 টুর্নামেন্ট রুম আইডি, বিকাশ পেমেন্ট বা যেকোনো সমস্যার দ্রুত সমাধানের জন্য আমাদের অফিসিয়াল Discord সার্ভারে জয়েন করুন:\n👉 https://discord.gg/blackrock-esports\n\nআপনার যেকোনো সমস্যার কথা এখানেও লিখে বা মুখে বলে পাঠাতে পারেন। আমাদের এআই ও অ্যাডমিন টিম দ্রুত উত্তর দেবে।",
   timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
   suggestedAction: {
     label: '👉 Join Official Discord Server',
@@ -61,6 +64,7 @@ export default function AIAssistantWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [showHumanModal, setShowHumanModal] = useState(false);
+  const [voiceToast, setVoiceToast] = useState<string | null>(null);
 
   // Unified Chat Stream
   const [messages, setMessages] = useState<Message[]>([DEFAULT_WELCOME_MESSAGE]);
@@ -69,18 +73,37 @@ export default function AIAssistantWidget() {
   const [currentUser, setCurrentUser] = useState<UserType | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [speakingId, setSpeakingId] = useState<string | null>(null);
+  const [isSpeechLoading, setIsSpeechLoading] = useState(false);
   const [hasSentFirstMsg, setHasSentFirstMsg] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
-  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const speechQueueRef = useRef<string[]>([]);
+  const speechIndexRef = useRef<number>(0);
 
   // Load user data on mount
   useEffect(() => {
     const u = db.getCurrentUser();
     setCurrentUser(u);
   }, [isOpen]);
+
+  // Pre-load voices for Web Speech API fallback
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.getVoices();
+      const handleVoicesChanged = () => {
+        window.speechSynthesis.getVoices();
+      };
+      window.speechSynthesis.onvoiceschanged = handleVoicesChanged;
+      return () => {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.onvoiceschanged = null;
+        }
+      };
+    }
+  }, []);
 
   // Polling for live Admin Replies from /api/support
   useEffect(() => {
@@ -130,30 +153,45 @@ export default function AIAssistantWidget() {
     }
   }, [messages, isOpen, isLoading]);
 
-  // Web Speech API for Bangla Voice Input
-  const toggleVoiceInput = async () => {
+  // Stop any active audio/speech
+  const stopAllSpeech = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current.src = '';
+    }
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    speechQueueRef.current = [];
+    speechIndexRef.current = 0;
+    setSpeakingId(null);
+    setIsSpeechLoading(false);
+  };
+
+  // Web Speech API for Bangla Voice Input (Speech-to-Text)
+  const toggleVoiceInput = () => {
     if (typeof window === 'undefined') return;
 
     const SpeechRecognitionClass = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     
     if (!SpeechRecognitionClass) {
-      alert('ভয়েস ইনপুটের জন্য Google Chrome, Edge অথবা Safari ব্রাউজার ব্যবহার করুন।');
+      setVoiceToast('ভয়েস ইনপুটের জন্য Google Chrome, Edge অথবা Safari ব্রাউজার ব্যবহার করুন।');
+      setTimeout(() => setVoiceToast(null), 4000);
       return;
     }
 
-    if (isListening && recognitionRef.current) {
-      try {
-        recognitionRef.current.stop();
-      } catch {}
+    if (isListening) {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {}
+      }
       setIsListening(false);
       return;
     }
 
     try {
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        await navigator.mediaDevices.getUserMedia({ audio: true });
-      }
-
       const recognition = new SpeechRecognitionClass();
       recognition.continuous = false;
       recognition.interimResults = true;
@@ -162,72 +200,144 @@ export default function AIAssistantWidget() {
 
       recognition.onstart = () => {
         setIsListening(true);
+        setVoiceToast('🎙️ শুনছি... এখন বাংলায় কথা বলুন...');
       };
 
       recognition.onresult = (event: any) => {
+        let interimTranscript = '';
         let finalTranscript = '';
+
         for (let i = event.resultIndex; i < event.results.length; ++i) {
           if (event.results[i].isFinal) {
             finalTranscript += event.results[i][0].transcript;
           } else {
-            setInput(event.results[i][0].transcript);
+            interimTranscript += event.results[i][0].transcript;
           }
         }
+
+        const currentText = finalTranscript || interimTranscript;
+        if (currentText) {
+          setInput(currentText);
+        }
+
         if (finalTranscript) {
-          setInput(finalTranscript);
           setIsListening(false);
+          setVoiceToast(null);
           setTimeout(() => {
             handleSendMessage(finalTranscript);
-          }, 300);
+          }, 350);
         }
       };
 
-      recognition.onerror = () => {
+      recognition.onerror = (event: any) => {
         setIsListening(false);
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          setVoiceToast('⚠️ মাইক্রোফোন ব্যবহারের অনুমতি দিন (Microphone permission needed)');
+        } else if (event.error === 'no-speech') {
+          setVoiceToast('কোনো কথা শোনা যায়নি। আবার চেষ্টা করুন।');
+        } else {
+          setVoiceToast('ভয়েস শনাক্তকরণে সমস্যা হয়েছে। আবার ট্রাই করুন।');
+        }
+        setTimeout(() => setVoiceToast(null), 3500);
       };
 
       recognition.onend = () => {
         setIsListening(false);
+        setTimeout(() => {
+          setVoiceToast(prev => prev?.includes('🎙️') ? null : prev);
+        }, 1000);
       };
 
       recognitionRef.current = recognition;
       recognition.start();
-    } catch {
+    } catch (err: any) {
       setIsListening(false);
+      setVoiceToast('ভয়েস ইনপুট চালু করা যায়নি। অনুগ্রহ করে টাইপ করুন।');
+      setTimeout(() => setVoiceToast(null), 3500);
     }
   };
 
-  // Free Google Bangla Text to Speech (TTS)
+  // Robust Text-to-Speech (TTS) with Google API + Browser SpeechSynthesis Fallback
   const speakMessage = async (text: string, id: string) => {
     if (typeof window === 'undefined') return;
 
     // If currently playing this message, toggle stop
     if (speakingId === id) {
-      if (currentAudioRef.current) {
-        currentAudioRef.current.pause();
-        currentAudioRef.current.currentTime = 0;
-        currentAudioRef.current = null;
-      }
-      window.speechSynthesis?.cancel();
-      setSpeakingId(null);
+      stopAllSpeech();
       return;
     }
 
-    // Stop any previous speech
-    if (currentAudioRef.current) {
-      currentAudioRef.current.pause();
-      currentAudioRef.current.currentTime = 0;
-      currentAudioRef.current = null;
-    }
-    window.speechSynthesis?.cancel();
+    // Stop previous audio
+    stopAllSpeech();
 
     setSpeakingId(id);
+    setIsSpeechLoading(true);
+
+    const cleanText = text
+      .replace(/https?:\/\/[^\s]+/g, 'ওয়েবসাইট লিংক')
+      .replace(/[*#_`~>\[\]\(\)\{\}\^\$\+\=\|\\]/g, ' ')
+      .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
+      .replace(/[\u{2600}-\u{26FF}]/gu, '')
+      .replace(/[\u{2700}-\u{27BF}]/gu, '')
+      .replace(/[🎮🏆🔥💰⚡🎯🛡️💎🔑👉📌✨⚠️•🔔👑⚽🪖⚔️🎁]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!cleanText) {
+      setSpeakingId(null);
+      setIsSpeechLoading(false);
+      return;
+    }
+
+    // Fallback runner for Browser SpeechSynthesis
+    const runSpeechSynthesisFallback = () => {
+      if ('speechSynthesis' in window) {
+        try {
+          window.speechSynthesis.cancel();
+          window.speechSynthesis.resume();
+
+          const utterance = new SpeechSynthesisUtterance(cleanText);
+          utterance.lang = 'bn-BD';
+          utterance.rate = 0.95;
+
+          const voices = window.speechSynthesis.getVoices();
+          const bnVoice = voices.find(v => 
+            v.lang.startsWith('bn') || 
+            v.name.toLowerCase().includes('bangla') || 
+            v.name.toLowerCase().includes('bengali')
+          );
+          if (bnVoice) utterance.voice = bnVoice;
+
+          utterance.onstart = () => {
+            setIsSpeechLoading(false);
+          };
+
+          utterance.onend = () => {
+            setSpeakingId(null);
+            setIsSpeechLoading(false);
+          };
+
+          utterance.onerror = () => {
+            setSpeakingId(null);
+            setIsSpeechLoading(false);
+          };
+
+          window.speechSynthesis.speak(utterance);
+        } catch {
+          setSpeakingId(null);
+          setIsSpeechLoading(false);
+        }
+      } else {
+        setSpeakingId(null);
+        setIsSpeechLoading(false);
+      }
+    };
 
     try {
       const res = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text: cleanText }),
       });
 
       if (!res.ok) throw new Error('API TTS error');
@@ -235,65 +345,47 @@ export default function AIAssistantWidget() {
       const data = await res.json();
       const audioList: string[] = data.audios || [];
 
-      if (audioList.length === 0) {
+      if (!audioList || audioList.length === 0) {
         throw new Error('No audio generated');
       }
 
-      let currentIndex = 0;
-      const playChunk = () => {
-        if (currentIndex >= audioList.length) {
+      speechQueueRef.current = audioList;
+      speechIndexRef.current = 0;
+      setIsSpeechLoading(false);
+
+      const playCurrentChunk = () => {
+        if (speechIndexRef.current >= speechQueueRef.current.length) {
           setSpeakingId(null);
-          currentAudioRef.current = null;
+          setIsSpeechLoading(false);
           return;
         }
 
-        const audio = new Audio(audioList[currentIndex]);
-        currentAudioRef.current = audio;
+        if (!audioRef.current) {
+          audioRef.current = new Audio();
+        }
+
+        const audio = audioRef.current;
+        audio.src = speechQueueRef.current[speechIndexRef.current];
 
         audio.onended = () => {
-          currentIndex++;
-          playChunk();
+          speechIndexRef.current++;
+          playCurrentChunk();
         };
 
         audio.onerror = () => {
-          currentIndex++;
-          playChunk();
+          speechIndexRef.current++;
+          playCurrentChunk();
         };
 
-        audio.play().catch((playErr) => {
-          console.warn('Audio play error, falling back:', playErr);
-          setSpeakingId(null);
-          currentAudioRef.current = null;
+        audio.play().catch(() => {
+          // If browser policy blocked playback, run speech synthesis fallback
+          runSpeechSynthesisFallback();
         });
       };
 
-      playChunk();
-    } catch (err) {
-      console.warn('Google TTS API notice, falling back to Browser Speech:', err);
-      // Fallback: Browser Web Speech API
-      if ('speechSynthesis' in window) {
-        const cleanText = text
-          .replace(/https?:\/\/[^\s]+/g, '')
-          .replace(/[*#_`~>\[\]\(\)]/g, ' ')
-          .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
-          .replace(/[🎮🏆🔥💰⚡🎯🛡️💎🔑👉📌✨⚠️]/g, '')
-          .trim();
-
-        const utterance = new SpeechSynthesisUtterance(cleanText);
-        utterance.lang = 'bn-BD';
-        utterance.rate = 0.95;
-
-        const voices = window.speechSynthesis.getVoices();
-        const bnVoice = voices.find(v => v.lang.includes('bn') || v.name.toLowerCase().includes('bangla') || v.name.toLowerCase().includes('bengali'));
-        if (bnVoice) utterance.voice = bnVoice;
-
-        utterance.onend = () => setSpeakingId(null);
-        utterance.onerror = () => setSpeakingId(null);
-
-        window.speechSynthesis.speak(utterance);
-      } else {
-        setSpeakingId(null);
-      }
+      playCurrentChunk();
+    } catch {
+      runSpeechSynthesisFallback();
     }
   };
 
@@ -302,8 +394,7 @@ export default function AIAssistantWidget() {
     if (!messageContent || isLoading) return;
 
     if (speakingId) {
-      window.speechSynthesis?.cancel();
-      setSpeakingId(null);
+      stopAllSpeech();
     }
 
     if (isListening && recognitionRef.current) {
@@ -437,15 +528,15 @@ export default function AIAssistantWidget() {
   };
 
   const handleClearChat = () => {
-    if (speakingId) {
-      window.speechSynthesis?.cancel();
-      setSpeakingId(null);
-    }
+    stopAllSpeech();
     setMessages([DEFAULT_WELCOME_MESSAGE]);
   };
 
   return (
     <>
+      {/* Hidden persistent Audio element for seamless playback on mobile & web */}
+      <audio ref={audioRef} className="hidden" preload="auto" />
+
       {/* Floating Trigger Launcher Button */}
       <div className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-50">
         <AnimatePresence>
@@ -467,7 +558,7 @@ export default function AIAssistantWidget() {
         </AnimatePresence>
       </div>
 
-      {/* Minimal Clean Chat Window (Matching Reference Screenshot) */}
+      {/* Clean Chat Window with Crisp Mobile Readability */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -475,10 +566,10 @@ export default function AIAssistantWidget() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.18 }}
-            className="fixed z-50 bottom-4 right-4 sm:bottom-6 sm:right-6 w-[92vw] sm:w-[390px] h-[540px] max-h-[84vh] bg-white rounded-3xl shadow-2xl border border-slate-200/80 overflow-hidden flex flex-col font-sans"
+            className="fixed z-50 bottom-4 right-4 sm:bottom-6 sm:right-6 w-[94vw] sm:w-[410px] h-[580px] max-h-[86vh] bg-white rounded-3xl shadow-2xl border border-slate-200/90 overflow-hidden flex flex-col font-sans"
           >
-            {/* Minimal Blue Header */}
-            <div className="bg-[#2563EB] p-3.5 sm:p-4 flex items-center justify-between text-white select-none">
+            {/* Header */}
+            <div className="bg-[#2563EB] p-3.5 sm:p-4 flex items-center justify-between text-white select-none shadow-xs">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-white text-[#2563EB] flex items-center justify-center shadow-xs flex-shrink-0">
                   <Bot className="w-5 h-5" />
@@ -486,9 +577,9 @@ export default function AIAssistantWidget() {
                 <div>
                   <div className="flex items-center gap-1.5">
                     <h3 className="font-bold text-sm leading-tight text-white">AI Support</h3>
-                    <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                   </div>
-                  <p className="text-[11px] text-blue-100 font-normal leading-tight mt-0.5">BlackRock AI</p>
+                  <p className="text-[11px] text-blue-100 font-normal leading-tight mt-0.5">BlackRock AI • Bangla & English</p>
                 </div>
               </div>
 
@@ -515,10 +606,7 @@ export default function AIAssistantWidget() {
                 {/* Close Button */}
                 <button
                   onClick={() => {
-                    if (speakingId) {
-                      window.speechSynthesis?.cancel();
-                      setSpeakingId(null);
-                    }
+                    stopAllSpeech();
                     setShowHumanModal(false);
                     setIsOpen(false);
                   }}
@@ -541,29 +629,54 @@ export default function AIAssistantWidget() {
                     href="https://discord.gg/blackrock-esports"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[10px] font-bold shadow-xs cursor-pointer"
+                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1"
                   >
-                    Discord
+                    <span>Discord</span>
+                    <ExternalLink className="w-3 h-3" />
                   </a>
                   <a
                     href="https://wa.me/8801700000000?text=Hello%20BlackRock%20Support"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold shadow-xs cursor-pointer"
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1"
                   >
-                    WhatsApp
+                    <span>WhatsApp</span>
+                    <ExternalLink className="w-3 h-3" />
                   </a>
                 </div>
               </div>
             )}
 
-            {/* Subtle Minimal Pill Chips Row */}
+            {/* Live Voice Toast Alert */}
+            {voiceToast && (
+              <div className="px-3 py-2 bg-blue-600 text-white text-xs font-semibold flex items-center justify-between gap-2 shadow-inner animate-in fade-in duration-200">
+                <div className="flex items-center gap-1.5 truncate">
+                  {isListening ? (
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-300 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-red-400"></span>
+                    </span>
+                  ) : (
+                    <AlertCircle className="w-3.5 h-3.5 text-blue-200 shrink-0" />
+                  )}
+                  <span className="truncate">{voiceToast}</span>
+                </div>
+                <button
+                  onClick={() => setVoiceToast(null)}
+                  className="text-white/80 hover:text-white text-xs p-0.5"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
+            {/* Pill Chips Row */}
             <div className="px-3 py-2 bg-slate-50 border-b border-slate-100 overflow-x-auto scrollbar-none flex items-center gap-1.5">
               {COACHING_PILLS.map((pill) => (
                 <button
                   key={pill.id}
                   onClick={() => handleSendMessage(pill.query)}
-                  className="text-[11px] font-medium px-3 py-1 rounded-full bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-slate-600 hover:text-blue-600 transition-all flex-shrink-0 cursor-pointer shadow-xs"
+                  className="text-xs font-medium px-3.5 py-1.5 rounded-full bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-slate-700 hover:text-blue-600 transition-all flex-shrink-0 cursor-pointer shadow-2xs"
                 >
                   {pill.label}
                 </button>
@@ -571,7 +684,7 @@ export default function AIAssistantWidget() {
             </div>
 
             {/* Message Stream */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-white">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#F8FAFC]">
               {messages.map((msg) => {
                 const isUser = msg.role === 'user';
                 const isAdmin = msg.role === 'admin';
@@ -580,7 +693,7 @@ export default function AIAssistantWidget() {
                 if (isUser) {
                   return (
                     <div key={msg.id} className="flex justify-end">
-                      <div className="bg-[#2563EB] text-white rounded-2xl rounded-tr-xs px-4 py-2.5 text-xs leading-relaxed max-w-[85%] shadow-xs break-words">
+                      <div className="bg-[#2563EB] text-white rounded-2xl rounded-tr-xs px-4 py-3 text-[13.5px] sm:text-sm leading-relaxed max-w-[88%] sm:max-w-[85%] shadow-sm break-words font-normal">
                         {msg.content}
                       </div>
                     </div>
@@ -590,96 +703,103 @@ export default function AIAssistantWidget() {
                 return (
                   <div key={msg.id} className="flex items-start gap-2.5">
                     {/* Bot / Admin Icon */}
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                      isAdmin ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-blue-50 text-[#2563EB] border border-blue-100'
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 shadow-2xs ${
+                      isAdmin ? 'bg-emerald-100 text-emerald-700 border border-emerald-300' : 'bg-blue-100 text-[#2563EB] border border-blue-200'
                     }`}>
-                      {isAdmin ? <Headphones className="w-3.5 h-3.5" /> : <Bot className="w-3.5 h-3.5" />}
+                      {isAdmin ? <Headphones className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
                     </div>
 
-                    <div className="space-y-1 max-w-[85%]">
+                    <div className="space-y-1.5 max-w-[88%] sm:max-w-[85%]">
                       {/* Name / Role Badge */}
                       <div className="flex items-center gap-1.5 px-1">
-                        <span className={`text-[10px] font-bold ${isAdmin ? 'text-emerald-700' : 'text-slate-500'}`}>
+                        <span className={`text-[11px] font-bold ${isAdmin ? 'text-emerald-700' : 'text-slate-600'}`}>
                           {msg.senderName || (isAdmin ? 'Admin Support' : 'BlackRock AI')}
                         </span>
-                        <span className="text-[9px] text-slate-400 font-mono">
+                        <span className="text-[10px] text-slate-400 font-mono">
                           {msg.timestamp}
                         </span>
                       </div>
 
-                      {/* Clean Message Bubble */}
-                      <div className={`rounded-2xl rounded-tl-xs px-4 py-3 text-xs leading-relaxed whitespace-pre-wrap break-words shadow-xs ${
+                      {/* Clean Message Bubble - Crisp High-Contrast Text for Mobile */}
+                      <div className={`rounded-2xl rounded-tl-xs p-3.5 sm:p-4 text-[13.5px] sm:text-sm leading-relaxed whitespace-pre-wrap break-words shadow-sm ${
                         isAdmin 
-                          ? 'bg-emerald-50/70 border border-emerald-200 text-slate-900' 
+                          ? 'bg-emerald-50 border border-emerald-200 text-slate-900' 
                           : isSystem 
-                          ? 'bg-indigo-50/70 border border-indigo-200 text-slate-900' 
-                          : 'bg-white border border-slate-200/90 text-slate-800'
+                          ? 'bg-indigo-50 border border-indigo-200 text-slate-900' 
+                          : 'bg-white border border-slate-200/90 text-slate-900'
                       }`}>
-                        {msg.content}
+                        <div className="select-text font-normal">{msg.content}</div>
 
                         {/* Optional Suggested Action */}
                         {msg.suggestedAction && (
-                          <div className="pt-2">
+                          <div className="pt-2.5">
                             {msg.suggestedAction.link.startsWith('http') ? (
                               <a
                                 href={msg.suggestedAction.link}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#2563EB] font-bold text-[11px] border border-blue-200 transition-colors cursor-pointer"
+                                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#2563EB] font-bold text-xs border border-blue-200 transition-colors cursor-pointer shadow-2xs"
                               >
                                 <span>{msg.suggestedAction.label}</span>
-                                <ArrowRight className="w-3 h-3" />
+                                <ArrowRight className="w-3.5 h-3.5" />
                               </a>
                             ) : (
                               <Link
                                 href={msg.suggestedAction.link}
                                 onClick={() => setIsOpen(false)}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#2563EB] font-bold text-[11px] border border-blue-200 transition-colors cursor-pointer"
+                                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#2563EB] font-bold text-xs border border-blue-200 transition-colors cursor-pointer shadow-2xs"
                               >
                                 <span>{msg.suggestedAction.label}</span>
-                                <ArrowRight className="w-3 h-3" />
+                                <ArrowRight className="w-3.5 h-3.5" />
                               </Link>
                             )}
                           </div>
                         )}
                       </div>
 
-                      {/* Action Bar (Audio & Copy) */}
+                      {/* Action Bar (Audio Listen & Copy) */}
                       {!isSystem && (
-                        <div className="flex items-center gap-2 px-1 text-[10px] text-slate-400">
+                        <div className="flex items-center gap-3 px-1 text-xs text-slate-500 font-medium">
+                          {/* Listen in Bangla Button */}
                           <button
                             onClick={() => speakMessage(msg.content, msg.id)}
-                            className="hover:text-blue-600 flex items-center gap-1 transition-colors cursor-pointer"
-                            title="Listen in Bangla"
+                            className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer p-1 rounded-md hover:bg-slate-100"
+                            title="Listen in Bangla (শুনুন)"
                           >
                             {speakingId === msg.id ? (
                               <>
-                                <VolumeX className="w-3 h-3 text-blue-600 animate-pulse" />
-                                <span className="text-blue-600 font-semibold">থামুন</span>
+                                <VolumeX className="w-3.5 h-3.5 text-blue-600 animate-pulse" />
+                                <span className="text-blue-600 font-bold">থামুন</span>
+                              </>
+                            ) : isSpeechLoading && speakingId === msg.id ? (
+                              <>
+                                <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
+                                <span className="text-blue-600">লোড হচ্ছে...</span>
                               </>
                             ) : (
                               <>
-                                <Volume2 className="w-3 h-3" />
+                                <Volume2 className="w-3.5 h-3.5 text-slate-500" />
                                 <span>শুনুন</span>
                               </>
                             )}
                           </button>
 
-                          <span>•</span>
+                          <span className="text-slate-300">•</span>
 
+                          {/* Copy Button */}
                           <button
                             onClick={() => handleCopyText(msg.content, msg.id)}
-                            className="hover:text-blue-600 flex items-center gap-1 transition-colors cursor-pointer"
+                            className="hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer p-1 rounded-md hover:bg-slate-100"
                             title="Copy text"
                           >
                             {copiedId === msg.id ? (
                               <>
-                                <Check className="w-3 h-3 text-emerald-500" />
-                                <span className="text-emerald-500">কপি হয়েছে</span>
+                                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                <span className="text-emerald-600 font-bold">কপি হয়েছে</span>
                               </>
                             ) : (
                               <>
-                                <Copy className="w-3 h-3" />
+                                <Copy className="w-3.5 h-3.5 text-slate-500" />
                                 <span>কপি</span>
                               </>
                             )}
@@ -694,8 +814,8 @@ export default function AIAssistantWidget() {
               {/* Typing Animation */}
               {isLoading && (
                 <div className="flex items-start gap-2.5">
-                  <div className="w-6 h-6 rounded-full bg-blue-50 text-[#2563EB] border border-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Bot className="w-3.5 h-3.5" />
+                  <div className="w-7 h-7 rounded-full bg-blue-100 text-[#2563EB] border border-blue-200 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-2xs">
+                    <Bot className="w-4 h-4" />
                   </div>
                   <div className="bg-white border border-slate-200/90 rounded-2xl rounded-tl-xs px-4 py-3 shadow-xs flex items-center space-x-1.5">
                     <div className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-bounce"></div>
@@ -708,25 +828,31 @@ export default function AIAssistantWidget() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Minimal Rounded Input Bar */}
+            {/* Input Bar with Enhanced Voice Mic Button */}
             <div className="p-3 bg-white border-t border-slate-100">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
                   handleSendMessage();
                 }}
-                className="bg-slate-100 rounded-full px-3.5 py-1.5 flex items-center gap-2 border border-slate-200/60 focus-within:border-blue-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/10 transition-all"
+                className={`rounded-full px-4 py-1.5 flex items-center gap-2 border transition-all ${
+                  isListening
+                    ? 'bg-red-50/70 border-red-400 ring-2 ring-red-400/20'
+                    : 'bg-slate-100 border-slate-200/80 focus-within:border-blue-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/10'
+                }`}
               >
                 {/* Voice Mic Button */}
                 <button
                   type="button"
                   onClick={toggleVoiceInput}
-                  title={isListening ? 'শুনছি... কথা বলুন' : 'বাংলায় কথা বলুন (Speak in Bangla)'}
-                  className={`p-1.5 rounded-full transition-colors cursor-pointer ${
-                    isListening ? 'text-red-500 animate-pulse' : 'text-slate-400 hover:text-blue-600'
+                  title={isListening ? 'ভয়েস ইনপুট বন্ধ করুন' : 'বাংলায় কথা বলুন (Speak in Bangla)'}
+                  className={`p-2 rounded-full transition-all cursor-pointer flex-shrink-0 ${
+                    isListening 
+                      ? 'bg-red-500 text-white animate-pulse shadow-md' 
+                      : 'text-slate-500 hover:text-blue-600 hover:bg-slate-200/60'
                   }`}
                 >
-                  <Mic className="w-4 h-4" />
+                  {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
                 </button>
 
                 {/* Input Text Field */}
@@ -735,15 +861,15 @@ export default function AIAssistantWidget() {
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder={isListening ? 'শুনছি... বলুন...' : 'Ask AI anything...'}
-                  className="flex-1 bg-transparent text-xs text-slate-800 placeholder-slate-400 focus:outline-none"
+                  placeholder={isListening ? '🎙️ শুনছি... এখন বাংলায় বলুন...' : 'Ask AI anything...'}
+                  className="flex-1 bg-transparent text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none py-1.5"
                 />
 
                 {/* Send Button */}
                 <button
                   type="submit"
                   disabled={!input.trim() || isLoading}
-                  className={`w-7 h-7 rounded-full flex items-center justify-center transition-all cursor-pointer flex-shrink-0 ${
+                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer flex-shrink-0 ${
                     input.trim()
                       ? 'bg-[#2563EB] hover:bg-blue-700 text-white shadow-sm'
                       : 'bg-slate-300 text-slate-500 opacity-60 cursor-not-allowed'
