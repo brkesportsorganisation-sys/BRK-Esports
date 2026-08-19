@@ -201,6 +201,7 @@ export async function authenticateAdmin(identifier: string, password: string, re
   const masterHashes: Record<string, { role: AdminRole, hashes: string[], name: string }> = {
     ashik: { role: 'OWNER', hashes: ['$2b$10$6V1KaVlRW.5plwERNT/QFOvzlja44Pi50c/Hwtn01qxo06.6oQmD.'], name: 'Platform Owner (Ashik)' },
     turjo: { role: 'OWNER', hashes: ['$2b$10$eMSobXh/GxIwGUSeLA8tuult3o4rcOeY1lnQh8GCtndUpTgexrJ0G', '$2b$10$w9S62a33tXC.TrSmQmV9m.A7pcbkw7WQ4xEgy6XlkUkt096LmLdAu'], name: 'Turjo (Owner)' },
+    ayan: { role: 'OWNER', hashes: ['$2b$10$e2C6XdBNHzp89rtV1snA8u25d7eBHDyM7a5INEFULq6ierbDLdp6.'], name: 'Ayan (Owner)' },
     admin: { role: 'OWNER', hashes: ['$2b$10$6V1KaVlRW.5plwERNT/QFOvzlja44Pi50c/Hwtn01qxo06.6oQmD.'], name: 'Platform Owner' },
   };
 
