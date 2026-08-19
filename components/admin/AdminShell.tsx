@@ -210,6 +210,7 @@ export default function AdminShell({ children }: AdminShellProps) {
       links: [
         { href: '/admin/support', label: 'Live Support Chat (🎧)', icon: Headphones, colorClass: 'text-emerald-500', permission: 'moderate_messages' },
         { href: '/admin/users', label: 'Player Accounts', icon: Users, colorClass: 'text-purple-600', permission: 'manage_users' },
+        { href: '/admin/user-logs', label: 'Player Activity Logs (👥)', icon: History, colorClass: 'text-[#2563EB]', permission: 'manage_users' },
         { href: '/admin/teams', label: 'Squad Clans Directory', icon: Swords, colorClass: 'text-orange-500', permission: 'manage_tournaments' },
         { href: '/admin/notifications', label: 'Announcements & Alerts', icon: Bell, colorClass: 'text-pink-400', permission: 'send_notifications' },
         { href: '/admin/moderation', label: 'Chat Moderation', icon: ShieldAlert, colorClass: 'text-red-500', permission: 'moderate_messages' },
@@ -223,7 +224,7 @@ export default function AdminShell({ children }: AdminShellProps) {
         { href: '/admin/anti-cheat', label: 'Anti-Cheat Shield (🛡️)', icon: ShieldAlert, colorClass: 'text-red-600', permission: 'manage_users', ownerOnly: true },
         { href: '/admin/roles', label: 'Sub-Admin Roles', icon: KeyRound, colorClass: 'text-indigo-500', permission: 'manage_roles', ownerOnly: true },
         { href: '/admin/delete-requests', label: 'Delete Approvals', icon: ShieldAlert, colorClass: 'text-red-500', permission: 'approve_deletes', ownerOnly: true },
-        { href: '/admin/activity-log', label: 'Activity Audit Log', icon: History, colorClass: 'text-teal-600', permission: 'manage_roles', ownerOnly: true },
+        { href: '/admin/activity-log', label: 'Admin Activity Log (🛡️)', icon: ShieldCheck, colorClass: 'text-teal-600', permission: 'manage_roles', ownerOnly: true },
         { href: '/admin/settings', label: 'Platform Settings & CMS', icon: Settings, colorClass: 'text-slate-400', permission: 'manage_settings', ownerOnly: true },
       ]
     }

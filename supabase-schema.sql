@@ -729,6 +729,21 @@ CREATE TABLE IF NOT EXISTS "AdminActivityLog" (
     "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS "UserActivityLog" (
+    "id" TEXT PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "userName" TEXT NOT NULL,
+    "userEmail" TEXT,
+    "accountNumber" TEXT,
+    "action" TEXT NOT NULL,
+    "details" TEXT,
+    "ipAddress" TEXT,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS "idx_useractivitylog_userId" ON "UserActivityLog"("userId");
+CREATE INDEX IF NOT EXISTS "idx_useractivitylog_action" ON "UserActivityLog"("action");
+
 CREATE INDEX IF NOT EXISTS "idx_adminaccount_username" ON "AdminAccount"("username");
 CREATE INDEX IF NOT EXISTS "idx_adminaccount_email" ON "AdminAccount"("email");
 
