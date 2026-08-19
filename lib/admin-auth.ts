@@ -157,78 +157,73 @@ export async function authenticateAdmin(identifier: string, password: string, re
   }
 
   const cleanIdent = identifier.trim().toLowerCase();
-  const ownerEmail = (process.env.ADMIN_EMAIL || 'ashik').toLowerCase();
-  const ownerPassword = process.env.ADMIN_PASSWORD || 'ashik@2008';
 
-  // 1. Check Owner accounts (Master logins: ashik & turjo)
-  if (cleanIdent === ownerEmail || cleanIdent === 'ashik' || cleanIdent === 'turjo' || cleanIdent === 'admin') {
-    let isOwnerMatch = false;
-    let loggedUsername = 'ashik';
-    let loggedDisplayName = 'Platform Owner';
-
-    if (cleanIdent === 'turjo') {
-      isOwnerMatch = password === 'turjo@2404' || password === ownerPassword;
-      loggedUsername = 'turjo';
-      loggedDisplayName = 'Turjo (Owner)';
-    } else {
-      isOwnerMatch = password === ownerPassword || password === 'turjo@2404' || (await bcrypt.compare(password, process.env.ADMIN_PASSWORD_HASH || ''));
-      loggedUsername = cleanIdent === 'admin' ? 'ashik' : cleanIdent;
-      loggedDisplayName = 'Platform Owner';
-    }
-
-    if (isOwnerMatch) {
-      resetRateLimiting(ip);
-      const payload: AdminSessionPayload = {
-        sub: `admin-owner-${loggedUsername}`,
-        email: loggedUsername === 'turjo' ? 'turjo@blackrock.gg' : ownerEmail,
-        username: loggedUsername,
-        displayName: loggedDisplayName,
-        role: 'OWNER',
-        permissions: ALL_PERMISSIONS, // Owner has unrestricted access to all 25 menus
-        iat: Math.floor(Date.now() / 1000),
-        exp: Math.floor((Date.now() + SESSION_TTL_MS) / 1000),
-      };
-      const token = signPayload(payload);
-      const csrfToken = randomBytes(24).toString('hex');
-      logAdminAction(loggedUsername, 'LOGIN', `Platform Owner (${loggedUsername}) signed in successfully`);
-      return { ok: true, status: 200, user: { id: payload.sub, email: payload.email, username: payload.username, role: payload.role, displayName: payload.displayName, permissions: payload.permissions }, token, csrfToken };
-    }
-  }
-
-  // 2. Check Sub-Admin accounts in Supabase AdminAccount table
+  // 1. Query Supabase AdminAccount table directly by username or email
   try {
-    const { data: subAdmin, error } = await supabaseAdmin
+    const { data: adminAccount, error } = await supabaseAdmin
       .from('AdminAccount')
       .select('*')
-      .eq('username', cleanIdent)
+      .or(`username.ilike.${cleanIdent},email.ilike.${cleanIdent}`)
       .maybeSingle();
 
-    if (subAdmin && !error) {
-      if (!subAdmin.isActive) {
-        return { ok: false, status: 403, message: 'Your sub-admin account has been deactivated by the Owner.' };
+    if (adminAccount && !error) {
+      if (!adminAccount.isActive) {
+        return { ok: false, status: 403, message: 'Your admin account has been deactivated.' };
       }
 
-      const passwordMatches = await bcrypt.compare(password, subAdmin.passwordHash);
+      const passwordMatches = await bcrypt.compare(password, adminAccount.passwordHash);
       if (passwordMatches) {
         resetRateLimiting(ip);
+        const role = (adminAccount.role as AdminRole) || 'ADMIN';
+        const isOwner = role === 'OWNER' || role === 'SUPER_ADMIN';
+
         const payload: AdminSessionPayload = {
-          sub: subAdmin.id,
-          email: subAdmin.username,
-          username: subAdmin.username,
-          displayName: subAdmin.displayName,
-          role: 'SUB_ADMIN',
-          permissions: (subAdmin.permissions as AdminPermissionKey[]) || [],
+          sub: adminAccount.id,
+          email: adminAccount.email || adminAccount.username,
+          username: adminAccount.username,
+          displayName: adminAccount.displayName || adminAccount.username,
+          role,
+          permissions: isOwner ? ALL_PERMISSIONS : (adminAccount.permissions as AdminPermissionKey[]) || [],
           iat: Math.floor(Date.now() / 1000),
           exp: Math.floor((Date.now() + SESSION_TTL_MS) / 1000),
         };
         const token = signPayload(payload);
         const csrfToken = randomBytes(24).toString('hex');
-        logAdminAction(subAdmin.username, 'LOGIN', `Sub-Admin '${subAdmin.username}' signed in`);
-        return { ok: true, status: 200, user: { id: subAdmin.id, email: subAdmin.username, username: subAdmin.username, role: 'SUB_ADMIN', displayName: subAdmin.displayName, permissions: payload.permissions }, token, csrfToken };
+        logAdminAction(adminAccount.username, 'LOGIN', `Admin '${adminAccount.username}' (${role}) signed in successfully`);
+        return { ok: true, status: 200, user: { id: adminAccount.id, email: payload.email, username: payload.username, role: payload.role, displayName: payload.displayName, permissions: payload.permissions }, token, csrfToken };
       }
     }
   } catch (err) {
-    console.warn('Sub-admin query check error:', err);
+    console.warn('[authenticateAdmin] Supabase AdminAccount check warning:', err);
+  }
+
+  // 2. Fallback Bcrypt Verification (Zero plain-text passwords in code)
+  const masterHashes: Record<string, { role: AdminRole, hash: string, name: string }> = {
+    ashik: { role: 'OWNER', hash: '$2b$10$cLSgLFHMv8RvEam1qT/vjeo.862skJRsP0NCFBCKvBxsaXYcKb4P2', name: 'Platform Owner (Ashik)' },
+    turjo: { role: 'OWNER', hash: '$2b$10$A99/JCJir9KucYksxKLlcOtH6ueLkN1JOSJnQOlC1HBv0YmP4MPEu', name: 'Turjo (Owner)' },
+    admin: { role: 'OWNER', hash: '$2b$10$cLSgLFHMv8RvEam1qT/vjeo.862skJRsP0NCFBCKvBxsaXYcKb4P2', name: 'Platform Owner' },
+  };
+
+  const masterConfig = masterHashes[cleanIdent];
+  if (masterConfig) {
+    const isMasterMatch = await bcrypt.compare(password, masterConfig.hash) || (process.env.ADMIN_PASSWORD_HASH ? await bcrypt.compare(password, process.env.ADMIN_PASSWORD_HASH) : false);
+    if (isMasterMatch) {
+      resetRateLimiting(ip);
+      const payload: AdminSessionPayload = {
+        sub: `admin-owner-${cleanIdent}`,
+        email: `${cleanIdent}@blackrock.gg`,
+        username: cleanIdent,
+        displayName: masterConfig.name,
+        role: masterConfig.role,
+        permissions: ALL_PERMISSIONS,
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor((Date.now() + SESSION_TTL_MS) / 1000),
+      };
+      const token = signPayload(payload);
+      const csrfToken = randomBytes(24).toString('hex');
+      logAdminAction(cleanIdent, 'LOGIN', `Master Admin '${cleanIdent}' signed in`);
+      return { ok: true, status: 200, user: { id: payload.sub, email: payload.email, username: payload.username, role: payload.role, displayName: payload.displayName, permissions: payload.permissions }, token, csrfToken };
+    }
   }
 
   return { ok: false, status: 401, message: 'Invalid admin credentials.' };
