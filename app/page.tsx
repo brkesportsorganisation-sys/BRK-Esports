@@ -27,6 +27,47 @@ import HomeBannerSlider from '@/components/home/HomeBannerSlider';
 import { Tournament, Announcement } from '@/lib/types';
 import { useLanguage } from '@/lib/language-context';
 
+import { initialTournaments } from '@/lib/mock-data';
+
+function stripHtml(html?: string) {
+  if (!html) return '';
+  return html
+    .replace(/<[^>]*>?/gm, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function getGameBadge(game?: string, title?: string) {
+  const g = (game || '').toUpperCase();
+  const t = (title || '').toLowerCase();
+
+  if (g === 'EFOOTBALL' || t.includes('efootball') || t.includes('pes')) {
+    return { name: 'eFootball', icon: '⚽', color: 'bg-blue-600/90 text-white border-blue-400/40 shadow-blue-500/20' };
+  }
+  if (g === 'PUBG_MOBILE' || t.includes('pubg') || t.includes('bgmi')) {
+    return { name: 'PUBG Mobile', icon: '🪖', color: 'bg-amber-600/90 text-white border-amber-400/40 shadow-amber-500/20' };
+  }
+  if (g === 'VALORANT' || t.includes('valorant')) {
+    return { name: 'Valorant', icon: '🎯', color: 'bg-rose-600/90 text-white border-rose-400/40 shadow-rose-500/20' };
+  }
+  if (g === 'MLBB' || t.includes('mobile legends') || t.includes('mlbb')) {
+    return { name: 'MLBB', icon: '⚔️', color: 'bg-purple-600/90 text-white border-purple-400/40 shadow-purple-500/20' };
+  }
+  if (g === 'COD_MOBILE' || t.includes('cod') || t.includes('call of duty')) {
+    return { name: 'COD Mobile', icon: '💥', color: 'bg-emerald-600/90 text-white border-emerald-400/40 shadow-emerald-500/20' };
+  }
+  if (g === 'LUDO_KING' || t.includes('ludo')) {
+    return { name: 'Ludo King', icon: '🎲', color: 'bg-indigo-600/90 text-white border-indigo-400/40 shadow-indigo-500/20' };
+  }
+  return { name: 'Free Fire', icon: '🔥', color: 'bg-orange-600/90 text-white border-orange-400/40 shadow-orange-500/20' };
+}
+
 export default function HomePage() {
   const { t, isBangla } = useLanguage();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
@@ -127,6 +168,8 @@ export default function HomePage() {
     void loadAnnouncements();
   }, []);
 
+  const displayedTournaments = (tournaments.length > 0 ? tournaments : initialTournaments).slice(0, 2);
+
   return (
     <div className="flex flex-col font-body w-full">
       <Navbar />
@@ -225,6 +268,152 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ========================================================================= */}
+      {/* FEATURED 2 TOURNAMENTS SECTION -> Direct Click redirects to /tournaments  */}
+      {/* ========================================================================= */}
+      <section className="py-12 bg-slate-50/70 border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full space-y-8">
+          
+          {/* Section Header with Direct Link to /tournaments */}
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div className="space-y-1.5">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-brand-orange text-xs font-black uppercase tracking-wider">
+                <Flame className="w-3.5 h-3.5 text-brand-orange animate-pulse" />
+                <span>FEATURED TOURNAMENTS</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-black font-heading text-slate-900 tracking-tight">
+                {isBangla ? 'লাইভ ও আপকামিং টুর্নামেন্ট' : 'Live & Featured Arena Tournaments'}
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-600 max-w-xl leading-relaxed">
+                {isBangla 
+                  ? 'টুর্নামেন্টে অংশগ্রহণ করুন, প্রতিপক্ষকে পরাজিত করুন এবং জিতে নিন আকর্ষণীয় রিয়েল ক্যাশ প্রাইজ।' 
+                  : 'Compete in top esports matches, climb the leaderboard, and claim real bKash & Nagad cash prizes.'}
+              </p>
+            </div>
+
+            <Link
+              href="/tournaments"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold hover:brightness-110 text-white font-heading font-black text-xs uppercase tracking-wider shadow-neon-orange transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0"
+            >
+              <span>{isBangla ? 'সকল টুর্নামেন্ট দেখুন' : 'Explore All Tournaments'}</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          {/* 2 Tournaments Grid - Clicking Card Anywhere Redirects Directly to /tournaments */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {displayedTournaments.map((tour) => {
+              const gameInfo = getGameBadge(tour.game, tour.title);
+              const isFree = tour.entryFee === 0;
+              const isLive = tour.status === 'LIVE';
+              const registered = tour.registeredCount || 0;
+              const maxSlots = tour.maxTeams || 48;
+              const percentFilled = Math.min(100, Math.round((registered / maxSlots) * 100));
+
+              return (
+                <Link
+                  key={tour.id}
+                  href="/tournaments"
+                  className="group bg-white rounded-3xl overflow-hidden border border-slate-200 hover:border-brand-orange/60 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between relative cursor-pointer hover:-translate-y-1 select-none"
+                  title="Click to view all tournaments"
+                >
+                  {/* Tournament Banner & Overlay Badges */}
+                  <div className="relative h-48 sm:h-56 w-full overflow-hidden bg-slate-900">
+                    <img
+                      src={tour.banner || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800'}
+                      alt={tour.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-black/30" />
+
+                    {/* Game Badge on Top-Left */}
+                    <div className="absolute top-3.5 left-3.5 z-10">
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wide backdrop-blur-md border shadow-md ${gameInfo.color}`}>
+                        <span>{gameInfo.icon}</span>
+                        <span>{tour.gameName || gameInfo.name}</span>
+                      </span>
+                    </div>
+
+                    {/* Entry Fee & Live Status Badges on Top-Right */}
+                    <div className="absolute top-3.5 right-3.5 z-10 flex items-center gap-2">
+                      {isFree ? (
+                        <span className="px-3 py-1 rounded-xl bg-emerald-600/95 text-white font-black text-xs uppercase backdrop-blur-md border border-emerald-400/40 shadow-md">
+                          🎁 FREE ENTRY
+                        </span>
+                      ) : (
+                        <span className="px-3 py-1 rounded-xl bg-black/75 text-amber-400 font-black text-xs uppercase backdrop-blur-md border border-amber-400/40 shadow-md">
+                          ৳{tour.entryFee} Entry
+                        </span>
+                      )}
+
+                      {isLive && (
+                        <span className="px-2.5 py-1 rounded-xl bg-brand-red text-white font-black text-xs uppercase animate-pulse border border-red-400/50 shadow-md">
+                          🔴 LIVE
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Mode & Prize Pool Badge on Bottom-Left */}
+                    <div className="absolute bottom-3 left-3.5 z-10 flex flex-wrap items-center gap-2">
+                      <span className="px-2.5 py-1 rounded-lg bg-slate-900/90 text-slate-200 text-xs font-extrabold uppercase backdrop-blur-md border border-slate-700">
+                        {tour.mode || 'SQUAD'}
+                      </span>
+                      <span className="px-3 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 text-xs font-black uppercase backdrop-blur-md shadow-md">
+                        🏆 Prize Pool: ৳{(tour.prizePool || 0).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Card Content Body */}
+                  <div className="p-5 sm:p-6 flex-1 flex flex-col justify-between space-y-4">
+                    <div className="space-y-2">
+                      <h3 className="font-heading font-black text-lg text-slate-900 group-hover:text-brand-orange transition-colors line-clamp-1">
+                        {tour.title}
+                      </h3>
+                      <p className="text-slate-600 text-xs line-clamp-2 leading-relaxed">
+                        {stripHtml(tour.description)}
+                      </p>
+                    </div>
+
+                    {/* Timing & Slots Progress */}
+                    <div className="space-y-3 pt-1 border-t border-slate-100">
+                      <div className="flex items-center justify-between text-xs text-slate-600">
+                        <div className="flex items-center gap-1.5 font-bold">
+                          <Clock className="w-3.5 h-3.5 text-brand-orange" />
+                          <span>{tour.matchTime || 'Everyday 09:00 PM'}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-slate-500 font-bold">
+                          <Users className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{registered} / {maxSlots} Slots</span>
+                        </div>
+                      </div>
+
+                      {/* Slots Progress Bar */}
+                      <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200">
+                        <div
+                          className="bg-gradient-to-r from-brand-red to-brand-orange h-full rounded-full transition-all duration-500"
+                          style={{ width: `${percentFilled}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Prominent Action Button (Click takes to /tournaments) */}
+                    <div className="pt-2">
+                      <div className="w-full py-3 rounded-xl bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold text-white font-heading font-black text-xs uppercase tracking-wider shadow-neon-orange group-hover:shadow-neon-red transition-all flex items-center justify-center space-x-2">
+                        <Trophy className="w-4 h-4" />
+                        <span>{isBangla ? 'টুর্নামেন্ট পেইজে যান (ALL TOURNAMENTS)' : 'VIEW ALL TOURNAMENTS'}</span>
+                        <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+
+        </div>
+      </section>
+
       {/* Recent Announcements Section */}
       {announcements.length > 0 && (
         <section className="py-12 bg-white border-b border-slate-200">
@@ -259,8 +448,6 @@ export default function HomePage() {
           </div>
         </section>
       )}
-
-
 
       <Footer />
     </div>

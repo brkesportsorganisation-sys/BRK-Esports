@@ -153,7 +153,25 @@ class LocalDatabase {
   }
 
   setCurrentUser(user: User | null) {
-    this.currentUser = user;
+    if (user && this.currentUser && user.id === this.currentUser.id) {
+      this.currentUser = {
+        ...this.currentUser,
+        ...user,
+        lastStreakClaimDate: user.lastStreakClaimDate ?? this.currentUser.lastStreakClaimDate,
+        currentStreak: user.currentStreak ?? this.currentUser.currentStreak,
+      };
+    } else {
+      this.currentUser = user;
+    }
+
+    if (this.currentUser) {
+      const idx = this.users.findIndex(u => u.id === this.currentUser!.id);
+      if (idx >= 0) {
+        this.users[idx] = { ...this.users[idx], ...this.currentUser };
+      } else {
+        this.users.push(this.currentUser);
+      }
+    }
     this.save();
   }
 
@@ -179,6 +197,9 @@ class LocalDatabase {
   }
 
   getUserById(id: string): User | null {
+    if (this.currentUser && this.currentUser.id === id) {
+      return this.currentUser;
+    }
     return this.users.find((u) => u.id === id) || null;
   }
 
@@ -218,13 +239,20 @@ class LocalDatabase {
 
   updateUser(id: string, updates: Partial<User>): User | null {
     const idx = this.users.findIndex(u => u.id === id);
-    if (idx === -1) return null;
-    this.users[idx] = { ...this.users[idx], ...updates };
-    if (this.currentUser && this.currentUser.id === id) {
-      this.currentUser = this.users[idx];
+    if (idx !== -1) {
+      this.users[idx] = { ...this.users[idx], ...updates };
+      if (this.currentUser && this.currentUser.id === id) {
+        this.currentUser = this.users[idx];
+      }
+      this.save();
+      return this.users[idx];
+    } else if (this.currentUser && this.currentUser.id === id) {
+      this.currentUser = { ...this.currentUser, ...updates };
+      this.users.push(this.currentUser);
+      this.save();
+      return this.currentUser;
     }
-    this.save();
-    return this.users[idx];
+    return null;
   }
 
   toggleBanUser(id: string): User | null {

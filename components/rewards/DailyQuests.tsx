@@ -78,12 +78,11 @@ export default function DailyQuests() {
     }
   };
 
-  useEffect(() => {
-    const user = db.getCurrentUser();
+  const syncUserData = (userOverride?: User | null) => {
+    const user = userOverride !== undefined ? userOverride : db.getCurrentUser();
     setCurrentUser(user);
 
     if (user?.id) {
-      // Immediate local check to prevent active claim button flash
       if (user.lastStreakClaimDate) {
         const lastClaimTime = new Date(user.lastStreakClaimDate).getTime();
         const timeSince = Date.now() - lastClaimTime;
@@ -102,16 +101,28 @@ export default function DailyQuests() {
             setCurrentStreakDay(((user.currentStreak || 0) % 7) + 1);
           }
         }
-      } else {
-        setCanClaim(true);
-        setCurrentStreakDay(user.currentStreak || 1);
       }
-
       loadQuestData(user.id);
     } else {
       setCanClaim(false);
       setCurrentStreakDay(1);
     }
+  };
+
+  useEffect(() => {
+    syncUserData();
+
+    const handleUserUpdate = () => {
+      syncUserData();
+    };
+
+    window.addEventListener('user-updated', handleUserUpdate);
+    window.addEventListener('storage', handleUserUpdate);
+
+    return () => {
+      window.removeEventListener('user-updated', handleUserUpdate);
+      window.removeEventListener('storage', handleUserUpdate);
+    };
   }, []);
 
   // 1-second interval for 24-hour countdown timer

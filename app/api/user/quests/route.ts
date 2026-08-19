@@ -15,6 +15,22 @@ const STREAK_REWARDS = [
   { day: 7, label: '৳10 Real Cash Bonus', type: 'WALLET', value: 10 },
 ];
 
+function getUserStreakInfo(user: any) {
+  let currentStreak = Number(user.currentStreak || 0);
+  let lastStreakClaimDate = user.lastStreakClaimDate || null;
+
+  // Fallback check in deviceToken if columns are not yet in Supabase
+  if (!lastStreakClaimDate && user.deviceToken && typeof user.deviceToken === 'string' && user.deviceToken.startsWith('STREAK:')) {
+    try {
+      const parsed = JSON.parse(user.deviceToken.replace('STREAK:', ''));
+      if (parsed.currentStreak !== undefined) currentStreak = Number(parsed.currentStreak);
+      if (parsed.lastStreakClaimDate) lastStreakClaimDate = parsed.lastStreakClaimDate;
+    } catch {}
+  }
+
+  return { currentStreak, lastStreakClaimDate };
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -45,14 +61,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'User not found. Please log in.' }, { status: 404 });
     }
 
+    const { currentStreak, lastStreakClaimDate } = getUserStreakInfo(user);
+
     const now = Date.now();
     let canClaimStreak = true;
     let remainingSeconds = 0;
     let nextClaimAvailableAt: string | null = null;
-    let currentStreakDay = user.currentStreak || 1;
+    let currentStreakDay = currentStreak || 1;
 
-    if (user.lastStreakClaimDate) {
-      const lastClaimTime = new Date(user.lastStreakClaimDate).getTime();
+    if (lastStreakClaimDate) {
+      const lastClaimTime = new Date(lastStreakClaimDate).getTime();
       const timeSinceLastClaim = now - lastClaimTime;
       const nextClaimTime = lastClaimTime + COOLDOWN_MS;
 
@@ -60,7 +78,7 @@ export async function GET(request: NextRequest) {
         canClaimStreak = false;
         remainingSeconds = Math.max(0, Math.ceil((nextClaimTime - now) / 1000));
         nextClaimAvailableAt = new Date(nextClaimTime).toISOString();
-        currentStreakDay = user.currentStreak || 1;
+        currentStreakDay = currentStreak || 1;
       } else {
         canClaimStreak = true;
         remainingSeconds = 0;
@@ -69,7 +87,7 @@ export async function GET(request: NextRequest) {
           currentStreakDay = 1;
         } else {
           // Ready to claim next day!
-          currentStreakDay = ((user.currentStreak || 0) % 7) + 1;
+          currentStreakDay = ((currentStreak || 0) % 7) + 1;
         }
       }
     } else {
@@ -128,14 +146,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'একাউন্ট পাওয়া যায়নি। অনুগ্রহ করে লগইন করুন।' }, { status: 404 });
     }
 
+    const { currentStreak, lastStreakClaimDate } = getUserStreakInfo(user);
     const now = Date.now();
 
     // Handle Daily Login Streak Claim
     if (action === 'CLAIM_STREAK') {
       const claimNowIso = new Date().toISOString();
 
-      if (user.lastStreakClaimDate) {
-        const lastClaimTime = new Date(user.lastStreakClaimDate).getTime();
+      if (lastStreakClaimDate) {
+        const lastClaimTime = new Date(lastStreakClaimDate).getTime();
         const timeSinceLastClaim = now - lastClaimTime;
 
         if (timeSinceLastClaim < COOLDOWN_MS) {
@@ -153,14 +172,14 @@ export async function POST(request: NextRequest) {
 
       // Calculate streak day progression
       let streakDay = 1;
-      if (user.lastStreakClaimDate) {
-        const lastClaimTime = new Date(user.lastStreakClaimDate).getTime();
+      if (lastStreakClaimDate) {
+        const lastClaimTime = new Date(lastStreakClaimDate).getTime();
         const timeSinceLastClaim = now - lastClaimTime;
 
         if (timeSinceLastClaim > STREAK_EXPIRY_MS) {
           streakDay = 1; // Expired streak resets to Day 1
         } else {
-          streakDay = ((user.currentStreak || 0) % 7) + 1;
+          streakDay = ((currentStreak || 0) % 7) + 1;
         }
       } else {
         streakDay = 1;
@@ -179,9 +198,11 @@ export async function POST(request: NextRequest) {
         newCoinBal += reward.value;
       }
 
+      const fallbackStreakStr = `STREAK:${JSON.stringify({ currentStreak: streakDay, lastStreakClaimDate: claimNowIso })}`;
+
       // Safe update to Supabase including currentStreak and lastStreakClaimDate
       try {
-        await supabaseAdmin
+        const { error } = await supabaseAdmin
           .from('User')
           .update({
             coinBalance: newCoinBal,
@@ -192,6 +213,21 @@ export async function POST(request: NextRequest) {
             updatedAt: claimNowIso,
           })
           .eq('id', userId);
+
+        if (error) {
+          // If custom streak columns don't exist yet in Supabase, update balances & persist streak in deviceToken fallback
+          console.warn('Supabase update with streak columns failed, using fallback:', error.message);
+          await supabaseAdmin
+            .from('User')
+            .update({
+              coinBalance: newCoinBal,
+              walletBalance: newWalletBal,
+              earnings: newEarnings,
+              deviceToken: fallbackStreakStr,
+              updatedAt: claimNowIso,
+            })
+            .eq('id', userId);
+        }
       } catch (e) {
         console.warn('Supabase user balance update warning:', e);
       }
@@ -204,6 +240,7 @@ export async function POST(request: NextRequest) {
         earnings: newEarnings,
         currentStreak: streakDay,
         lastStreakClaimDate: claimNowIso,
+        deviceToken: fallbackStreakStr,
         updatedAt: claimNowIso,
       };
 
