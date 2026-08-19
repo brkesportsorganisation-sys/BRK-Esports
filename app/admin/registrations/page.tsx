@@ -202,23 +202,7 @@ export default function AdminRegistrationsPage() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-6">
 
-        {/* Sub-Nav */}
-        <div className="flex items-center space-x-2 border-b border-slate-200 overflow-x-auto pb-1">
-          {[
-            { href: '/admin', label: 'Overview & Analytics' },
-            { href: '/admin/tournaments', label: 'Tournament Manager' },
-            { href: '/admin/registrations', label: `Registered Teams (${registrations.length})`, active: true },
-            { href: '/admin/payments', label: 'Wallet & Payments' },
-            { href: '/admin/users', label: 'User Manager' },
-            { href: '/admin/notifications', label: 'Notifications' },
-            { href: '/admin/settings', label: 'Settings' },
-          ].map((item) => (
-            <Link key={item.href} href={item.href}
-              className={`px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap transition-colors ${item.active ? 'bg-red-500 text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-200 hover:text-slate-900 hover:bg-slate-50'}`}>
-              {item.label}
-            </Link>
-          ))}
-        </div>
+
 
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">

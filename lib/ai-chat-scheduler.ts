@@ -91,7 +91,7 @@ function parseBanglishScheduleLocally(userChat: string): AIChatScheduleResult {
     } else if (p.includes('am')) {
       if (h === 12) h = 0;
     } else {
-      // Default heuristic: if 1-6 and no morning keyword, usually afternoon/evening (13-18)
+      // Default heuristic: if 1-6 and no morning keyword, usually afternoon (13-18)
       if (h >= 1 && h <= 7) h += 12;
     }
     return h;
@@ -114,17 +114,29 @@ function parseBanglishScheduleLocally(userChat: string): AIChatScheduleResult {
 
     if (endPMatches.length > 0) {
       const firstEnd = endPMatches[0];
-      let period = firstEnd[1] || (endPart.includes('sondha') ? 'sondha' : endPart.includes('raat') ? 'raat' : endPart.includes('bikel') ? 'bikel' : endPart.includes('dupur') ? 'dupur' : '');
-      if (!period) {
-        if (startPart.includes('raat') || startPart.includes('rat') || startPart.includes('রাত')) period = 'raat';
+      const hasAm = /am|shokal|sokal|bhor|সকাল|ভোর/i.test(endPart);
+      const hasPm = /pm|dupur|dopur|bikel|bikol|sondha|shondha|raat|rat|দুপুর|বিকাল|সন্ধ্যা|রাত/i.test(endPart);
+
+      let period = firstEnd[1] || (hasPm ? 'dupur' : '');
+      if (!period && !hasAm) {
+        if (startHour !== null && startHour >= 12) {
+          // If start was PM (e.g. 13:00 dupur 1 ta), inherit PM for end time (1:30 -> 13:30)
+          period = 'dupur';
+        } else if (startPart.includes('raat') || startPart.includes('rat') || startPart.includes('রাত')) period = 'raat';
         else if (startPart.includes('sondha') || startPart.includes('shondha') || startPart.includes('সন্ধ্যা')) period = 'sondha';
         else if (startPart.includes('bikel') || startPart.includes('bikol') || startPart.includes('বিকাল')) period = 'bikel';
         else if (startPart.includes('dupur') || startPart.includes('dopur') || startPart.includes('দুপুর')) period = 'dupur';
         else if (startPart.includes('shokal') || startPart.includes('sokal') || startPart.includes('সকাল')) period = 'shokal';
       }
+
       const rawHour = parseInt(firstEnd[2], 10);
       endMin = firstEnd[3] ? parseInt(firstEnd[3], 10) : 0;
       endHour = convertTo24Hour(rawHour, period);
+
+      // If start is PM and end hour is 1-11 without explicit AM, keep end in PM
+      if (startHour !== null && startHour >= 12 && endHour < startHour && rawHour >= 1 && rawHour <= 11 && !hasAm) {
+        endHour = rawHour + 12;
+      }
     }
   }
 
@@ -137,18 +149,24 @@ function parseBanglishScheduleLocally(userChat: string): AIChatScheduleResult {
     if (unit.includes('ghonta') || unit.includes('hour') || unit.includes('hr') || unit.includes('h') || unit.includes('ঘণ্টা') || unit.includes('ঘন্টা')) {
       intervalMinutes = val * 60;
     } else {
-      intervalMinutes = Math.max(5, val);
+      intervalMinutes = Math.max(1, val);
     }
   }
 
-  // 3. Category detection
+  // 3. Category & Content detection
   let category: NotificationType = 'MATCH';
   let categoryLabel = 'MATCH (টুর্নামেন্ট)';
   let draftTitle = '🔥 Free Fire Tournament Action!';
   let draftMessage = 'ডেইলি টুর্নামেন্টের স্লট ওপেন হয়েছে! এখনই আপনার স্কোয়াড রেজিস্টার করুন।';
   let actionLink = '/tournaments';
 
-  if (text.includes('room') || text.includes('pass') || text.includes('রুম') || text.includes('পাসওয়ার্ড')) {
+  if (text.includes('website') || text.includes('web site') || text.includes('live') || text.includes('ওয়েবসাইট') || text.includes('লাইভ')) {
+    category = 'ANNOUNCEMENT';
+    categoryLabel = 'ANNOUNCEMENT (ওয়েবসাইট লাইভ)';
+    draftTitle = '🌐 Black Rock Esports Website is NOW LIVE!';
+    draftMessage = '🚀 আমাদের নতুন অফিসিয়াল ওয়েবসাইট এখন পুরোপুরি লাইভ! ফ্রি ফায়ার টুর্নামেন্ট টুর্নামেন্ট স্লট বুকিং, ইনস্ট্যান্ট বিকাশ/নগদ ক্যাশআউট, ওয়ালেট রিচার্জ এবং ডেইলি রিওয়ার্ড জিততে এখনই ভিজিট করুন।';
+    actionLink = '/';
+  } else if (text.includes('room') || text.includes('pass') || text.includes('রুম') || text.includes('পাসওয়ার্ড')) {
     category = 'ROOM_ID';
     categoryLabel = 'ROOM ID & PASS';
     draftTitle = '🔑 Custom Room ID & Password Released!';
@@ -173,9 +191,14 @@ function parseBanglishScheduleLocally(userChat: string): AIChatScheduleResult {
     actionLink = '/anti-cheat';
   } else {
     if (startHour !== null && endHour !== null) {
-      const formatH = (h: number) => h === 12 ? '১২:০০ PM' : h > 12 ? `${h - 12}:০০ PM` : `${h}:০০ AM`;
+      const formatH = (h: number, m: number) => {
+        const period = h >= 12 ? 'PM' : 'AM';
+        const dispH = h > 12 ? h - 12 : h === 0 ? 12 : h;
+        const dispM = m > 0 ? `:${m < 10 ? '0' + m : m}` : ':00';
+        return `${dispH}${dispM} ${period}`;
+      };
       draftTitle = '🔥 Daily Arena Championship: Register Squad!';
-      draftMessage = `${formatH(startHour)} থেকে ${formatH(endHour)} পর্যন্ত টানা টুর্নামেন্ট লাইভ! এখনই স্লট বুক করুন।`;
+      draftMessage = `${formatH(startHour, startMin)} থেকে ${formatH(endHour, endMin)} পর্যন্ত টানা টুর্নামেন্ট লাইভ! এখনই স্লট বুক করুন।`;
     }
   }
 
@@ -184,18 +207,17 @@ function parseBanglishScheduleLocally(userChat: string): AIChatScheduleResult {
   const isUnlimitedOrAsMany = /joto\s*gula|jotogula|shob\s*gula|shobgula|all|maximum|যত\s*গুলো|সবগুলো|সব/i.test(userChat);
   const isNegatedOne = /massage\s*ekta\s*na|message\s*ekta\s*na|ekta\s*na|১টি\s*না|একটা\s*না/i.test(userChat);
 
-  // Check explicit count (e.g. "5 ta message", "10 ti notification", ignoring time markers like "dupur 1 ta")
-  const explicitCountRegex = /(?:total|mot|মোট)?\s*(\d{1,3})\s*(?:ta|ti|টি|টা|messages|msgs|notifs|times|বার)\s*(?:notification|message|sms|মেসেজ|নোটিফিকেশন)?/gi;
+  // Check explicit count (e.g. "mot 15 bar", "15 bar", "15 ti", "15 messages")
+  const explicitCountRegex = /(?:mot|total|মোট)?\s*(\d{1,3})\s*(?:bar|times|বার|ta|ti|টি|টা|messages|msgs|notifs)\s*(?:notification|message|sms|মেসেজ|নোটিফিকেশন)?/gi;
   const explicitMatches = [...userChat.matchAll(explicitCountRegex)];
   
   for (const m of explicitMatches) {
     const num = parseInt(m[1], 10);
-    // Check if this number was part of time (e.g., startHour / raw hour in time context)
     const matchIndex = m.index || 0;
     const surrounding = userChat.slice(Math.max(0, matchIndex - 12), matchIndex + 15).toLowerCase();
     const isPartOfTime = /dupur|dopur|bikel|sondha|shondha|raat|shokal|theke|porjonto|baje|pm|am/i.test(surrounding);
     
-    if (!isPartOfTime && !(num === 1 && isNegatedOne)) {
+    if (!isPartOfTime && !(num === 1 && isNegatedOne) && num > 0) {
       maxRuns = num;
       break;
     }
@@ -210,7 +232,7 @@ function parseBanglishScheduleLocally(userChat: string): AIChatScheduleResult {
     startDate = getDateWithDhakaTime(startHour, startMin);
     endDate = getDateWithDhakaTime(endHour, endMin);
     
-    // If end hour is less than start hour (e.g. 20:00 to 02:00 next day)
+    // If end hour is less than start hour
     if (endDate <= startDate) {
       endDate = new Date(endDate.getTime() + 24 * 60 * 60 * 1000);
     }
@@ -218,7 +240,6 @@ function parseBanglishScheduleLocally(userChat: string): AIChatScheduleResult {
     durationMinutes = Math.round((endDate.getTime() - startDate.getTime()) / (60 * 1000));
 
     if (maxRuns === null || isUnlimitedOrAsMany) {
-      // Calculate how many runs fit in this window
       maxRuns = Math.max(1, Math.floor(durationMinutes / intervalMinutes));
     }
   } else if (maxRuns === null) {
@@ -235,7 +256,8 @@ function parseBanglishScheduleLocally(userChat: string): AIChatScheduleResult {
 
   let timeRangeDesc = '';
   if (startHour !== null && endHour !== null) {
-    timeRangeDesc = `\n- সময়সীমা: ${formatTimeDhaka(startHour, startMin)} থেকে ${formatTimeDhaka(endHour, endMin)} পর্যন্ত (${Math.round(durationMinutes / 60)} ঘণ্টা)`;
+    const durationText = durationMinutes < 60 ? `${durationMinutes} মিনিট` : `${(durationMinutes / 60).toFixed(1)} ঘণ্টা`;
+    timeRangeDesc = `\n- সময়সীমা: ${formatTimeDhaka(startHour, startMin)} থেকে ${formatTimeDhaka(endHour, endMin)} পর্যন্ত (${durationText})`;
   }
 
   const replyMessage = `আমি আপনার নির্দেশ অনুযায়ী স্বয়ংক্রিয় নোটিফিকেশন টাইমার শিডিউল প্রস্তুত করেছি! 🤖${timeRangeDesc}
@@ -287,38 +309,36 @@ The admin speaks in Bengali, Banglish (Bengali in English letters, e.g. "dupur 1
 Current Server Time: ${currentIso} (Timezone: ${currentTimeZone}, Dhaka Time: ${now.toLocaleTimeString('en-US', { timeZone: 'Asia/Dhaka' })})
 
 Rules for understanding Banglish & Bengali:
-1. Time idioms:
-   - "shokal X ta" = X:00 AM
+1. Time idioms & ranges:
+   - "dupur 1 ta theke 1:30 porjonto" = 1:00 PM to 1:30 PM (Duration = 30 minutes). DO NOT misparse 1:30 as 1:30 AM next day!
    - "dupur 1 ta / 2 ta / 3 ta" = 1:00 PM (13:00) / 2:00 PM (14:00) / 3:00 PM (15:00)
    - "bikel 4 ta / 5 ta" = 4:00 PM (16:00) / 5:00 PM (17:00)
    - "sondha 6 ta / 7 ta" = 6:00 PM (18:00) / 7:00 PM (19:00)
    - "raat 8 ta / 9 ta / 10 ta / 11 ta" = 8:00 PM (20:00) to 11:00 PM (23:00)
    - "theke ... porjonto" = from startTime to endTime
-2. Duration & Count:
-   - If user asks: "joto gula massage pathano jay 10 min por por" (from 1 PM to 6 PM):
-     Duration = 5 hours = 300 minutes.
-     Interval = 10 minutes.
-     MaxRuns = 30 messages.
-   - "Massage ekta na" / "একটা না" means "NOT just 1 message", so DO NOT set maxRuns = 1! Calculate the proper total count based on the time window and interval.
+2. Duration, Interval & Explicit Count:
+   - "2 min por por" = intervalMinutes: 2 (Respect exact 1, 2, 3, 5 min intervals requested by admin).
+   - "mot 15 bar" / "15 bar" = maxRuns: 15 (Set maxRuns = 15!).
+   - "Massage ekta na" / "একটা না" means "NOT just 1 message", so DO NOT set maxRuns = 1!
 3. Notification Draft:
-   - Generate exciting, gamer-friendly Free Fire notification copy in Bengali or English for sampleDraftTitle & sampleDraftMessage. DO NOT just copy the user's raw prompt into the notification draft.
+   - If user asks for "Our website is live now" or a website launch message, generate a professional, long, high-converting Free Fire website launch announcement in Bengali for sampleDraftTitle & sampleDraftMessage!
 4. Output Format:
    - Return ONLY a valid JSON object without markdown fences, codeblocks, or extra text:
 {
-  "replyMessage": "আমি আপনার নির্দেশ অনুযায়ী নোটিফিকেশন টাইমার শিডিউল প্রস্তুত করেছি! 🤖\\n- সময়সীমা: দুপুর ১:০০ PM থেকে সন্ধ্যা ৬:০০ PM পর্যন্ত (৫ ঘণ্টা)\\n- মোট মেসেজ: ৩০ টি\\n- ফ্রিকোয়েন্সি: প্রতি ১০ মিনিট পর পর\\n- ক্যাটাগরি: MATCH\\n- টার্গেট: All Players\\nনিচের প্রিভিউ চেক করে \\"Confirm & Launch Bot\\" বাটনে চাপুন।",
+  "replyMessage": "আমি আপনার নির্দেশ অনুযায়ী স্বয়ংক্রিয় নোটিফিকেশন টাইমার শিডিউল প্রস্তুত করেছি! 🤖\\n- সময়সীমা: দুপুর ১:০০ PM থেকে ১:৩০ PM পর্যন্ত (৩০ মিনিট)\\n- মোট মেসেজ: ১৫ টি\\n- ফ্রিকোয়েন্সি: প্রতি ২ মিনিট পর পর\\n- ক্যাটাগরি: ANNOUNCEMENT\\n- টার্গেট: All Players\\nনিচের প্রিভিউ চেক করে \\"Confirm & Launch Bot\\" বাটনে চাপুন।",
   "scheduleProposal": {
-    "name": "Afternoon & Evening Match Blast (10m Timer)",
-    "prompt": "Daily Free Fire match registration reminders from 1 PM to 6 PM",
+    "name": "Website Live Launch Campaign (2m Timer)",
+    "prompt": "Website live launch notification campaign every 2m from 1:00 PM to 1:30 PM",
     "naturalPrompt": "${userChat.replace(/"/g, "'")}",
-    "category": "MATCH",
+    "category": "ANNOUNCEMENT",
     "targetAudience": "ALL",
-    "intervalMinutes": 10,
+    "intervalMinutes": 2,
     "startTime": "ISO timestamp for start time today",
     "endTime": "ISO timestamp for end time today",
-    "maxRuns": 30,
-    "actionLink": "/tournaments",
-    "sampleDraftTitle": "🔥 দুপুর ও সন্ধ্যার টুর্নামেন্ট লাইভ!",
-    "sampleDraftMessage": "দুপুর ১টা থেকে সন্ধ্যা ৬টা পর্যন্ত সকল স্কোয়াড ম্যাচের স্লট ওপেন! এখনই জয়েন করুন।"
+    "maxRuns": 15,
+    "actionLink": "/",
+    "sampleDraftTitle": "🌐 Black Rock Esports Website is NOW LIVE!",
+    "sampleDraftMessage": "🚀 আমাদের নতুন ক্রাফটেড অফিশিয়াল ওয়েবসাইট এখন পুরোপুরি লাইভ! ফ্রি ফায়ার টুর্নামেন্ট স্লট বুকিং, ইনস্ট্যান্ট বিকাশ/নগদ ক্যাশআউট, ওয়ালেট রিচার্জ এবং ডেইলি রিওয়ার্ড জিততে এখনই ভিজিট করুন।"
   }
 }`;
 
@@ -353,7 +373,7 @@ Rules for understanding Banglish & Bengali:
                 replyMessage: parsed.replyMessage,
                 scheduleProposal: {
                   ...parsed.scheduleProposal,
-                  intervalMinutes: Math.max(5, parsed.scheduleProposal.intervalMinutes || 60),
+                  intervalMinutes: Math.max(1, parsed.scheduleProposal.intervalMinutes || 60),
                 },
               };
             }

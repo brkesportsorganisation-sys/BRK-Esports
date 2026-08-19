@@ -31,12 +31,15 @@ import {
   Sparkles,
   AlertCircle,
   Coins,
-  MessageSquare
+  MessageSquare,
+  Headphones,
+  Send,
+  RefreshCw
 } from 'lucide-react';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import { db } from '@/lib/db';
-import { User, Tournament, Team, Payment } from '@/lib/types';
+import { User, Tournament, Team, Payment, SupportTicket, SupportMessage } from '@/lib/types';
 
 const AVATAR_PRESETS = [
   'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=200&auto=format&fit=crop&q=80', // Cyber Samurai
@@ -59,10 +62,11 @@ export default function ProfilePage() {
 
 function ProfilePageContent() {
   const searchParams = useSearchParams();
-  const initialTab = searchParams.get('tab') === 'teams' ? 'TEAMS' : 'OVERVIEW';
+  const tabParam = searchParams.get('tab');
+  const initialTab = tabParam === 'teams' ? 'TEAMS' : tabParam === 'support' ? 'SUPPORT' : 'OVERVIEW';
 
   const [user, setUser] = useState<User | null>(null);
-  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'TOURNAMENTS' | 'TEAMS' | 'TRANSACTIONS'>(initialTab as any);
+  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'TOURNAMENTS' | 'TEAMS' | 'TRANSACTIONS' | 'SUPPORT'>(initialTab as any);
   const [copiedRef, setCopiedRef] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [passTimeLeft, setPassTimeLeft] = useState('');
@@ -88,6 +92,79 @@ function ProfilePageContent() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+
+  // Support Chat State
+  const [supportTicket, setSupportTicket] = useState<SupportTicket | null>(null);
+  const [supportMessages, setSupportMessages] = useState<SupportMessage[]>([]);
+  const [supportInput, setSupportInput] = useState('');
+  const [isSendingSupport, setIsSendingSupport] = useState(false);
+  const [isLoadingSupport, setIsLoadingSupport] = useState(false);
+  const supportMessagesEndRef = useRef<HTMLDivElement>(null);
+
+  const fetchSupportChat = async (userId: string) => {
+    try {
+      const res = await fetch(`/api/support?userId=${userId}`, { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        setSupportTicket(data.ticket || null);
+        setSupportMessages(data.messages || []);
+      }
+    } catch (err) {
+      console.warn('Support chat fetch error:', err);
+    } finally {
+      setIsLoadingSupport(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab !== 'SUPPORT' || !user) return;
+    setIsLoadingSupport(true);
+    fetchSupportChat(user.id);
+
+    const interval = setInterval(() => {
+      fetchSupportChat(user.id);
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [activeTab, user?.id]);
+
+  const handleSendSupportMessage = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!supportInput.trim() || !user || isSendingSupport) return;
+
+    const content = supportInput.trim();
+    setSupportInput('');
+    setIsSendingSupport(true);
+
+    try {
+      const res = await fetch('/api/support', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'SEND_USER_MESSAGE',
+          userId: user.id,
+          userName: user.inGameName || user.name,
+          userEmail: user.email,
+          userPhone: user.phone || user.accountNumber,
+          content,
+          senderRole: 'USER',
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setSupportTicket(data.ticket || null);
+        setSupportMessages(data.messages || []);
+        setTimeout(() => {
+          supportMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      }
+    } catch (err) {
+      console.warn('Failed to send support message:', err);
+    } finally {
+      setIsSendingSupport(false);
+    }
+  };
 
   const refreshProfileFromDb = async (userId: string) => {
     try {
@@ -424,6 +501,21 @@ function ProfilePageContent() {
                 </div>
               </div>
 
+              {/* Contact Admin Support Button */}
+              <button
+                type="button"
+                onClick={() => setActiveTab('SUPPORT')}
+                className="bg-slate-50 hover:bg-slate-100 p-4 rounded-2xl border border-slate-200 text-center sm:text-left transition-colors flex items-center gap-3 shadow-2xs group cursor-pointer"
+              >
+                <div className="w-10 h-10 rounded-xl bg-red-100 group-hover:bg-red-200 text-red-500 flex items-center justify-center transition-colors">
+                  <Headphones className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-[10px] text-slate-500 font-bold uppercase">24/7 Helpline</div>
+                  <div className="font-heading font-black text-slate-900 text-sm">Contact Admin</div>
+                </div>
+              </button>
+
               {/* Messages Inbox Button */}
               <Link
                 href="/messages"
@@ -445,17 +537,18 @@ function ProfilePageContent() {
 
         {/* Dashboard Tabs */}
         <div className="flex items-center space-x-2 border-b border-slate-200 overflow-x-auto pb-1">
-          {(['OVERVIEW', 'TOURNAMENTS', 'TEAMS', 'TRANSACTIONS'] as const).map((tab) => (
+          {(['OVERVIEW', 'TOURNAMENTS', 'TEAMS', 'TRANSACTIONS', 'SUPPORT'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-5 py-2.5 rounded-xl font-heading font-bold text-sm transition-all ${
+              className={`px-5 py-2.5 rounded-xl font-heading font-bold text-sm transition-all flex items-center gap-2 cursor-pointer ${
                 activeTab === tab
                   ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-md'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
-              {tab}
+              {tab === 'SUPPORT' && <Headphones className="w-4 h-4" />}
+              <span>{tab === 'SUPPORT' ? 'ADMIN SUPPORT' : tab}</span>
             </button>
           ))}
         </div>
@@ -756,6 +849,206 @@ function ProfilePageContent() {
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+
+        {/* Tab 5: Admin Support Chat */}
+        {activeTab === 'SUPPORT' && (
+          <div className="bg-white rounded-[2rem] border border-slate-200 shadow-xl overflow-hidden flex flex-col md:flex-row min-h-[600px]">
+            
+            {/* Left Sidebar: Support Info & Quick Help */}
+            <div className="w-full md:w-80 bg-slate-900 text-white p-6 space-y-6 flex flex-col justify-between border-b md:border-b-0 md:border-r border-slate-800">
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-orange-500/20 text-orange-400 border border-orange-500/30 flex items-center justify-center font-bold">
+                    <Headphones className="w-6 h-6 text-brand-orange" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-black text-lg text-white">Live Admin Desk</h3>
+                    <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                      <span>24/7 Official Support</span>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  আপনার টুর্নামেন্ট সমস্যা, রুম আইডি মিসিং, পয়েন্ট টেবিল প্রশ্ন বা ডিপোজিট/উইথড্র সমস্যা নিয়ে সরাসরি অ্যাডমিনের সাথে চ্যাট করুন।
+                </p>
+
+                {supportTicket && (
+                  <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700 space-y-2 text-xs">
+                    <div className="flex justify-between items-center text-slate-400">
+                      <span>Ticket Status:</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                        supportTicket.status === 'RESOLVED' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-orange-500/20 text-orange-300'
+                      }`}>
+                        {supportTicket.status || 'OPEN'}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-400">Ticket ID: <strong className="text-slate-200 font-mono">{supportTicket.id}</strong></div>
+                  </div>
+                )}
+
+                {/* Quick Topic Chips */}
+                <div className="space-y-2 pt-2">
+                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Quick Assistance Topics</div>
+                  <div className="flex flex-col gap-2">
+                    {[
+                      '💰 ডিপোজিট / উইথড্র সংক্রান্ত হেল্প',
+                      '🔑 ফ্রি ফায়ার UID ভুল দেখাচ্ছে',
+                      '🕹️ টুর্নামেন্ট রুম আইডি পাওয়া যায়নি',
+                      '🏆 প্রাইজ মানি যুক্ত হয়নি'
+                    ].map((topic, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setSupportInput(topic)}
+                        className="text-left px-3 py-2 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-xs text-slate-300 hover:text-white border border-slate-700/50 transition-colors cursor-pointer"
+                      >
+                        {topic}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Discord Link Card */}
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-900/60 to-purple-900/60 border border-indigo-500/30 text-xs space-y-2">
+                <div className="font-bold text-white flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-indigo-400" />
+                  <span>Discord Community</span>
+                </div>
+                <p className="text-[11px] text-slate-300">
+                  ইনস্ট্যান্ট ডিসকর্ড হেল্পডেস্কে জয়েন হতে ভিজিট করুন:
+                </p>
+                <a
+                  href="https://discord.gg/blackrock-esports"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-300 hover:text-indigo-200 hover:underline"
+                >
+                  <span>Join Official Discord Server</span>
+                  <ArrowUpRight className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            </div>
+
+            {/* Right Main Chat Thread Area */}
+            <div className="flex-1 flex flex-col justify-between bg-slate-50/50">
+              
+              {/* Chat Thread Header */}
+              <div className="p-4 sm:p-5 bg-white border-b border-slate-200 flex items-center justify-between shadow-2xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-red-50 text-red-500 flex items-center justify-center font-bold">
+                    <MessageSquare className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-heading font-black text-slate-900 text-base">Direct Admin Chat</h4>
+                    <p className="text-xs text-slate-500">আপনার মেসেজের উত্তর অ্যাডমিন প্যানেল থেকে দ্রুততম সময়ে দেওয়া হবে</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => user && fetchSupportChat(user.id)}
+                  className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors cursor-pointer"
+                  title="Refresh Chat"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isLoadingSupport ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
+
+              {/* Chat Messages Body */}
+              <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4 max-h-[460px]">
+                {supportMessages.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 space-y-3 py-16">
+                    <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center text-slate-300">
+                      <Headphones className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <h5 className="font-heading font-bold text-slate-700 text-base">No Previous Support Messages</h5>
+                      <p className="text-xs text-slate-500 max-w-sm mt-1">
+                        আপনার কোনো প্রশ্ন বা সমস্যা থাকলে নিচে মেসেজ লিখুন। আমাদের সাপোর্ট অ্যাডমিন প্যানেল থেকে সরাসরি আপনার উত্তর দেবেন।
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  supportMessages.map((msg) => {
+                    const isUser = msg.senderRole === 'USER';
+                    const isAdmin = msg.senderRole === 'ADMIN';
+                    const isSystem = msg.senderRole === 'SYSTEM';
+
+                    if (isSystem) {
+                      return (
+                        <div key={msg.id} className="flex justify-center my-3">
+                          <div className="max-w-lg bg-indigo-50 border border-indigo-200 text-indigo-900 text-xs p-4 rounded-2xl shadow-2xs space-y-1">
+                            <div className="font-bold flex items-center gap-1.5 text-indigo-700">
+                              <Sparkles className="w-4 h-4 text-indigo-500" />
+                              <span>{msg.userName || 'Black Rock Support Bot'}</span>
+                            </div>
+                            <div className="whitespace-pre-wrap leading-relaxed">{msg.content}</div>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div
+                        key={msg.id}
+                        className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[11px] font-bold text-slate-500">
+                            {isAdmin ? '🛡️ Admin Support' : msg.userName || 'You'}
+                          </span>
+                          <span className="text-[10px] text-slate-400">
+                            {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        <div
+                          className={`max-w-md p-4 rounded-2xl text-xs sm:text-sm font-medium leading-relaxed shadow-2xs whitespace-pre-wrap ${
+                            isUser
+                              ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-tr-none'
+                              : 'bg-slate-900 text-slate-100 rounded-tl-none border border-slate-800'
+                          }`}
+                        >
+                          {msg.content}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+                <div ref={supportMessagesEndRef} />
+              </div>
+
+              {/* Chat Input Bar */}
+              <form onSubmit={handleSendSupportMessage} className="p-4 bg-white border-t border-slate-200 flex items-center gap-3">
+                <input
+                  type="text"
+                  placeholder="Type your message to Admin support..."
+                  value={supportInput}
+                  onChange={(e) => setSupportInput(e.target.value)}
+                  disabled={isSendingSupport}
+                  className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-xs sm:text-sm font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-orange focus:bg-white transition-colors"
+                />
+                <button
+                  type="submit"
+                  disabled={!supportInput.trim() || isSendingSupport}
+                  className="px-5 py-3 rounded-2xl bg-gradient-to-r from-red-500 to-orange-500 text-white font-bold text-xs sm:text-sm shadow-md hover:brightness-110 disabled:opacity-50 transition-all flex items-center gap-2 cursor-pointer"
+                >
+                  {isSendingSupport ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <span>Send</span>
+                      <Send className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </form>
+
+            </div>
+
           </div>
         )}
 

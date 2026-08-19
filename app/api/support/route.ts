@@ -204,6 +204,29 @@ export async function POST(request: NextRequest) {
           status: 'OPEN',
           updatedAt: new Date().toISOString(),
         }).eq('id', ticketId);
+
+        // Fetch ticket's userId to send in-app notification to the user
+        const { data: ticketRecord } = await supabaseAdmin
+          .from('SupportTicket')
+          .select('userId')
+          .eq('id', ticketId)
+          .maybeSingle();
+
+        const targetUserId = ticketRecord?.userId || db.getSupportTicketById(ticketId)?.userId;
+
+        if (targetUserId && targetUserId !== 'admin' && targetUserId !== 'system') {
+          const notifId = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+          await supabaseAdmin.from('Notification').insert([{
+            id: notifId,
+            userId: targetUserId,
+            title: 'Admin Support Reply 🎧',
+            message: content.trim().length > 80 ? `${content.trim().substring(0, 77)}...` : content.trim(),
+            type: 'GENERAL',
+            link: '/profile?tab=support',
+            isRead: false,
+            createdAt: new Date().toISOString(),
+          }]);
+        }
       } catch (supaErr) {
         console.warn('[POST /api/support] Admin Supabase sync notice:', supaErr);
       }

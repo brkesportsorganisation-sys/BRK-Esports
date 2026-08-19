@@ -126,8 +126,10 @@ export async function POST(request: NextRequest) {
 
     const now = Date.now();
 
-    // Handle Daily Login Streak Claim
+      // Handle Daily Login Streak Claim
     if (action === 'CLAIM_STREAK') {
+      const claimNowIso = new Date().toISOString();
+
       if (user.lastStreakClaimDate) {
         const lastClaimTime = new Date(user.lastStreakClaimDate).getTime();
         const timeSinceLastClaim = now - lastClaimTime;
@@ -137,7 +139,7 @@ export async function POST(request: NextRequest) {
           const hours = Math.floor(remainingSeconds / 3600);
           const mins = Math.floor((remainingSeconds % 3600) / 60);
           return NextResponse.json({ 
-            message: `পরবর্তী রিওয়ার্ড ক্লেইম করতে আরও ${hours} ঘণ্টা ${mins} মিনিট অপেক্ষা করতে হবে।`,
+            message: `আজকে ইতিমধ্যেই ডেইলি রিওয়ার্ড ক্লেইম করা হয়েছে! পরবর্তী ক্লেইমের জন্য আরও ${hours} ঘণ্টা ${mins} মিনিট অপেক্ষা করতে হবে।`,
             canClaimStreak: false,
             remainingSeconds,
           }, { status: 400 });
@@ -172,7 +174,7 @@ export async function POST(request: NextRequest) {
         newCoinBal += reward.value;
       }
 
-      // Safe update to Supabase standard columns
+      // Safe update to Supabase including currentStreak and lastStreakClaimDate
       try {
         await supabaseAdmin
           .from('User')
@@ -180,7 +182,9 @@ export async function POST(request: NextRequest) {
             coinBalance: newCoinBal,
             walletBalance: newWalletBal,
             earnings: newEarnings,
-            updatedAt: new Date().toISOString(),
+            currentStreak: streakDay,
+            lastStreakClaimDate: claimNowIso,
+            updatedAt: claimNowIso,
           })
           .eq('id', userId);
       } catch (e) {
@@ -194,8 +198,8 @@ export async function POST(request: NextRequest) {
         walletBalance: newWalletBal,
         earnings: newEarnings,
         currentStreak: streakDay,
-        lastStreakClaimDate: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        lastStreakClaimDate: claimNowIso,
+        updatedAt: claimNowIso,
       };
 
       db.updateUser(userId, updatedUser);
