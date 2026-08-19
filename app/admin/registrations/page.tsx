@@ -7,8 +7,7 @@ import {
   Download, RefreshCw, Trophy, Phone, User, Shield,
   CheckCircle2, XCircle, Clock, Wallet, AlertTriangle
 } from 'lucide-react';
-import Navbar from '@/components/ui/Navbar';
-import Footer from '@/components/ui/Footer';
+
 
 interface Registration {
   id: string;
@@ -155,7 +154,6 @@ export default function AdminRegistrationsPage() {
 
   return (
     <div className="min-h-screen bg-[#fdfaf6] text-slate-900 flex flex-col font-body pb-20 lg:pb-0">
-      <Navbar />
 
       {/* Toast */}
       {toast && (
@@ -322,8 +320,6 @@ export default function AdminRegistrationsPage() {
           />
         )}
       </main>
-
-      <Footer />
     </div>
   );
 }
