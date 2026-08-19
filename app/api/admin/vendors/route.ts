@@ -24,7 +24,7 @@ export async function GET() {
       .select('id, vendorId, name, orgName, email, phone, whatsApp, logo, banner, bio, status, accessLevel, permissions, assignedTournaments, commissionRate, walletBalance, escrowBalance, totalEarnings, notes, createdBy, createdAt, updatedAt')
       .order('createdAt', { ascending: false });
 
-    if (!error && dbVendors && dbVendors.length > 0) {
+    if (!error && dbVendors) {
       return NextResponse.json({ vendors: dbVendors });
     }
 

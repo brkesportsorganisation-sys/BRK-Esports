@@ -209,43 +209,6 @@ export async function authenticateVendor(identifier: string, password: string) {
     };
   }
 
-  // 3. Demo fallback support for default "vendor@helian.gg" / "vendor123"
-  if ((cleanIdent === 'vendor@helian.gg' || cleanIdent === 'vendor' || cleanIdent === 'vnd-demo') && cleanPass === 'vendor123') {
-    const demoVendor: VendorAccount = {
-      id: 'vendor_demo_01',
-      vendorId: 'VND-DEMO',
-      name: 'Blackrock Host Vendor',
-      email: 'vendor@helian.gg',
-      status: 'ACTIVE',
-      accessLevel: 'FULL_ACCESS',
-      permissions: [
-        'manage_room_details',
-        'enter_match_results',
-        'view_registrations',
-        'manage_tournaments',
-        'view_analytics',
-      ],
-      assignedTournaments: ['ALL'],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    const token = createVendorToken(demoVendor);
-    return {
-      ok: true,
-      status: 200,
-      vendor: {
-        id: demoVendor.id,
-        vendorId: demoVendor.vendorId,
-        name: demoVendor.name,
-        email: demoVendor.email,
-        accessLevel: demoVendor.accessLevel,
-        permissions: demoVendor.permissions,
-        assignedTournaments: demoVendor.assignedTournaments,
-      },
-      token,
-    };
-  }
-
   return { ok: false, status: 401, message: 'Invalid Vendor ID or password.' };
 }
 

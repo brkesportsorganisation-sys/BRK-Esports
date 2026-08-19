@@ -484,53 +484,7 @@ class LocalDatabase {
     this.save();
   }
 
-  // Vendor Accounts (Custom Credentials & Permissions)
-  private vendors: import('./types').VendorAccount[] = [
-    {
-      id: 'vendor_001',
-      vendorId: 'VND-1001',
-      name: 'Blackrock Host Vendor',
-      email: 'vendor@helian.gg',
-      password: 'vendor123',
-      phone: '01711223344',
-      whatsApp: '+8801711223344',
-      status: 'ACTIVE',
-      accessLevel: 'FULL_ACCESS',
-      permissions: [
-        'manage_room_details',
-        'enter_match_results',
-        'view_registrations',
-        'manage_tournaments',
-        'view_analytics',
-      ],
-      assignedTournaments: ['ALL'],
-      notes: 'Internal primary host vendor with full platform access',
-      createdBy: 'Owner',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: 'vendor_002',
-      vendorId: 'VND-2002',
-      name: 'New Host Moderator',
-      email: 'host@blackrock.gg',
-      password: 'vendor123',
-      phone: '01811223344',
-      whatsApp: '+8801811223344',
-      status: 'ACTIVE',
-      accessLevel: 'LIMITED_ACCESS',
-      permissions: [
-        'manage_room_details',
-        'enter_match_results',
-        'view_registrations',
-      ],
-      assignedTournaments: ['tour_1'],
-      notes: 'New external host vendor with limited access for tournament rooms',
-      createdBy: 'Owner',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }
-  ];
+  private vendors: import('./types').VendorAccount[] = [];
 
   getVendors(): import('./types').VendorAccount[] {
     if (typeof window !== 'undefined') {

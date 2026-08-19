@@ -6,21 +6,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { VendorPayoutRequest } from '@/lib/types';
 
 // In-memory fallback for local dev
-let localPayouts: VendorPayoutRequest[] = [
-  {
-    id: 'payout_001',
-    vendorId: 'VND-1001',
-    vendorName: 'Blackrock Host Vendor',
-    amount: 1500,
-    method: 'BKASH',
-    accountNumber: '01711223344',
-    status: 'APPROVED',
-    trxId: '8BK7392019',
-    notes: 'Sunday FF Cup Vendor Share',
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-    updatedAt: new Date().toISOString(),
-  }
-];
+let localPayouts: VendorPayoutRequest[] = [];
 
 export async function GET() {
   const cookieStore = await cookies();
