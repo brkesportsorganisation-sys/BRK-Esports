@@ -257,7 +257,7 @@ export default function AIAssistantWidget() {
     }
   };
 
-  // Robust Text-to-Speech (TTS) with Google API + Browser SpeechSynthesis Fallback
+  // Robust Native Bangla Text-to-Speech (TTS)
   const speakMessage = async (text: string, id: string) => {
     if (typeof window === 'undefined') return;
 
@@ -275,6 +275,31 @@ export default function AIAssistantWidget() {
 
     const cleanText = text
       .replace(/https?:\/\/[^\s]+/g, 'ওয়েবসাইট লিংক')
+      .replace(/৳\s*([0-9]+)/g, (_match, p1) => `${p1} টাকা`)
+      .replace(/([0-9]+)\s*৳/g, (_match, p1) => `${p1} টাকা`)
+      .replace(/\b1v1\b/gi, '১ ভার্সেস ১')
+      .replace(/\b4v4\b/gi, '৪ ভার্সেস ৪')
+      .replace(/\b2v2\b/gi, '২ ভার্সেস ২')
+      .replace(/\bbKash\b/gi, 'বিকাশ')
+      .replace(/\bNagad\b/gi, 'নগদ')
+      .replace(/\bRocket\b/gi, 'রকেট')
+      .replace(/\bFree Fire\b/gi, 'ফ্রি ফায়ার')
+      .replace(/\bBRK Esports\b/gi, 'বি আর কে স্পোর্টস')
+      .replace(/\bBRK\b/gi, 'বি আর কে')
+      .replace(/\bWallet\b/gi, 'ওয়ালেট')
+      .replace(/\bTournament\b/gi, 'টুর্নামেন্ট')
+      .replace(/\bTournaments\b/gi, 'টুর্নামেন্ট')
+      .replace(/\bDeposit\b/gi, 'ডিপোজিট')
+      .replace(/\bWithdraw\b/gi, 'উইথড্র')
+      .replace(/\bCoins\b/gi, 'কয়েন')
+      .replace(/\bCoin\b/gi, 'কয়েন')
+      .replace(/\bBooyah\b/gi, 'বুয়াহ')
+      .replace(/\bRoom\b/gi, 'রুম')
+      .replace(/\bPassword\b/gi, 'পাসওয়ার্ড')
+      .replace(/\bPass\b/gi, 'পাসওয়ার্ড')
+      .replace(/\bSlot\b/gi, 'স্লট')
+      .replace(/\bSlots\b/gi, 'স্লট')
+      .replace(/\bID\b/gi, 'আইডি')
       .replace(/[*#_`~>\[\]\(\)\{\}\^\$\+\=\|\\]/g, ' ')
       .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
       .replace(/[\u{2600}-\u{26FF}]/gu, '')
@@ -289,103 +314,71 @@ export default function AIAssistantWidget() {
       return;
     }
 
-    // Fallback runner for Browser SpeechSynthesis
-    const runSpeechSynthesisFallback = () => {
-      if ('speechSynthesis' in window) {
-        try {
-          window.speechSynthesis.cancel();
-          window.speechSynthesis.resume();
+    let audio = audioRef.current;
+    if (!audio) {
+      audio = new Audio();
+      audioRef.current = audio;
+    }
 
-          const utterance = new SpeechSynthesisUtterance(cleanText);
-          utterance.lang = 'bn-BD';
-          utterance.rate = 0.95;
+    audio.pause();
+    audio.currentTime = 0;
 
-          const voices = window.speechSynthesis.getVoices();
-          const bnVoice = voices.find(v => 
-            v.lang.startsWith('bn') || 
-            v.name.toLowerCase().includes('bangla') || 
-            v.name.toLowerCase().includes('bengali')
-          );
-          if (bnVoice) utterance.voice = bnVoice;
+    audio.onplaying = () => {
+      setIsSpeechLoading(false);
+    };
 
-          utterance.onstart = () => {
-            setIsSpeechLoading(false);
-          };
+    audio.onended = () => {
+      setSpeakingId(null);
+      setIsSpeechLoading(false);
+    };
 
-          utterance.onend = () => {
-            setSpeakingId(null);
-            setIsSpeechLoading(false);
-          };
-
-          utterance.onerror = () => {
-            setSpeakingId(null);
-            setIsSpeechLoading(false);
-          };
-
-          window.speechSynthesis.speak(utterance);
-        } catch {
-          setSpeakingId(null);
-          setIsSpeechLoading(false);
+    audio.onerror = async () => {
+      // If direct GET URL fails, fetch base64 from POST /api/tts
+      try {
+        const res = await fetch('/api/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: cleanText }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.audio && audio) {
+            audio.src = data.audio;
+            await audio.play();
+            return;
+          }
         }
-      } else {
-        setSpeakingId(null);
-        setIsSpeechLoading(false);
-      }
+      } catch {}
+      setSpeakingId(null);
+      setIsSpeechLoading(false);
     };
 
     try {
-      const res = await fetch('/api/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: cleanText }),
-      });
-
-      if (!res.ok) throw new Error('API TTS error');
-
-      const data = await res.json();
-      const audioList: string[] = data.audios || [];
-
-      if (!audioList || audioList.length === 0) {
-        throw new Error('No audio generated');
+      audio.src = `/api/tts?text=${encodeURIComponent(cleanText)}`;
+      audio.load();
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        await playPromise;
       }
-
-      speechQueueRef.current = audioList;
-      speechIndexRef.current = 0;
-      setIsSpeechLoading(false);
-
-      const playCurrentChunk = () => {
-        if (speechIndexRef.current >= speechQueueRef.current.length) {
-          setSpeakingId(null);
-          setIsSpeechLoading(false);
-          return;
-        }
-
-        if (!audioRef.current) {
-          audioRef.current = new Audio();
-        }
-
-        const audio = audioRef.current;
-        audio.src = speechQueueRef.current[speechIndexRef.current];
-
-        audio.onended = () => {
-          speechIndexRef.current++;
-          playCurrentChunk();
-        };
-
-        audio.onerror = () => {
-          speechIndexRef.current++;
-          playCurrentChunk();
-        };
-
-        audio.play().catch(() => {
-          // If browser policy blocked playback, run speech synthesis fallback
-          runSpeechSynthesisFallback();
-        });
-      };
-
-      playCurrentChunk();
     } catch {
-      runSpeechSynthesisFallback();
+      // Autoplay or network fallback
+      try {
+        const res = await fetch('/api/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: cleanText }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.audio && audio) {
+            audio.src = data.audio;
+            await audio.play();
+            return;
+          }
+        }
+      } catch {}
+      setSpeakingId(null);
+      setIsSpeechLoading(false);
     }
   };
 
@@ -883,6 +876,9 @@ export default function AIAssistantWidget() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Persistent Audio Tag for Native Bangla TTS Playback */}
+      <audio ref={audioRef} preload="auto" playsInline className="hidden" />
     </>
   );
 }
