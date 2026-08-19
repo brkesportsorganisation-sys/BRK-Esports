@@ -52,7 +52,7 @@ type AdItem = {
 
 export default function RewardsHubPage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [activeTab, setActiveTab] = useState<'WATCH_EARN' | 'LUCKY_SPIN' | 'EXCHANGE'>('WATCH_EARN');
+  const [activeTab, setActiveTab] = useState<'WATCH_EARN' | 'LUCKY_SPIN'>('WATCH_EARN');
   
   // Watch & Earn State
   const [activeAds, setActiveAds] = useState<AdItem[]>([]);
@@ -78,12 +78,6 @@ export default function RewardsHubPage() {
   const [wheelRotation, setWheelRotation] = useState(0);
   const [spinResult, setSpinResult] = useState<LotteryRewardItem | null>(null);
   const [showSpinWinModal, setShowSpinWinModal] = useState(false);
-
-  // Coin Convert State
-  const [coinsToBdtRatio, setCoinsToBdtRatio] = useState(50);
-  const [convertCoins, setConvertCoins] = useState(50);
-  const [isConverting, setIsConverting] = useState(false);
-  const [convertSuccessMsg, setConvertSuccessMsg] = useState('');
 
   // Load User Data
   const refreshUser = async (uid: string) => {
@@ -117,7 +111,6 @@ export default function RewardsHubPage() {
             setAdsEnabled(data.settings.isWatchEarnActive !== false);
             setDailyAdLimit(data.settings.dailyAdLimit || 10);
             setSpinCoinCost(data.settings.spinCoinCost ?? 20);
-            setCoinsToBdtRatio(data.settings.coinsToBdtRatio || 50);
             setIsLotteryActive(data.settings.isLotteryActive !== false);
 
             if (data.settings.ads && data.settings.ads.length > 0) {
@@ -327,47 +320,6 @@ export default function RewardsHubPage() {
     }
   };
 
-  // Convert Coins to Real Wallet Cash
-  const handleConvertCoins = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentUser || isConverting) return;
-    if (convertCoins > (currentUser.coinBalance || 0)) {
-      alert('You do not have enough coins to convert.');
-      return;
-    }
-
-    setIsConverting(true);
-    setConvertSuccessMsg('');
-
-    try {
-      const res = await fetch('/api/wallet/convert-coins', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: currentUser.id,
-          coins: convertCoins,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        setConvertSuccessMsg(data.message || `Successfully converted ${convertCoins} coins to ৳${(convertCoins / coinsToBdtRatio).toFixed(2)} cash!`);
-        if (data.user) {
-          setCurrentUser(data.user);
-          db.setCurrentUser(data.user);
-        }
-        setTimeout(() => setConvertSuccessMsg(''), 5000);
-      } else {
-        alert(data.message || 'Failed to convert coins.');
-      }
-    } catch (err: any) {
-      alert(err.message || 'Error converting coins.');
-    } finally {
-      setIsConverting(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans flex flex-col selection:bg-orange-500 selection:text-white">
       <Navbar />
@@ -439,17 +391,6 @@ export default function RewardsHubPage() {
           >
             <Gift className="w-4 h-4" />
             Lottery Wheel
-          </button>
-          <button
-            onClick={() => setActiveTab('EXCHANGE')}
-            className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'EXCHANGE'
-                ? 'bg-slate-800 text-white shadow-md font-black'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
-          >
-            <RotateCw className="w-4 h-4" />
-            Coin Exchange
           </button>
         </div>
 
@@ -739,72 +680,6 @@ export default function RewardsHubPage() {
                 </div>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* TAB 3: COIN EXCHANGE */}
-        {activeTab === 'EXCHANGE' && (
-          <div className="max-w-xl mx-auto bg-white border border-slate-200 rounded-3xl p-6 md:p-8 space-y-6 shadow-sm">
-            <div className="border-b border-slate-100 pb-4 text-center space-y-1">
-              <h2 className="text-2xl font-black text-slate-900 flex items-center justify-center gap-2 font-heading">
-                <Coins className="w-6 h-6 text-amber-500" />
-                Coin to Real Cash Converter
-              </h2>
-              <p className="text-xs text-slate-600">
-                Exchange rate: <strong className="text-slate-900">{coinsToBdtRatio} Coins = ৳1 Real Wallet Cash</strong>
-              </p>
-            </div>
-
-            {convertSuccessMsg && (
-              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-700 text-xs font-bold flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-emerald-600" />
-                {convertSuccessMsg}
-              </div>
-            )}
-
-            <form onSubmit={handleConvertCoins} className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex justify-between">
-                  <span>Coins to Convert</span>
-                  <span className="text-amber-600 font-extrabold">Available: {(currentUser?.coinBalance || 0)} Coins</span>
-                </label>
-                <input
-                  type="number"
-                  min="50"
-                  step="10"
-                  max={currentUser?.coinBalance || 5000}
-                  value={convertCoins}
-                  onChange={(e) => setConvertCoins(parseInt(e.target.value, 10) || 50)}
-                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 focus:outline-none focus:border-amber-500 font-bold"
-                />
-              </div>
-
-              {/* Conversion Preview */}
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between text-xs">
-                <span className="text-slate-600 font-semibold">You Will Receive:</span>
-                <span className="text-lg font-black text-emerald-600 flex items-center gap-1 font-heading">
-                  ৳ {(convertCoins / coinsToBdtRatio).toFixed(2)} Real Cash
-                </span>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isConverting || !currentUser || convertCoins > (currentUser.coinBalance || 0)}
-                className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-xs uppercase tracking-wider rounded-2xl transition-all shadow-md disabled:opacity-40 flex items-center justify-center gap-2 cursor-pointer"
-              >
-                {isConverting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Converting...
-                  </>
-                ) : (
-                  <>
-                    <DollarSign className="w-4 h-4" />
-                    Convert Coins to Wallet Balance
-                  </>
-                )}
-              </button>
-            </form>
           </div>
         )}
 

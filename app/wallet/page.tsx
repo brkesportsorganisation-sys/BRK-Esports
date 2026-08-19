@@ -59,12 +59,8 @@ export default function WalletPage() {
   const [withdrawAmount, setWithdrawAmount] = useState(100);
   const [accountNumber, setAccountNumber] = useState('');
 
-  // Convert Coins Modal State
-  const [isConvertOpen, setIsConvertOpen] = useState(false);
-  const [convertCoinsAmount, setConvertCoinsAmount] = useState(50);
-
   // Transactions Filter Tab
-  const [activeTab, setActiveTab] = useState<'ALL' | 'DEPOSITS' | 'WITHDRAWALS' | 'EXCHANGES'>('ALL');
+  const [activeTab, setActiveTab] = useState<'ALL' | 'DEPOSITS' | 'WITHDRAWALS'>('ALL');
 
   // Load Settings from /api/settings
   const loadSettings = async () => {
@@ -263,51 +259,10 @@ export default function WalletPage() {
     }
   };
 
-  const handleConvertCoins = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-    if (convertCoinsAmount > coinBalance) {
-      alert(`Insufficient coins! You have ${coinBalance} Coins.`);
-      return;
-    }
-    if (convertCoinsAmount < 10) {
-      alert('Minimum 10 coins required for conversion.');
-      return;
-    }
-
-    setConvertLoading(true);
-    try {
-      const res = await fetch('/api/wallet/convert-coins', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user.id,
-          coins: convertCoinsAmount,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        alert(data.message || 'Coin conversion failed.');
-        setConvertLoading(false);
-        return;
-      }
-
-      alert(data.message || 'Coins converted successfully!');
-      setIsConvertOpen(false);
-      await refreshUserData(user);
-    } catch {
-      alert('Network error during conversion.');
-    } finally {
-      setConvertLoading(false);
-    }
-  };
-
   // Filter transactions
   const filteredPayments = payments.filter((p) => {
-    if (activeTab === 'DEPOSITS') return !p.trxId.startsWith('WTH-') && !p.trxId.startsWith('CONV-') && p.method !== 'WALLET';
+    if (activeTab === 'DEPOSITS') return !p.trxId.startsWith('WTH-') && p.method !== 'WALLET';
     if (activeTab === 'WITHDRAWALS') return p.trxId.startsWith('WTH-');
-    if (activeTab === 'EXCHANGES') return p.trxId.startsWith('CONV-') || p.notes?.includes('Coin');
     return true;
   });
 
@@ -353,18 +308,10 @@ export default function WalletPage() {
             </div>
 
             <button
-              onClick={() => setIsConvertOpen(true)}
-              className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>Convert to ৳</span>
-            </button>
-
-            <button
               onClick={() => user && refreshUserData(user)}
               disabled={isRefreshing}
               title="Refresh balances"
-              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
             >
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-blue-600' : ''}`} />
             </button>
@@ -938,89 +885,6 @@ export default function WalletPage() {
                   className="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold flex items-center justify-center space-x-1 disabled:opacity-50 shadow-xs"
                 >
                   {withdrawLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>CONFIRM CASHOUT</span>}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ── 3. Convert Coins Modal ── */}
-      {isConvertOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full border border-slate-200 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <Coins className="w-5 h-5 text-amber-500" />
-                <h3 className="font-heading font-black text-xl text-slate-900">CONVERT COINS TO ৳</h3>
-              </div>
-              <button 
-                onClick={() => setIsConvertOpen(false)}
-                className="p-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-xs space-y-1">
-              <div className="font-bold text-amber-800 flex items-center justify-between">
-                <span>Your Coin Balance:</span>
-                <span className="font-black text-base">{coinBalance.toLocaleString()} Coins</span>
-              </div>
-              <div className="text-[11px] text-slate-600">Exchange Rate: <strong>10 Coins = ৳1.00 BDT</strong> Promo Credit.</div>
-            </div>
-
-            <form onSubmit={handleConvertCoins} className="space-y-4 text-xs font-medium">
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">Coins to Convert *</label>
-                <input
-                  type="number"
-                  value={convertCoinsAmount}
-                  onChange={(e) => setConvertCoinsAmount(Number(e.target.value))}
-                  required
-                  min={10}
-                  max={coinBalance}
-                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 font-black text-base focus:outline-none focus:border-amber-500"
-                />
-
-                {/* Percentage Chips */}
-                <div className="flex gap-1.5 mt-2">
-                  {[0.25, 0.5, 0.75, 1].map((pct) => (
-                    <button
-                      key={pct}
-                      type="button"
-                      onClick={() => setConvertCoinsAmount(Math.floor(coinBalance * pct))}
-                      className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] transition-all"
-                    >
-                      {pct * 100}%
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Conversion Preview Box */}
-              <div className="p-4 rounded-2xl bg-slate-900 text-white flex items-center justify-between">
-                <div>
-                  <div className="text-[10px] text-slate-400 font-semibold uppercase">You Receive Promo Credit</div>
-                  <div className="text-2xl font-black text-amber-400">৳ {(convertCoinsAmount / 10).toFixed(2)}</div>
-                </div>
-                <Sparkles className="w-8 h-8 text-amber-400" />
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsConvertOpen(false)}
-                  className="flex-1 py-3 rounded-xl bg-slate-100 text-slate-600 font-bold hover:bg-slate-200 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={convertLoading || coinBalance < 10}
-                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold flex items-center justify-center space-x-1 disabled:opacity-50 shadow-xs"
-                >
-                  {convertLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>CONVERT NOW</span>}
                 </button>
               </div>
             </form>
