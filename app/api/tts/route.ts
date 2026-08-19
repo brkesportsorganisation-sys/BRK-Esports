@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as googleTTS from 'google-tts-api';
 
-export function cleanBanglaText(rawText: string): string {
+function cleanBanglaText(rawText: string): string {
   if (!rawText) return '';
   return rawText
     .replace(/https?:\/\/[^\s]+/g, 'ওয়েবসাইট লিংক')
