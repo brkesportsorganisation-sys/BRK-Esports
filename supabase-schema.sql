@@ -681,6 +681,37 @@ INSERT INTO "SiteSetting" ("id", "key", "value") VALUES
     ('setting_contact_email', 'contact_email', 'support@blackrock.gg'),
     ('setting_telegram_channel', 'telegram_channel', 'https://t.me/blackrock_esports')
 ON CONFLICT ("key") DO NOTHING;
+-- =========================================================
+-- 19.5 AdminAccount & AdminActivityLog Tables
+-- =========================================================
+CREATE TABLE IF NOT EXISTS "AdminAccount" (
+    "id" TEXT PRIMARY KEY,
+    "username" TEXT UNIQUE NOT NULL,
+    "email" TEXT UNIQUE NOT NULL,
+    "passwordHash" TEXT NOT NULL,
+    "displayName" TEXT,
+    "role" TEXT NOT NULL DEFAULT 'ADMIN',
+    "permissions" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdBy" TEXT DEFAULT 'Owner',
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "AdminActivityLog" (
+    "id" TEXT PRIMARY KEY,
+    "adminUsername" TEXT NOT NULL,
+    "action" TEXT NOT NULL,
+    "targetType" TEXT,
+    "targetId" TEXT,
+    "details" TEXT,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS "idx_adminaccount_username" ON "AdminAccount"("username");
+CREATE INDEX IF NOT EXISTS "idx_adminaccount_email" ON "AdminAccount"("email");
+
+
 
 
 -- =========================================================
