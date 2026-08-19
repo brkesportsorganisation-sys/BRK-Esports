@@ -161,10 +161,10 @@ function parseBanglishScheduleLocally(userChat: string): AIChatScheduleResult {
   let actionLink = '/tournaments';
 
   if (text.includes('website') || text.includes('web site') || text.includes('live') || text.includes('ওয়েবসাইট') || text.includes('লাইভ')) {
-    category = 'ANNOUNCEMENT';
-    categoryLabel = 'ANNOUNCEMENT (ওয়েবসাইট লাইভ)';
+    category = 'SYSTEM';
+    categoryLabel = 'ANNOUNCEMENT (ওয়েবসাইট লাইভ)';
     draftTitle = '🌐 Black Rock Esports Website is NOW LIVE!';
-    draftMessage = '🚀 আমাদের নতুন অফিসিয়াল ওয়েবসাইট এখন পুরোপুরি লাইভ! ফ্রি ফায়ার টুর্নামেন্ট টুর্নামেন্ট স্লট বুকিং, ইনস্ট্যান্ট বিকাশ/নগদ ক্যাশআউট, ওয়ালেট রিচার্জ এবং ডেইলি রিওয়ার্ড জিততে এখনই ভিজিট করুন।';
+    draftMessage = '🚀 আমাদের নতুন অফিসিয়াল ওয়েবসাইট এখন পুরোপুরি লাইভ! ফ্রি ফায়ার টুর্নামেন্ট স্লট বুকিং, ইনস্ট্যান্ট বিকাশ/নগদ ক্যাশআউট, ওয়ালেট রিচার্জ এবং ডেইলি রিওয়ার্ড জিততে এখনই ভিজিট করুন।';
     actionLink = '/';
   } else if (text.includes('room') || text.includes('pass') || text.includes('রুম') || text.includes('পাসওয়ার্ড')) {
     category = 'ROOM_ID';
@@ -330,7 +330,7 @@ Rules for understanding Banglish & Bengali:
     "name": "Website Live Launch Campaign (2m Timer)",
     "prompt": "Website live launch notification campaign every 2m from 1:00 PM to 1:30 PM",
     "naturalPrompt": "${userChat.replace(/"/g, "'")}",
-    "category": "ANNOUNCEMENT",
+    "category": "SYSTEM",
     "targetAudience": "ALL",
     "intervalMinutes": 2,
     "startTime": "ISO timestamp for start time today",
