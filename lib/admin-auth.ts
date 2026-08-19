@@ -198,15 +198,25 @@ export async function authenticateAdmin(identifier: string, password: string, re
   }
 
   // 2. Fallback Bcrypt Verification (Zero plain-text passwords in code)
-  const masterHashes: Record<string, { role: AdminRole, hash: string, name: string }> = {
-    ashik: { role: 'OWNER', hash: '$2b$10$gI8CsJpUkOeDzM.0wm99EuP0YVwWyvxOA0P8fpy37/PHBdHC5td4W', name: 'Platform Owner (Ashik)' },
-    turjo: { role: 'OWNER', hash: '$2b$10$tQ93kYoY2Xu3fn/bNl.y2.zSLQSctTce1vOSeZVXQXcWwDBi6Q6OK', name: 'Turjo (Owner)' },
-    admin: { role: 'OWNER', hash: '$2b$10$gI8CsJpUkOeDzM.0wm99EuP0YVwWyvxOA0P8fpy37/PHBdHC5td4W', name: 'Platform Owner' },
+  const masterHashes: Record<string, { role: AdminRole, hashes: string[], name: string }> = {
+    ashik: { role: 'OWNER', hashes: ['$2b$10$6V1KaVlRW.5plwERNT/QFOvzlja44Pi50c/Hwtn01qxo06.6oQmD.'], name: 'Platform Owner (Ashik)' },
+    turjo: { role: 'OWNER', hashes: ['$2b$10$eMSobXh/GxIwGUSeLA8tuult3o4rcOeY1lnQh8GCtndUpTgexrJ0G', '$2b$10$w9S62a33tXC.TrSmQmV9m.A7pcbkw7WQ4xEgy6XlkUkt096LmLdAu'], name: 'Turjo (Owner)' },
+    admin: { role: 'OWNER', hashes: ['$2b$10$6V1KaVlRW.5plwERNT/QFOvzlja44Pi50c/Hwtn01qxo06.6oQmD.'], name: 'Platform Owner' },
   };
 
   const masterConfig = masterHashes[cleanIdent];
   if (masterConfig) {
-    const isMasterMatch = await bcrypt.compare(password, masterConfig.hash) || (process.env.ADMIN_PASSWORD_HASH ? await bcrypt.compare(password, process.env.ADMIN_PASSWORD_HASH) : false);
+    let isMasterMatch = false;
+    for (const h of masterConfig.hashes) {
+      if (await bcrypt.compare(password, h)) {
+        isMasterMatch = true;
+        break;
+      }
+    }
+    if (!isMasterMatch && process.env.ADMIN_PASSWORD_HASH) {
+      isMasterMatch = await bcrypt.compare(password, process.env.ADMIN_PASSWORD_HASH);
+    }
+
     if (isMasterMatch) {
       resetRateLimiting(ip);
       const payload: AdminSessionPayload = {
