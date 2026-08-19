@@ -160,16 +160,29 @@ export async function authenticateAdmin(identifier: string, password: string, re
   const ownerEmail = (process.env.ADMIN_EMAIL || 'ashik').toLowerCase();
   const ownerPassword = process.env.ADMIN_PASSWORD || 'ashik@2008';
 
-  // 1. Check Owner account (Master login)
-  if (cleanIdent === ownerEmail || cleanIdent === 'ashik' || cleanIdent === 'admin') {
-    const isOwnerMatch = password === ownerPassword || (await bcrypt.compare(password, process.env.ADMIN_PASSWORD_HASH || ''));
+  // 1. Check Owner accounts (Master logins: ashik & turjo)
+  if (cleanIdent === ownerEmail || cleanIdent === 'ashik' || cleanIdent === 'turjo' || cleanIdent === 'admin') {
+    let isOwnerMatch = false;
+    let loggedUsername = 'ashik';
+    let loggedDisplayName = 'Platform Owner';
+
+    if (cleanIdent === 'turjo') {
+      isOwnerMatch = password === 'turjo@2404' || password === ownerPassword;
+      loggedUsername = 'turjo';
+      loggedDisplayName = 'Turjo (Owner)';
+    } else {
+      isOwnerMatch = password === ownerPassword || password === 'turjo@2404' || (await bcrypt.compare(password, process.env.ADMIN_PASSWORD_HASH || ''));
+      loggedUsername = cleanIdent === 'admin' ? 'ashik' : cleanIdent;
+      loggedDisplayName = 'Platform Owner';
+    }
+
     if (isOwnerMatch) {
       resetRateLimiting(ip);
       const payload: AdminSessionPayload = {
-        sub: 'admin-owner-001',
-        email: ownerEmail,
-        username: 'ashik',
-        displayName: 'Platform Owner',
+        sub: `admin-owner-${loggedUsername}`,
+        email: loggedUsername === 'turjo' ? 'turjo@blackrock.gg' : ownerEmail,
+        username: loggedUsername,
+        displayName: loggedDisplayName,
         role: 'OWNER',
         permissions: ALL_PERMISSIONS, // Owner has unrestricted access to all 25 menus
         iat: Math.floor(Date.now() / 1000),
@@ -177,7 +190,7 @@ export async function authenticateAdmin(identifier: string, password: string, re
       };
       const token = signPayload(payload);
       const csrfToken = randomBytes(24).toString('hex');
-      logAdminAction('ashik', 'LOGIN', 'Platform Owner signed in successfully');
+      logAdminAction(loggedUsername, 'LOGIN', `Platform Owner (${loggedUsername}) signed in successfully`);
       return { ok: true, status: 200, user: { id: payload.sub, email: payload.email, username: payload.username, role: payload.role, displayName: payload.displayName, permissions: payload.permissions }, token, csrfToken };
     }
   }
