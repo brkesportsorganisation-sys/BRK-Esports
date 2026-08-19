@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { db } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,14 +11,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: 'User ID is required.' }, { status: 400 });
     }
 
-    const { data: user, error } = await supabaseAdmin
-      .from('User')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
+    let user: any = null;
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('User')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
 
-    if (error) {
-      throw new Error(error.message);
+      if (!error && data) {
+        user = data;
+      }
+    } catch {}
+
+    if (!user) {
+      user = db.getUserById ? db.getUserById(userId) : null;
     }
 
     if (!user) {

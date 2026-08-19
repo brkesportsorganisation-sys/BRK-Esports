@@ -223,7 +223,12 @@ export default function RewardsHubPage() {
 
   // Claim Ad Reward
   const handleClaimAdReward = async () => {
-    if (!currentUser || !currentAd || isProcessingClaim) return;
+    if (!currentUser) {
+      alert('ভিডিও রিওয়ার্ড কয়েন আপনার একাউন্টে ক্লেইম করতে অনুগ্রহ করে লগইন করুন!');
+      window.location.href = '/login?redirect=/ads';
+      return;
+    }
+    if (!currentAd || isProcessingClaim) return;
     setIsProcessingClaim(true);
     setErrorMsg('');
 
@@ -269,7 +274,12 @@ export default function RewardsHubPage() {
 
   // Spin Wheel Action
   const handleSpinWheel = async () => {
-    if (!currentUser || isSpinning || !isLotteryActive) return;
+    if (!currentUser) {
+      alert('লাকি স্পিন ঘুরাতে ও ক্যাশ রিওয়ার্ড জিততে অনুগ্রহ করে একাউন্টে লগইন করুন!');
+      window.location.href = '/login?redirect=/ads';
+      return;
+    }
+    if (isSpinning || !isLotteryActive) return;
     if (lotteryRewards.length === 0) return;
 
     if (spinCoinCost > 0 && (currentUser.coinBalance || 0) < spinCoinCost) {
@@ -342,8 +352,8 @@ export default function RewardsHubPage() {
               </p>
             </div>
 
-            {/* User Coin & Balance Widget */}
-            {currentUser && (
+            {/* User Coin & Balance Widget / Guest CTA */}
+            {currentUser ? (
               <div className="bg-white border border-slate-200 rounded-2xl p-4 md:p-5 flex items-center gap-6 shadow-sm flex-shrink-0">
                 <div className="space-y-0.5">
                   <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Your Coins</span>
@@ -360,6 +370,21 @@ export default function RewardsHubPage() {
                     ৳ {(currentUser.walletBalance || 0).toLocaleString()}
                   </div>
                 </div>
+              </div>
+            ) : (
+              <div className="bg-white border border-slate-200 rounded-2xl p-4 md:p-5 flex flex-col sm:flex-row items-center gap-4 shadow-sm flex-shrink-0">
+                <div className="space-y-0.5 text-center sm:text-left">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Claim & Earn</span>
+                  <div className="text-xs font-black text-slate-900">
+                    লগইন করে রিওয়ার্ড জমা করুন
+                  </div>
+                </div>
+                <Link
+                  href="/login?redirect=/ads"
+                  className="px-4 py-2 bg-gradient-to-r from-brand-red to-brand-orange hover:brightness-110 text-white text-xs font-black uppercase tracking-wider rounded-xl shadow-xs transition-all flex items-center gap-1.5"
+                >
+                  লগইন করুন
+                </Link>
               </div>
             )}
           </div>

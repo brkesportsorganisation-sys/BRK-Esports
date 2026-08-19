@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId');
 
     if (!userId) {
-      return NextResponse.json({ message: 'User ID is required.' }, { status: 400 });
+      return NextResponse.json({ success: false, message: 'User ID is required. Please login to view daily rewards.' }, { status: 401 });
     }
 
     let user: any = null;
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (!user) {
-      return NextResponse.json({ message: 'User not found.' }, { status: 404 });
+      return NextResponse.json({ success: false, message: 'User not found. Please log in.' }, { status: 404 });
     }
 
     const now = Date.now();
@@ -58,8 +58,9 @@ export async function GET(request: NextRequest) {
 
       if (timeSinceLastClaim < COOLDOWN_MS) {
         canClaimStreak = false;
-        remainingSeconds = Math.ceil((nextClaimTime - now) / 1000);
+        remainingSeconds = Math.max(0, Math.ceil((nextClaimTime - now) / 1000));
         nextClaimAvailableAt = new Date(nextClaimTime).toISOString();
+        currentStreakDay = user.currentStreak || 1;
       } else {
         canClaimStreak = true;
         remainingSeconds = 0;
@@ -68,9 +69,12 @@ export async function GET(request: NextRequest) {
           currentStreakDay = 1;
         } else {
           // Ready to claim next day!
-          currentStreakDay = (user.currentStreak % 7) + 1;
+          currentStreakDay = ((user.currentStreak || 0) % 7) + 1;
         }
       }
+    } else {
+      currentStreakDay = 1;
+      canClaimStreak = true;
     }
 
     if (currentStreakDay > 7 || currentStreakDay < 1) currentStreakDay = 1;
@@ -90,7 +94,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('[GET /api/user/quests]', error);
-    return NextResponse.json({ message: error?.message || 'Failed to fetch quests.' }, { status: 500 });
+    return NextResponse.json({ success: false, message: error?.message || 'Failed to fetch quests.' }, { status: 500 });
   }
 }
 
@@ -100,7 +104,7 @@ export async function POST(request: NextRequest) {
     const { userId, action } = body;
 
     if (!userId || !action) {
-      return NextResponse.json({ message: 'User ID and action are required.' }, { status: 400 });
+      return NextResponse.json({ success: false, message: 'রিওয়ার্ড ক্লেইম করতে লগইন করা প্রয়োজন (User ID and action required).' }, { status: 401 });
     }
 
     let user: any = null;
@@ -121,12 +125,12 @@ export async function POST(request: NextRequest) {
     }
 
     if (!user) {
-      return NextResponse.json({ message: 'User not found.' }, { status: 404 });
+      return NextResponse.json({ success: false, message: 'একাউন্ট পাওয়া যায়নি। অনুগ্রহ করে লগইন করুন।' }, { status: 404 });
     }
 
     const now = Date.now();
 
-      // Handle Daily Login Streak Claim
+    // Handle Daily Login Streak Claim
     if (action === 'CLAIM_STREAK') {
       const claimNowIso = new Date().toISOString();
 
@@ -135,11 +139,12 @@ export async function POST(request: NextRequest) {
         const timeSinceLastClaim = now - lastClaimTime;
 
         if (timeSinceLastClaim < COOLDOWN_MS) {
-          const remainingSeconds = Math.ceil((COOLDOWN_MS - timeSinceLastClaim) / 1000);
+          const remainingSeconds = Math.max(1, Math.ceil((COOLDOWN_MS - timeSinceLastClaim) / 1000));
           const hours = Math.floor(remainingSeconds / 3600);
           const mins = Math.floor((remainingSeconds % 3600) / 60);
           return NextResponse.json({ 
-            message: `আজকে ইতিমধ্যেই ডেইলি রিওয়ার্ড ক্লেইম করা হয়েছে! পরবর্তী ক্লেইমের জন্য আরও ${hours} ঘণ্টা ${mins} মিনিট অপেক্ষা করতে হবে।`,
+            success: false,
+            message: `আজকে ইতিমধ্যেই আপনার ডেইলি রিওয়ার্ড ক্লেইম করা হয়েছে! আগামীকাল আবার চেষ্টা করুন (Try again tomorrow)। পরবর্তী রিওয়ার্ডের সময় বাকি: ${hours > 0 ? `${hours} ঘণ্টা ` : ''}${mins} মিনিট।`,
             canClaimStreak: false,
             remainingSeconds,
           }, { status: 400 });
