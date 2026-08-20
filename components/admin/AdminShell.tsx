@@ -67,6 +67,7 @@ export default function AdminShell({ children }: AdminShellProps) {
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [sessionUser, setSessionUser] = useState<AdminSessionUser | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
+  const [pendingShopCount, setPendingShopCount] = useState(0);
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
     'VENDORS': false,
     'COMMUNITY': false,
@@ -119,11 +120,21 @@ export default function AdminShell({ children }: AdminShellProps) {
     if (pathname === '/admin/login') return;
     const loadPending = async () => {
       try {
-        const res = await fetch('/api/admin/registrations', { credentials: 'include' });
-        if (res.ok) {
-          const data = await res.json();
+        const [regRes, shopRes] = await Promise.all([
+          fetch('/api/admin/registrations', { credentials: 'include' }),
+          fetch('/api/admin/shop', { credentials: 'include' }),
+        ]);
+
+        if (regRes.ok) {
+          const data = await regRes.json();
           const count = (data.registrations || []).filter((r: any) => r.status === 'PENDING').length;
           setPendingCount(count);
+        }
+
+        if (shopRes.ok) {
+          const shopData = await shopRes.json();
+          const sCount = (shopData.orders || []).filter((o: any) => o.status === 'PENDING').length;
+          setPendingShopCount(sCount);
         }
       } catch {}
     };
@@ -197,7 +208,7 @@ export default function AdminShell({ children }: AdminShellProps) {
         { href: '/admin/vendors', label: 'Vendors & Hosts (🏪)', icon: Store, colorClass: 'text-violet-600', permission: 'manage_tournaments' },
         { href: '/admin/registrations', label: 'Slot Registrations', icon: ClipboardList, colorClass: 'text-purple-500', badge: pendingCount, permission: 'manage_tournaments' },
         { href: '/admin/matches', label: 'Match Results & Rooms', icon: Gamepad2, colorClass: 'text-amber-600', permission: 'enter_results' },
-        { href: '/admin/shop', label: 'Gaming Shop & Diamonds (🛍️)', icon: ShoppingBag, colorClass: 'text-cyan-500', permission: 'manage_deposits' },
+        { href: '/admin/shop', label: 'Gaming Shop & Diamonds (🛍️)', icon: ShoppingBag, colorClass: 'text-cyan-500', badge: pendingShopCount, permission: 'manage_deposits' },
         { href: '/admin/arena', label: '1v1 Arena Duels (⚔️)', icon: Swords, colorClass: 'text-red-500', permission: 'manage_tournaments' },
         { href: '/admin/lfg', label: 'LFG Recruitment Board', icon: Crosshair, colorClass: 'text-blue-500', permission: 'moderate_lfg' },
         { href: '/admin/tournament-settings', label: 'Tournament Match Rules', icon: FileText, colorClass: 'text-pink-500', permission: 'manage_settings' },

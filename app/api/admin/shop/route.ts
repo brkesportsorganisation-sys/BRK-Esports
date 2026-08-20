@@ -226,16 +226,23 @@ export async function PATCH(request: NextRequest) {
         })
         .eq('id', orderId);
 
+      // Extract item name and UID from notes if available
+      const notesStr = order.notes || '';
+      const itemMatch = notesStr.match(/\[Shop Order\]\s*([^|]+)/i);
+      const uidMatch = notesStr.match(/UID:\s*([^|]+)/i);
+      const itemName = itemMatch ? itemMatch[1].trim() : 'Shop Item';
+      const targetUid = uidMatch ? uidMatch[1].trim() : '';
+
       // Send notification to player
       try {
         const notifId = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
         await supabaseAdmin.from('Notification').insert([{
           id: notifId,
           userId: order.userId,
-          title: 'Shop Order Delivered! 💎🎁',
+          title: `✅ Shop Order Delivered: ${itemName}! 💎🎁`,
           message: redeemCode
-            ? `Your Shop Order item is ready! Redeem/Voucher Code: ${redeemCode}`
-            : 'Your Free Fire Diamonds / Shop item has been successfully delivered to your in-game UID account!',
+            ? `Your shop order for "${itemName}" is confirmed and delivered! Redeem/Voucher Code: ${redeemCode}`
+            : `Your order for "${itemName}" has been successfully verified & delivered to your account (UID: ${targetUid || 'Registered UID'})! Enjoy your game!`,
           isRead: false,
           createdAt: new Date().toISOString(),
         }]);
@@ -273,10 +280,14 @@ export async function PATCH(request: NextRequest) {
         .from('Payment')
         .update({
           status: 'REJECTED',
-          notes: `${order.notes || ''} [REFUNDED ${refundAmount} ${isCoins ? 'Coins' : 'BDT'}]`,
+          notes: `${order.notes || ''} [CANCELLED & REFUNDED ${refundAmount} ${isCoins ? 'Coins' : 'BDT'}]`,
           updatedAt: new Date().toISOString(),
         })
         .eq('id', orderId);
+
+      const notesStr = order.notes || '';
+      const itemMatch = notesStr.match(/\[Shop Order\]\s*([^|]+)/i);
+      const itemName = itemMatch ? itemMatch[1].trim() : 'Shop Item';
 
       // Send notification to player
       try {
@@ -284,8 +295,8 @@ export async function PATCH(request: NextRequest) {
         await supabaseAdmin.from('Notification').insert([{
           id: notifId,
           userId: order.userId,
-          title: 'Shop Order Cancelled & Refunded',
-          message: `Your shop order has been refunded. ${refundAmount} ${isCoins ? 'Coins' : '৳ BDT'} has been returned to your balance.`,
+          title: `❌ Shop Order Cancelled & Refunded: ${itemName}`,
+          message: `Your shop order for "${itemName}" was cancelled by admin. 100% of your payment (${refundAmount} ${isCoins ? 'Coins 🪙' : '৳ BDT'}) has been refunded back to your account balance.`,
           isRead: false,
           createdAt: new Date().toISOString(),
         }]);

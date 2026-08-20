@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', userId);
 
-    // Create Order Record in Payment table
+    // Create Order Record in Payment table as PENDING
     const orderId = `shop_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     const effectiveUid = playerUid || user.freeFireUid || 'N/A';
     
@@ -122,28 +122,52 @@ export async function POST(request: NextRequest) {
       method: isCoins ? 'COINS' : 'WALLET',
       amount: requiredAmount,
       trxId: `SHOP-${Date.now().toString().slice(-6)}`,
-      status: 'VERIFIED',
+      status: 'PENDING',
       notes: `[Shop Order] ${product.name} | Category: ${product.category} | Method: ${isCoins ? 'COINS' : 'WALLET'} | UID: ${effectiveUid} | IGN: ${inGameName || 'N/A'} | Delivery: ${product.deliveryType || 'FF_UID'}`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }]);
 
-    // Send in-app confirmation notification (safely)
+    // 1. Send in-app pending notification to player
     try {
-      const notifId = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      const userNotifId = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
       await supabaseAdmin.from('Notification').insert([{
-        id: notifId,
+        id: userNotifId,
         userId,
-        title: `Shop Purchase Successful: ${product.name} 🛍️`,
-        message: `Your purchase of ${product.name} for ${isCoins ? requiredAmount + ' Coins' : '৳' + requiredAmount} is confirmed! Item is being delivered to your UID (${effectiveUid}).`,
+        title: `Shop Order Placed: ${product.name} ⏳`,
+        message: `Your order for "${product.name}" (${isCoins ? requiredAmount + ' Coins 🪙' : '৳' + requiredAmount}) is pending admin verification. Item will be delivered to your UID (${effectiveUid}) shortly!`,
         isRead: false,
         createdAt: new Date().toISOString(),
       }]);
     } catch {}
 
+    // 2. Send alert notification to Admin Panel users
+    try {
+      const { data: admins } = await supabaseAdmin
+        .from('User')
+        .select('id')
+        .in('role', ['OWNER', 'SUPER_ADMIN', 'ADMIN', 'MANAGER', 'MODERATOR']);
+
+      if (admins && admins.length > 0) {
+        const adminNotifications = admins.map(adm => ({
+          id: `notif_adm_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          userId: adm.id,
+          title: `🛍️ New Shop Order: ${product.name}`,
+          message: `Player ${user.name} ordered "${product.name}" (${isCoins ? requiredAmount + ' Coins' : '৳' + requiredAmount}) for UID: ${effectiveUid}. Please deliver in Admin Shop.`,
+          isRead: false,
+          createdAt: new Date().toISOString(),
+        }));
+
+        await supabaseAdmin.from('Notification').insert(adminNotifications);
+      }
+    } catch (adminNotifErr) {
+      console.warn('Failed to notify admins of shop order:', adminNotifErr);
+    }
+
     return NextResponse.json({
       success: true,
-      message: `Successfully purchased "${product.name}"! Delivered to UID: ${effectiveUid}`,
+      status: 'PENDING',
+      message: `Order submitted successfully! Your order for "${product.name}" is pending admin delivery to UID: ${effectiveUid}.`,
       orderId,
       remainingCoinBalance: newCoinBal,
       remainingWalletBalance: newWalletBal,

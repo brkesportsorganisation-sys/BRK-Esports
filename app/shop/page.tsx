@@ -497,30 +497,47 @@ export default function GamingShopPage() {
 
             {/* Purchase Result Message */}
             {purchaseResult ? (
-              <div className={`p-6 rounded-2xl border text-center space-y-3 ${
+              <div className={`p-6 rounded-2xl border text-center space-y-3.5 ${
                 purchaseResult.success 
-                  ? 'bg-emerald-50 border-emerald-200 text-emerald-900' 
+                  ? 'bg-amber-50/80 border-amber-200 text-amber-950' 
                   : 'bg-red-50 border-red-200 text-red-900'
               }`}>
                 {purchaseResult.success ? (
-                  <CheckCircle2 className="w-12 h-12 text-emerald-600 mx-auto" />
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center mx-auto shadow-md animate-pulse">
+                    <Clock className="w-7 h-7" />
+                  </div>
                 ) : (
                   <AlertCircle className="w-12 h-12 text-red-600 mx-auto" />
                 )}
-                <div className="space-y-1">
-                  <h4 className="font-heading font-black text-base">
-                    {purchaseResult.success ? 'Order Completed!' : 'Purchase Failed'}
+                
+                <div className="space-y-1.5">
+                  <h4 className="font-heading font-black text-lg text-slate-900">
+                    {purchaseResult.success ? 'Order Placed (Pending) ⏳' : 'Purchase Failed'}
                   </h4>
-                  <p className="text-xs font-medium">{purchaseResult.message}</p>
-                  {purchaseResult.orderId && (
-                    <div className="text-[11px] font-mono text-slate-500 pt-1">
-                      Order ID: {purchaseResult.orderId}
+                  <p className="text-xs font-medium text-slate-600 leading-relaxed max-w-sm mx-auto">
+                    {purchaseResult.message}
+                  </p>
+
+                  {purchaseResult.success && (
+                    <div className="p-3.5 bg-white/90 rounded-2xl border border-amber-200/80 text-[11px] text-slate-600 space-y-1.5 text-left mt-2 shadow-2xs">
+                      <div className="flex justify-between font-mono">
+                        <span className="text-slate-500">Order ID:</span>
+                        <strong className="text-slate-900">{purchaseResult.orderId}</strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Status:</span>
+                        <span className="font-bold text-amber-600">Pending Admin Verification ⏳</span>
+                      </div>
+                      <div className="text-[10px] text-slate-500 pt-1.5 border-t border-slate-100 leading-normal">
+                        অ্যাডমিন প্যানেল থেকে কনফার্ম হওয়া মাত্রই আইটেমটি আপনার গেমে ডেলিভারি হবে এবং আপনার ইন-অ্যাপ নোটিফিকেশনে কনফার্মেশন মেসেজ চলে যাবে।
+                      </div>
                     </div>
                   )}
                 </div>
+
                 <button
                   onClick={() => setSelectedProduct(null)}
-                  className="px-6 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs shadow-md cursor-pointer mt-2"
+                  className="px-6 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-md cursor-pointer transition-colors"
                 >
                   Close
                 </button>

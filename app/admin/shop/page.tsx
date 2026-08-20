@@ -59,6 +59,7 @@ export default function AdminGamingShopPage() {
   const [orders, setOrders] = useState<ShopOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [orderStatusFilter, setOrderStatusFilter] = useState<'ALL' | 'PENDING' | 'VERIFIED' | 'REJECTED'>('ALL');
   const [stats, setStats] = useState({
     totalOrders: 0,
     totalCashRevenue: 0,
@@ -306,12 +307,14 @@ export default function AdminGamingShopPage() {
 
   const filteredOrders = orders.filter((o) => {
     const q = searchQuery.toLowerCase();
-    return (
+    const matchesSearch = (
       o.userName?.toLowerCase().includes(q) ||
       o.userEmail?.toLowerCase().includes(q) ||
       o.notes?.toLowerCase().includes(q) ||
       o.trxId?.toLowerCase().includes(q)
     );
+    const matchesStatus = orderStatusFilter === 'ALL' || o.status === orderStatusFilter;
+    return matchesSearch && matchesStatus;
   });
 
   return (
@@ -552,30 +555,61 @@ export default function AdminGamingShopPage() {
 
       {/* ══════════ TAB 2: USER ORDERS & DELIVERIES ══════════ */}
       {activeTab === 'ORDERS' && (
-        <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Search by player name, email, UID, or Item..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50 focus:outline-none focus:bg-white focus:border-cyan-500 font-medium"
-              />
+        <div className="bg-white border border-slate-200/80 rounded-3xl shadow-sm overflow-hidden space-y-4 p-5 sm:p-6">
+          
+          {/* Filter Bar */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+            
+            {/* Status Filter Tabs */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {[
+                { id: 'ALL', label: `All Orders (${orders.length})` },
+                { id: 'PENDING', label: `⏳ Pending (${orders.filter(o => o.status === 'PENDING').length})`, color: 'text-amber-700 bg-amber-50 border-amber-200' },
+                { id: 'VERIFIED', label: `✅ Delivered (${orders.filter(o => o.status === 'VERIFIED').length})`, color: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
+                { id: 'REJECTED', label: `❌ Cancelled (${orders.filter(o => o.status === 'REJECTED').length})`, color: 'text-red-700 bg-red-50 border-red-200' },
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setOrderStatusFilter(tab.id as any)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                    orderStatusFilter === tab.id
+                      ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                      : tab.color || 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
-            <button
-              onClick={loadData}
-              className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
-            >
-              Refresh Orders
-            </button>
+
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1 sm:w-64">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search by player, UID, item..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-xl bg-slate-50 focus:outline-none focus:bg-white focus:border-cyan-500 font-medium"
+                />
+              </div>
+
+              <button
+                onClick={loadData}
+                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer shrink-0"
+              >
+                Refresh
+              </button>
+            </div>
           </div>
 
           {loading ? (
             <div className="p-16 text-center text-slate-400">Loading shop orders...</div>
           ) : filteredOrders.length === 0 ? (
-            <div className="p-16 text-center text-slate-400">No shop orders found.</div>
+            <div className="p-16 text-center text-slate-400 space-y-2">
+              <ShoppingBag className="w-10 h-10 text-slate-300 mx-auto" />
+              <div className="font-bold text-sm text-slate-600">No shop orders in this status</div>
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
@@ -590,61 +624,83 @@ export default function AdminGamingShopPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredOrders.map((order) => (
-                    <tr key={order.id} className="hover:bg-slate-50/50">
-                      <td className="px-4 py-3.5">
-                        <div className="font-bold text-slate-900">{order.userName}</div>
-                        <div className="text-[11px] text-slate-500">{order.userEmail}</div>
-                      </td>
-                      <td className="px-4 py-3.5 max-w-xs">
-                        <div className="font-bold text-slate-800 line-clamp-1">{order.notes}</div>
-                        <div className="text-[10px] text-slate-400 font-mono">TrxID: {order.trxId}</div>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <span className={`px-2.5 py-1 rounded-lg text-[11px] font-black ${
-                          order.method === 'COINS'
-                            ? 'bg-amber-100 text-amber-800 border border-amber-200'
-                            : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                        }`}>
-                          {order.method === 'COINS' ? `${order.amount.toLocaleString()} 🪙 Coins` : `৳ ${order.amount}`}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 w-fit ${
-                          order.status === 'VERIFIED'
-                            ? 'bg-emerald-100 text-emerald-700'
-                            : order.status === 'REJECTED'
-                            ? 'bg-red-100 text-red-700'
-                            : 'bg-amber-100 text-amber-700'
-                        }`}>
-                          {order.status === 'VERIFIED' && <CheckCircle2 className="w-3 h-3" />}
-                          {order.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5 text-slate-500">
-                        {new Date(order.createdAt).toLocaleDateString()}
-                      </td>
-                      <td className="px-4 py-3.5 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => setDeliverModalOrder(order)}
-                            className="px-3 py-1.5 bg-cyan-50 hover:bg-cyan-100 text-cyan-700 border border-cyan-200 rounded-lg text-xs font-bold transition-all cursor-pointer"
-                          >
-                            Send Code / Deliver
-                          </button>
-                          {order.status !== 'REJECTED' && (
-                            <button
-                              onClick={() => handleRefund(order)}
-                              className="px-2 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg text-xs font-bold transition-all cursor-pointer"
-                              title="Refund Coins/Cash"
-                            >
-                              Refund
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredOrders.map((order) => {
+                    const isPending = order.status === 'PENDING';
+                    const isDelivered = order.status === 'VERIFIED';
+                    const isRejected = order.status === 'REJECTED';
+
+                    return (
+                      <tr key={order.id} className={`hover:bg-slate-50/50 ${isPending ? 'bg-amber-50/30' : ''}`}>
+                        <td className="px-4 py-3.5">
+                          <div className="font-bold text-slate-900">{order.userName}</div>
+                          <div className="text-[11px] text-slate-500">{order.userEmail}</div>
+                        </td>
+                        <td className="px-4 py-3.5 max-w-xs">
+                          <div className="font-bold text-slate-800 line-clamp-1">{order.notes}</div>
+                          <div className="text-[10px] text-slate-400 font-mono">TrxID: {order.trxId}</div>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <span className={`px-2.5 py-1 rounded-lg text-[11px] font-black ${
+                            order.method === 'COINS'
+                              ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                              : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                          }`}>
+                            {order.method === 'COINS' ? `${order.amount.toLocaleString()} 🪙 Coins` : `৳ ${order.amount}`}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center gap-1 w-fit border ${
+                            isDelivered
+                              ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
+                              : isRejected
+                              ? 'bg-red-100 text-red-700 border-red-200'
+                              : 'bg-amber-100 text-amber-800 border-amber-300 animate-pulse font-black'
+                          }`}>
+                            {isDelivered && <CheckCircle2 className="w-3 h-3" />}
+                            {isPending ? '⏳ PENDING' : isDelivered ? 'DELIVERED' : 'CANCELLED'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5 text-slate-500">
+                          {new Date(order.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="px-4 py-3.5 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {isPending ? (
+                              <>
+                                <button
+                                  onClick={() => setDeliverModalOrder(order)}
+                                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-xs transition-all cursor-pointer flex items-center gap-1"
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                  <span>Confirm & Deliver</span>
+                                </button>
+                                <button
+                                  onClick={() => handleRefund(order)}
+                                  className="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                                  title="Cancel Order & Refund to User"
+                                >
+                                  Cancel / Refund
+                                </button>
+                              </>
+                            ) : isDelivered ? (
+                              <div className="flex items-center gap-2">
+                                <span className="text-[11px] font-bold text-emerald-600">Delivered ✅</span>
+                                <button
+                                  onClick={() => handleRefund(order)}
+                                  className="px-2 py-1 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg text-[10px] font-bold transition-all cursor-pointer"
+                                  title="Issue Refund"
+                                >
+                                  Refund
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-[11px] font-bold text-red-500">Refunded ❌</span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
