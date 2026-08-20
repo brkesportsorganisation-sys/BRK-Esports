@@ -131,9 +131,17 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
 
         {/* Status / Entry Badge on Top-Right */}
         <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
-          {isFree ? (
+          {tournament.entryFeeType === 'FREE' || (tournament.entryFee === 0 && (!tournament.coinEntryFee || tournament.coinEntryFee === 0)) ? (
             <span className="px-2.5 py-1 rounded-xl bg-emerald-600/90 text-white font-black text-[10px] uppercase backdrop-blur-md border border-emerald-400/40 shadow-md">
               🎁 FREE
+            </span>
+          ) : tournament.entryFeeType === 'COINS' ? (
+            <span className="px-2.5 py-1 rounded-xl bg-amber-500 text-slate-950 font-black text-[10px] uppercase backdrop-blur-md border border-amber-300 shadow-md flex items-center gap-1">
+              <span>{tournament.coinEntryFee || (tournament.entryFee * 10) || 500} 🪙</span>
+            </span>
+          ) : tournament.allowCoinEntry && tournament.entryFeeType === 'BOTH' ? (
+            <span className="px-2.5 py-1 rounded-xl bg-black/75 text-amber-300 font-black text-[10px] uppercase backdrop-blur-md border border-amber-400/40 shadow-md flex items-center gap-1">
+              <span>৳{tournament.entryFee} / {tournament.coinEntryFee || (tournament.entryFee * 10)} 🪙</span>
             </span>
           ) : (
             <span className="px-2.5 py-1 rounded-xl bg-black/60 text-amber-400 font-black text-[10px] uppercase backdrop-blur-md border border-amber-400/40 shadow-md">

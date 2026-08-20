@@ -79,6 +79,9 @@ function serializeTournament(record: Record<string, any>): Tournament {
     showOnHomepage: Boolean(record.showOnHomepage),
     registrationOpen: Boolean(record.registrationOpen),
     liveMatchToggle: Boolean(record.liveMatchToggle),
+    allowCoinEntry: record.allowCoinEntry !== undefined ? Boolean(record.allowCoinEntry) : true,
+    coinEntryFee: record.coinEntryFee !== undefined && record.coinEntryFee !== null && record.coinEntryFee !== '' ? Number(record.coinEntryFee) : undefined,
+    entryFeeType: record.entryFeeType || (record.allowCoinEntry === false ? 'CASH' : (Number(record.entryFee || 0) === 0 ? 'FREE' : 'BOTH')),
     bannerImage: record.bannerImage ? String(record.bannerImage) : undefined,
     thumbnailImage: record.thumbnailImage ? String(record.thumbnailImage) : undefined,
     logoImage: record.logoImage ? String(record.logoImage) : undefined,
@@ -161,6 +164,9 @@ export async function createTournamentInDb(input: Record<string, any>) {
     showOnHomepage: Boolean(input.showOnHomepage),
     registrationOpen: Boolean(input.registrationOpen),
     liveMatchToggle: Boolean(input.liveMatchToggle),
+    allowCoinEntry: input.allowCoinEntry !== undefined ? Boolean(input.allowCoinEntry) : true,
+    coinEntryFee: input.coinEntryFee !== undefined && input.coinEntryFee !== null && input.coinEntryFee !== '' ? Number(input.coinEntryFee) : null,
+    entryFeeType: input.entryFeeType || 'BOTH',
     communityEnabled: Boolean(input.community?.enabled ?? input.communityEnabled),
     communityAccessType: String(input.community?.accessType || input.communityAccessType || 'WHATSAPP'),
     communityInviteLink: input.community?.inviteLink || input.communityInviteLink || null,
@@ -227,6 +233,9 @@ export async function updateTournamentInDb(id: string, input: Record<string, any
   if (input.showOnHomepage !== undefined) updateData.showOnHomepage = Boolean(input.showOnHomepage);
   if (input.registrationOpen !== undefined) updateData.registrationOpen = Boolean(input.registrationOpen);
   if (input.liveMatchToggle !== undefined) updateData.liveMatchToggle = Boolean(input.liveMatchToggle);
+  if (input.allowCoinEntry !== undefined) updateData.allowCoinEntry = Boolean(input.allowCoinEntry);
+  if (input.coinEntryFee !== undefined) updateData.coinEntryFee = input.coinEntryFee !== null && input.coinEntryFee !== '' ? Number(input.coinEntryFee) : null;
+  if (input.entryFeeType !== undefined) updateData.entryFeeType = input.entryFeeType;
 
   if (input.community !== undefined || input.communityEnabled !== undefined) {
     updateData.communityEnabled = Boolean(input.community?.enabled ?? input.communityEnabled);

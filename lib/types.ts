@@ -109,6 +109,9 @@ export interface Tournament {
   showOnHomepage?: boolean;
   registrationOpen?: boolean;
   liveMatchToggle?: boolean;
+  allowCoinEntry?: boolean;
+  coinEntryFee?: number;
+  entryFeeType?: 'CASH' | 'COINS' | 'BOTH' | 'FREE';
   bannerImage?: string;
   thumbnailImage?: string;
   logoImage?: string;

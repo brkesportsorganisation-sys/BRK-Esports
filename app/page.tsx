@@ -428,9 +428,17 @@ export default function HomePage() {
 
                     {/* Entry Fee & Live Status Badges on Top-Right */}
                     <div className="absolute top-3.5 right-3.5 z-10 flex items-center gap-2">
-                      {isFree ? (
+                      {tour.entryFeeType === 'FREE' || (tour.entryFee === 0 && (!tour.coinEntryFee || tour.coinEntryFee === 0)) ? (
                         <span className="px-3 py-1 rounded-xl bg-emerald-600/95 text-white font-black text-xs uppercase backdrop-blur-md border border-emerald-400/40 shadow-md">
                           🎁 FREE ENTRY
+                        </span>
+                      ) : tour.entryFeeType === 'COINS' ? (
+                        <span className="px-3 py-1 rounded-xl bg-amber-500 text-slate-950 font-black text-xs uppercase backdrop-blur-md border border-amber-300 shadow-md flex items-center gap-1">
+                          <span>{tour.coinEntryFee || (tour.entryFee * 10) || 500} 🪙 Coins</span>
+                        </span>
+                      ) : tour.allowCoinEntry && tour.entryFeeType === 'BOTH' ? (
+                        <span className="px-3 py-1 rounded-xl bg-black/75 text-amber-300 font-black text-xs uppercase backdrop-blur-md border border-amber-400/40 shadow-md flex items-center gap-1">
+                          <span>৳{tour.entryFee} / {tour.coinEntryFee || (tour.entryFee * 10)} 🪙</span>
                         </span>
                       ) : (
                         <span className="px-3 py-1 rounded-xl bg-black/75 text-amber-400 font-black text-xs uppercase backdrop-blur-md border border-amber-400/40 shadow-md">

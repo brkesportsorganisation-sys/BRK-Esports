@@ -53,6 +53,9 @@ interface TournamentFormState {
   showOnHomepage: boolean;
   registrationOpen: boolean;
   liveMatchToggle: boolean;
+  allowCoinEntry: boolean;
+  coinEntryFee: number;
+  entryFeeType: 'CASH' | 'COINS' | 'BOTH' | 'FREE';
   communityEnabled: boolean;
   communityAccessType: CommunityAccessType;
   communityInviteLink: string;
@@ -98,6 +101,9 @@ const defaultForm: TournamentFormState = {
   showOnHomepage: true,
   registrationOpen: true,
   liveMatchToggle: false,
+  allowCoinEntry: true,
+  coinEntryFee: 1000,
+  entryFeeType: 'BOTH',
   communityEnabled: false,
   communityAccessType: 'WHATSAPP' as const,
   communityInviteLink: '',
@@ -299,6 +305,9 @@ export default function AdminTournamentsPage() {
       showOnHomepage: item.showOnHomepage ?? true,
       registrationOpen: item.registrationOpen ?? true,
       liveMatchToggle: item.liveMatchToggle || false,
+      allowCoinEntry: item.allowCoinEntry !== false,
+      coinEntryFee: item.coinEntryFee !== undefined && item.coinEntryFee !== null ? Number(item.coinEntryFee) : (item.entryFee ? item.entryFee * 10 : 1000),
+      entryFeeType: item.entryFeeType || (item.allowCoinEntry === false ? 'CASH' : (item.entryFee === 0 ? 'FREE' : 'BOTH')),
       communityEnabled: item.community?.enabled || false,
       communityAccessType: item.community?.accessType || 'WHATSAPP',
       communityInviteLink: item.community?.inviteLink || '',
@@ -668,7 +677,20 @@ export default function AdminTournamentsPage() {
                   <td className="px-4 py-4">
                     <span className="rounded-xl border border-slate-800 bg-slate-900 px-3 py-1 text-[10px] font-black uppercase text-slate-300">{item.status}</span>
                   </td>
-                  <td className="px-4 py-4 font-heading font-black text-brand-gold text-base">৳{item.prizePool}</td>
+                  <td className="px-4 py-4">
+                    <div className="font-heading font-black text-brand-gold text-sm">৳{item.prizePool.toLocaleString()}</div>
+                    <div className="text-[10px] text-slate-400 font-bold mt-0.5">
+                      {item.entryFeeType === 'FREE' || (item.entryFee === 0 && (!item.coinEntryFee || item.coinEntryFee === 0)) ? (
+                        <span className="text-emerald-400">🎁 Free Entry</span>
+                      ) : item.entryFeeType === 'COINS' ? (
+                        <span className="text-amber-400">🪙 {item.coinEntryFee || (item.entryFee * 10) || 500} Coins</span>
+                      ) : item.allowCoinEntry && item.entryFeeType === 'BOTH' ? (
+                        <span className="text-slate-300">৳{item.entryFee} / {item.coinEntryFee || (item.entryFee * 10)} 🪙</span>
+                      ) : (
+                        <span className="text-slate-300">৳{item.entryFee} Cash Only</span>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-4 py-4">
                     {item.isFeatured ? <span className="mr-2 inline-flex items-center gap-1 rounded-lg bg-orange-950/50 border border-orange-800/40 px-2 py-0.5 text-[9px] font-bold uppercase text-orange-400"><Star className="h-3 w-3" /> Featured</span> : null}
                     {item.isPublished ? <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-950/50 border border-emerald-800/40 px-2 py-0.5 text-[9px] font-bold uppercase text-emerald-400"><Sparkles className="h-3 w-3" /> Published</span> : null}
@@ -782,11 +804,84 @@ export default function AdminTournamentsPage() {
                     </select>
                   </div>
                 </div>
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700">Entry Fee (৳)</label>
-                    <input type="number" min="0" value={form.entryFee} onChange={(event) => setForm((prev) => ({ ...prev, entryFee: Number(event.target.value) }))} className={`w-full rounded-2xl border bg-white px-3 py-3 text-slate-900 shadow-sm focus:border-red-300 focus:ring-1 focus:ring-red-300 outline-none ${validationErrors.entryFee ? 'border-red-500' : 'border-slate-300'}`} />
+                {/* Currency & Payment Mode Management Box */}
+                <div className="rounded-2xl border border-amber-300 bg-amber-50/60 p-4 space-y-3 shadow-xs">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">🪙</span>
+                      <label className="text-xs font-black uppercase text-amber-950 font-heading">
+                        Tournament Payment Currency Mode (কীভাবে এন্ট্রি ফি দেওয়া যাবে)
+                      </label>
+                    </div>
+                    <span className="text-[11px] font-bold text-amber-900 bg-amber-200/80 px-2.5 py-0.5 rounded-full uppercase">
+                      {form.entryFeeType || 'BOTH'}
+                    </span>
                   </div>
+
+                  {/* 4 Currency Mode Buttons */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {[
+                      { id: 'BOTH', label: '🔄 Cash & Coins', desc: 'টাকা ও কয়েন উভয়টি' },
+                      { id: 'CASH', label: '৳ Cash Only', desc: 'শুধু ওয়ালেট টাকা' },
+                      { id: 'COINS', label: '🪙 Coins Only', desc: 'শুধু BRK কয়েন' },
+                      { id: 'FREE', label: '🎁 Free Entry', desc: 'ফ্রি এন্ট্রি' },
+                    ].map((mode) => (
+                      <button
+                        key={mode.id}
+                        type="button"
+                        onClick={() => {
+                          setForm(prev => ({
+                            ...prev,
+                            entryFeeType: mode.id as any,
+                            allowCoinEntry: mode.id === 'BOTH' || mode.id === 'COINS',
+                            entryFee: mode.id === 'FREE' ? 0 : (prev.entryFee || 100),
+                            coinEntryFee: mode.id === 'FREE' ? 0 : (prev.coinEntryFee || 1000),
+                          }));
+                        }}
+                        className={`p-2.5 rounded-xl border text-xs font-bold text-center transition-all cursor-pointer ${
+                          form.entryFeeType === mode.id
+                            ? 'bg-slate-900 text-white border-slate-900 shadow-xs font-black'
+                            : 'bg-white border-amber-200 text-slate-700 hover:bg-amber-100/50'
+                        }`}
+                      >
+                        <div>{mode.label}</div>
+                        <div className="text-[10px] opacity-75 font-normal mt-0.5">{mode.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Detailed Currency Inputs */}
+                  <div className="grid gap-3 sm:grid-cols-2 pt-2 border-t border-amber-200/80">
+                    <div>
+                      <label className="mb-1 block text-xs font-bold text-slate-700">Cash Entry Fee (৳ BDT)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        disabled={form.entryFeeType === 'COINS' || form.entryFeeType === 'FREE'}
+                        value={form.entryFee}
+                        onChange={(e) => setForm(prev => ({ ...prev, entryFee: Number(e.target.value) }))}
+                        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-bold text-slate-900 outline-none focus:border-brand-orange disabled:bg-slate-100 disabled:text-slate-400"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-xs font-bold text-amber-800">
+                        Coin Entry Fee (🪙 Coins Required)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        disabled={form.entryFeeType === 'CASH' || form.entryFeeType === 'FREE'}
+                        value={form.coinEntryFee}
+                        onChange={(e) => setForm(prev => ({ ...prev, coinEntryFee: Number(e.target.value) }))}
+                        placeholder="e.g. 500 or 1000 Coins"
+                        className="w-full rounded-xl border border-amber-300 bg-white px-3 py-2 text-sm font-bold text-amber-900 outline-none focus:border-brand-orange disabled:bg-slate-100 disabled:text-slate-400"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
                   <div>
                     <label className="mb-2 block text-sm font-medium text-slate-700">Prize Pool (৳)</label>
                     <input type="number" min="0" value={form.prizePool} onChange={(event) => setForm((prev) => ({ ...prev, prizePool: Number(event.target.value) }))} className={`w-full rounded-2xl border bg-white px-3 py-3 text-slate-900 shadow-sm focus:border-red-300 focus:ring-1 focus:ring-red-300 outline-none ${validationErrors.prizePool ? 'border-red-500' : 'border-slate-300'}`} />

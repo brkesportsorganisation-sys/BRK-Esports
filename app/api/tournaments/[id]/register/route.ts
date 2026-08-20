@@ -155,17 +155,39 @@ export async function POST(
       }
     }
 
-    // Balance check
+    // Determine payment mode & fee requirements
     const isPayingWithCoins = paymentType === 'COINS';
+    const allowCoins = tournament.allowCoinEntry !== false && tournament.entryFeeType !== 'CASH';
+
+    if (isPayingWithCoins && !allowCoins) {
+      return NextResponse.json({
+        message: 'This tournament does not accept BRK Coins. Please register using your Main Wallet balance (BDT).',
+        code: 'COIN_PAYMENT_NOT_ALLOWED',
+      }, { status: 400 });
+    }
+
+    if (!isPayingWithCoins && tournament.entryFeeType === 'COINS') {
+      return NextResponse.json({
+        message: 'This is a Coin-Only tournament. Please register using BRK Coins.',
+        code: 'COIN_PAYMENT_REQUIRED',
+      }, { status: 400 });
+    }
+
+    const requiredFee = isPayingWithCoins 
+      ? (tournament.coinEntryFee !== undefined && tournament.coinEntryFee !== null && tournament.coinEntryFee > 0 
+          ? Number(tournament.coinEntryFee) 
+          : (Number(tournament.entryFee) * 10 || Number(tournament.entryFee) || 50))
+      : Number(tournament.entryFee || 0);
+
     const currentBalance = isPayingWithCoins ? (Number(user.coinBalance) || 0) : (Number(user.walletBalance) || 0);
     const currencyName = isPayingWithCoins ? 'Coins' : 'Wallet balance';
-    const currencyUnit = isPayingWithCoins ? 'Coins' : 'BDT';
+    const currencyUnit = isPayingWithCoins ? 'Coins 🪙' : 'BDT ৳';
 
-    if (currentBalance < tournament.entryFee) {
+    if (currentBalance < requiredFee) {
       return NextResponse.json({
-        message: `${currencyName} insufficient! You need ${tournament.entryFee} ${currencyUnit} to register, but you only have ${currentBalance} ${currencyUnit}.`,
+        message: `${currencyName} insufficient! You need ${requiredFee.toLocaleString()} ${currencyUnit} to register, but you only have ${currentBalance.toLocaleString()} ${currencyUnit}.`,
         code: 'INSUFFICIENT_BALANCE',
-        required: tournament.entryFee,
+        required: requiredFee,
         available: currentBalance,
       }, { status: 400 });
     }
@@ -185,14 +207,14 @@ export async function POST(
     // Generate IDs
     const registrationId = generateId('REG');
     const teamId = generateId('TEAM');
-    const trxId = `WAL_${Date.now()}_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+    const trxId = `${isPayingWithCoins ? 'COIN' : 'WAL'}_${Date.now()}_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 
-    // 1. Deduct balance with Dual-Wallet prioritization (Promo Wallet consumed first)
+    // 1. Deduct balance with Dual-Wallet prioritization (Promo Wallet consumed first if cash)
     let balanceUpdate: Record<string, any> = { updatedAt: new Date().toISOString() };
     if (isPayingWithCoins) {
-      balanceUpdate.coinBalance = currentBalance - tournament.entryFee;
+      balanceUpdate.coinBalance = Math.max(0, currentBalance - requiredFee);
     } else {
-      const fee = Number(tournament.entryFee) || 0;
+      const fee = requiredFee;
       const currentPromo = Number(user.promoBalance) || 0;
       const currentWinning = Number(user.winningBalance) || 0;
 
@@ -218,18 +240,15 @@ export async function POST(
       .eq('id', userId);
 
     // 2. Create Participant
-    const participantId = `part_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-    await supabaseAdmin
+    const { error: partErr } = await supabaseAdmin
       .from('Participant')
       .insert([{
-        id: participantId,
+        id: registrationId,
         tournamentId,
         userId,
-        status: 'VERIFIED',
-        registrationId,
+        teamId,
         squadName: squadName.trim(),
         iglName: iglName.trim(),
-        captainWhatsApp: captainWhatsApp.trim(),
         player1Name: player1Name.trim(),
         player2Name: player2Name.trim(),
         player3Name: player3Name.trim(),
@@ -246,11 +265,11 @@ export async function POST(
         id: paymentId,
         userId,
         tournamentId,
-        method: 'WALLET',
-        amount: tournament.entryFee,
+        method: isPayingWithCoins ? 'COINS' : 'WALLET',
+        amount: requiredFee,
         trxId,
         status: 'VERIFIED',
-        notes: `Squad registration (${isPayingWithCoins ? 'Paid via Coins' : 'Paid via Wallet'}): ${squadName.trim()} | ${registrationId}`,
+        notes: `Squad registration (${isPayingWithCoins ? `${requiredFee} Coins 🪙` : `৳ ${requiredFee} Wallet`}): ${squadName.trim()} | ${registrationId}`,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }]);
@@ -266,7 +285,7 @@ export async function POST(
 
     // Sync to local fallback DB
     db.createRegistration({
-      id: participantId,
+      id: registrationId,
       tournamentId,
       userId,
       status: 'VERIFIED',
