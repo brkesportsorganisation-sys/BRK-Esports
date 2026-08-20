@@ -216,7 +216,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
 
           {/* Referral Rewards & Monthly Event Crusade Banner (Unified in Home Hero Section - Compact on Mobile) */}
-          <div id="home-referral-section" className="mt-6 sm:mt-12 rounded-2xl sm:rounded-3xl p-3.5 sm:p-7 bg-gradient-to-br from-white via-red-50/30 to-orange-50/40 text-slate-900 border-2 border-red-200/90 shadow-lg shadow-red-500/5 relative overflow-hidden">
+          <div id="home-referral-section" className="mt-4 sm:mt-6 rounded-2xl sm:rounded-3xl p-3.5 sm:p-7 bg-gradient-to-br from-white via-red-50/30 to-orange-50/40 text-slate-900 border-2 border-red-200/90 shadow-lg shadow-red-500/5 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-96 h-96 bg-brand-orange/10 rounded-full blur-3xl pointer-events-none"></div>
             <div className="absolute -bottom-10 -left-10 w-80 h-80 bg-brand-red/5 rounded-full blur-3xl pointer-events-none"></div>
 
@@ -337,7 +337,7 @@ export default function HomePage() {
       {/* ========================================================================= */}
       {/* FEATURED 2 TOURNAMENTS SECTION -> Direct Click redirects to /tournaments  */}
       {/* ========================================================================= */}
-      <section className="py-12 bg-slate-50/70 border-b border-slate-200">
+      <section className="pt-6 pb-12 bg-slate-50/70 border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full space-y-8">
           
           {/* Section Header with Direct Link to /tournaments */}
