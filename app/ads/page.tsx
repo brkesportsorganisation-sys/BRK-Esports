@@ -8,6 +8,7 @@ import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import MobileBottomNav from '@/components/ui/MobileBottomNav';
 import DailyQuests from '@/components/rewards/DailyQuests';
+import ReferralSection from '@/components/rewards/ReferralSection';
 import { 
   PlaySquare, 
   Coins, 
@@ -402,6 +403,9 @@ export default function RewardsHubPage() {
 
         {/* 7-Day Login Streak Rewards */}
         <DailyQuests />
+
+        {/* Monthly Referral Rewards Crusade */}
+        <ReferralSection />
 
         {/* Tab Navigation */}
         <div className="flex flex-wrap items-center justify-center sm:justify-start bg-white p-1.5 rounded-2xl border border-slate-200 gap-2 max-w-lg mx-auto sm:mx-0 shadow-2xs">

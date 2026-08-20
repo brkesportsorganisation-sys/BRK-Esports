@@ -133,3 +133,21 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 .prose th { background: #f8fafc !important; color: #0f172a !important; }
 .prose img, .prose iframe { max-width: 100%; border-radius: .75rem; height: auto; }
 .prose iframe { aspect-ratio: 16 / 9; width: 100%; height: auto; min-height: 240px; }
+
+/* Continuous Smooth Spin Animation for Lucky Wheel */
+@keyframes spin-continuous {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-continuous 22s linear infinite;
+}
+
+.animate-spin-gentle {
+  animation: spin-continuous 14s linear infinite;
+}
