@@ -2,9 +2,9 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { Trophy, Users, Clock, Flame, ShieldAlert, Award } from 'lucide-react';
-import { Tournament, TournamentStatus } from '@/lib/types';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Trophy, Users, Clock, Flame, ShieldCheck, Zap, X, Check, FileText, Gift, Award, Coins } from 'lucide-react';
+import { Tournament, TournamentStatus, Participant } from '@/lib/types';
 import { getDynamicTournamentStatus } from '@/lib/tournament-utils';
 import { useLanguage } from '@/lib/language-context';
 
@@ -27,168 +27,411 @@ function stripHtml(html?: string) {
 }
 
 export default function TournamentCard({ tournament }: TournamentCardProps) {
-  const { t } = useLanguage();
-  const isFree = tournament.entryFee === 0;
-  const isFull = tournament.registeredCount >= tournament.maxTeams;
+  const { t, isBangla } = useLanguage();
+  const [activeModal, setActiveModal] = useState<'NONE' | 'SLOTS' | 'RULES' | 'PRIZE'>('NONE');
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [loadingParticipants, setLoadingParticipants] = useState(false);
 
-  // Use dynamic status computed on frontend
-  const [currentStatus, setCurrentStatus] = useState<TournamentStatus>(
-    getDynamicTournamentStatus(tournament)
-  );
-  
-  const [countdown, setCountdown] = useState<string>('');
+  const registeredCount = tournament.registeredCount || 0;
+  const maxSlots = tournament.maxTeams || 12;
+  const isFull = registeredCount >= maxSlots;
+  const isFree = tournament.entryFee === 0 && (!tournament.coinEntryFee || tournament.coinEntryFee === 0);
+  const percentFilled = Math.min(100, Math.round((registeredCount / maxSlots) * 100));
 
-  useEffect(() => {
-    // If it's overridden or finished, no need to tick
-    if (tournament.status === 'CANCELLED' || tournament.status === 'DRAFT' || tournament.isPaused) {
-      setCurrentStatus(tournament.isPaused ? 'DRAFT' : tournament.status);
-      return;
-    }
-
-    const startTimeStr = tournament.tournamentStart || tournament.matchTime;
-    const startTime = startTimeStr ? new Date(startTimeStr).getTime() : 0;
-    
-    if (startTime === 0) return;
-
-    const intervalId = setInterval(() => {
-      const newStatus = getDynamicTournamentStatus(tournament);
-      if (newStatus !== currentStatus) {
-        setCurrentStatus(newStatus);
-      }
-
-      if (newStatus === 'UPCOMING') {
-        const now = Date.now();
-        const diff = startTime - now;
-        if (diff > 0) {
-          const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-          const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-          const minutes = Math.floor((diff / 1000 / 60) % 60);
-          const seconds = Math.floor((diff / 1000) % 60);
-          setCountdown(
-            `${days}d : ${hours.toString().padStart(2, '0')}h : ${minutes.toString().padStart(2, '0')}m : ${seconds.toString().padStart(2, '0')}s`
-          );
-        }
-      }
-    }, 1000);
-
-    return () => clearInterval(intervalId);
-  }, [tournament, currentStatus]);
-
+  const currentStatus = getDynamicTournamentStatus(tournament);
   const isLive = currentStatus === 'LIVE';
-  const isCompleted = currentStatus === 'FINISHED' || currentStatus === 'CANCELLED';
-  const isUpcoming = currentStatus === 'UPCOMING';
 
+  // Short ID tag e.g. #BXR7D
+  const shortId = (tournament.id || 'TOUR')
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .slice(0, 5)
+    .toUpperCase();
+
+  // Match date formatted
+  const matchDate = tournament.tournamentStart || tournament.matchTime;
+  const formattedDate = matchDate ? new Date(matchDate).toISOString().split('T')[0] : '';
+  const formattedTime = matchDate 
+    ? new Date(matchDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) 
+    : '';
+
+  // Calculate default prize distribution if not explicitly specified
+  const firstPrize = tournament.firstPrize || Math.round((tournament.prizePool || 0) * 0.5) || 0;
+  const secondPrize = tournament.secondPrize || Math.round((tournament.prizePool || 0) * 0.3) || 0;
+  const thirdPrize = tournament.thirdPrize || Math.round((tournament.prizePool || 0) * 0.2) || 0;
+  const perKillPrize = tournament.perKillPrize || 0;
+
+  // Load participants when SLOTS modal opens
+  const handleOpenSlots = async () => {
+    setActiveModal('SLOTS');
+    if (participants.length === 0 && tournament.id) {
+      setLoadingParticipants(true);
+      try {
+        const res = await fetch(`/api/tournaments/${tournament.id}`, { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.participants) {
+            setParticipants(data.participants);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load slots participants:', err);
+      } finally {
+        setLoadingParticipants(false);
+      }
+    }
+  };
+
+  // Game badge logic
   const getGameBadge = (game?: string, title?: string) => {
     const g = (game || '').toUpperCase();
-    const t = (title || '').toLowerCase();
+    const tLower = (title || '').toLowerCase();
 
-    if (g === 'EFOOTBALL' || t.includes('efootball') || t.includes('pes')) {
-      return { name: 'eFootball', icon: '⚽', color: 'bg-blue-600/90 text-white border-blue-400/40 shadow-blue-500/20' };
+    if (g === 'EFOOTBALL' || tLower.includes('efootball') || tLower.includes('pes')) {
+      return { name: 'eFootball', icon: '⚽', color: 'bg-blue-50 text-blue-600 border-blue-200' };
     }
-    if (g === 'PUBG_MOBILE' || t.includes('pubg') || t.includes('bgmi')) {
-      return { name: 'PUBG Mobile', icon: '🪖', color: 'bg-amber-600/90 text-white border-amber-400/40 shadow-amber-500/20' };
+    if (g === 'PUBG_MOBILE' || tLower.includes('pubg') || tLower.includes('bgmi')) {
+      return { name: 'PUBG Mobile', icon: '🪖', color: 'bg-amber-50 text-amber-700 border-amber-200' };
     }
-    if (g === 'VALORANT' || t.includes('valorant')) {
-      return { name: 'Valorant', icon: '🎯', color: 'bg-rose-600/90 text-white border-rose-400/40 shadow-rose-500/20' };
+    if (g === 'VALORANT' || tLower.includes('valorant')) {
+      return { name: 'Valorant', icon: '🎯', color: 'bg-rose-50 text-rose-600 border-rose-200' };
     }
-    if (g === 'MLBB' || t.includes('mobile legends') || t.includes('mlbb')) {
-      return { name: 'MLBB', icon: '⚔️', color: 'bg-purple-600/90 text-white border-purple-400/40 shadow-purple-500/20' };
+    if (g === 'MLBB' || tLower.includes('mobile legends') || tLower.includes('mlbb')) {
+      return { name: 'MLBB', icon: '⚔️', color: 'bg-purple-50 text-purple-600 border-purple-200' };
     }
-    if (g === 'COD_MOBILE' || t.includes('cod') || t.includes('call of duty')) {
-      return { name: 'COD Mobile', icon: '💥', color: 'bg-emerald-600/90 text-white border-emerald-400/40 shadow-emerald-500/20' };
+    if (g === 'COD_MOBILE' || tLower.includes('cod') || tLower.includes('call of duty')) {
+      return { name: 'COD Mobile', icon: '💥', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
     }
-    if (g === 'LUDO_KING' || t.includes('ludo')) {
-      return { name: 'Ludo King', icon: '🎲', color: 'bg-indigo-600/90 text-white border-indigo-400/40 shadow-indigo-500/20' };
+    if (g === 'LUDO_KING' || tLower.includes('ludo')) {
+      return { name: 'Ludo King', icon: '🎲', color: 'bg-indigo-50 text-indigo-600 border-indigo-200' };
     }
-    return { name: 'Free Fire', icon: '🔥', color: 'bg-orange-600/90 text-white border-orange-400/40 shadow-orange-500/20' };
+    return { name: 'Free Fire', icon: '🔥', color: 'bg-orange-50 text-brand-orange border-orange-200' };
   };
 
   const gameInfo = getGameBadge(tournament.game, tournament.title);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      className="bg-white rounded-2xl overflow-hidden flex flex-col justify-between relative group border border-slate-200 hover:border-brand-orange/50 transition-all duration-300 shadow-sm hover:shadow-lg"
-    >
-      {/* Banner & Badges Overlay */}
-      <div className="relative h-44 w-full overflow-hidden bg-slate-50">
-        <img
-          src={tournament.banner || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800'}
-          alt={tournament.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-white via-white/30 to-black/30"></div>
-
-        {/* Game Badge on Top-Left */}
-        <div className="absolute top-3 left-3 z-10">
-          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-black uppercase tracking-wide backdrop-blur-md border shadow-md ${gameInfo.color}`}>
-            <span>{gameInfo.icon}</span>
-            <span>{tournament.gameName || gameInfo.name}</span>
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/90 shadow-sm hover:shadow-xl hover:border-brand-orange/50 transition-all duration-300 flex flex-col justify-between space-y-4 relative group"
+      >
+        {/* Top Tag & Badges */}
+        <div className="flex items-center justify-between gap-2">
+          <span className="px-2.5 py-1 rounded-lg bg-slate-900 text-cyan-400 font-mono text-[11px] font-bold tracking-wider shadow-xs">
+            #{shortId}
           </span>
+
+          <div className="flex items-center gap-1.5">
+            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${gameInfo.color}`}>
+              <span>{gameInfo.icon}</span>
+              <span>{tournament.gameName || gameInfo.name}</span>
+            </span>
+
+            {isLive ? (
+              <span className="px-2 py-0.5 rounded-full bg-red-500 text-white font-black text-[10px] uppercase animate-pulse shadow-xs">
+                🔴 LIVE
+              </span>
+            ) : isFree ? (
+              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px] uppercase">
+                🎁 FREE
+              </span>
+            ) : null}
+          </div>
         </div>
 
-        {/* Status / Entry Badge on Top-Right */}
-        <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
-          {tournament.entryFeeType === 'FREE' || (tournament.entryFee === 0 && (!tournament.coinEntryFee || tournament.coinEntryFee === 0)) ? (
-            <span className="px-2.5 py-1 rounded-xl bg-emerald-600/90 text-white font-black text-[10px] uppercase backdrop-blur-md border border-emerald-400/40 shadow-md">
-              🎁 FREE
-            </span>
-          ) : tournament.entryFeeType === 'COINS' ? (
-            <span className="px-2.5 py-1 rounded-xl bg-amber-500 text-slate-950 font-black text-[10px] uppercase backdrop-blur-md border border-amber-300 shadow-md flex items-center gap-1">
-              <span>{tournament.coinEntryFee || (tournament.entryFee * 10) || 500} 🪙</span>
-            </span>
-          ) : tournament.allowCoinEntry && tournament.entryFeeType === 'BOTH' ? (
-            <span className="px-2.5 py-1 rounded-xl bg-black/75 text-amber-300 font-black text-[10px] uppercase backdrop-blur-md border border-amber-400/40 shadow-md flex items-center gap-1">
-              <span>৳{tournament.entryFee} / {tournament.coinEntryFee || (tournament.entryFee * 10)} 🪙</span>
-            </span>
-          ) : (
-            <span className="px-2.5 py-1 rounded-xl bg-black/60 text-amber-400 font-black text-[10px] uppercase backdrop-blur-md border border-amber-400/40 shadow-md">
-              ৳{tournament.entryFee}
-            </span>
-          )}
+        {/* Header: Thumbnail + Title + Subtitle */}
+        <div className="flex items-center gap-3.5">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden bg-slate-900 border border-slate-200 shrink-0 shadow-xs">
+            <img
+              src={tournament.thumbnailImage || tournament.banner || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=200'}
+              alt={tournament.title}
+              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+            />
+          </div>
 
-          {isLive ? (
-            <span className="px-2.5 py-1 rounded-xl bg-brand-red text-white font-black text-[10px] uppercase animate-pulse border border-red-400/50 shadow-md">
-              🔴 LIVE
-            </span>
-          ) : isUpcoming ? (
-            <span className="px-2 py-1 rounded-xl bg-slate-900/80 text-white font-black text-[10px] uppercase backdrop-blur-md border border-slate-700">
-              🕒 UPCOMING
-            </span>
-          ) : null}
+          <div className="min-w-0 flex-1 space-y-0.5">
+            <h3 className="font-heading font-black text-base sm:text-lg text-slate-900 group-hover:text-brand-orange transition-colors truncate">
+              {tournament.title} {formattedDate && <span className="text-xs font-mono text-slate-400 font-normal">({formattedDate})</span>}
+            </h3>
+            <p className="text-xs font-semibold text-slate-500 truncate">
+              {tournament.format?.replace('_', ' ') || 'Battle Royale'} {formattedTime && `• ${formattedTime}`}
+            </p>
+          </div>
         </div>
 
-        {/* Mode Tag on Bottom-Left */}
-        <div className="absolute bottom-2.5 left-3 z-10 flex items-center gap-1.5">
-          <span className="px-2 py-0.5 rounded-lg bg-slate-900/80 text-slate-200 text-[10px] font-extrabold uppercase backdrop-blur-md">
-            {tournament.mode}
-          </span>
-          <span className="px-2 py-0.5 rounded-lg bg-slate-900/80 text-brand-gold text-[10px] font-extrabold uppercase backdrop-blur-md">
-            Pool: ৳{tournament.prizePool.toLocaleString()}
-          </span>
-        </div>
-      </div>
+        {/* 3-Column Metrics Panel: PRIZE | MODE | ENTRY */}
+        <div className="grid grid-cols-3 gap-2 p-3 bg-[#F8FAFC] rounded-2xl border border-slate-200/80 text-center">
+          <div className="space-y-0.5">
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">PRIZE</div>
+            <div className="font-heading font-black text-sm sm:text-base text-emerald-600 leading-tight truncate">
+              ৳{(tournament.prizePool || 0).toLocaleString()}
+            </div>
+          </div>
 
-      {/* Card Content Body */}
-      <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-        <div>
-          <h3 className="font-heading font-extrabold text-lg text-slate-900 group-hover:text-brand-orange transition-colors line-clamp-1">
-            {tournament.title}
-          </h3>
-          <p className="text-slate-600 text-xs mt-1 line-clamp-2 leading-relaxed">
-            {stripHtml(tournament.description)}
-          </p>
+          <div className="space-y-0.5 border-x border-slate-200/80 px-1">
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">MODE</div>
+            <div className="font-heading font-black text-sm sm:text-base text-slate-900 leading-tight uppercase truncate">
+              {tournament.mode || 'SQUAD'}
+            </div>
+          </div>
+
+          <div className="space-y-0.5">
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">ENTRY</div>
+            <div className="font-heading font-black text-sm sm:text-base text-brand-orange leading-tight truncate">
+              {isFree ? (
+                <span className="text-emerald-600">FREE</span>
+              ) : tournament.entryFeeType === 'COINS' ? (
+                <span>{tournament.coinEntryFee || (tournament.entryFee * 10)} 🪙</span>
+              ) : (
+                <span>৳{tournament.entryFee}</span>
+              )}
+            </div>
+          </div>
         </div>
 
-        <Link href={`/tournaments/${tournament.id}`} className="block w-full">
-          <button className="w-full py-2.5 rounded-xl bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold text-white font-heading font-bold text-sm shadow-neon-orange hover:shadow-neon-red transition-all flex items-center justify-center space-x-2 cursor-pointer">
-            <Trophy className="w-4 h-4" />
-            <span>{t('view_details', 'VIEW TOURNAMENT')}</span>
+        {/* Slots & Progress Bar */}
+        <div className="space-y-1.5 pt-0.5">
+          <div className="flex items-center justify-between text-xs font-bold text-slate-600">
+            <span>Joined: <strong className="text-slate-900 font-black">{registeredCount}</strong></span>
+            <span>Slots: <strong className="text-slate-900 font-black">{maxSlots}</strong></span>
+          </div>
+
+          <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden border border-slate-200/80 p-0.5">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${
+                isFull 
+                  ? 'bg-red-500' 
+                  : percentFilled > 75 
+                    ? 'bg-gradient-to-r from-amber-500 to-red-500' 
+                    : 'bg-gradient-to-r from-cyan-500 via-brand-orange to-brand-red'
+              }`}
+              style={{ width: `${percentFilled}%` }}
+            />
+          </div>
+        </div>
+
+        {/* 3 Quick-Action Buttons Row: SLOTS | RULES | PRIZE */}
+        <div className="grid grid-cols-3 gap-2">
+          <button
+            type="button"
+            onClick={handleOpenSlots}
+            className="py-2 px-2.5 rounded-xl bg-slate-100 hover:bg-slate-200/90 text-slate-700 font-heading font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1 cursor-pointer"
+          >
+            <span>SLOTS</span>
           </button>
-        </Link>
-      </div>
-    </motion.div>
+
+          <button
+            type="button"
+            onClick={() => setActiveModal('RULES')}
+            className="py-2 px-2.5 rounded-xl bg-slate-100 hover:bg-slate-200/90 text-slate-700 font-heading font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1 cursor-pointer"
+          >
+            <span>RULES</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveModal('PRIZE')}
+            className="py-2 px-2.5 rounded-xl bg-slate-100 hover:bg-slate-200/90 text-slate-700 font-heading font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1 cursor-pointer"
+          >
+            <span>PRIZE</span>
+          </button>
+        </div>
+
+        {/* Primary Bottom Action Button */}
+        {isFull ? (
+          <button
+            disabled
+            className="w-full py-3 rounded-2xl bg-slate-100 text-slate-400 font-heading font-black text-sm uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-not-allowed border border-slate-200 shadow-2xs"
+          >
+            <span>⛔ FULL</span>
+          </button>
+        ) : (
+          <Link href={`/tournaments/${tournament.id}`} className="block w-full">
+            <button className="w-full py-3 rounded-2xl bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold hover:brightness-110 text-white font-heading font-black text-sm uppercase tracking-wider shadow-neon-orange transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5 cursor-pointer">
+              <Zap className="w-4 h-4 fill-white animate-pulse" />
+              <span>JOIN NOW</span>
+            </button>
+          </Link>
+        )}
+      </motion.div>
+
+      {/* ========================================================================= */}
+      {/* MODALS (Slot List, Prize Pool Breakdown, Rules)                            */}
+      {/* ========================================================================= */}
+      <AnimatePresence>
+        {activeModal !== 'NONE' && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-2xl max-w-md w-full relative max-h-[85vh] flex flex-col space-y-4 overflow-hidden"
+            >
+              {/* Close Icon on Top Right */}
+              <button
+                type="button"
+                onClick={() => setActiveModal('NONE')}
+                className="absolute top-4 right-4 p-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              {/* 1. SLOTS MODAL */}
+              {activeModal === 'SLOTS' && (
+                <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
+                  <div className="text-center space-y-1">
+                    <h3 className="font-heading font-black text-lg text-slate-900 flex items-center justify-center gap-2">
+                      <span>📋</span>
+                      <span className="text-brand-orange">SLOT LIST</span>
+                    </h3>
+                    <p className="text-xs text-slate-500 font-semibold">
+                      {registeredCount} of {maxSlots} slots occupied
+                    </p>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto pr-1 space-y-2 custom-scrollbar">
+                    {loadingParticipants ? (
+                      <div className="py-8 text-center text-xs text-slate-400 font-semibold animate-pulse">
+                        Loading registered squad slots...
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-2">
+                        {Array.from({ length: maxSlots }, (_, i) => {
+                          const slotNum = i + 1;
+                          const participant = participants[i];
+                          const isOccupied = Boolean(participant);
+
+                          return (
+                            <div
+                              key={slotNum}
+                              className={`p-2.5 rounded-xl border text-xs font-bold transition-colors ${
+                                isOccupied
+                                  ? 'bg-slate-900 text-white border-slate-800 shadow-2xs'
+                                  : 'bg-slate-50 text-slate-400 border-dashed border-slate-200'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-1">
+                                <span className="truncate">
+                                  {slotNum}. {isOccupied ? participant.squadName : 'Empty Slot'}
+                                </span>
+                                {isOccupied && (
+                                  <span className="text-emerald-400 shrink-0">✅</span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveModal('NONE')}
+                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-rose-600 hover:brightness-110 text-white font-heading font-black text-xs uppercase tracking-wider shadow-md transition-all cursor-pointer"
+                  >
+                    CLOSE
+                  </button>
+                </div>
+              )}
+
+              {/* 2. PRIZE BREAKDOWN MODAL */}
+              {activeModal === 'PRIZE' && (
+                <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
+                  <div className="text-center space-y-1">
+                    <h3 className="font-heading font-black text-lg text-slate-900 flex items-center justify-center gap-2">
+                      <span>🏆</span>
+                      <span className="text-brand-orange">PRIZE BREAKDOWN</span>
+                    </h3>
+                    <p className="text-xs text-slate-500 font-semibold">
+                      Total Prize Pool: <strong className="text-emerald-600 font-black">৳{(tournament.prizePool || 0).toLocaleString()}</strong>
+                    </p>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto p-3 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2.5 divide-y divide-slate-200/60 custom-scrollbar text-xs font-bold text-slate-800">
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="flex items-center gap-1.5 text-amber-600 font-black">
+                        <span>🥇</span> 1st Place (Champion)
+                      </span>
+                      <span className="font-heading font-black text-sm text-slate-900">৳{firstPrize.toLocaleString()}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2.5">
+                      <span className="flex items-center gap-1.5 text-slate-600 font-black">
+                        <span>🥈</span> 2nd Place (Runner-up)
+                      </span>
+                      <span className="font-heading font-black text-sm text-slate-900">৳{secondPrize.toLocaleString()}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2.5">
+                      <span className="flex items-center gap-1.5 text-amber-700 font-black">
+                        <span>🥉</span> 3rd Place
+                      </span>
+                      <span className="font-heading font-black text-sm text-slate-900">৳{thirdPrize.toLocaleString()}</span>
+                    </div>
+
+                    {perKillPrize > 0 && (
+                      <div className="flex items-center justify-between pt-2.5">
+                        <span className="flex items-center gap-1.5 text-rose-600 font-black">
+                          <span>🎯</span> Per Kill Bounty (MVP)
+                        </span>
+                        <span className="font-heading font-black text-sm text-rose-600">৳{perKillPrize.toLocaleString()}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveModal('NONE')}
+                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-rose-600 hover:brightness-110 text-white font-heading font-black text-xs uppercase tracking-wider shadow-md transition-all cursor-pointer"
+                  >
+                    CLOSE
+                  </button>
+                </div>
+              )}
+
+              {/* 3. RULES MODAL */}
+              {activeModal === 'RULES' && (
+                <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
+                  <div className="text-center space-y-1">
+                    <h3 className="font-heading font-black text-lg text-slate-900 flex items-center justify-center gap-2">
+                      <span>📜</span>
+                      <span className="text-brand-orange">RULES & OVERVIEW</span>
+                    </h3>
+                    <p className="text-xs text-slate-500 font-semibold truncate">
+                      {tournament.title}
+                    </p>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3 custom-scrollbar text-xs">
+                    <div className="grid grid-cols-2 gap-2 text-slate-700 font-semibold border-b border-slate-200 pb-2">
+                      <div>Mode: <strong className="text-slate-900">{tournament.mode || 'SQUAD'}</strong></div>
+                      <div>Format: <strong className="text-slate-900">{tournament.format?.replace('_', ' ') || 'BR'}</strong></div>
+                      <div>Entry: <strong className="text-slate-900">{isFree ? 'FREE' : `৳${tournament.entryFee}`}</strong></div>
+                      <div>Pool: <strong className="text-emerald-600">৳{tournament.prizePool}</strong></div>
+                    </div>
+
+                    <div
+                      className="prose prose-xs max-w-none text-slate-700 leading-relaxed break-words whitespace-pre-wrap"
+                      dangerouslySetInnerHTML={{ __html: tournament.description || 'Standard competitive fair-play rules apply.' }}
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveModal('NONE')}
+                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-rose-600 hover:brightness-110 text-white font-heading font-black text-xs uppercase tracking-wider shadow-md transition-all cursor-pointer"
+                  >
+                    CLOSE
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

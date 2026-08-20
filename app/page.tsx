@@ -34,6 +34,7 @@ import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import HomeBannerSlider from '@/components/home/HomeBannerSlider';
 import { Tournament, Announcement, User, ShopProduct } from '@/lib/types';
+import TournamentCard from '@/components/tournaments/TournamentCard';
 import { db } from '@/lib/db';
 import { useLanguage } from '@/lib/language-context';
 
@@ -366,123 +367,11 @@ export default function HomePage() {
             </Link>
           </div>
 
-          {/* 2 Tournaments Grid - Clicking Card Anywhere Redirects Directly to /tournaments */}
+          {/* 2 Tournaments Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {displayedTournaments.map((tour) => {
-              const gameInfo = getGameBadge(tour.game, tour.title);
-              const isFree = tour.entryFee === 0;
-              const isLive = tour.status === 'LIVE';
-              const registered = tour.registeredCount || 0;
-              const maxSlots = tour.maxTeams || 48;
-              const percentFilled = Math.min(100, Math.round((registered / maxSlots) * 100));
-
-              return (
-                <Link
-                  key={tour.id}
-                  href="/tournaments"
-                  className="group bg-white rounded-3xl overflow-hidden border border-slate-200 hover:border-brand-orange/60 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between relative cursor-pointer hover:-translate-y-1 select-none"
-                  title="Click to view all tournaments"
-                >
-                  {/* Tournament Banner & Overlay Badges */}
-                  <div className="relative h-48 sm:h-56 w-full overflow-hidden bg-slate-900">
-                    <img
-                      src={tour.banner || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800'}
-                      alt={tour.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-black/30" />
-
-                    {/* Game Badge on Top-Left */}
-                    <div className="absolute top-3.5 left-3.5 z-10">
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wide backdrop-blur-md border shadow-md ${gameInfo.color}`}>
-                        <span>{gameInfo.icon}</span>
-                        <span>{tour.gameName || gameInfo.name}</span>
-                      </span>
-                    </div>
-
-                    {/* Entry Fee & Live Status Badges on Top-Right */}
-                    <div className="absolute top-3.5 right-3.5 z-10 flex items-center gap-2">
-                      {tour.entryFeeType === 'FREE' || (tour.entryFee === 0 && (!tour.coinEntryFee || tour.coinEntryFee === 0)) ? (
-                        <span className="px-3 py-1 rounded-xl bg-emerald-600/95 text-white font-black text-xs uppercase backdrop-blur-md border border-emerald-400/40 shadow-md">
-                          🎁 FREE ENTRY
-                        </span>
-                      ) : tour.entryFeeType === 'COINS' ? (
-                        <span className="px-3 py-1 rounded-xl bg-amber-500 text-slate-950 font-black text-xs uppercase backdrop-blur-md border border-amber-300 shadow-md flex items-center gap-1">
-                          <span>{tour.coinEntryFee || (tour.entryFee * 10) || 500} 🪙 Coins</span>
-                        </span>
-                      ) : tour.allowCoinEntry && tour.entryFeeType === 'BOTH' ? (
-                        <span className="px-3 py-1 rounded-xl bg-black/75 text-amber-300 font-black text-xs uppercase backdrop-blur-md border border-amber-400/40 shadow-md flex items-center gap-1">
-                          <span>৳{tour.entryFee} / {tour.coinEntryFee || (tour.entryFee * 10)} 🪙</span>
-                        </span>
-                      ) : (
-                        <span className="px-3 py-1 rounded-xl bg-black/75 text-amber-400 font-black text-xs uppercase backdrop-blur-md border border-amber-400/40 shadow-md">
-                          ৳{tour.entryFee} Entry
-                        </span>
-                      )}
-
-                      {isLive && (
-                        <span className="px-2.5 py-1 rounded-xl bg-brand-red text-white font-black text-xs uppercase animate-pulse border border-red-400/50 shadow-md">
-                          🔴 LIVE
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Mode & Prize Pool Badge on Bottom-Left */}
-                    <div className="absolute bottom-3 left-3.5 z-10 flex flex-wrap items-center gap-2">
-                      <span className="px-2.5 py-1 rounded-lg bg-slate-900/90 text-slate-200 text-xs font-extrabold uppercase backdrop-blur-md border border-slate-700">
-                        {tour.mode || 'SQUAD'}
-                      </span>
-                      <span className="px-3 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 text-xs font-black uppercase backdrop-blur-md shadow-md">
-                        🏆 Prize Pool: ৳{(tour.prizePool || 0).toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Card Content Body */}
-                  <div className="p-5 sm:p-6 flex-1 flex flex-col justify-between space-y-4">
-                    <div className="space-y-2">
-                      <h3 className="font-heading font-black text-lg text-slate-900 group-hover:text-brand-orange transition-colors line-clamp-1">
-                        {tour.title}
-                      </h3>
-                      <p className="text-slate-600 text-xs line-clamp-2 leading-relaxed">
-                        {stripHtml(tour.description)}
-                      </p>
-                    </div>
-
-                    {/* Timing & Slots Progress */}
-                    <div className="space-y-3 pt-1 border-t border-slate-100">
-                      <div className="flex items-center justify-between text-xs text-slate-600">
-                        <div className="flex items-center gap-1.5 font-bold">
-                          <Clock className="w-3.5 h-3.5 text-brand-orange" />
-                          <span>{tour.matchTime || 'Everyday 09:00 PM'}</span>
-                        </div>
-                        <div className="flex items-center gap-1 text-slate-500 font-bold">
-                          <Users className="w-3.5 h-3.5 text-slate-400" />
-                          <span>{registered} / {maxSlots} Slots</span>
-                        </div>
-                      </div>
-
-                      {/* Slots Progress Bar */}
-                      <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200">
-                        <div
-                          className="bg-gradient-to-r from-brand-red to-brand-orange h-full rounded-full transition-all duration-500"
-                          style={{ width: `${percentFilled}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Prominent Action Button (Click takes to /tournaments) */}
-                    <div className="pt-2">
-                      <div className="w-full py-3 rounded-xl bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold text-white font-heading font-black text-xs uppercase tracking-wider shadow-neon-orange group-hover:shadow-neon-red transition-all flex items-center justify-center space-x-2">
-                        <Trophy className="w-4 h-4" />
-                        <span>{isBangla ? 'টুর্নামেন্ট পেইজে যান (ALL TOURNAMENTS)' : 'VIEW ALL TOURNAMENTS'}</span>
-                        <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
+            {displayedTournaments.map((tour) => (
+              <TournamentCard key={tour.id} tournament={tour} />
+            ))}
           </div>
 
         </div>
