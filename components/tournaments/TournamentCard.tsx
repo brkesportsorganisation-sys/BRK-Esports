@@ -62,11 +62,19 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
     ? new Date(matchDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
     : '';
 
-  // Calculate default prize distribution if not explicitly specified
+  // Calculate default prize distribution or use dynamic prizeDistribution list
   const firstPrize = tournament.firstPrize || Math.round((tournament.prizePool || 0) * 0.5) || 0;
   const secondPrize = tournament.secondPrize || Math.round((tournament.prizePool || 0) * 0.3) || 0;
   const thirdPrize = tournament.thirdPrize || Math.round((tournament.prizePool || 0) * 0.2) || 0;
   const perKillPrize = tournament.perKillPrize || 0;
+
+  const prizeTiers = (tournament.prizeDistribution && tournament.prizeDistribution.length > 0)
+    ? tournament.prizeDistribution
+    : [
+        { rank: 1, label: '1st Place (Champion)', prize: firstPrize },
+        ...(secondPrize > 0 ? [{ rank: 2, label: '2nd Place (Runner-up)', prize: secondPrize }] : []),
+        ...(thirdPrize > 0 ? [{ rank: 3, label: '3rd Place', prize: thirdPrize }] : []),
+      ];
 
   // Load participants seamlessly in the background when SLOTS modal opens
   const handleOpenSlots = () => {
@@ -345,26 +353,18 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
                   </div>
 
                   <div className="flex-1 overflow-y-auto p-3 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2.5 divide-y divide-slate-200/60 custom-scrollbar text-xs font-bold text-slate-800">
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="flex items-center gap-1.5 text-amber-600 font-black">
-                        <span>🥇</span> 1st Place (Champion)
-                      </span>
-                      <span className="font-heading font-black text-sm text-slate-900">৳{firstPrize.toLocaleString()}</span>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-2.5">
-                      <span className="flex items-center gap-1.5 text-slate-600 font-black">
-                        <span>🥈</span> 2nd Place (Runner-up)
-                      </span>
-                      <span className="font-heading font-black text-sm text-slate-900">৳{secondPrize.toLocaleString()}</span>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-2.5">
-                      <span className="flex items-center gap-1.5 text-amber-700 font-black">
-                        <span>🥉</span> 3rd Place
-                      </span>
-                      <span className="font-heading font-black text-sm text-slate-900">৳{thirdPrize.toLocaleString()}</span>
-                    </div>
+                    {prizeTiers.map((tier, idx) => {
+                      const medal = tier.rank === 1 ? '🥇' : tier.rank === 2 ? '🥈' : tier.rank === 3 ? '🥉' : '🎖️';
+                      const labelColor = tier.rank === 1 ? 'text-amber-600' : tier.rank === 2 ? 'text-slate-600' : tier.rank === 3 ? 'text-amber-700' : 'text-slate-800';
+                      return (
+                        <div key={idx} className={`flex items-center justify-between ${idx === 0 ? 'pt-1' : 'pt-2.5'}`}>
+                          <span className={`flex items-center gap-1.5 font-black ${labelColor}`}>
+                            <span>{medal}</span> {tier.label || `${tier.rank}th Place`}
+                          </span>
+                          <span className="font-heading font-black text-sm text-slate-900">৳{(tier.prize || 0).toLocaleString()}</span>
+                        </div>
+                      );
+                    })}
 
                     {perKillPrize > 0 && (
                       <div className="flex items-center justify-between pt-2.5">

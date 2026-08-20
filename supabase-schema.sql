@@ -226,6 +226,7 @@ ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "communityIsDisabled" BOOLEAN 
 ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "allowCoinEntry" BOOLEAN NOT NULL DEFAULT true;
 ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "coinEntryFee" DOUBLE PRECISION;
 ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "entryFeeType" TEXT NOT NULL DEFAULT 'BOTH';
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "prizeDistribution" JSONB;
 
 
 -- =========================================================

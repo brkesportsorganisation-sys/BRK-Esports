@@ -76,6 +76,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       ...(body.secondPrize !== undefined ? { secondPrize: validateNumberInput(body.secondPrize) ?? undefined } : {}),
       ...(body.thirdPrize !== undefined ? { thirdPrize: validateNumberInput(body.thirdPrize) ?? undefined } : {}),
       ...(body.perKillPrize !== undefined ? { perKillPrize: validateNumberInput(body.perKillPrize) ?? undefined } : {}),
+      ...(body.prizeDistribution !== undefined ? { prizeDistribution: body.prizeDistribution } : {}),
       ...(body.maxTeams !== undefined ? { maxTeams: validateNumberInput(body.maxTeams) ?? undefined } : {}),
       ...(body.matchTime !== undefined ? { matchTime: body.matchTime } : {}),
       ...(body.registrationDeadline !== undefined ? { registrationDeadline: body.registrationDeadline } : {}),

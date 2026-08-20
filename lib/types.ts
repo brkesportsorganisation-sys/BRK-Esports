@@ -79,6 +79,12 @@ export interface Team {
   updatedAt?: string;
 }
 
+export interface PrizeTier {
+  rank: number;
+  label: string;
+  prize: number;
+}
+
 export interface Tournament {
   id: string;
   title: string;
@@ -94,6 +100,7 @@ export interface Tournament {
   secondPrize: number;
   thirdPrize: number;
   perKillPrize: number;
+  prizeDistribution?: PrizeTier[];
   maxTeams: number;
   registeredCount: number;
   matchTime: string;

@@ -1,6 +1,19 @@
 import { supabaseAdmin, supabase } from '@/lib/supabase';
-import type { Tournament, TournamentCommunityConfig, TournamentStatus, CommunityAccessType, CommunityUnlockMode } from '@/lib/types';
+import type { Tournament, TournamentCommunityConfig, TournamentStatus, CommunityAccessType, CommunityUnlockMode, PrizeTier } from '@/lib/types';
 import { getDynamicTournamentStatus } from '@/lib/tournament-utils';
+
+function parsePrizeDistribution(value: unknown): PrizeTier[] {
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
 
 function parseGalleryImages(value: unknown): string[] {
   if (Array.isArray(value)) return value.filter((item): item is string => typeof item === 'string');
@@ -52,6 +65,7 @@ function serializeTournament(record: Record<string, any>): Tournament {
     secondPrize: Number(record.secondPrize || 0),
     thirdPrize: Number(record.thirdPrize || 0),
     perKillPrize: Number(record.perKillPrize || 0),
+    prizeDistribution: parsePrizeDistribution(record.prizeDistribution),
     maxTeams: Number(record.maxTeams || 0),
     registeredCount: Number(record.registeredCount || 0),
     matchTime: new Date(record.matchTime).toISOString(),
@@ -145,6 +159,7 @@ export async function createTournamentInDb(input: Record<string, any>) {
     secondPrize: Number(input.secondPrize || 0),
     thirdPrize: Number(input.thirdPrize || 0),
     perKillPrize: Number(input.perKillPrize || 0),
+    prizeDistribution: input.prizeDistribution ? JSON.stringify(input.prizeDistribution) : null,
     maxTeams: Number(input.maxTeams || 0),
     registeredCount: 0,
     matchTime: new Date(input.matchTime || new Date()).toISOString(),
@@ -212,6 +227,7 @@ export async function updateTournamentInDb(id: string, input: Record<string, any
   if (input.secondPrize !== undefined) updateData.secondPrize = Number(input.secondPrize);
   if (input.thirdPrize !== undefined) updateData.thirdPrize = Number(input.thirdPrize);
   if (input.perKillPrize !== undefined) updateData.perKillPrize = Number(input.perKillPrize);
+  if (input.prizeDistribution !== undefined) updateData.prizeDistribution = input.prizeDistribution ? JSON.stringify(input.prizeDistribution) : null;
   if (input.maxTeams !== undefined) updateData.maxTeams = Number(input.maxTeams);
   if (input.registeredCount !== undefined) updateData.registeredCount = Number(input.registeredCount);
   if (input.matchTime !== undefined) updateData.matchTime = new Date(input.matchTime).toISOString();

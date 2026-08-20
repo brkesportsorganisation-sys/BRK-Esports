@@ -95,6 +95,7 @@ export async function POST(request: NextRequest) {
       secondPrize,
       thirdPrize,
       perKillPrize,
+      prizeDistribution: body.prizeDistribution || undefined,
       maxTeams,
       matchTime: new Date(body.matchTime || Date.now() + 86400000).toISOString(),
       registrationDeadline: new Date(body.registrationDeadline || Date.now() + 80000000).toISOString(),
