@@ -4,9 +4,17 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, Users, Clock, Flame, ShieldCheck, Zap, X, Check, FileText, Gift, Award, Coins } from 'lucide-react';
-import { Tournament, TournamentStatus, Participant } from '@/lib/types';
+import { Tournament, TournamentStatus } from '@/lib/types';
 import { getDynamicTournamentStatus } from '@/lib/tournament-utils';
 import { useLanguage } from '@/lib/language-context';
+
+interface Participant {
+  id?: string;
+  squadName?: string;
+  iglName?: string;
+  userId?: string;
+  captainWhatsApp?: string;
+}
 
 interface TournamentCardProps {
   tournament: Tournament;
