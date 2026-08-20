@@ -16,6 +16,8 @@ const DEFAULT_REWARDS_SETTINGS: RewardsHubSettings = {
   dailyAdLimit: 10,
   dailySpinLimit: 5,
   spinCoinCost: 20,
+  spinCashCost: 10,
+  spinPaymentMode: 'BOTH',
   coinsToBdtRatio: 50, // 50 coins = 1 BDT
   minCoinsToConvert: 50,
   ads: [

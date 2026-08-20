@@ -290,6 +290,8 @@ export interface RewardsHubSettings {
   dailyAdLimit: number;
   dailySpinLimit: number;
   spinCoinCost: number;
+  spinCashCost?: number;
+  spinPaymentMode?: 'COINS_ONLY' | 'CASH_ONLY' | 'BOTH';
   coinsToBdtRatio: number;
   minCoinsToConvert: number;
   ads: AdSettingItem[];

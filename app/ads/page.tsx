@@ -74,6 +74,8 @@ export default function RewardsHubPage() {
   // Spin Wheel State
   const [lotteryRewards, setLotteryRewards] = useState<LotteryRewardItem[]>([]);
   const [spinCoinCost, setSpinCoinCost] = useState(20);
+  const [spinCashCost, setSpinCashCost] = useState(10);
+  const [spinPaymentMode, setSpinPaymentMode] = useState<'COINS_ONLY' | 'CASH_ONLY' | 'BOTH'>('BOTH');
   const [isLotteryActive, setIsLotteryActive] = useState(true);
   const [isSpinning, setIsSpinning] = useState(false);
   const [wheelRotation, setWheelRotation] = useState(0);
@@ -112,6 +114,8 @@ export default function RewardsHubPage() {
             setAdsEnabled(data.settings.isWatchEarnActive !== false);
             setDailyAdLimit(data.settings.dailyAdLimit || 10);
             setSpinCoinCost(data.settings.spinCoinCost ?? 20);
+            setSpinCashCost(data.settings.spinCashCost ?? 10);
+            setSpinPaymentMode(data.settings.spinPaymentMode || 'BOTH');
             setIsLotteryActive(data.settings.isLotteryActive !== false);
 
             if (data.settings.ads && data.settings.ads.length > 0) {
@@ -274,7 +278,7 @@ export default function RewardsHubPage() {
   };
 
   // Spin Wheel Action
-  const handleSpinWheel = async () => {
+  const handleSpinWheel = async (method: 'COINS' | 'CASH' = 'COINS') => {
     if (!currentUser) {
       alert('লাকি স্পিন ঘুরাতে ও ক্যাশ রিওয়ার্ড জিততে অনুগ্রহ করে একাউন্টে লগইন করুন!');
       window.location.href = '/login?redirect=/ads';
@@ -283,9 +287,16 @@ export default function RewardsHubPage() {
     if (isSpinning || !isLotteryActive) return;
     if (lotteryRewards.length === 0) return;
 
-    if (spinCoinCost > 0 && (currentUser.coinBalance || 0) < spinCoinCost) {
-      alert(`You need ${spinCoinCost} coins to spin the wheel. Watch some video ads to earn free coins!`);
-      return;
+    if (method === 'COINS') {
+      if (spinCoinCost > 0 && (currentUser.coinBalance || 0) < spinCoinCost) {
+        alert(`You need ${spinCoinCost} coins to spin the wheel. Watch some video ads to earn free coins!`);
+        return;
+      }
+    } else {
+      if (spinCashCost > 0 && (currentUser.walletBalance || 0) < spinCashCost) {
+        alert(`You need ৳${spinCashCost} wallet cash to spin the wheel.`);
+        return;
+      }
     }
 
     setIsSpinning(true);
@@ -295,7 +306,7 @@ export default function RewardsHubPage() {
       const res = await fetch('/api/ads/spin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: currentUser.id }),
+        body: JSON.stringify({ userId: currentUser.id, paymentMethod: method }),
       });
 
       const data = await res.json();
@@ -655,7 +666,7 @@ export default function RewardsHubPage() {
                 {/* Center Spin Hub Button */}
                 <button
                   disabled={isSpinning || !isLotteryActive || !currentUser}
-                  onClick={handleSpinWheel}
+                  onClick={() => handleSpinWheel(spinPaymentMode === 'CASH_ONLY' ? 'CASH' : 'COINS')}
                   className="absolute z-20 w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-tr from-purple-600 via-indigo-600 to-purple-500 text-white font-black text-xs uppercase tracking-wider shadow-xl border-4 border-white flex flex-col items-center justify-center transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   <RotateCw className={`w-5 h-5 mb-0.5 ${isSpinning ? 'animate-spin' : ''}`} />
@@ -663,15 +674,30 @@ export default function RewardsHubPage() {
                 </button>
               </div>
 
-              {/* Spin Trigger CTA */}
-              <button
-                disabled={isSpinning || !isLotteryActive || !currentUser}
-                onClick={handleSpinWheel}
-                className="w-full sm:w-80 py-4 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-sm uppercase tracking-wider rounded-2xl transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Gift className="w-5 h-5" />
-                Spin Wheel ({spinCoinCost} Coins)
-              </button>
+              {/* Dual Spin Trigger CTAs */}
+              <div className="w-full max-w-md flex flex-col sm:flex-row items-center justify-center gap-3">
+                {(spinPaymentMode === 'BOTH' || spinPaymentMode === 'COINS_ONLY') && (
+                  <button
+                    disabled={isSpinning || !isLotteryActive || !currentUser}
+                    onClick={() => handleSpinWheel('COINS')}
+                    className="flex-1 w-full py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:brightness-110 text-white font-black text-xs sm:text-sm uppercase tracking-wider rounded-2xl transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Coins className="w-4 h-4" />
+                    Spin ({spinCoinCost} Coins)
+                  </button>
+                )}
+
+                {(spinPaymentMode === 'BOTH' || spinPaymentMode === 'CASH_ONLY') && (
+                  <button
+                    disabled={isSpinning || !isLotteryActive || !currentUser}
+                    onClick={() => handleSpinWheel('CASH')}
+                    className="flex-1 w-full py-3.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:brightness-110 text-white font-black text-xs sm:text-sm uppercase tracking-wider rounded-2xl transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <DollarSign className="w-4 h-4" />
+                    Spin (৳{spinCashCost} Cash)
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}

@@ -61,14 +61,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Lottery wheel is currently paused by admin.' }, { status: 400 });
     }
 
-    const spinCost = Number(settings.spinCoinCost || 0);
-    const userCoinBal = Number(user.coinBalance || 0);
+    const paymentMethod: 'COINS' | 'CASH' = body.paymentMethod === 'CASH' ? 'CASH' : 'COINS';
+    const spinPaymentMode = settings.spinPaymentMode || 'BOTH';
 
-    // 3. Verify Coin Balance
-    if (spinCost > 0 && userCoinBal < spinCost) {
-      return NextResponse.json({ 
-        message: `Insufficient coins. You need ${spinCost} coins to spin the lottery wheel.` 
-      }, { status: 400 });
+    if (paymentMethod === 'CASH' && spinPaymentMode === 'COINS_ONLY') {
+      return NextResponse.json({ message: 'Cash spin is currently disabled by admin.' }, { status: 400 });
+    }
+    if (paymentMethod === 'COINS' && spinPaymentMode === 'CASH_ONLY') {
+      return NextResponse.json({ message: 'Coin spin is currently disabled by admin.' }, { status: 400 });
+    }
+
+    const coinCost = Number(settings.spinCoinCost ?? 20);
+    const cashCost = Number(settings.spinCashCost ?? 10);
+    const userCoinBal = Number(user.coinBalance || 0);
+    const userWalletBal = Number(user.walletBalance || 0);
+
+    // 3. Verify Balance
+    if (paymentMethod === 'CASH') {
+      if (cashCost > 0 && userWalletBal < cashCost) {
+        return NextResponse.json({ 
+          message: `Insufficient wallet balance. You need ৳${cashCost} to spin the lottery wheel.` 
+        }, { status: 400 });
+      }
+    } else {
+      if (coinCost > 0 && userCoinBal < coinCost) {
+        return NextResponse.json({ 
+          message: `Insufficient coins. You need ${coinCost} coins to spin the lottery wheel.` 
+        }, { status: 400 });
+      }
     }
 
     // 4. Filter Available Rewards (Active & Under Quota)
@@ -105,14 +125,22 @@ export async function POST(request: NextRequest) {
 
     // 6. Update User Balance in Supabase
     const prizeValue = Number(selectedReward.value || 0);
-    let newCoinBalance = userCoinBal - spinCost;
-    let newWalletBalance = Number(user.walletBalance || 0);
+    let newCoinBalance = userCoinBal;
+    let newWalletBalance = userWalletBal;
     let newEarnings = Number(user.earnings || 0);
+
+    if (paymentMethod === 'CASH') {
+      newWalletBalance -= cashCost;
+    } else {
+      newCoinBalance -= coinCost;
+    }
 
     if (selectedReward.type === 'WALLET' && prizeValue > 0) {
       newWalletBalance += prizeValue;
       newEarnings += prizeValue;
-    } else if ((selectedReward.type === 'COINS' || selectedReward.type === 'DIAMONDS') && prizeValue > 0) {
+    } else if (selectedReward.type === 'COINS' && prizeValue > 0) {
+      newCoinBalance += prizeValue;
+    } else if (selectedReward.type === 'DIAMONDS' && prizeValue > 0) {
       newCoinBalance += prizeValue;
     }
 
@@ -120,9 +148,9 @@ export async function POST(request: NextRequest) {
       .from('User')
       .update({
         coinBalance: Math.max(0, newCoinBalance),
-        walletBalance: newWalletBalance,
-        earnings: newEarnings,
-        updatedAt: new Date().toISOString(),
+        walletBalance: Math.max(0, newWalletBalance),
+        earnings: Math.max(0, newEarnings),
+        updatedAt: new Date().toISOString()
       })
       .eq('id', userId)
       .select()

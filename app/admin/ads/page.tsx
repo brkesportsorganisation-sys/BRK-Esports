@@ -453,7 +453,7 @@ export default function AdminRewardsHubPage() {
             {activeTab === 'LOTTERY' && (
               <div className="space-y-6">
                 {/* Global Lottery Settings Card */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-900/60 border border-slate-800 rounded-3xl p-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 bg-slate-900/60 border border-slate-800 rounded-3xl p-6">
                   
                   {/* Active Toggle */}
                   <div className="flex items-center justify-between p-4 bg-slate-950/60 border border-slate-800 rounded-2xl">
@@ -472,6 +472,23 @@ export default function AdminRewardsHubPage() {
                     </label>
                   </div>
 
+                  {/* Payment Mode Selector */}
+                  <div className="p-4 bg-slate-950/60 border border-slate-800 rounded-2xl space-y-1.5">
+                    <label className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                      <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+                      Payment Mode
+                    </label>
+                    <select
+                      value={settings.spinPaymentMode || 'BOTH'}
+                      onChange={(e) => setSettings({ ...settings, spinPaymentMode: e.target.value as any })}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500 font-bold"
+                    >
+                      <option value="BOTH">Both (Coins & Cash)</option>
+                      <option value="COINS_ONLY">Coins Only (🪙)</option>
+                      <option value="CASH_ONLY">Cash Only (৳)</option>
+                    </select>
+                  </div>
+
                   {/* Spin Coin Cost */}
                   <div className="p-4 bg-slate-950/60 border border-slate-800 rounded-2xl space-y-1.5">
                     <label className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
@@ -482,9 +499,27 @@ export default function AdminRewardsHubPage() {
                       type="number"
                       min="0"
                       max="1000"
-                      value={settings.spinCoinCost}
+                      disabled={settings.spinPaymentMode === 'CASH_ONLY'}
+                      value={settings.spinCoinCost ?? 20}
                       onChange={(e) => setSettings({ ...settings, spinCoinCost: parseInt(e.target.value, 10) || 0 })}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500 font-bold"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500 font-bold disabled:opacity-40"
+                    />
+                  </div>
+
+                  {/* Spin Cash Cost */}
+                  <div className="p-4 bg-slate-950/60 border border-slate-800 rounded-2xl space-y-1.5">
+                    <label className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                      <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+                      Spin Cost (৳ Cash)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="1000"
+                      disabled={settings.spinPaymentMode === 'COINS_ONLY'}
+                      value={settings.spinCashCost ?? 10}
+                      onChange={(e) => setSettings({ ...settings, spinCashCost: parseInt(e.target.value, 10) || 0 })}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500 font-bold disabled:opacity-40"
                     />
                   </div>
 
@@ -498,7 +533,7 @@ export default function AdminRewardsHubPage() {
                       type="number"
                       min="1"
                       max="100"
-                      value={settings.dailySpinLimit}
+                      value={settings.dailySpinLimit ?? 5}
                       onChange={(e) => setSettings({ ...settings, dailySpinLimit: parseInt(e.target.value, 10) || 5 })}
                       className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500 font-bold"
                     />
