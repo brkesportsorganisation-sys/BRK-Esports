@@ -72,6 +72,7 @@ function ProfilePageContent() {
   const [passTimeLeft, setPassTimeLeft] = useState('');
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
   const [claimingMilestoneId, setClaimingMilestoneId] = useState<number | null>(null);
+  const [globalCoverUrl, setGlobalCoverUrl] = useState<string>('https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1600&auto=format&fit=crop&q=80');
   
   // Edit Profile Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -169,11 +170,12 @@ function ProfilePageContent() {
 
   const refreshProfileFromDb = async (userId: string) => {
     try {
-      const [uRes, tRes, pRes, tourRes] = await Promise.all([
+      const [uRes, tRes, pRes, tourRes, sRes] = await Promise.all([
         fetch(`/api/auth/me?id=${userId}`, { cache: 'no-store' }),
         fetch(`/api/teams?userId=${userId}`, { cache: 'no-store' }),
         fetch(`/api/wallet/history?userId=${userId}`, { cache: 'no-store' }),
-        fetch(`/api/tournaments`, { cache: 'no-store' })
+        fetch(`/api/tournaments`, { cache: 'no-store' }),
+        fetch(`/api/settings`, { cache: 'no-store' }).catch(() => null)
       ]);
 
       if (uRes.ok) {
@@ -202,6 +204,13 @@ function ProfilePageContent() {
         const tourData = await tourRes.json();
         if (tourData.tournaments) setTournaments(tourData.tournaments);
       }
+
+      if (sRes && sRes.ok) {
+        const sData = await sRes.json();
+        const s = sData.settings || {};
+        const cover = s.PROFILE_COVER_URL || s.profile_cover_url;
+        if (cover) setGlobalCoverUrl(cover);
+      }
     } catch (err) {
       console.warn('Live profile fetch warning:', err);
     } finally {
@@ -210,6 +219,16 @@ function ProfilePageContent() {
   };
 
   useEffect(() => {
+    // Fetch global cover photo from settings
+    fetch('/api/settings', { cache: 'no-store' })
+      .then(res => res.json())
+      .then(data => {
+        const s = data.settings || {};
+        const cover = s.PROFILE_COVER_URL || s.profile_cover_url;
+        if (cover) setGlobalCoverUrl(cover);
+      })
+      .catch(() => {});
+
     const curUser = db.getCurrentUser();
     if (curUser) {
       setUser(curUser);
@@ -448,111 +467,154 @@ function ProfilePageContent() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex-1 w-full space-y-8">
         
-        {/* User Hero Passport Card */}
-        <div className="rounded-[2.5rem] p-6 sm:p-8 border border-slate-200 bg-white shadow-xl shadow-slate-200/50 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-red-100 rounded-full blur-3xl pointer-events-none opacity-50"></div>
+        {/* User Hero Passport Card with Global Admin Cover Photo */}
+        <div className="rounded-[2.5rem] border border-slate-200 bg-white shadow-xl shadow-slate-200/50 relative overflow-hidden">
+          
+          {/* 1. Global Admin Cover Banner */}
+          <div className="relative w-full h-44 sm:h-56 md:h-64 bg-slate-900 overflow-hidden">
+            <img
+              src={globalCoverUrl}
+              alt="Profile Cover"
+              className="w-full h-full object-cover object-center transform hover:scale-105 transition-transform duration-700"
+            />
+            {/* Gradient Overlays */}
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-slate-950/60 via-transparent to-slate-950/60 pointer-events-none" />
 
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
-            
-            {/* User Avatar & Info */}
-            <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6 text-center sm:text-left">
-              <div className="relative group cursor-pointer" onClick={() => setIsEditModalOpen(true)}>
-                <img
-                  src={user.avatar || 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150'}
-                  alt={user.name}
-                  className="w-24 h-24 rounded-2xl object-cover border-4 border-white shadow-lg group-hover:opacity-90 transition-opacity"
-                />
-                <span className="absolute -bottom-2 -right-2 px-2 py-0.5 rounded-lg bg-red-500 text-white text-[10px] font-black uppercase shadow-sm">
-                  {user.role}
-                </span>
-                <div className="absolute inset-0 bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
-                  <Edit3 className="w-5 h-5" />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <h1 className="font-heading font-black text-3xl text-slate-900 flex items-center gap-2 justify-center sm:justify-start">
-                  <span>{user.inGameName || user.name}</span>
-                  <button
-                    onClick={() => setIsEditModalOpen(true)}
-                    className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition-colors"
-                    title="Edit Profile"
-                  >
-                    <Edit3 className="w-4 h-4 text-orange-500" />
-                  </button>
-                </h1>
-
-                <div className="text-xs text-slate-600 font-mono flex flex-wrap items-center gap-2 justify-center sm:justify-start">
-                  <span>Full Name: <strong className="text-slate-800 font-semibold">{user.name}</strong></span>
-                  <span className="text-slate-300">•</span>
-                  <span>App ID: <strong className="text-orange-600 font-bold">{user.accountNumber || 'BRE-MEMBER'}</strong></span>
-                  <span className="text-slate-300">•</span>
-                  <span>Win Rate: <strong className="text-emerald-600 font-bold">{user.winRate || 0}%</strong></span>
-                </div>
-              </div>
+            {/* Top Badges over Cover Banner */}
+            <div className="absolute top-4 left-4 sm:top-6 sm:left-6 flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-[11px] font-black uppercase tracking-wider border border-white/20 shadow-sm">
+                <Flame className="w-3.5 h-3.5 text-brand-orange animate-pulse" />
+                <span>BRK ESPORTS PASSPORT</span>
+              </span>
             </div>
 
-            {/* Wallet & Referral Quick Actions */}
-            <div className="flex flex-wrap items-center justify-center gap-4">
+            <div className="absolute top-4 right-4 sm:top-6 sm:right-6 hidden sm:flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 backdrop-blur-md text-emerald-300 text-[11px] font-bold border border-emerald-500/30">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                <span>VERIFIED PLAYER</span>
+              </span>
+            </div>
+          </div>
+
+          {/* 2. User Info & Overlapping Avatar */}
+          <div className="px-6 sm:px-8 pb-6 sm:pb-8 pt-0 relative z-10">
+            <div className="flex flex-col md:flex-row items-center md:items-end justify-between gap-6 -mt-14 sm:-mt-16">
               
-              {/* Dual Wallet Box */}
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-center sm:text-right min-w-[170px] space-y-1">
-                <div className="text-[10px] text-slate-600 font-bold uppercase">Winning Wallet (Cashout)</div>
-                <div className="text-xl font-heading font-black text-amber-500">
-                  ৳ {(user.winningBalance || 0).toLocaleString()}
+              {/* User Avatar & Info */}
+              <div className="flex flex-col sm:flex-row items-center sm:items-end space-y-3 sm:space-y-0 sm:space-x-5 text-center sm:text-left">
+                
+                {/* Avatar with click to edit */}
+                <div className="relative group cursor-pointer flex-shrink-0" onClick={() => setIsEditModalOpen(true)}>
+                  <img
+                    src={user.avatar || 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150'}
+                    alt={user.name}
+                    className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl sm:rounded-3xl object-cover border-4 border-white shadow-2xl group-hover:opacity-90 transition-opacity bg-slate-900"
+                  />
+                  <span className="absolute -bottom-2 -right-2 px-2.5 py-0.5 rounded-lg bg-gradient-to-r from-red-600 to-orange-500 text-white text-[10px] font-black uppercase shadow-md border border-white">
+                    {user.role}
+                  </span>
+                  <div className="absolute inset-0 bg-black/40 rounded-2xl sm:rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                    <Edit3 className="w-5 h-5" />
+                  </div>
                 </div>
-                <div className="text-[10px] text-orange-600 font-bold border-t border-slate-200 pt-1 flex items-center justify-between gap-2">
-                  <span>Coins: {user.coinBalance || 0}</span>
-                  <span>Promo: ৳{(user.promoBalance || 0).toLocaleString()}</span>
+
+                <div className="space-y-1 sm:mb-1">
+                  <h1 className="font-heading font-black text-2xl sm:text-3xl text-slate-900 flex items-center gap-2 justify-center sm:justify-start">
+                    <span>{user.inGameName || user.name}</span>
+                    <button
+                      onClick={() => setIsEditModalOpen(true)}
+                      className="p-1.5 rounded-xl bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-600 transition-colors cursor-pointer"
+                      title="Edit Profile"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+                  </h1>
+
+                  <div className="text-xs text-slate-600 font-mono flex flex-wrap items-center gap-2 justify-center sm:justify-start">
+                    <span>Full Name: <strong className="text-slate-900 font-semibold">{user.name}</strong></span>
+                    <span className="text-slate-300">•</span>
+                    <span>App ID: <strong className="text-orange-600 font-bold">{user.accountNumber || 'BRK-PLAYER'}</strong></span>
+                    <span className="text-slate-300">•</span>
+                    <span>Win Rate: <strong className="text-emerald-600 font-bold">{user.winRate || 0}%</strong></span>
+                  </div>
                 </div>
               </div>
 
-              {/* Referral Code Box */}
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-center sm:text-left">
-                <div className="text-[10px] text-slate-600 font-bold uppercase">Referral Code</div>
-                <div className="flex items-center space-x-2 mt-1">
-                  <span className="font-mono font-extrabold text-orange-500 text-sm">{user.referralCode || 'BRE99'}</span>
-                  <button
-                    onClick={handleCopyRef}
-                    className="p-1 rounded-md bg-white border border-slate-200 text-slate-500 hover:text-slate-700 transition-colors text-xs"
-                    title="Copy Referral Code"
+              {/* 4 Action / Stats Cards: Row 1 (Wallet + Coins), Row 2 (Support + Messages) */}
+              <div className="flex flex-col gap-2.5 w-full sm:w-auto mt-4 md:mt-0">
+                
+                {/* Row 1: Wallet Balance & Coin Balance */}
+                <div className="grid grid-cols-2 gap-2.5">
+                  
+                  {/* Card 1: Total Wallet Balance */}
+                  <Link
+                    href="/wallet"
+                    className="bg-slate-50 hover:bg-slate-100 p-3 sm:p-3.5 rounded-2xl border border-slate-200 transition-all flex items-center gap-3 shadow-2xs group cursor-pointer"
                   >
-                    {copiedRef ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-red to-brand-orange text-white flex items-center justify-center shadow-xs flex-shrink-0">
+                      <Wallet className="w-5 h-5" />
+                    </div>
+                    <div className="space-y-0.5 min-w-0">
+                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider truncate">Wallet Balance</div>
+                      <div className="text-sm sm:text-base font-heading font-black text-amber-600 leading-tight truncate">
+                        ৳ {(user.walletBalance || user.winningBalance || 0).toLocaleString()}
+                      </div>
+                    </div>
+                  </Link>
+
+                  {/* Card 2: Coin Balance */}
+                  <Link
+                    href="/ads"
+                    className="bg-slate-50 hover:bg-slate-100 p-3 sm:p-3.5 rounded-2xl border border-slate-200 transition-all flex items-center gap-3 shadow-2xs group cursor-pointer"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shadow-xs flex-shrink-0">
+                      <Coins className="w-5 h-5 text-amber-500" />
+                    </div>
+                    <div className="space-y-0.5 min-w-0">
+                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider truncate">Coin Balance</div>
+                      <div className="text-sm sm:text-base font-heading font-black text-slate-900 leading-tight truncate">
+                        {(user.coinBalance || 0).toLocaleString()} <span className="text-[11px] text-amber-600 font-bold">Coins</span>
+                      </div>
+                    </div>
+                  </Link>
+                </div>
+
+                {/* Row 2: Contact Admin & Messages Inbox */}
+                <div className="grid grid-cols-2 gap-2.5">
+                  
+                  {/* Card 3: Contact Admin (24/7 Helpline) */}
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('SUPPORT')}
+                    className="bg-slate-50 hover:bg-slate-100 p-3 sm:p-3.5 rounded-2xl border border-slate-200 text-left transition-all flex items-center gap-3 shadow-2xs group cursor-pointer"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-red-100 group-hover:bg-red-200 text-red-500 flex items-center justify-center transition-colors flex-shrink-0">
+                      <Headphones className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider truncate">24/7 Helpline</div>
+                      <div className="font-heading font-black text-slate-900 text-xs sm:text-sm truncate">Contact Admin</div>
+                    </div>
                   </button>
+
+                  {/* Card 4: Messages Inbox (Direct Chat) */}
+                  <Link
+                    href="/messages"
+                    className="bg-slate-50 hover:bg-slate-100 p-3 sm:p-3.5 rounded-2xl border border-slate-200 transition-all flex items-center gap-3 shadow-2xs group cursor-pointer"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-orange-100 group-hover:bg-orange-200 text-brand-orange flex items-center justify-center transition-colors flex-shrink-0">
+                      <MessageSquare className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider truncate">Direct Chat</div>
+                      <div className="font-heading font-black text-slate-900 text-xs sm:text-sm truncate">Messages Inbox</div>
+                    </div>
+                  </Link>
                 </div>
+
               </div>
-
-              {/* Contact Admin Support Button */}
-              <button
-                type="button"
-                onClick={() => setActiveTab('SUPPORT')}
-                className="bg-slate-50 hover:bg-slate-100 p-4 rounded-2xl border border-slate-200 text-center sm:text-left transition-colors flex items-center gap-3 shadow-2xs group cursor-pointer"
-              >
-                <div className="w-10 h-10 rounded-xl bg-red-100 group-hover:bg-red-200 text-red-500 flex items-center justify-center transition-colors">
-                  <Headphones className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="text-[10px] text-slate-500 font-bold uppercase">24/7 Helpline</div>
-                  <div className="font-heading font-black text-slate-900 text-sm">Contact Admin</div>
-                </div>
-              </button>
-
-              {/* Messages Inbox Button */}
-              <Link
-                href="/messages"
-                className="bg-slate-50 hover:bg-slate-100 p-4 rounded-2xl border border-slate-200 text-center sm:text-left transition-colors flex items-center gap-3 shadow-2xs group"
-              >
-                <div className="w-10 h-10 rounded-xl bg-orange-100 group-hover:bg-orange-200 text-brand-orange flex items-center justify-center transition-colors">
-                  <MessageSquare className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="text-[10px] text-slate-500 font-bold uppercase">Direct Chat</div>
-                  <div className="font-heading font-black text-slate-900 text-sm">Messages Inbox</div>
-                </div>
-              </Link>
-
             </div>
-
           </div>
         </div>
 

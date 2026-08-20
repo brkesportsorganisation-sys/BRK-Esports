@@ -434,27 +434,202 @@ export interface DuelChallenge {
   createdAt: string;
 }
 
-export interface DiamondProduct {
+export interface ShopProduct {
   id: string;
   name: string;
-  diamonds: number;
-  bonusDiamonds?: number;
-  priceBdt: number;
+  description?: string;
+  category: 'DIAMONDS' | 'PASSES' | 'SKINS' | 'TICKETS' | 'CRATES' | 'OTHERS';
+  currencyType: 'COINS' | 'WALLET' | 'BOTH';
   priceCoins: number;
-  icon: string;
+  priceBdt: number;
+  diamonds?: number;
+  bonusDiamonds?: number;
+  icon?: string;
+  imageUrl?: string;
   badge?: string;
-  category: 'TOPUP' | 'MEMBERSHIP' | 'SPECIAL';
+  stock?: number;
+  isActive: boolean;
+  deliveryType?: 'FF_UID' | 'REDEEM_CODE' | 'INSTANT_PASS' | 'MANUAL';
+  createdAt?: string;
 }
 
-export const DIAMOND_PRODUCTS: DiamondProduct[] = [
-  { id: 'dia_115', name: '115 Free Fire Diamonds', diamonds: 115, priceBdt: 85, priceCoins: 4250, icon: '💎', category: 'TOPUP' },
-  { id: 'dia_240', name: '240 Free Fire Diamonds', diamonds: 240, bonusDiamonds: 25, priceBdt: 165, priceCoins: 8250, icon: '💎', badge: 'POPULAR', category: 'TOPUP' },
-  { id: 'dia_610', name: '610 Free Fire Diamonds', diamonds: 610, bonusDiamonds: 60, priceBdt: 410, priceCoins: 20500, icon: '💎', badge: 'BEST VALUE', category: 'TOPUP' },
-  { id: 'dia_1240', name: '1,240 Free Fire Diamonds', diamonds: 1240, bonusDiamonds: 150, priceBdt: 820, priceCoins: 41000, icon: '💎', category: 'TOPUP' },
-  { id: 'mem_weekly', name: 'Weekly Membership (450💎 Total)', diamonds: 450, priceBdt: 175, priceCoins: 8750, icon: '🎟️', badge: 'HOT', category: 'MEMBERSHIP' },
-  { id: 'mem_monthly', name: 'Monthly Membership (2600💎 Total)', diamonds: 2600, priceBdt: 860, priceCoins: 43000, icon: '👑', badge: 'VIP', category: 'MEMBERSHIP' },
-  { id: 'pass_lvlup', name: 'Level Up Pass (800💎)', diamonds: 800, priceBdt: 190, priceCoins: 9500, icon: '⚡', category: 'SPECIAL' },
+// Backwards compatibility alias
+export type DiamondProduct = ShopProduct;
+
+export const DEFAULT_SHOP_PRODUCTS: ShopProduct[] = [
+  // 1. Free Fire Diamonds
+  {
+    id: 'dia_115',
+    name: '115 Free Fire Diamonds',
+    description: 'Direct in-game diamond top-up to your Free Fire Player UID.',
+    category: 'DIAMONDS',
+    currencyType: 'BOTH',
+    priceBdt: 85,
+    priceCoins: 850,
+    diamonds: 115,
+    icon: '💎',
+    imageUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=500&auto=format&fit=crop&q=80',
+    isActive: true,
+    deliveryType: 'FF_UID',
+  },
+  {
+    id: 'dia_240',
+    name: '240 + 25 Bonus Diamonds',
+    description: 'Instant 240 Diamonds with 25 extra bonus diamonds for Free Fire.',
+    category: 'DIAMONDS',
+    currencyType: 'BOTH',
+    priceBdt: 165,
+    priceCoins: 1650,
+    diamonds: 240,
+    bonusDiamonds: 25,
+    icon: '💎',
+    badge: 'POPULAR',
+    imageUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=500&auto=format&fit=crop&q=80',
+    isActive: true,
+    deliveryType: 'FF_UID',
+  },
+  {
+    id: 'dia_610',
+    name: '610 + 60 Bonus Diamonds',
+    description: 'High value diamond pack with 60 bonus diamonds included.',
+    category: 'DIAMONDS',
+    currencyType: 'BOTH',
+    priceBdt: 410,
+    priceCoins: 4100,
+    diamonds: 610,
+    bonusDiamonds: 60,
+    icon: '💎',
+    badge: 'BEST VALUE',
+    imageUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=500&auto=format&fit=crop&q=80',
+    isActive: true,
+    deliveryType: 'FF_UID',
+  },
+  {
+    id: 'dia_1240',
+    name: '1,240 + 150 Bonus Diamonds',
+    description: 'Mega diamond package for elite Free Fire players and guild leaders.',
+    category: 'DIAMONDS',
+    currencyType: 'WALLET',
+    priceBdt: 820,
+    priceCoins: 8200,
+    diamonds: 1240,
+    bonusDiamonds: 150,
+    icon: '💎',
+    badge: 'PRO PACK',
+    imageUrl: 'https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?w=500&auto=format&fit=crop&q=80',
+    isActive: true,
+    deliveryType: 'FF_UID',
+  },
+
+  // 2. Memberships & Passes
+  {
+    id: 'mem_weekly',
+    name: 'Weekly Membership (450💎 Total)',
+    description: 'Get 450 total diamonds over 7 days with weekly privilege badges.',
+    category: 'PASSES',
+    currencyType: 'BOTH',
+    priceBdt: 175,
+    priceCoins: 1750,
+    diamonds: 450,
+    icon: '🎟️',
+    badge: 'HOT',
+    imageUrl: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=500&auto=format&fit=crop&q=80',
+    isActive: true,
+    deliveryType: 'FF_UID',
+  },
+  {
+    id: 'mem_monthly',
+    name: 'Monthly Membership (2,600💎 Total)',
+    description: '30-day VIP membership with 2,600 diamonds and discount vouchers.',
+    category: 'PASSES',
+    currencyType: 'WALLET',
+    priceBdt: 860,
+    priceCoins: 8600,
+    diamonds: 2600,
+    icon: '👑',
+    badge: 'VIP CLUB',
+    imageUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=500&auto=format&fit=crop&q=80',
+    isActive: true,
+    deliveryType: 'FF_UID',
+  },
+  {
+    id: 'pass_booyah',
+    name: 'Booyah Pass Premium Unlock',
+    description: 'Unlock this season Booyah Pass with exclusive weapon skins and emotes.',
+    category: 'PASSES',
+    currencyType: 'BOTH',
+    priceBdt: 350,
+    priceCoins: 3500,
+    diamonds: 500,
+    icon: '🔥',
+    badge: 'SEASON PASS',
+    imageUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=500&auto=format&fit=crop&q=80',
+    isActive: true,
+    deliveryType: 'FF_UID',
+  },
+
+  // 3. Redeem Codes & Skins (Coin Special)
+  {
+    id: 'skin_dragon_ak',
+    name: 'Dragon AK47 Redeem Voucher',
+    description: 'Special in-game redeem voucher code to unlock Dragon AK weapon crate.',
+    category: 'SKINS',
+    currencyType: 'COINS',
+    priceBdt: 120,
+    priceCoins: 600,
+    icon: '🔫',
+    badge: 'COIN ONLY',
+    imageUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=500&auto=format&fit=crop&q=80',
+    isActive: true,
+    deliveryType: 'REDEEM_CODE',
+  },
+  {
+    id: 'item_room_cards',
+    name: '5x Custom Room Cards Pack',
+    description: '5 Custom match room creation cards for team scrims and practice.',
+    category: 'SKINS',
+    currencyType: 'COINS',
+    priceBdt: 80,
+    priceCoins: 400,
+    icon: '🃏',
+    badge: 'COIN SPECIAL',
+    imageUrl: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=500&auto=format&fit=crop&q=80',
+    isActive: true,
+    deliveryType: 'FF_UID',
+  },
+
+  // 4. Tournament Tickets & Crates
+  {
+    id: 'tkt_vip_pass',
+    name: 'VIP Tournament Match Entry Pass',
+    description: 'Free entry pass for any BRK Daily Squad or Duo paid tournament match.',
+    category: 'TICKETS',
+    currencyType: 'BOTH',
+    priceBdt: 100,
+    priceCoins: 500,
+    icon: '🎟️',
+    badge: 'MATCH PASS',
+    imageUrl: 'https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?w=500&auto=format&fit=crop&q=80',
+    isActive: true,
+    deliveryType: 'INSTANT_PASS',
+  },
+  {
+    id: 'crate_mystery_box',
+    name: 'BRK Esports Mystery Crate',
+    description: 'Open to win up to 520 Diamonds, 1000 Coins, or Free VIP Passes!',
+    category: 'CRATES',
+    currencyType: 'COINS',
+    priceBdt: 50,
+    priceCoins: 250,
+    icon: '📦',
+    badge: 'LUCKY PACK',
+    imageUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=500&auto=format&fit=crop&q=80',
+    isActive: true,
+    deliveryType: 'INSTANT_PASS',
+  },
 ];
+
+export const DIAMOND_PRODUCTS = DEFAULT_SHOP_PRODUCTS;
 
 export type VendorAccessLevel = 'FULL_ACCESS' | 'LIMITED_ACCESS';
 

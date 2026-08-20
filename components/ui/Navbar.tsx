@@ -33,7 +33,8 @@ import {
   Megaphone,
   Swords,
   Diamond,
-  Crown
+  Crown,
+  ShoppingBag
 } from 'lucide-react';
 import { db } from '@/lib/db';
 import { User as UserType, Notification as NotificationType } from '@/lib/types';
@@ -226,7 +227,7 @@ export default function Navbar() {
 
   const moreNavLinks: NavLinkItem[] = [
     { name: isBangla ? 'লিডারবোর্ড' : 'Leaderboard', href: '/leaderboard', icon: Trophy },
-    { name: 'Diamonds & Top-up', href: '/shop', icon: Diamond },
+    { name: isBangla ? 'গেমিং শপ ও ডায়মন্ড (🛍️)' : 'Gaming Shop & Diamonds', href: '/shop', icon: ShoppingBag },
     { name: 'Hall of Champions', href: '/champions', icon: Crown },
     { name: 'Notices & Rules', href: '/announcements', icon: Megaphone },
     { name: 'Squad Finder (LFG)', href: '/lfg', icon: Users },

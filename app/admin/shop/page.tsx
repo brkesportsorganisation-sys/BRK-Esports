@@ -14,10 +14,25 @@ import {
   DollarSign, 
   Gift, 
   Send,
-  Loader2
+  Loader2,
+  Plus,
+  Edit3,
+  Trash2,
+  Package,
+  Layers,
+  Sparkles,
+  ShoppingBag,
+  Tag,
+  Eye,
+  EyeOff,
+  RotateCcw,
+  AlertTriangle,
+  Crown,
+  Ticket
 } from 'lucide-react';
+import { ShopProduct, DEFAULT_SHOP_PRODUCTS } from '@/lib/types';
 
-interface DiamondOrder {
+interface ShopOrder {
   id: string;
   userId: string;
   userName: string;
@@ -30,38 +45,194 @@ interface DiamondOrder {
   createdAt: string;
 }
 
-export default function AdminDiamondShopPage() {
-  const [orders, setOrders] = useState<DiamondOrder[]>([]);
+const PRESET_SHOP_IMAGES = [
+  { name: 'Free Fire Diamonds 💎', url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=500&auto=format&fit=crop&q=80' },
+  { name: 'Neon Cyber Arena ⚡', url: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=500&auto=format&fit=crop&q=80' },
+  { name: 'Dragon AK47 Skin 🔫', url: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=500&auto=format&fit=crop&q=80' },
+  { name: 'VIP Tournament Pass 🎟️', url: 'https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?w=500&auto=format&fit=crop&q=80' },
+  { name: 'Level Up & Mystery Crate 📦', url: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=500&auto=format&fit=crop&q=80' },
+];
+
+export default function AdminGamingShopPage() {
+  const [activeTab, setActiveTab] = useState<'PRODUCTS' | 'ORDERS'>('PRODUCTS');
+  const [products, setProducts] = useState<ShopProduct[]>([]);
+  const [orders, setOrders] = useState<ShopOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [deliverModalOrder, setDeliverModalOrder] = useState<DiamondOrder | null>(null);
-  const [redeemCode, setRedeemCode] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [stats, setStats] = useState({
+    totalOrders: 0,
+    totalCashRevenue: 0,
+    totalCoinsSpent: 0,
+    completedDeliveries: 0,
+    pendingDeliveries: 0,
+  });
 
-  const loadOrders = async () => {
+  // Modal State for Add / Edit Product
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<ShopProduct | null>(null);
+  const [productForm, setProductForm] = useState<Partial<ShopProduct>>({
+    name: '',
+    description: '',
+    category: 'DIAMONDS',
+    currencyType: 'BOTH',
+    priceCoins: 500,
+    priceBdt: 80,
+    diamonds: 100,
+    bonusDiamonds: 0,
+    icon: '💎',
+    imageUrl: PRESET_SHOP_IMAGES[0].url,
+    badge: 'HOT',
+    stock: 999,
+    isActive: true,
+    deliveryType: 'FF_UID',
+  });
+  const [isSavingProduct, setIsSavingProduct] = useState(false);
+
+  // Deliver Modal State
+  const [deliverModalOrder, setDeliverModalOrder] = useState<ShopOrder | null>(null);
+  const [redeemCode, setRedeemCode] = useState('');
+  const [isProcessingDelivery, setIsProcessingDelivery] = useState(false);
+
+  const loadData = async () => {
+    setLoading(true);
     try {
       const res = await fetch('/api/admin/shop');
       if (res.ok) {
         const data = await res.json();
+        setProducts(data.products || []);
         setOrders(data.orders || []);
+        if (data.stats) setStats(data.stats);
       }
     } catch (err) {
-      console.warn('Failed to load orders:', err);
+      console.warn('Failed to load admin shop data:', err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadOrders();
+    loadData();
   }, []);
+
+  const openAddModal = () => {
+    setEditingProduct(null);
+    setProductForm({
+      name: '',
+      description: 'Instant Free Fire game delivery directly to player UID.',
+      category: 'DIAMONDS',
+      currencyType: 'BOTH',
+      priceCoins: 500,
+      priceBdt: 80,
+      diamonds: 100,
+      bonusDiamonds: 0,
+      icon: '💎',
+      imageUrl: PRESET_SHOP_IMAGES[0].url,
+      badge: 'NEW',
+      stock: 999,
+      isActive: true,
+      deliveryType: 'FF_UID',
+    });
+    setIsProductModalOpen(true);
+  };
+
+  const openEditModal = (p: ShopProduct) => {
+    setEditingProduct(p);
+    setProductForm({
+      ...p,
+    });
+    setIsProductModalOpen(true);
+  };
+
+  const handleSaveProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!productForm.name?.trim()) {
+      alert('Product name is required!');
+      return;
+    }
+
+    setIsSavingProduct(true);
+    try {
+      const action = editingProduct ? 'UPDATE_PRODUCT' : 'ADD_PRODUCT';
+      const payload = {
+        action,
+        product: {
+          ...productForm,
+          id: editingProduct?.id,
+        },
+      };
+
+      const res = await fetch('/api/admin/shop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setIsProductModalOpen(false);
+        loadData();
+      } else {
+        alert(data.message || 'Failed to save product.');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Error saving product.');
+    } finally {
+      setIsSavingProduct(false);
+    }
+  };
+
+  const handleDeleteProduct = async (productId: string) => {
+    if (!confirm('Are you sure you want to remove this item from the shop?')) return;
+    try {
+      const res = await fetch('/api/admin/shop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'DELETE_PRODUCT', productId }),
+      });
+      if (res.ok) {
+        loadData();
+      }
+    } catch {
+      alert('Failed to delete product.');
+    }
+  };
+
+  const handleToggleActive = async (productId: string) => {
+    try {
+      const res = await fetch('/api/admin/shop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'TOGGLE_ACTIVE', productId }),
+      });
+      if (res.ok) {
+        loadData();
+      }
+    } catch {
+      alert('Failed to toggle status.');
+    }
+  };
+
+  const handleResetDefaults = async () => {
+    if (!confirm('Reset all shop items back to default Free Fire & Esports products?')) return;
+    try {
+      const res = await fetch('/api/admin/shop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'RESET_DEFAULTS' }),
+      });
+      if (res.ok) {
+        loadData();
+      }
+    } catch {
+      alert('Failed to reset defaults.');
+    }
+  };
 
   const handleDeliver = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!deliverModalOrder) return;
 
-    setIsProcessing(true);
+    setIsProcessingDelivery(true);
     try {
       const res = await fetch('/api/admin/shop', {
         method: 'PATCH',
@@ -78,30 +249,45 @@ export default function AdminDiamondShopPage() {
       if (res.ok) {
         setDeliverModalOrder(null);
         setRedeemCode('');
-        loadOrders();
+        loadData();
       } else {
-        alert(data.message || 'Failed to update order.');
+        alert(data.message || 'Failed to fulfill order.');
       }
     } catch (err: any) {
-      alert(err.message || 'Error processing delivery.');
+      alert(err.message || 'Error delivering order.');
     } finally {
-      setIsProcessing(false);
+      setIsProcessingDelivery(false);
     }
   };
 
-  const handleCopy = (text: string, id: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
+  const handleRefund = async (order: ShopOrder) => {
+    if (!confirm(`Refund ${order.amount} ${order.method === 'COINS' ? 'Coins' : 'BDT'} back to ${order.userName}?`)) return;
+
+    try {
+      const res = await fetch('/api/admin/shop', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: order.id,
+          action: 'REFUND',
+        }),
+      });
+
+      if (res.ok) {
+        loadData();
+      } else {
+        alert('Failed to refund order.');
+      }
+    } catch {
+      alert('Error processing refund.');
+    }
   };
 
-  const totalCashRevenue = orders
-    .filter(o => o.method !== 'COINS')
-    .reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
-
-  const totalCoinsSpent = orders
-    .filter(o => o.method === 'COINS')
-    .reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
+  // Filtered lists
+  const filteredProducts = products.filter((p) => {
+    const q = searchQuery.toLowerCase();
+    return p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q);
+  });
 
   const filteredOrders = orders.filter((o) => {
     const q = searchQuery.toLowerCase();
@@ -114,71 +300,250 @@ export default function AdminDiamondShopPage() {
   });
 
   return (
-    <>
-      <div className="space-y-6">
-        
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2">
-              <Diamond className="w-7 h-7 text-cyan-500" />
-              Free Fire Diamond Orders Manager
+    <div className="space-y-8 max-w-7xl mx-auto p-6 md:p-8">
+      
+      {/* ── Header Banner ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-6 rounded-3xl text-white shadow-xl border border-slate-700">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+              <ShoppingBag className="w-5 h-5" />
+            </span>
+            <h1 className="text-2xl font-black font-heading tracking-wide">
+              Gaming Shop & Diamond Manager
             </h1>
-            <p className="text-xs text-slate-500 mt-1">
-              Fulfill incoming player diamond top-up requests, memberships, and voucher deliveries.
-            </p>
           </div>
+          <p className="text-xs text-slate-300">
+            Manage Coin Shop products, Free Fire Diamond packs, prices (Coins / Taka), and fulfill player orders.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={openAddModal}
+            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-black text-xs shadow-neon-orange hover:brightness-110 active:scale-95 transition-all cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>ADD NEW SHOP ITEM</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ── Stats Row ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="p-5 bg-white border border-slate-200/80 rounded-2xl shadow-sm space-y-1">
+          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Cash Revenue</span>
+          <div className="text-2xl font-black text-emerald-600 font-heading">
+            ৳ {stats.totalCashRevenue.toLocaleString()}
+          </div>
+        </div>
+
+        <div className="p-5 bg-white border border-slate-200/80 rounded-2xl shadow-sm space-y-1">
+          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Coins Redeemed</span>
+          <div className="text-2xl font-black text-amber-500 font-heading">
+            {stats.totalCoinsSpent.toLocaleString()} 🪙
+          </div>
+        </div>
+
+        <div className="p-5 bg-white border border-slate-200/80 rounded-2xl shadow-sm space-y-1">
+          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Active Shop Items</span>
+          <div className="text-2xl font-black text-slate-900 font-heading">
+            {products.filter(p => p.isActive).length} / {products.length}
+          </div>
+        </div>
+
+        <div className="p-5 bg-white border border-slate-200/80 rounded-2xl shadow-sm space-y-1">
+          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Orders & Deliveries</span>
+          <div className="text-2xl font-black text-cyan-600 font-heading">
+            {orders.length}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Main Tab Navigation ── */}
+      <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setActiveTab('PRODUCTS')}
+            className={`px-5 py-2.5 rounded-2xl text-xs font-heading font-black tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'PRODUCTS'
+                ? 'bg-slate-900 text-white shadow-sm'
+                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <Package className="w-4 h-4" />
+            <span>SHOP ITEMS & INVENTORY ({products.length})</span>
+          </button>
 
           <button
-            onClick={loadOrders}
-            className="px-4 py-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold shadow-sm flex items-center gap-2 self-start sm:self-auto"
+            onClick={() => setActiveTab('ORDERS')}
+            className={`px-5 py-2.5 rounded-2xl text-xs font-heading font-black tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'ORDERS'
+                ? 'bg-slate-900 text-white shadow-sm'
+                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+            }`}
           >
-            Refresh Orders
+            <Clock className="w-4 h-4" />
+            <span>PLAYER ORDERS & UID DELIVERIES ({orders.length})</span>
           </button>
         </div>
 
-        {/* Stats Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="p-5 bg-white border border-slate-200/80 rounded-2xl shadow-sm space-y-1">
-            <span className="text-[11px] font-bold text-slate-500 uppercase">Total Diamond Revenue</span>
-            <div className="text-2xl font-black text-emerald-600">৳ {totalCashRevenue.toLocaleString()}</div>
-          </div>
-          <div className="p-5 bg-white border border-slate-200/80 rounded-2xl shadow-sm space-y-1">
-            <span className="text-[11px] font-bold text-slate-500 uppercase">Coins Redeemed</span>
-            <div className="text-2xl font-black text-amber-500">{totalCoinsSpent.toLocaleString()} 🪙</div>
-          </div>
-          <div className="p-5 bg-white border border-slate-200/80 rounded-2xl shadow-sm space-y-1">
-            <span className="text-[11px] font-bold text-slate-500 uppercase">Total Orders</span>
-            <div className="text-2xl font-black text-slate-900">{orders.length}</div>
-          </div>
-          <div className="p-5 bg-white border border-slate-200/80 rounded-2xl shadow-sm space-y-1">
-            <span className="text-[11px] font-bold text-slate-500 uppercase">Completed</span>
-            <div className="text-2xl font-black text-cyan-600">
-              {orders.filter(o => o.status === 'VERIFIED').length}
-            </div>
-          </div>
-        </div>
+        {activeTab === 'PRODUCTS' && (
+          <button
+            onClick={handleResetDefaults}
+            className="text-[11px] text-slate-400 hover:text-slate-700 font-bold flex items-center gap-1 cursor-pointer"
+            title="Reset to default items"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Reset Defaults</span>
+          </button>
+        )}
+      </div>
 
-        {/* Orders Table */}
+      {/* ══════════ TAB 1: PRODUCTS INVENTORY ══════════ */}
+      {activeTab === 'PRODUCTS' && (
+        <div className="space-y-6">
+          
+          {loading ? (
+            <div className="py-20 text-center text-slate-400 font-bold">Loading shop items...</div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 space-y-4">
+              <Package className="w-12 h-12 text-slate-300 mx-auto" />
+              <div className="text-slate-700 font-bold text-sm">No items in the shop inventory.</div>
+              <button
+                onClick={openAddModal}
+                className="px-5 py-2.5 rounded-xl bg-brand-orange text-white text-xs font-bold shadow-md cursor-pointer"
+              >
+                Add First Product
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredProducts.map((product) => (
+                <div
+                  key={product.id}
+                  className={`bg-white rounded-3xl border overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between ${
+                    product.isActive ? 'border-slate-200' : 'border-slate-200 opacity-60 bg-slate-50'
+                  }`}
+                >
+                  {/* Top Thumbnail */}
+                  <div className="relative w-full h-40 bg-slate-900 overflow-hidden">
+                    <img
+                      src={product.imageUrl || PRESET_SHOP_IMAGES[0].url}
+                      alt={product.name}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-transparent" />
+                    
+                    {/* Badge */}
+                    {product.badge && (
+                      <span className="absolute top-3 right-3 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-red-600 to-orange-500 text-white text-[10px] font-black uppercase shadow-xs">
+                        {product.badge}
+                      </span>
+                    )}
+
+                    {/* Category */}
+                    <span className="absolute bottom-3 left-3 px-2.5 py-1 rounded-xl bg-black/60 backdrop-blur-md text-white text-[10px] font-bold border border-white/20">
+                      {product.category}
+                    </span>
+                  </div>
+
+                  {/* Body Content */}
+                  <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between gap-2">
+                        <h3 className="font-heading font-black text-slate-900 text-base leading-tight">
+                          {product.name}
+                        </h3>
+                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${
+                          product.currencyType === 'COINS'
+                            ? 'bg-amber-100 text-amber-800'
+                            : product.currencyType === 'WALLET'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-blue-100 text-blue-800'
+                        }`}>
+                          {product.currencyType}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 line-clamp-2 mt-1">
+                        {product.description || 'In-game reward item'}
+                      </p>
+                    </div>
+
+                    {/* Pricing Summary */}
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center justify-between text-xs font-bold">
+                      <div className="text-emerald-700">৳ {product.priceBdt} BDT</div>
+                      <div className="text-slate-300">•</div>
+                      <div className="text-amber-600">{product.priceCoins.toLocaleString()} 🪙 Coins</div>
+                    </div>
+
+                    {/* Actions Bar */}
+                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                      <button
+                        onClick={() => handleToggleActive(product.id)}
+                        className={`p-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
+                          product.isActive
+                            ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                            : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                        }`}
+                        title={product.isActive ? 'Active in Shop (Click to disable)' : 'Disabled in Shop (Click to enable)'}
+                      >
+                        {product.isActive ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                      </button>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => openEditModal(product)}
+                          className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteProduct(product.id)}
+                          className="p-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 transition-colors cursor-pointer"
+                          title="Delete Product"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+        </div>
+      )}
+
+      {/* ══════════ TAB 2: USER ORDERS & DELIVERIES ══════════ */}
+      {activeTab === 'ORDERS' && (
         <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden">
           <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="relative flex-1 max-w-sm">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search by player name, email, or UID..."
+                placeholder="Search by player name, email, UID, or Item..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50 focus:outline-none focus:bg-white focus:border-cyan-500"
+                className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50 focus:outline-none focus:bg-white focus:border-cyan-500 font-medium"
               />
             </div>
-            <span className="text-xs text-slate-500">Showing {filteredOrders.length} orders</span>
+            <button
+              onClick={loadData}
+              className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+            >
+              Refresh Orders
+            </button>
           </div>
 
           {loading ? (
-            <div className="p-16 text-center text-slate-400">Loading diamond orders...</div>
+            <div className="p-16 text-center text-slate-400">Loading shop orders...</div>
           ) : filteredOrders.length === 0 ? (
-            <div className="p-16 text-center text-slate-400">No diamond orders found.</div>
+            <div className="p-16 text-center text-slate-400">No shop orders found.</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
@@ -186,7 +551,7 @@ export default function AdminDiamondShopPage() {
                   <tr>
                     <th className="px-4 py-3">Player Info</th>
                     <th className="px-4 py-3">Order Details / UID</th>
-                    <th className="px-4 py-3">Payment</th>
+                    <th className="px-4 py-3">Paid With</th>
                     <th className="px-4 py-3">Status</th>
                     <th className="px-4 py-3">Date</th>
                     <th className="px-4 py-3 text-right">Action</th>
@@ -199,22 +564,28 @@ export default function AdminDiamondShopPage() {
                         <div className="font-bold text-slate-900">{order.userName}</div>
                         <div className="text-[11px] text-slate-500">{order.userEmail}</div>
                       </td>
-                      <td className="px-4 py-3.5">
-                        <div className="font-bold text-slate-800">{order.notes}</div>
+                      <td className="px-4 py-3.5 max-w-xs">
+                        <div className="font-bold text-slate-800 line-clamp-1">{order.notes}</div>
                         <div className="text-[10px] text-slate-400 font-mono">TrxID: {order.trxId}</div>
                       </td>
                       <td className="px-4 py-3.5">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                        <span className={`px-2.5 py-1 rounded-lg text-[11px] font-black ${
                           order.method === 'COINS'
-                            ? 'bg-amber-100 text-amber-800'
-                            : 'bg-emerald-100 text-emerald-800'
+                            ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                            : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                         }`}>
-                          {order.method === 'COINS' ? `${order.amount} Coins` : `৳${order.amount}`}
+                          {order.method === 'COINS' ? `${order.amount.toLocaleString()} 🪙 Coins` : `৳ ${order.amount}`}
                         </span>
                       </td>
                       <td className="px-4 py-3.5">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 flex items-center gap-1 w-fit">
-                          <CheckCircle2 className="w-3 h-3" />
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 w-fit ${
+                          order.status === 'VERIFIED'
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : order.status === 'REJECTED'
+                            ? 'bg-red-100 text-red-700'
+                            : 'bg-amber-100 text-amber-700'
+                        }`}>
+                          {order.status === 'VERIFIED' && <CheckCircle2 className="w-3 h-3" />}
                           {order.status}
                         </span>
                       </td>
@@ -222,12 +593,23 @@ export default function AdminDiamondShopPage() {
                         {new Date(order.createdAt).toLocaleDateString()}
                       </td>
                       <td className="px-4 py-3.5 text-right">
-                        <button
-                          onClick={() => setDeliverModalOrder(order)}
-                          className="px-3 py-1.5 bg-cyan-50 hover:bg-cyan-100 text-cyan-700 border border-cyan-200 rounded-lg text-xs font-bold transition-all"
-                        >
-                          Send Code / Deliver
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => setDeliverModalOrder(order)}
+                            className="px-3 py-1.5 bg-cyan-50 hover:bg-cyan-100 text-cyan-700 border border-cyan-200 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                          >
+                            Send Code / Deliver
+                          </button>
+                          {order.status !== 'REJECTED' && (
+                            <button
+                              onClick={() => handleRefund(order)}
+                              className="px-2 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                              title="Refund Coins/Cash"
+                            >
+                              Refund
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -236,16 +618,212 @@ export default function AdminDiamondShopPage() {
             </div>
           )}
         </div>
+      )}
 
-      </div>
+      {/* ── Add / Edit Product Modal ── */}
+      {isProductModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 max-w-2xl w-full space-y-6 shadow-2xl text-slate-900 max-h-[90vh] overflow-y-auto">
+            
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-heading font-black text-xl text-slate-900">
+                {editingProduct ? 'EDIT SHOP PRODUCT' : 'ADD NEW SHOP PRODUCT'}
+              </h3>
+              <button
+                onClick={() => setIsProductModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 font-bold"
+              >
+                ✕
+              </button>
+            </div>
 
-      {/* Deliver Modal */}
+            <form onSubmit={handleSaveProduct} className="space-y-4">
+              
+              {/* Name & Category */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 uppercase">Product Title</label>
+                  <input
+                    type="text"
+                    required
+                    value={productForm.name}
+                    onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
+                    placeholder="e.g. 520 Free Fire Diamonds"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-bold focus:outline-none focus:border-brand-orange"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 uppercase">Category</label>
+                  <select
+                    value={productForm.category}
+                    onChange={(e) => setProductForm({ ...productForm, category: e.target.value as any })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-bold focus:outline-none focus:border-brand-orange"
+                  >
+                    <option value="DIAMONDS">💎 Diamonds Pack</option>
+                    <option value="PASSES">👑 Memberships & Passes</option>
+                    <option value="SKINS">🎁 Skins & Redeem Codes</option>
+                    <option value="TICKETS">🎟️ Tournament Match Tickets</option>
+                    <option value="CRATES">📦 Mystery Boxes</option>
+                    <option value="OTHERS">🛍️ Others</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Currency Mode & Prices */}
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+                <label className="text-xs font-bold text-slate-700 uppercase block">
+                  Payment Currency Mode (ইউজার কীভাবে কিনতে পারবে)
+                </label>
+                
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: 'BOTH', label: '🔄 Coin & Taka Both' },
+                    { id: 'COINS', label: '🪙 Coins Only' },
+                    { id: 'WALLET', label: '৳ Taka Only' },
+                  ].map((cur) => (
+                    <button
+                      key={cur.id}
+                      type="button"
+                      onClick={() => setProductForm({ ...productForm, currencyType: cur.id as any })}
+                      className={`p-2.5 rounded-xl border text-xs font-bold text-center transition-all cursor-pointer ${
+                        productForm.currencyType === cur.id
+                          ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                          : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      {cur.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-amber-700 uppercase">Coin Price (🪙 Coins)</label>
+                    <input
+                      type="number"
+                      value={productForm.priceCoins}
+                      onChange={(e) => setProductForm({ ...productForm, priceCoins: Number(e.target.value) })}
+                      placeholder="e.g. 500"
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 font-bold focus:outline-none focus:border-brand-orange"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-emerald-700 uppercase">Taka Price (৳ BDT)</label>
+                    <input
+                      type="number"
+                      value={productForm.priceBdt}
+                      onChange={(e) => setProductForm({ ...productForm, priceBdt: Number(e.target.value) })}
+                      placeholder="e.g. 80"
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 font-bold focus:outline-none focus:border-brand-orange"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Diamonds / Bonus / Badge */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 uppercase">Diamonds Count</label>
+                  <input
+                    type="number"
+                    value={productForm.diamonds || 0}
+                    onChange={(e) => setProductForm({ ...productForm, diamonds: Number(e.target.value) })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 uppercase">Bonus Diamonds</label>
+                  <input
+                    type="number"
+                    value={productForm.bonusDiamonds || 0}
+                    onChange={(e) => setProductForm({ ...productForm, bonusDiamonds: Number(e.target.value) })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 uppercase">Badge Label</label>
+                  <input
+                    type="text"
+                    value={productForm.badge || ''}
+                    onChange={(e) => setProductForm({ ...productForm, badge: e.target.value })}
+                    placeholder="HOT / VIP / BEST"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold uppercase"
+                  />
+                </div>
+              </div>
+
+              {/* Image URL & Preset Selection */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-700 uppercase block">Product Image URL</label>
+                <input
+                  type="text"
+                  value={productForm.imageUrl || ''}
+                  onChange={(e) => setProductForm({ ...productForm, imageUrl: e.target.value })}
+                  placeholder="https://images.unsplash.com/..."
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono"
+                />
+
+                <div className="flex items-center gap-2 overflow-x-auto pt-1">
+                  {PRESET_SHOP_IMAGES.map((img, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setProductForm({ ...productForm, imageUrl: img.url })}
+                      className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[10px] font-bold text-slate-700 whitespace-nowrap cursor-pointer"
+                    >
+                      {img.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700 uppercase block">Description</label>
+                <textarea
+                  rows={2}
+                  value={productForm.description || ''}
+                  onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
+                  placeholder="Details regarding delivery and game pack..."
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs focus:outline-none focus:border-brand-orange"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsProductModalOpen(false)}
+                  className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingProduct}
+                  className="px-6 py-2 bg-gradient-to-r from-brand-red to-brand-orange text-white rounded-xl text-xs font-bold shadow-md cursor-pointer disabled:opacity-50"
+                >
+                  {isSavingProduct ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Product'}
+                </button>
+              </div>
+
+            </form>
+
+          </div>
+        </div>
+      )}
+
+      {/* ── Deliver Modal ── */}
       {deliverModalOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full space-y-4 shadow-xl border border-slate-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl border border-slate-200">
             <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
               <Diamond className="w-5 h-5 text-cyan-500" />
-              Fulfill Diamond Order
+              Fulfill Shop Order
             </h3>
             <p className="text-xs text-slate-600">
               Order for <strong>{deliverModalOrder.userName}</strong> ({deliverModalOrder.notes})
@@ -267,16 +845,16 @@ export default function AdminDiamondShopPage() {
                 <button
                   type="button"
                   onClick={() => setDeliverModalOrder(null)}
-                  className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold"
+                  className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={isProcessing}
-                  className="px-5 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl text-xs font-bold shadow flex items-center gap-1.5"
+                  disabled={isProcessingDelivery}
+                  className="px-5 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl text-xs font-bold shadow flex items-center gap-1.5 cursor-pointer"
                 >
-                  {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  {isProcessingDelivery ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   Confirm & Notify Player
                 </button>
               </div>
@@ -284,6 +862,7 @@ export default function AdminDiamondShopPage() {
           </div>
         </div>
       )}
-    </>
+
+    </div>
   );
 }

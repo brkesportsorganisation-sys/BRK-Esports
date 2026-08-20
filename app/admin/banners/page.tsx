@@ -34,6 +34,14 @@ const PRESET_IMAGES = [
   { name: 'Lucky Wheel & Rewards', url: 'https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?w=600&auto=format&fit=crop&q=80' },
 ];
 
+const PROFILE_COVER_PRESETS = [
+  { name: '🔥 Free Fire BR Championship', url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1600&auto=format&fit=crop&q=80' },
+  { name: '⚡ Neon Cyber Arena', url: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1600&auto=format&fit=crop&q=80' },
+  { name: '🏆 Golden Esports Stadium', url: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1600&auto=format&fit=crop&q=80' },
+  { name: '⚔️ Crimson Battleground', url: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=1600&auto=format&fit=crop&q=80' },
+  { name: '👑 Royal Champions League', url: 'https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?w=1600&auto=format&fit=crop&q=80' },
+];
+
 export default function AdminBannersPage() {
   const [banners, setBanners] = useState<Banner[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,6 +49,11 @@ export default function AdminBannersPage() {
   const [autoSlideInterval, setAutoSlideInterval] = useState(4000);
   const [savingSettings, setSavingSettings] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Global Player Profile Cover Photo State
+  const [profileCoverUrl, setProfileCoverUrl] = useState('https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1600&auto=format&fit=crop&q=80');
+  const [savingCover, setSavingCover] = useState(false);
+  const [coverSaveSuccess, setCoverSaveSuccess] = useState(false);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -67,6 +80,15 @@ export default function AdminBannersPage() {
         if (data.settings?.autoSlideInterval) {
           setAutoSlideInterval(data.settings.autoSlideInterval);
         }
+      }
+
+      // Load Profile Cover Photo
+      const sRes = await fetch('/api/settings', { cache: 'no-store' });
+      if (sRes.ok) {
+        const sData = await sRes.json();
+        const s = sData.settings || {};
+        const cover = s.PROFILE_COVER_URL || s.profile_cover_url;
+        if (cover) setProfileCoverUrl(cover);
       }
     } catch (err) {
       console.warn('Failed to load banners:', err);
@@ -101,6 +123,36 @@ export default function AdminBannersPage() {
       alert('Failed to save settings.');
     } finally {
       setSavingSettings(false);
+    }
+  };
+
+  const handleSaveProfileCover = async () => {
+    if (!profileCoverUrl.trim()) {
+      alert('Please enter or select a valid cover image URL.');
+      return;
+    }
+    setSavingCover(true);
+    setCoverSaveSuccess(false);
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          key: 'PROFILE_COVER_URL',
+          value: profileCoverUrl.trim(),
+        }),
+      });
+
+      if (res.ok) {
+        setCoverSaveSuccess(true);
+        setTimeout(() => setCoverSaveSuccess(false), 3000);
+      } else {
+        alert('Failed to update global profile cover.');
+      }
+    } catch {
+      alert('Network error updating global cover.');
+    } finally {
+      setSavingCover(false);
     }
   };
 
@@ -249,6 +301,161 @@ export default function AdminBannersPage() {
           <Plus className="w-4 h-4" />
           <span>ADD NEW BANNER</span>
         </button>
+      </div>
+
+      {/* ── Global Profile Cover Photo Manager ── */}
+      <div className="bg-white rounded-3xl p-6 sm:p-7 border-2 border-orange-200/80 shadow-md space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-red to-brand-orange text-white flex items-center justify-center shadow-md shadow-orange-500/20">
+              <ImageIcon className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="font-heading font-black text-slate-900 text-base sm:text-lg flex items-center gap-2">
+                <span>Global Player Profile Cover Banner</span>
+                <span className="text-[10px] bg-red-100 text-red-700 font-bold px-2.5 py-0.5 rounded-full uppercase border border-red-200">
+                  Admin Only Control
+                </span>
+              </h2>
+              <p className="text-xs text-slate-500">
+                এখানে যে কভার ছবি সেট করবেন, সেটি প্ল্যাটফর্মের সকল ইউজারের প্রোফাইল ব্যানারে সাথে সাথে সেট হয়ে যাবে। সাধারণ প্লেয়াররা এটি নিজে থেকে পরিবর্তন করতে পারবে না।
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleSaveProfileCover}
+            disabled={savingCover}
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-700 hover:to-orange-600 text-white font-heading font-bold text-xs shadow-md transition-all cursor-pointer disabled:opacity-50"
+          >
+            {savingCover ? (
+              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+            ) : coverSaveSuccess ? (
+              <Check className="w-3.5 h-3.5" />
+            ) : (
+              <Save className="w-3.5 h-3.5" />
+            )}
+            <span>{coverSaveSuccess ? 'সবার জন্য সেভ হয়েছে!' : 'Save & Apply For All Players'}</span>
+          </button>
+        </div>
+
+        {/* Live Interactive Preview Box */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
+              <Eye className="w-4 h-4 text-orange-500" />
+              Live Profile Header Preview:
+            </span>
+            <span className="text-[11px] text-slate-400 font-medium">1600 x 400 (Widescreen HD Recommended)</span>
+          </div>
+
+          <div className="rounded-2xl border-2 border-slate-200 overflow-hidden shadow-inner bg-slate-900 relative">
+            <div className="w-full h-40 sm:h-48 overflow-hidden relative">
+              <img
+                src={profileCoverUrl || PRESET_IMAGES[0].url}
+                alt="Profile Cover Preview"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = PRESET_IMAGES[0].url;
+                }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
+              <div className="absolute top-3 left-3 px-2.5 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-wider border border-white/20">
+                BRK ESPORTS PASSPORT
+              </div>
+            </div>
+
+            {/* Overlapping Mock Avatar & Info */}
+            <div className="px-5 pb-4 -mt-10 relative z-10 flex items-end justify-between">
+              <div className="flex items-end gap-3.5">
+                <img
+                  src="https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150"
+                  alt="Player Avatar Mock"
+                  className="w-16 h-16 rounded-2xl object-cover border-4 border-white shadow-xl bg-slate-800"
+                />
+                <div className="mb-0.5">
+                  <div className="text-white font-heading font-black text-lg drop-shadow-sm leading-tight">OCR-FALCON</div>
+                  <div className="text-slate-300 text-[11px] font-mono">App ID: BRK-582910 • Win Rate: 72%</div>
+                </div>
+              </div>
+              <div className="hidden sm:block text-right mb-0.5">
+                <span className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-white/90 text-slate-800 shadow-xs">
+                  Winning: ৳ 1,250
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Input and Preset Selection */}
+        <div className="space-y-4 pt-1">
+          {/* Custom URL Input & File Upload */}
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+            <div className="sm:col-span-8 space-y-1">
+              <label className="text-xs font-bold text-slate-700 uppercase block">Cover Image URL</label>
+              <input
+                type="text"
+                value={profileCoverUrl}
+                onChange={(e) => setProfileCoverUrl(e.target.value)}
+                placeholder="https://images.unsplash.com/..."
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-mono focus:outline-none focus:border-brand-orange"
+              />
+            </div>
+
+            <div className="sm:col-span-4 space-y-1">
+              <label className="text-xs font-bold text-slate-700 uppercase block">Or Upload Local Image</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                      if (reader.result) setProfileCoverUrl(reader.result as string);
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                }}
+                className="w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer"
+              />
+            </div>
+          </div>
+
+          {/* 1-Click Preset Gallery */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-700 uppercase block">
+              1-Click Esports Cover Presets (পছন্দের কভার বেছে নিন):
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+              {PROFILE_COVER_PRESETS.map((preset, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setProfileCoverUrl(preset.url)}
+                  className={`group relative rounded-xl overflow-hidden border-2 transition-all p-1 text-left flex flex-col justify-between h-24 ${
+                    profileCoverUrl === preset.url
+                      ? 'border-brand-orange shadow-md shadow-orange-500/25 ring-2 ring-orange-400/40'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <img src={preset.url} alt={preset.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                  <div className="relative z-10 self-end">
+                    {profileCoverUrl === preset.url && (
+                      <span className="w-5 h-5 rounded-full bg-brand-orange text-white flex items-center justify-center shadow-xs">
+                        <Check className="w-3 h-3" />
+                      </span>
+                    )}
+                  </div>
+                  <span className="relative z-10 text-[10px] font-bold text-white leading-tight drop-shadow truncate w-full">
+                    {preset.name}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Auto-Slide Speed & Settings Card */}

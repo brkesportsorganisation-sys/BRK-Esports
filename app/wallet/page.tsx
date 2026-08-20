@@ -368,66 +368,71 @@ export default function WalletPage() {
         </div>
 
         {/* Live Mobile Banking Agent Numbers Box */}
-        <div className="bg-gradient-to-br from-white via-red-50/20 to-orange-50/30 rounded-3xl p-6 text-slate-900 space-y-4 shadow-sm border border-red-200/80">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/80 pb-3">
+        <div className="bg-white rounded-3xl p-6 sm:p-7 text-slate-900 space-y-4 shadow-md border-2 border-slate-200">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-3">
             <div className="flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-emerald-600" />
-              <h3 className="font-heading font-black text-base tracking-wide text-slate-900">OFFICIAL PAYMENT NUMBERS (SEND MONEY)</h3>
+              <h3 className="font-heading font-black text-base sm:text-lg tracking-wide text-slate-900">OFFICIAL PAYMENT NUMBERS (SEND MONEY)</h3>
             </div>
-            <span className="text-[11px] text-slate-500 font-medium">Auto-verified within 5-15 minutes</span>
+            <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+              ⚡ Auto-verified within 5-15 minutes
+            </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-1">
             {/* bKash */}
-            <div className="p-3.5 rounded-2xl bg-white border border-pink-200 space-y-1.5 flex flex-col justify-between shadow-2xs">
+            <div className="p-4 rounded-2xl bg-gradient-to-b from-pink-50 to-pink-100/70 border-2 border-pink-300 space-y-2 flex flex-col justify-between shadow-xs hover:border-pink-400 transition-all">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-xs text-pink-600">bKash (Personal)</span>
-                <span className="text-[10px] text-slate-500 font-medium">Send Money</span>
+                <span className="font-heading font-black text-sm text-pink-700 tracking-wide">bKash (Personal)</span>
+                <span className="text-[10px] font-bold text-pink-700 bg-pink-200/90 px-2 py-0.5 rounded-md uppercase">Send Money</span>
               </div>
-              <div className="flex items-center justify-between gap-2 bg-pink-50/50 p-2 rounded-xl border border-pink-100">
-                <span className="font-mono font-bold text-sm text-pink-700">{bkashNo}</span>
+              <div className="flex items-center justify-between gap-2 bg-white p-2.5 rounded-xl border-2 border-pink-200/90 shadow-2xs">
+                <span className="font-mono font-black text-sm sm:text-base text-pink-950 tracking-wider">{bkashNo}</span>
                 <button
                   onClick={() => copyToClipboard(bkashNo, 'bkash')}
-                  className="p-1.5 rounded-lg bg-pink-100 hover:bg-pink-200 text-pink-600 transition-colors cursor-pointer"
+                  className="p-1.5 px-2.5 rounded-lg bg-pink-600 hover:bg-pink-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer flex items-center gap-1"
                   title="Copy bKash Number"
                 >
-                  {copiedText === 'bkash' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copiedText === 'bkash' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedText === 'bkash' ? 'Copied' : 'Copy'}</span>
                 </button>
               </div>
             </div>
 
             {/* Nagad */}
-            <div className="p-3.5 rounded-2xl bg-white border border-orange-200 space-y-1.5 flex flex-col justify-between shadow-2xs">
+            <div className="p-4 rounded-2xl bg-gradient-to-b from-orange-50 to-orange-100/70 border-2 border-orange-300 space-y-2 flex flex-col justify-between shadow-xs hover:border-orange-400 transition-all">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-xs text-orange-600">Nagad (Personal)</span>
-                <span className="text-[10px] text-slate-500 font-medium">Send Money</span>
+                <span className="font-heading font-black text-sm text-orange-700 tracking-wide">Nagad (Personal)</span>
+                <span className="text-[10px] font-bold text-orange-700 bg-orange-200/90 px-2 py-0.5 rounded-md uppercase">Send Money</span>
               </div>
-              <div className="flex items-center justify-between gap-2 bg-orange-50/50 p-2 rounded-xl border border-orange-100">
-                <span className="font-mono font-bold text-sm text-orange-700">{nagadNo}</span>
+              <div className="flex items-center justify-between gap-2 bg-white p-2.5 rounded-xl border-2 border-orange-200/90 shadow-2xs">
+                <span className="font-mono font-black text-sm sm:text-base text-orange-950 tracking-wider">{nagadNo}</span>
                 <button
                   onClick={() => copyToClipboard(nagadNo, 'nagad')}
-                  className="p-1.5 rounded-lg bg-orange-100 hover:bg-orange-200 text-orange-600 transition-colors cursor-pointer"
+                  className="p-1.5 px-2.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer flex items-center gap-1"
                   title="Copy Nagad Number"
                 >
-                  {copiedText === 'nagad' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copiedText === 'nagad' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedText === 'nagad' ? 'Copied' : 'Copy'}</span>
                 </button>
               </div>
             </div>
 
             {/* Rocket */}
-            <div className="p-3.5 rounded-2xl bg-white border border-purple-200 space-y-1.5 flex flex-col justify-between shadow-2xs">
+            <div className="p-4 rounded-2xl bg-gradient-to-b from-purple-50 to-purple-100/70 border-2 border-purple-300 space-y-2 flex flex-col justify-between shadow-xs hover:border-purple-400 transition-all">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-xs text-purple-600">Rocket (Personal)</span>
-                <span className="text-[10px] text-slate-500 font-medium">Send Money</span>
+                <span className="font-heading font-black text-sm text-purple-700 tracking-wide">Rocket (Personal)</span>
+                <span className="text-[10px] font-bold text-purple-700 bg-purple-200/90 px-2 py-0.5 rounded-md uppercase">Send Money</span>
               </div>
-              <div className="flex items-center justify-between gap-2 bg-purple-50/50 p-2 rounded-xl border border-purple-100">
-                <span className="font-mono font-bold text-sm text-purple-700">{rocketNo}</span>
+              <div className="flex items-center justify-between gap-2 bg-white p-2.5 rounded-xl border-2 border-purple-200/90 shadow-2xs">
+                <span className="font-mono font-black text-sm sm:text-base text-purple-950 tracking-wider">{rocketNo}</span>
                 <button
                   onClick={() => copyToClipboard(rocketNo, 'rocket')}
-                  className="p-1.5 rounded-lg bg-purple-100 hover:bg-purple-200 text-purple-600 transition-colors cursor-pointer"
+                  className="p-1.5 px-2.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer flex items-center gap-1"
                   title="Copy Rocket Number"
                 >
-                  {copiedText === 'rocket' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copiedText === 'rocket' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedText === 'rocket' ? 'Copied' : 'Copy'}</span>
                 </button>
               </div>
             </div>

@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import MobileBottomNav from '@/components/ui/MobileBottomNav';
 import { db } from '@/lib/db';
-import { User } from '@/lib/types';
+import { User, ShopProduct, DEFAULT_SHOP_PRODUCTS } from '@/lib/types';
 import { 
   Diamond, 
   Sparkles, 
@@ -19,20 +20,49 @@ import {
   ArrowRight,
   Gift,
   Search,
-  ShoppingCart
+  ShoppingCart,
+  Tag,
+  Package,
+  Layers,
+  Flame,
+  CheckCircle2,
+  AlertCircle,
+  HelpCircle,
+  Clock,
+  Ticket
 } from 'lucide-react';
-import { DIAMOND_PRODUCTS, DiamondProduct } from '@/lib/types';
 
-export default function DiamondShopPage() {
+export default function GamingShopPage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [products, setProducts] = useState<DiamondProduct[]>(DIAMOND_PRODUCTS);
+  const [products, setProducts] = useState<ShopProduct[]>(DEFAULT_SHOP_PRODUCTS);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
-  const [selectedProduct, setSelectedProduct] = useState<DiamondProduct | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<'WALLET' | 'COINS'>('WALLET');
+  const [currencyFilter, setCurrencyFilter] = useState<'ALL' | 'COINS' | 'WALLET'>('ALL');
+  
+  // Purchase Modal State
+  const [selectedProduct, setSelectedProduct] = useState<ShopProduct | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<'WALLET' | 'COINS'>('COINS');
   const [playerUid, setPlayerUid] = useState('');
   const [inGameName, setInGameName] = useState('');
   const [isPurchasing, setIsPurchasing] = useState(false);
-  const [orderSuccessMsg, setOrderSuccessMsg] = useState('');
+  const [purchaseResult, setPurchaseResult] = useState<{ success: boolean; message: string; orderId?: string } | null>(null);
+
+  const loadShopProducts = async () => {
+    try {
+      const res = await fetch('/api/shop', { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.products && Array.isArray(data.products)) {
+          setProducts(data.products);
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to load shop items:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const user = db.getCurrentUser();
@@ -43,7 +73,37 @@ export default function DiamondShopPage() {
     if (user?.inGameName) {
       setInGameName(user.inGameName);
     }
+
+    // Refresh user balance from /api/auth/me
+    fetch('/api/auth/me')
+      .then(res => res.json())
+      .then(data => {
+        if (data.user) {
+          setCurrentUser(data.user);
+          db.setCurrentUser(data.user);
+          if (data.user.freeFireUid) setPlayerUid(data.user.freeFireUid);
+          if (data.user.inGameName) setInGameName(data.user.inGameName);
+        }
+      })
+      .catch(() => {});
+
+    loadShopProducts();
   }, []);
+
+  const openPurchaseModal = (product: ShopProduct) => {
+    setSelectedProduct(product);
+    setPurchaseResult(null);
+    // Set initial preferred payment method
+    if (product.currencyType === 'COINS') {
+      setPaymentMethod('COINS');
+    } else if (product.currencyType === 'WALLET') {
+      setPaymentMethod('WALLET');
+    } else {
+      // If user has enough coins, default to coins; else wallet
+      const hasCoins = (currentUser?.coinBalance || 0) >= (product.priceCoins || 0);
+      setPaymentMethod(hasCoins ? 'COINS' : 'WALLET');
+    }
+  };
 
   const handlePurchase = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,10 +111,15 @@ export default function DiamondShopPage() {
       window.location.href = '/login';
       return;
     }
-    if (!selectedProduct || !playerUid.trim()) return;
+    if (!selectedProduct) return;
+
+    if (selectedProduct.deliveryType === 'FF_UID' && (!playerUid || playerUid.trim().length < 5)) {
+      alert('Please enter a valid Free Fire Player UID!');
+      return;
+    }
 
     setIsPurchasing(true);
-    setOrderSuccessMsg('');
+    setPurchaseResult(null);
 
     try {
       const res = await fetch('/api/shop', {
@@ -72,241 +137,524 @@ export default function DiamondShopPage() {
       const data = await res.json();
 
       if (res.ok) {
-        setOrderSuccessMsg(data.message || 'Diamond order confirmed!');
-        // Update user local balance
-        const updated = { ...currentUser };
-        if (paymentMethod === 'COINS') {
-          updated.coinBalance = data.remainingBalance;
-        } else {
-          updated.walletBalance = data.remainingBalance;
-        }
+        setPurchaseResult({
+          success: true,
+          message: data.message || 'Item purchased successfully!',
+          orderId: data.orderId,
+        });
+
+        // Update local user balances
+        const updated = {
+          ...currentUser,
+          coinBalance: data.remainingCoinBalance !== undefined ? data.remainingCoinBalance : currentUser.coinBalance,
+          walletBalance: data.remainingWalletBalance !== undefined ? data.remainingWalletBalance : currentUser.walletBalance,
+        };
         setCurrentUser(updated);
         db.setCurrentUser(updated);
-        setTimeout(() => {
-          setSelectedProduct(null);
-          setOrderSuccessMsg('');
-        }, 4000);
       } else {
-        alert(data.message || 'Failed to complete order.');
+        setPurchaseResult({
+          success: false,
+          message: data.message || 'Failed to complete order. Please check balance.',
+        });
       }
     } catch (err: any) {
-      alert(err.message || 'Error processing purchase.');
+      setPurchaseResult({
+        success: false,
+        message: err.message || 'Network error processing purchase.',
+      });
     } finally {
       setIsPurchasing(false);
     }
   };
 
+  // Filter products by category, currency, and search query
   const filteredProducts = products.filter((p) => {
-    if (selectedCategory === 'ALL') return true;
-    return p.category === selectedCategory;
+    const matchesCat = selectedCategory === 'ALL' || p.category === selectedCategory;
+    
+    let matchesCurrency = true;
+    if (currencyFilter === 'COINS') {
+      matchesCurrency = p.currencyType === 'COINS' || p.currencyType === 'BOTH';
+    } else if (currencyFilter === 'WALLET') {
+      matchesCurrency = p.currencyType === 'WALLET' || p.currencyType === 'BOTH';
+    }
+
+    const matchesQuery = searchQuery.trim() === '' || 
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      p.category.toLowerCase().includes(searchQuery.toLowerCase());
+
+    return matchesCat && matchesCurrency && matchesQuery;
   });
 
+  const categories = [
+    { id: 'ALL', label: 'All Items', icon: Package },
+    { id: 'DIAMONDS', label: '💎 FF Diamonds', icon: Diamond },
+    { id: 'PASSES', label: '👑 Passes & Memberships', icon: Crown },
+    { id: 'SKINS', label: '🎁 Skins & Redeem Codes', icon: Gift },
+    { id: 'TICKETS', label: '🎟️ Match Passes', icon: Ticket },
+    { id: 'CRATES', label: '📦 Mystery Crates', icon: Sparkles },
+  ];
+
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans flex flex-col selection:bg-orange-500 selection:text-white">
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-body flex flex-col selection:bg-orange-500 selection:text-white">
       <Navbar />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         
-        {/* Hero Header */}
-        <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-cyan-50 via-white to-orange-50/40 border border-cyan-200/80 p-6 md:p-10 shadow-sm">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-100/70 border border-cyan-300 text-cyan-800 text-xs font-bold">
-                <Diamond className="w-3.5 h-3.5 animate-pulse text-cyan-600" />
-                INSTANT DIAMOND TOP-UP & REDEEM HUB
+        {/* ── Hero Banner ── */}
+        <div className="relative rounded-[2.5rem] overflow-hidden bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border border-slate-800 p-6 sm:p-10 shadow-2xl text-white">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-orange-500/20 via-cyan-500/20 to-transparent rounded-full blur-3xl pointer-events-none" />
+          
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 relative z-10">
+            <div className="space-y-3 max-w-2xl">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-500/20 border border-orange-500/40 text-orange-400 text-xs font-black uppercase tracking-wider shadow-sm">
+                <Sparkles className="w-4 h-4 animate-pulse text-amber-400" />
+                <span>BRK ESPORTS OFFICIAL REWARDS & COIN SHOP</span>
               </div>
-              <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight font-heading">
-                Free Fire <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600">Diamonds Store</span>
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-black font-heading tracking-tight text-white leading-tight">
+                Gaming Shop & <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-red-500">Diamond Center</span>
               </h1>
-              <p className="text-xs md:text-sm text-slate-600 max-w-xl leading-relaxed">
-                Use your tournament winning cash or BRK Coins to buy official Free Fire Diamonds, Weekly Memberships, and Level Up Passes with instant UID delivery!
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                আপনার অর্জিত <strong className="text-amber-400">BRK Coins (🪙)</strong> অথবা <strong className="text-emerald-400">Wallet Taka (৳)</strong> দিয়ে ইনস্ট্যান্ট ফ্রি ফায়ার ডায়মন্ড, উইকলি মেম্বারশিপ, স্কিন রিডিম ভাউচার ও ম্যাচ পাস কিনুন!
               </p>
             </div>
 
-            {currentUser && (
-              <div className="bg-white border border-slate-200 rounded-2xl p-4 md:p-5 flex items-center gap-6 shadow-sm flex-shrink-0">
-                <div className="space-y-0.5">
-                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Your Wallet</span>
-                  <div className="text-xl md:text-2xl font-black text-emerald-600 flex items-center gap-1.5 font-heading">
-                    <DollarSign className="w-5 h-5" />
-                    ৳ {(currentUser.walletBalance || 0).toLocaleString()}
-                  </div>
+            {/* Live Balances Card */}
+            <div className="bg-slate-900/80 backdrop-blur-md border border-slate-700/80 rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-6 flex-shrink-0">
+              
+              {/* Coin Balance Box */}
+              <div className="space-y-1 bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">Your Coins</span>
+                  <Link href="/ads" className="text-[10px] text-amber-300 hover:underline font-bold flex items-center gap-0.5">
+                    Earn Free <ArrowRight className="w-3 h-3" />
+                  </Link>
                 </div>
-                <div className="h-10 w-[1px] bg-slate-200" />
-                <div className="space-y-0.5">
-                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Your Coins</span>
-                  <div className="text-xl md:text-2xl font-black text-amber-600 flex items-center gap-1.5 font-heading">
-                    <Coins className="w-5 h-5" />
-                    {(currentUser.coinBalance || 0).toLocaleString()}
-                  </div>
+                <div className="text-2xl font-heading font-black text-amber-400 flex items-center gap-1.5">
+                  <Coins className="w-6 h-6 text-amber-400" />
+                  <span>{(currentUser?.coinBalance || 0).toLocaleString()}</span>
                 </div>
               </div>
-            )}
+
+              {/* Wallet Balance Box */}
+              <div className="space-y-1 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 flex-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">Wallet Cash</span>
+                  <Link href="/wallet" className="text-[10px] text-emerald-300 hover:underline font-bold flex items-center gap-0.5">
+                    Deposit <ArrowRight className="w-3 h-3" />
+                  </Link>
+                </div>
+                <div className="text-2xl font-heading font-black text-emerald-400 flex items-center gap-1">
+                  <span>৳</span>
+                  <span>{(currentUser?.walletBalance || 0).toLocaleString()}</span>
+                </div>
+              </div>
+
+            </div>
           </div>
         </div>
 
-        {/* Categories Bar */}
-        <div className="flex flex-wrap items-center gap-2">
-          {[
-            { id: 'ALL', label: 'All Items' },
-            { id: 'TOPUP', label: '💎 Diamond Packs' },
-            { id: 'MEMBERSHIP', label: '👑 Memberships' },
-            { id: 'SPECIAL', label: '⚡ Level Up Passes' },
-          ].map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all border cursor-pointer ${
-                selectedCategory === cat.id
-                  ? 'bg-gradient-to-r from-brand-red to-brand-orange text-white border-brand-red shadow-sm'
-                  : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
-            >
-              {cat.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Products Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredProducts.map((product) => (
-            <div
-              key={product.id}
-              className="p-6 bg-white border border-slate-200 hover:border-brand-orange/60 rounded-3xl space-y-5 transition-all shadow-sm hover:shadow-lg group relative overflow-hidden flex flex-col justify-between"
-            >
-              {product.badge && (
-                <div className="absolute top-3 right-3 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-xs">
-                  {product.badge}
-                </div>
+        {/* ── Search & Filter Controls ── */}
+        <div className="space-y-4">
+          
+          {/* Top Search & Currency Tabs */}
+          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+            
+            {/* Search Input */}
+            <div className="relative flex-1 max-w-md">
+              <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search diamonds, memberships, skins, passes..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-11 pr-4 py-3 text-xs sm:text-sm bg-white border border-slate-200 rounded-2xl focus:outline-none focus:border-brand-orange shadow-2xs font-medium"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 hover:text-slate-600"
+                >
+                  ✕
+                </button>
               )}
+            </div>
 
-              {/* Product Header */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="text-3xl p-3 bg-slate-50 rounded-2xl border border-slate-200 group-hover:scale-110 transition-transform">
-                    {product.icon}
-                  </div>
-                  <div>
-                    <h3 className="font-black text-sm text-slate-900 leading-tight">{product.name}</h3>
-                    {product.bonusDiamonds && (
-                      <span className="text-[10px] text-amber-600 font-bold block">
-                        +{product.bonusDiamonds} Bonus 💎 Included
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Price Badges */}
-                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-500 font-semibold">Cash Price:</span>
-                    <strong className="text-emerald-600 font-black text-sm">৳ {product.priceBdt}</strong>
-                  </div>
-                  <div className="flex items-center justify-between text-xs border-t border-slate-200 pt-1.5">
-                    <span className="text-slate-500 font-semibold">Or Pay with Coins:</span>
-                    <strong className="text-amber-600 font-black flex items-center gap-1">
-                      <Coins className="w-3.5 h-3.5" />
-                      {product.priceCoins.toLocaleString()}
-                    </strong>
-                  </div>
-                </div>
-              </div>
-
-              {/* Buy CTA */}
+            {/* Currency Filter Switcher */}
+            <div className="flex items-center gap-1.5 p-1 bg-white border border-slate-200 rounded-2xl shadow-2xs self-start md:self-auto overflow-x-auto">
               <button
-                onClick={() => setSelectedProduct(product)}
-                className="w-full py-3 bg-gradient-to-r from-brand-red to-brand-orange hover:brightness-110 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+                onClick={() => setCurrencyFilter('ALL')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  currencyFilter === 'ALL'
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
               >
-                <ShoppingCart className="w-4 h-4" />
-                Buy / Redeem Now
+                All Currencies
+              </button>
+              <button
+                onClick={() => setCurrencyFilter('COINS')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  currencyFilter === 'COINS'
+                    ? 'bg-amber-500 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Coins className="w-3.5 h-3.5" />
+                <span>🪙 Coin Shop</span>
+              </button>
+              <button
+                onClick={() => setCurrencyFilter('WALLET')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  currencyFilter === 'WALLET'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <DollarSign className="w-3.5 h-3.5" />
+                <span>৳ Taka (Wallet)</span>
               </button>
             </div>
-          ))}
+
+          </div>
+
+          {/* Category Filter Pills */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            {categories.map((cat) => {
+              const Icon = cat.icon;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={`px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all border flex items-center gap-2 cursor-pointer ${
+                    selectedCategory === cat.id
+                      ? 'bg-gradient-to-r from-red-600 to-orange-500 text-white border-transparent shadow-md shadow-orange-500/20'
+                      : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{cat.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
         </div>
+
+        {/* ── Products Grid ── */}
+        {loading ? (
+          <div className="py-20 text-center space-y-3">
+            <Loader2 className="w-10 h-10 text-brand-orange animate-spin mx-auto" />
+            <div className="text-xs text-slate-500 font-bold">Loading gaming shop items...</div>
+          </div>
+        ) : filteredProducts.length === 0 ? (
+          <div className="bg-white rounded-3xl p-16 text-center border border-slate-200 space-y-4">
+            <ShoppingCart className="w-12 h-12 text-slate-300 mx-auto" />
+            <div>
+              <h3 className="font-heading font-black text-slate-800 text-lg">No Items Found</h3>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+                No shop items match your search or filter criteria. Try selecting another category or resetting filters.
+              </p>
+            </div>
+            <button
+              onClick={() => { setSelectedCategory('ALL'); setCurrencyFilter('ALL'); setSearchQuery(''); }}
+              className="px-5 py-2.5 rounded-xl bg-brand-orange text-white text-xs font-bold shadow-md cursor-pointer"
+            >
+              Reset Filters
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredProducts.map((product) => {
+              const hasEnoughCoins = (currentUser?.coinBalance || 0) >= (product.priceCoins || 0);
+              const hasEnoughCash = (currentUser?.walletBalance || 0) >= (product.priceBdt || 0);
+
+              return (
+                <div
+                  key={product.id}
+                  className="bg-white rounded-3xl border border-slate-200 hover:border-brand-orange/50 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between group relative"
+                >
+                  {/* Badge */}
+                  {product.badge && (
+                    <div className="absolute top-3 right-3 z-10 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-gradient-to-r from-red-600 to-orange-500 text-white shadow-md">
+                      {product.badge}
+                    </div>
+                  )}
+
+                  {/* Top Image Box */}
+                  <div className="relative w-full h-44 bg-slate-900 overflow-hidden">
+                    <img
+                      src={product.imageUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=500'}
+                      alt={product.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
+                    
+                    {/* Category & Icon Tag */}
+                    <div className="absolute bottom-3 left-3 flex items-center gap-2">
+                      <span className="w-8 h-8 rounded-xl bg-black/60 backdrop-blur-md border border-white/20 text-white flex items-center justify-center text-base shadow-sm">
+                        {product.icon || '💎'}
+                      </span>
+                      <span className="text-[11px] font-bold text-white uppercase drop-shadow-sm font-heading">
+                        {product.category}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Body Content */}
+                  <div className="p-5 space-y-4 flex-1 flex flex-col justify-between">
+                    
+                    <div className="space-y-1.5">
+                      <h3 className="font-heading font-black text-slate-900 text-base leading-tight group-hover:text-brand-orange transition-colors">
+                        {product.name}
+                      </h3>
+                      <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                        {product.description || 'Instant Free Fire game delivery directly to your account ID.'}
+                      </p>
+                    </div>
+
+                    {/* Pricing Box */}
+                    <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 space-y-2">
+                      
+                      {/* Taka Price (if supported) */}
+                      {(product.currencyType === 'WALLET' || product.currencyType === 'BOTH') && (
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-slate-500 font-semibold flex items-center gap-1">
+                            <span>Cash / Wallet:</span>
+                          </span>
+                          <strong className="text-emerald-600 font-black text-sm">
+                            ৳ {product.priceBdt.toLocaleString()}
+                          </strong>
+                        </div>
+                      )}
+
+                      {/* Coin Price (if supported) */}
+                      {(product.currencyType === 'COINS' || product.currencyType === 'BOTH') && (
+                        <div className={`flex items-center justify-between text-xs ${
+                          product.currencyType === 'BOTH' ? 'border-t border-slate-200 pt-1.5' : ''
+                        }`}>
+                          <span className="text-slate-500 font-semibold flex items-center gap-1">
+                            <Coins className="w-3.5 h-3.5 text-amber-500" />
+                            <span>Or Pay With Coins:</span>
+                          </span>
+                          <strong className="text-amber-600 font-black flex items-center gap-1 text-sm">
+                            {product.priceCoins.toLocaleString()} 🪙
+                          </strong>
+                        </div>
+                      )}
+
+                    </div>
+
+                    {/* CTA Button */}
+                    <button
+                      onClick={() => openPurchaseModal(product)}
+                      className={`w-full py-3 px-4 rounded-2xl font-heading font-black text-xs uppercase tracking-wider shadow-md hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                        product.currencyType === 'COINS'
+                          ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white'
+                          : 'bg-gradient-to-r from-red-600 to-orange-500 text-white'
+                      }`}
+                    >
+                      <ShoppingCart className="w-4 h-4" />
+                      <span>
+                        {product.currencyType === 'COINS' ? 'Redeem With Coins' : 'Buy / Redeem Now'}
+                      </span>
+                    </button>
+
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
       </main>
 
-      {/* Buy Modal */}
+      {/* ── Buy / Redeem Modal ── */}
       {selectedProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white border-2 border-red-200/90 rounded-3xl p-6 md:p-8 max-w-lg w-full space-y-6 shadow-2xl text-slate-900">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 max-w-lg w-full space-y-6 shadow-2xl text-slate-900 max-h-[90vh] overflow-y-auto">
+            
+            {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-              <div className="flex items-center gap-2">
-                <Diamond className="w-5 h-5 text-brand-orange" />
-                <h3 className="text-base font-black text-slate-900">Purchase {selectedProduct.name}</h3>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-orange-50 text-brand-orange flex items-center justify-center text-lg shadow-xs">
+                  {selectedProduct.icon || '💎'}
+                </div>
+                <div>
+                  <h3 className="font-heading font-black text-base sm:text-lg text-slate-900">
+                    {selectedProduct.name}
+                  </h3>
+                  <p className="text-xs text-slate-500">Official Gaming Shop Item</p>
+                </div>
               </div>
-              <button onClick={() => setSelectedProduct(null)} className="text-slate-400 hover:text-slate-900 cursor-pointer">✕</button>
+              <button
+                onClick={() => setSelectedProduct(null)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 font-bold transition-colors cursor-pointer"
+              >
+                ✕
+              </button>
             </div>
 
-            {orderSuccessMsg ? (
-              <div className="p-6 bg-emerald-50 border border-emerald-200 rounded-2xl text-center space-y-3">
-                <Check className="w-10 h-10 text-emerald-600 mx-auto" />
-                <h4 className="font-bold text-emerald-700 text-sm">{orderSuccessMsg}</h4>
+            {/* Purchase Result Message */}
+            {purchaseResult ? (
+              <div className={`p-6 rounded-2xl border text-center space-y-3 ${
+                purchaseResult.success 
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-900' 
+                  : 'bg-red-50 border-red-200 text-red-900'
+              }`}>
+                {purchaseResult.success ? (
+                  <CheckCircle2 className="w-12 h-12 text-emerald-600 mx-auto" />
+                ) : (
+                  <AlertCircle className="w-12 h-12 text-red-600 mx-auto" />
+                )}
+                <div className="space-y-1">
+                  <h4 className="font-heading font-black text-base">
+                    {purchaseResult.success ? 'Order Completed!' : 'Purchase Failed'}
+                  </h4>
+                  <p className="text-xs font-medium">{purchaseResult.message}</p>
+                  {purchaseResult.orderId && (
+                    <div className="text-[11px] font-mono text-slate-500 pt-1">
+                      Order ID: {purchaseResult.orderId}
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => setSelectedProduct(null)}
+                  className="px-6 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs shadow-md cursor-pointer mt-2"
+                >
+                  Close
+                </button>
               </div>
             ) : (
-              <form onSubmit={handlePurchase} className="space-y-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Free Fire UID (Player ID)</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. 192837465"
-                    value={playerUid}
-                    onChange={(e) => setPlayerUid(e.target.value)}
-                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 font-mono font-bold focus:outline-none focus:border-brand-orange focus:bg-white"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Payment Option</label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod('WALLET')}
-                      className={`p-3 rounded-xl border text-xs font-bold transition-all text-left cursor-pointer ${
-                        paymentMethod === 'WALLET'
-                          ? 'bg-emerald-50 border-emerald-400 text-emerald-700 shadow-xs'
-                          : 'bg-slate-50 border-slate-200 text-slate-600'
-                      }`}
-                    >
-                      <div className="text-[10px] text-slate-500 font-semibold">Wallet Balance</div>
-                      <div className="text-sm font-black">৳ {selectedProduct.priceBdt}</div>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod('COINS')}
-                      className={`p-3 rounded-xl border text-xs font-bold transition-all text-left cursor-pointer ${
-                        paymentMethod === 'COINS'
-                          ? 'bg-amber-50 border-amber-400 text-amber-800 shadow-xs'
-                          : 'bg-slate-50 border-slate-200 text-slate-600'
-                      }`}
-                    >
-                      <div className="text-[10px] text-slate-500 font-semibold">BRK Coins</div>
-                      <div className="text-sm font-black">{selectedProduct.priceCoins.toLocaleString()} 🪙</div>
-                    </button>
+              <form onSubmit={handlePurchase} className="space-y-5">
+                
+                {/* Product Summary Box */}
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-1.5 text-xs">
+                  <div className="flex justify-between font-medium">
+                    <span className="text-slate-500">Category:</span>
+                    <strong className="text-slate-800 font-bold">{selectedProduct.category}</strong>
+                  </div>
+                  {selectedProduct.diamonds && (
+                    <div className="flex justify-between font-medium">
+                      <span className="text-slate-500">Diamonds Received:</span>
+                      <strong className="text-cyan-600 font-bold">{selectedProduct.diamonds} 💎</strong>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-medium">
+                    <span className="text-slate-500">Delivery Method:</span>
+                    <strong className="text-slate-800 font-bold">
+                      {selectedProduct.deliveryType === 'FF_UID' ? 'Direct Free Fire UID' : 'In-App Redeem Code'}
+                    </strong>
                   </div>
                 </div>
 
+                {/* Free Fire Player UID Input */}
+                {selectedProduct.deliveryType === 'FF_UID' && (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700 uppercase block">
+                      Free Fire Player UID (প্লেয়ার আইডি)
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. 2172143722"
+                      value={playerUid}
+                      onChange={(e) => setPlayerUid(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-900 font-mono font-bold focus:outline-none focus:border-brand-orange focus:bg-white transition-colors"
+                    />
+                    <span className="text-[10px] text-slate-400 block">
+                      যে অ্যাকাউন্টে ডায়মন্ড বা আইটেমটি যাবে সেটির Free Fire UID সঠিকভাবে লিখুন।
+                    </span>
+                  </div>
+                )}
+
+                {/* Payment Option Selector */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700 uppercase block">
+                    Choose Payment Currency (পেমেন্ট মাধ্যম বেছে নিন)
+                  </label>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    
+                    {/* Pay with Coins Option */}
+                    {(selectedProduct.currencyType === 'COINS' || selectedProduct.currencyType === 'BOTH') && (
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod('COINS')}
+                        className={`p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between ${
+                          paymentMethod === 'COINS'
+                            ? 'border-amber-500 bg-amber-50/60 text-amber-950 shadow-md ring-2 ring-amber-400/30'
+                            : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] font-bold uppercase text-amber-700 flex items-center gap-1">
+                            <Coins className="w-3.5 h-3.5" />
+                            <span>BRK Coins</span>
+                          </span>
+                          {paymentMethod === 'COINS' && <Check className="w-4 h-4 text-amber-600" />}
+                        </div>
+                        <div className="text-base font-heading font-black text-amber-600">
+                          {selectedProduct.priceCoins.toLocaleString()} 🪙
+                        </div>
+                        <div className="text-[10px] text-slate-500 mt-1">
+                          Your Coins: <strong>{(currentUser?.coinBalance || 0).toLocaleString()}</strong>
+                        </div>
+                      </button>
+                    )}
+
+                    {/* Pay with Wallet Cash Option */}
+                    {(selectedProduct.currencyType === 'WALLET' || selectedProduct.currencyType === 'BOTH') && (
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod('WALLET')}
+                        className={`p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between ${
+                          paymentMethod === 'WALLET'
+                            ? 'border-emerald-500 bg-emerald-50/60 text-emerald-950 shadow-md ring-2 ring-emerald-400/30'
+                            : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] font-bold uppercase text-emerald-700 flex items-center gap-1">
+                            <DollarSign className="w-3.5 h-3.5" />
+                            <span>Wallet Cash</span>
+                          </span>
+                          {paymentMethod === 'WALLET' && <Check className="w-4 h-4 text-emerald-600" />}
+                        </div>
+                        <div className="text-base font-heading font-black text-emerald-600">
+                          ৳ {selectedProduct.priceBdt.toLocaleString()}
+                        </div>
+                        <div className="text-[10px] text-slate-500 mt-1">
+                          Your Balance: <strong>৳{(currentUser?.walletBalance || 0).toLocaleString()}</strong>
+                        </div>
+                      </button>
+                    )}
+
+                  </div>
+                </div>
+
+                {/* Confirm Buttons */}
                 <div className="pt-3 flex items-center justify-end gap-3 border-t border-slate-100">
                   <button
                     type="button"
                     onClick={() => setSelectedProduct(null)}
-                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl cursor-pointer"
+                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl cursor-pointer transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    disabled={isPurchasing || !playerUid.trim()}
-                    className="px-5 py-2.5 bg-gradient-to-r from-brand-red to-brand-orange hover:brightness-110 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                    disabled={isPurchasing}
+                    className="px-6 py-2.5 bg-gradient-to-r from-red-600 to-orange-500 hover:brightness-110 text-white font-heading font-black text-xs uppercase tracking-wider rounded-xl shadow-md flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                   >
                     {isPurchasing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                    Confirm Top-Up
+                    <span>Confirm & Pay</span>
                   </button>
                 </div>
+
               </form>
             )}
+
           </div>
         </div>
       )}
