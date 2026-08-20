@@ -328,32 +328,6 @@ export default function HomePage() {
               </div>
             )}
 
-            {/* Compact Milestone Stages Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 pt-3 sm:pt-5 relative z-10">
-              <div className="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-white/90 border border-slate-200/90 shadow-xs space-y-0.5 sm:space-y-1 text-center hover:border-brand-orange/40 transition-colors">
-                <div className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase">10 Referrals</div>
-                <div className="text-sm sm:text-lg font-heading font-black text-amber-600">50 Coins 🪙</div>
-                <div className="text-[9px] sm:text-[10px] text-slate-400 font-mono">Stage 1 Reward</div>
-              </div>
-
-              <div className="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-white/90 border border-slate-200/90 shadow-xs space-y-0.5 sm:space-y-1 text-center hover:border-brand-orange/40 transition-colors">
-                <div className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase">50 Referrals</div>
-                <div className="text-sm sm:text-lg font-heading font-black text-amber-600">100 Coins 🪙</div>
-                <div className="text-[9px] sm:text-[10px] text-slate-400 font-mono">Stage 2 Reward</div>
-              </div>
-
-              <div className="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-white/90 border border-slate-200/90 shadow-xs space-y-0.5 sm:space-y-1 text-center hover:border-brand-orange/40 transition-colors">
-                <div className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase">100 Referrals</div>
-                <div className="text-sm sm:text-lg font-heading font-black text-amber-600">200 Coins 🪙</div>
-                <div className="text-[9px] sm:text-[10px] text-slate-400 font-mono">Stage 3 Reward</div>
-              </div>
-
-              <div className="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-brand-red/10 to-brand-orange/15 border-2 border-brand-orange/60 shadow-xs space-y-0.5 sm:space-y-1 text-center">
-                <div className="text-[9px] sm:text-[10px] text-brand-orange font-bold uppercase">300 Referrals</div>
-                <div className="text-sm sm:text-lg font-heading font-black text-brand-red">৳ 500 CASH 🔥</div>
-                <div className="text-[9px] sm:text-[10px] text-orange-600 font-mono font-bold">Grand Prize</div>
-              </div>
-            </div>
 
           </div>
 

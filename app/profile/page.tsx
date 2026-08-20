@@ -73,6 +73,7 @@ function ProfilePageContent() {
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
   const [claimingMilestoneId, setClaimingMilestoneId] = useState<number | null>(null);
   const [globalCoverUrl, setGlobalCoverUrl] = useState<string>('https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1600&auto=format&fit=crop&q=80');
+  const [siteSettings, setSiteSettings] = useState<Record<string, string>>({});
   
   // Edit Profile Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -219,13 +220,14 @@ function ProfilePageContent() {
   };
 
   useEffect(() => {
-    // Fetch global cover photo from settings
+    // Fetch global cover photo + referral milestone settings
     fetch('/api/settings', { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
         const s = data.settings || {};
         const cover = s.PROFILE_COVER_URL || s.profile_cover_url;
         if (cover) setGlobalCoverUrl(cover);
+        setSiteSettings(s);
       })
       .catch(() => {});
 
@@ -433,11 +435,21 @@ function ProfilePageContent() {
     }
   };
 
+  // Milestone values: loaded from admin siteSettings with hardcoded defaults as fallback
+  const m1Required = parseInt(siteSettings.ref_stage1_required || '10');
+  const m1Reward   = parseInt(siteSettings.ref_stage1_reward   || '50');
+  const m2Required = parseInt(siteSettings.ref_stage2_required || '50');
+  const m2Reward   = parseInt(siteSettings.ref_stage2_reward   || '100');
+  const m3Required = parseInt(siteSettings.ref_stage3_required || '100');
+  const m3Reward   = parseInt(siteSettings.ref_stage3_reward   || '200');
+  const m4Required = parseInt(siteSettings.ref_stage4_required || '300');
+  const m4Reward   = parseInt(siteSettings.ref_stage4_reward   || '500');
+
   const referralMilestones = [
-    { id: 10, required: 10, rewardAmount: 50, rewardType: 'COIN' as const, label: '50 Coins' },
-    { id: 50, required: 50, rewardAmount: 100, rewardType: 'COIN' as const, label: '100 Coins' },
-    { id: 100, required: 100, rewardAmount: 200, rewardType: 'COIN' as const, label: '200 Coins' },
-    { id: 300, required: 300, rewardAmount: 500, rewardType: 'WALLET' as const, label: '500 TK' },
+    { id: m1Required, required: m1Required, rewardAmount: m1Reward,   rewardType: 'COIN'   as const, label: `${m1Reward} Coins` },
+    { id: m2Required, required: m2Required, rewardAmount: m2Reward,   rewardType: 'COIN'   as const, label: `${m2Reward} Coins` },
+    { id: m3Required, required: m3Required, rewardAmount: m3Reward,   rewardType: 'COIN'   as const, label: `${m3Reward} Coins` },
+    { id: m4Required, required: m4Required, rewardAmount: m4Reward,   rewardType: 'WALLET' as const, label: `${m4Reward} TK` },
   ];
 
   if (!user && !isLoadingProfile) {

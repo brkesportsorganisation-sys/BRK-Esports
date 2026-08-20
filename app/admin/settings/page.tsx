@@ -83,6 +83,16 @@ export default function AdminSettingsPage() {
   const [refBtn2Text, setRefBtn2Text] = useState('FIND SQUAD (LFG)');
   const [refBtn2Link, setRefBtn2Link] = useState('/lfg');
 
+  // Referral Milestone Stages (editable from admin)
+  const [refStage1Required, setRefStage1Required] = useState('10');
+  const [refStage1Reward, setRefStage1Reward]     = useState('50');
+  const [refStage2Required, setRefStage2Required] = useState('50');
+  const [refStage2Reward, setRefStage2Reward]     = useState('100');
+  const [refStage3Required, setRefStage3Required] = useState('100');
+  const [refStage3Reward, setRefStage3Reward]     = useState('200');
+  const [refStage4Required, setRefStage4Required] = useState('300');
+  const [refStage4Reward, setRefStage4Reward]     = useState('500');
+
   // Global Player Profile Cover Photo State
   const [profileCoverUrl, setProfileCoverUrl] = useState('https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1600&auto=format&fit=crop&q=80');
 
@@ -180,6 +190,15 @@ Login to your account and book your slot today!`);
         if (s.ref_btn_1_link) setRefBtn1Link(s.ref_btn_1_link);
         if (s.ref_btn_2_text) setRefBtn2Text(s.ref_btn_2_text);
         if (s.ref_btn_2_link) setRefBtn2Link(s.ref_btn_2_link);
+
+        if (s.ref_stage1_required) setRefStage1Required(s.ref_stage1_required);
+        if (s.ref_stage1_reward)   setRefStage1Reward(s.ref_stage1_reward);
+        if (s.ref_stage2_required) setRefStage2Required(s.ref_stage2_required);
+        if (s.ref_stage2_reward)   setRefStage2Reward(s.ref_stage2_reward);
+        if (s.ref_stage3_required) setRefStage3Required(s.ref_stage3_required);
+        if (s.ref_stage3_reward)   setRefStage3Reward(s.ref_stage3_reward);
+        if (s.ref_stage4_required) setRefStage4Required(s.ref_stage4_required);
+        if (s.ref_stage4_reward)   setRefStage4Reward(s.ref_stage4_reward);
 
         // YouTube Live Settings
         if (s.YOUTUBE_LIVE_URL) setYoutubeLiveUrl(s.YOUTUBE_LIVE_URL);
@@ -283,6 +302,15 @@ Login to your account and book your slot today!`);
         ref_btn_1_link: refBtn1Link,
         ref_btn_2_text: refBtn2Text,
         ref_btn_2_link: refBtn2Link,
+
+        ref_stage1_required: refStage1Required.trim(),
+        ref_stage1_reward:   refStage1Reward.trim(),
+        ref_stage2_required: refStage2Required.trim(),
+        ref_stage2_reward:   refStage2Reward.trim(),
+        ref_stage3_required: refStage3Required.trim(),
+        ref_stage3_reward:   refStage3Reward.trim(),
+        ref_stage4_required: refStage4Required.trim(),
+        ref_stage4_reward:   refStage4Reward.trim(),
 
         // YouTube Live Settings
         YOUTUBE_LIVE_URL: youtubeLiveUrl.trim(),
@@ -747,7 +775,136 @@ Login to your account and book your slot today!`);
                 </div>
               </div>
 
+              {/* Referral Milestone Reward Stages CMS */}
+              <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] p-6 space-y-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+                <div className="flex items-center justify-between border-b border-[#F1F5F9] pb-3">
+                  <div className="flex items-center space-x-2">
+                    <Flame className="w-5 h-5 text-amber-500" />
+                    <h2 className="text-[17px] font-bold text-[#0F172A]">Referral Milestone Reward Stages 🪙</h2>
+                  </div>
+                  <span className="text-[10px] bg-amber-100 text-amber-700 font-bold px-2.5 py-0.5 rounded-full uppercase">Profile Page</span>
+                </div>
+                <p className="text-xs text-[#64748B]">
+                  এই values গুলো Profile → Referral Pass section এ দেখায়। প্রতিটি Stage এর জন্য <strong>কতটা referral লাগবে</strong> এবং <strong>কত Coin/Cash reward দেওয়া হবে</strong> সেটা এখান থেকে পরিবর্তন করুন।
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                  {/* Stage 1 */}
+                  <div className="p-4 rounded-[16px] bg-amber-50 border border-amber-200 space-y-2">
+                    <div className="font-black text-[#0F172A] text-xs uppercase tracking-wide">🥉 Stage 1 — Coin Reward</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[#475569] font-semibold mb-1 text-[11px]">Referrals Required</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={refStage1Required}
+                          onChange={(e) => setRefStage1Required(e.target.value)}
+                          className="w-full px-3 py-2 rounded-[10px] bg-white border border-[#E2E8F0] font-bold text-xs text-[#0F172A] focus:outline-none focus:border-amber-400"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[#475569] font-semibold mb-1 text-[11px]">Coin Reward Amount</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={refStage1Reward}
+                          onChange={(e) => setRefStage1Reward(e.target.value)}
+                          className="w-full px-3 py-2 rounded-[10px] bg-white border border-[#E2E8F0] font-bold text-xs text-amber-600 focus:outline-none focus:border-amber-400"
+                        />
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-slate-400">{refStage1Required} referrals → {refStage1Reward} Coins 🪙</div>
+                  </div>
+
+                  {/* Stage 2 */}
+                  <div className="p-4 rounded-[16px] bg-amber-50 border border-amber-200 space-y-2">
+                    <div className="font-black text-[#0F172A] text-xs uppercase tracking-wide">🥈 Stage 2 — Coin Reward</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[#475569] font-semibold mb-1 text-[11px]">Referrals Required</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={refStage2Required}
+                          onChange={(e) => setRefStage2Required(e.target.value)}
+                          className="w-full px-3 py-2 rounded-[10px] bg-white border border-[#E2E8F0] font-bold text-xs text-[#0F172A] focus:outline-none focus:border-amber-400"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[#475569] font-semibold mb-1 text-[11px]">Coin Reward Amount</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={refStage2Reward}
+                          onChange={(e) => setRefStage2Reward(e.target.value)}
+                          className="w-full px-3 py-2 rounded-[10px] bg-white border border-[#E2E8F0] font-bold text-xs text-amber-600 focus:outline-none focus:border-amber-400"
+                        />
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-slate-400">{refStage2Required} referrals → {refStage2Reward} Coins 🪙</div>
+                  </div>
+
+                  {/* Stage 3 */}
+                  <div className="p-4 rounded-[16px] bg-amber-50 border border-amber-200 space-y-2">
+                    <div className="font-black text-[#0F172A] text-xs uppercase tracking-wide">🥇 Stage 3 — Coin Reward</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[#475569] font-semibold mb-1 text-[11px]">Referrals Required</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={refStage3Required}
+                          onChange={(e) => setRefStage3Required(e.target.value)}
+                          className="w-full px-3 py-2 rounded-[10px] bg-white border border-[#E2E8F0] font-bold text-xs text-[#0F172A] focus:outline-none focus:border-amber-400"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[#475569] font-semibold mb-1 text-[11px]">Coin Reward Amount</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={refStage3Reward}
+                          onChange={(e) => setRefStage3Reward(e.target.value)}
+                          className="w-full px-3 py-2 rounded-[10px] bg-white border border-[#E2E8F0] font-bold text-xs text-amber-600 focus:outline-none focus:border-amber-400"
+                        />
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-slate-400">{refStage3Required} referrals → {refStage3Reward} Coins 🪙</div>
+                  </div>
+
+                  {/* Stage 4 — Grand Prize (Cash) */}
+                  <div className="p-4 rounded-[16px] bg-gradient-to-br from-red-50 to-orange-50 border-2 border-brand-orange/40 space-y-2">
+                    <div className="font-black text-brand-red text-xs uppercase tracking-wide">🏆 Stage 4 — Grand Prize (Cash)</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[#475569] font-semibold mb-1 text-[11px]">Referrals Required</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={refStage4Required}
+                          onChange={(e) => setRefStage4Required(e.target.value)}
+                          className="w-full px-3 py-2 rounded-[10px] bg-white border border-[#E2E8F0] font-bold text-xs text-[#0F172A] focus:outline-none focus:border-brand-orange"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[#475569] font-semibold mb-1 text-[11px]">Cash Reward (৳ TK)</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={refStage4Reward}
+                          onChange={(e) => setRefStage4Reward(e.target.value)}
+                          className="w-full px-3 py-2 rounded-[10px] bg-white border border-[#E2E8F0] font-bold text-xs text-brand-red focus:outline-none focus:border-brand-orange"
+                        />
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-orange-600 font-bold">{refStage4Required} referrals → ৳{refStage4Reward} CASH 🔥</div>
+                  </div>
+                </div>
+              </div>
+
               {/* Global Profile Cover Photo CMS */}
+
               <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] p-6 space-y-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
                 <div className="flex items-center justify-between border-b border-[#F1F5F9] pb-3">
                   <div className="flex items-center space-x-2">
