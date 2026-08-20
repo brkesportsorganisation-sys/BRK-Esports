@@ -125,51 +125,54 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
         initial={{ opacity: 0, y: 15 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/90 shadow-sm hover:shadow-xl hover:border-brand-orange/50 transition-all duration-300 flex flex-col justify-between space-y-4 relative group"
+        className="bg-white rounded-3xl border border-slate-200/90 shadow-sm hover:shadow-xl hover:border-brand-orange/50 transition-all duration-300 flex flex-col justify-between overflow-hidden relative group"
       >
-        {/* Top Tag & Badges */}
-        <div className="flex items-center justify-between gap-2">
-          <span className="px-2.5 py-1 rounded-lg bg-slate-900 text-cyan-400 font-mono text-[11px] font-bold tracking-wider shadow-xs">
-            #{shortId}
-          </span>
+        {/* Top Banner Image (Large banner like original design) */}
+        <div className="relative w-full h-44 sm:h-48 overflow-hidden bg-slate-900">
+          <img
+            src={tournament.bannerImage || tournament.banner || tournament.thumbnailImage || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800'}
+            alt={tournament.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent" />
 
-          <div className="flex items-center gap-1.5">
-            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${gameInfo.color}`}>
-              <span>{gameInfo.icon}</span>
-              <span>{tournament.gameName || gameInfo.name}</span>
+          {/* Top Tag & Game Badges */}
+          <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 z-10">
+            <span className="px-2.5 py-1 rounded-lg bg-slate-900/90 backdrop-blur-md text-cyan-400 font-mono text-[11px] font-bold tracking-wider border border-white/10 shadow-xs">
+              #{shortId}
             </span>
 
-            {isLive ? (
-              <span className="px-2 py-0.5 rounded-full bg-red-500 text-white font-black text-[10px] uppercase animate-pulse shadow-xs">
-                🔴 LIVE
+            <div className="flex items-center gap-1.5">
+              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold backdrop-blur-md border ${gameInfo.color}`}>
+                <span>{gameInfo.icon}</span>
+                <span>{tournament.gameName || gameInfo.name}</span>
               </span>
-            ) : isFree ? (
-              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px] uppercase">
-                🎁 FREE
-              </span>
-            ) : null}
-          </div>
-        </div>
 
-        {/* Header: Thumbnail + Title + Subtitle */}
-        <div className="flex items-center gap-3.5">
-          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden bg-slate-900 border border-slate-200 shrink-0 shadow-xs">
-            <img
-              src={tournament.thumbnailImage || tournament.banner || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=200'}
-              alt={tournament.title}
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-            />
+              {isLive ? (
+                <span className="px-2 py-0.5 rounded-full bg-red-500 text-white font-black text-[10px] uppercase animate-pulse shadow-xs">
+                  🔴 LIVE
+                </span>
+              ) : isFree ? (
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-white font-bold text-[10px] uppercase shadow-xs">
+                  🎁 FREE
+                </span>
+              ) : null}
+            </div>
           </div>
 
-          <div className="min-w-0 flex-1 space-y-0.5">
-            <h3 className="font-heading font-black text-base sm:text-lg text-slate-900 group-hover:text-brand-orange transition-colors truncate">
-              {tournament.title} {formattedDate && <span className="text-xs font-mono text-slate-400 font-normal">({formattedDate})</span>}
+          {/* Title & Date/Time on Banner */}
+          <div className="absolute bottom-3 left-4 right-4 text-white z-10 space-y-0.5">
+            <h3 className="font-heading font-black text-base sm:text-lg text-white group-hover:text-brand-orange transition-colors truncate drop-shadow-sm">
+              {tournament.title} {formattedDate && <span className="text-xs font-mono text-slate-300 font-normal">({formattedDate})</span>}
             </h3>
-            <p className="text-xs font-semibold text-slate-500 truncate">
+            <p className="text-xs font-semibold text-slate-300 truncate drop-shadow-sm">
               {tournament.format?.replace('_', ' ') || 'Battle Royale'} {formattedTime && `• ${formattedTime}`}
             </p>
           </div>
         </div>
+
+        {/* Card Body */}
+        <div className="p-4 sm:p-5 space-y-4 flex-1 flex flex-col justify-between">
 
         {/* 3-Column Metrics Panel: PRIZE | MODE | ENTRY */}
         <div className="grid grid-cols-3 gap-2 p-3 bg-[#F8FAFC] rounded-2xl border border-slate-200/80 text-center">
@@ -264,6 +267,7 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
             </button>
           </Link>
         )}
+        </div>
       </motion.div>
 
       {/* ========================================================================= */}
