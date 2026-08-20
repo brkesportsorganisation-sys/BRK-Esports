@@ -1,4 +1,4 @@
-'use client';
+, top'use client';
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -58,8 +58,8 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
   // Match date formatted
   const matchDate = tournament.tournamentStart || tournament.matchTime;
   const formattedDate = matchDate ? new Date(matchDate).toISOString().split('T')[0] : '';
-  const formattedTime = matchDate 
-    ? new Date(matchDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) 
+  const formattedTime = matchDate
+    ? new Date(matchDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
     : '';
 
   // Calculate default prize distribution if not explicitly specified
@@ -202,13 +202,12 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
 
           <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden border border-slate-200/80 p-0.5">
             <div
-              className={`h-full rounded-full transition-all duration-500 ${
-                isFull 
-                  ? 'bg-red-500' 
-                  : percentFilled > 75 
-                    ? 'bg-gradient-to-r from-amber-500 to-red-500' 
+              className={`h-full rounded-full transition-all duration-500 ${isFull
+                  ? 'bg-red-500'
+                  : percentFilled > 75
+                    ? 'bg-gradient-to-r from-amber-500 to-red-500'
                     : 'bg-gradient-to-r from-cyan-500 via-brand-orange to-brand-red'
-              }`}
+                }`}
               style={{ width: `${percentFilled}%` }}
             />
           </div>
@@ -303,11 +302,10 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
                         return (
                           <div
                             key={slotNum}
-                            className={`p-2.5 rounded-xl border text-xs font-bold transition-colors ${
-                              isOccupied
+                            className={`p-2.5 rounded-xl border text-xs font-bold transition-colors ${isOccupied
                                 ? 'bg-slate-900 text-white border-slate-800 shadow-2xs'
                                 : 'bg-slate-50 text-slate-400 border-dashed border-slate-200'
-                            }`}
+                              }`}
                           >
                             <div className="flex items-center justify-between gap-1">
                               <span className="truncate">

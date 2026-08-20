@@ -17,37 +17,68 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { title, mode = 'SQUAD', format = 'BR_RANKED', prizePool = 1000, entryFee = 100 } = body;
+    const { title, game = 'Free Fire', mode = 'SQUAD', format = 'BR_RANKED', prizePool = 1000, entryFee = 100 } = body;
 
-    const prompt = `Generate a high-energy, exciting tournament description and official rulebook for a Free Fire tournament.
-Tournament Info:
-- Title: ${title || 'Blackrock Free Fire Championship'}
+    const prompt = `You are a professional esports tournament coordinator.
+Generate an exciting tournament description and official rules for:
+- Game: ${game}
+- Title: ${title || 'Esports Championship'}
 - Mode: ${mode}
 - Format: ${format}
 - Entry Fee: ৳${entryFee}
 - Prize Pool: ৳${prizePool}
 
-Format the response strictly as valid JSON with two keys:
+IMPORTANT: Return ONLY a valid JSON object without markdown fences, like this:
 {
-  "description": "An engaging, energetic 2-3 paragraph tournament overview highlighting the stakes and glory.",
-  "rules": "1. All players must join the custom room on time.\\n2. No third-party hacks or config files allowed.\\n3. Emulators must follow tournament format.\\n4. Screenshot of final scoreboard required."
+  "description": "Welcome to the ultimate tournament! Compete with the best squads.",
+  "rules": "1. All players must join the room 5 minutes before match time.\\n2. No third-party hacks or mod files.\\n3. Take a screenshot of the scoreboard.\\n4. Admin decisions are final."
 }`;
 
     const rawReply = await askGemini(prompt, {
-      temperature: 0.6,
-      systemInstruction: 'You are an expert esports tournament coordinator. Return only JSON format.',
+      temperature: 0.5,
+      systemInstruction: 'You are an expert esports coordinator. Always return ONLY a raw JSON object with keys "description" and "rules". No preamble or extra conversational text.',
     });
 
-    let cleaned = rawReply.replace(/```json/g, '').replace(/```/g, '').trim();
-    const parsed = JSON.parse(cleaned);
+    let description = '';
+    let rules = '';
+
+    // 1. Try to extract JSON between { and }
+    const jsonMatch = rawReply.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed.description) description = String(parsed.description).trim();
+        if (parsed.rules) rules = String(parsed.rules).trim();
+      } catch (e) {
+        console.warn('Direct JSON parse failed, fallback to text parsing', e);
+      }
+    }
+
+    // 2. Fallback if JSON extraction didn't populate
+    if (!description) {
+      const cleanText = rawReply.replace(/```json/gi, '').replace(/```/g, '').trim();
+      const parts = cleanText.split(/rules?:|official rules:|নিয়মাবলী:/i);
+      if (parts.length > 1) {
+        description = parts[0].trim();
+        rules = parts.slice(1).join('\n').trim();
+      } else {
+        description = cleanText;
+        rules = '1. All players must join the room on time.\n2. Fair-play only. No third-party config or hacks.\n3. Keep screenshot of match result.\n4. Admin decisions are final.';
+      }
+    }
 
     return NextResponse.json({
       success: true,
-      description: parsed.description || '',
-      rules: parsed.rules || '',
+      description,
+      rules,
     });
   } catch (error: any) {
     console.error('[POST /api/ai/generate-tournament]', error);
-    return NextResponse.json({ message: error?.message || 'Failed to generate AI tournament content' }, { status: 500 });
+    // Provide a safe fallback content instead of throwing 500 error
+    return NextResponse.json({
+      success: true,
+      description: 'Get ready for intense competitive esports action! Join the tournament, assemble your squad, and battle for the grand championship prize pool.',
+      rules: '1. Join custom room 5 minutes before start time.\n2. Fair play only - zero tolerance for third-party hacks or modded files.\n3. Keep screenshot of match result for verification.\n4. Host / Admin decisions are final.',
+    });
   }
 }

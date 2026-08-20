@@ -160,17 +160,20 @@ export default function AdminTournamentsPage() {
 
       const data = await res.json();
       if (res.ok && data.description) {
+        const rulesHtml = data.rules ? `<h3>📜 Official Rules:</h3><p>${data.rules.replace(/\n/g, '<br/>')}</p>` : '';
         setForm(prev => ({
           ...prev,
-          description: `<p>${data.description}</p><br/><h3>Official Rules:</h3><p>${(data.rules || '').replace(/\n/g, '<br/>')}</p>`
+          description: `<p>${data.description.replace(/\n/g, '<br/>')}</p>${rulesHtml ? `<br/>${rulesHtml}` : ''}`
         }));
-        setFeedback('AI successfully generated tournament description & rules!');
+        setFeedback('✨ AI successfully generated tournament description & rules!');
         setFeedbackTone('success');
       } else {
-        alert(data.message || 'Failed to generate content with AI');
+        setFeedback(data.message || 'Failed to generate content with AI');
+        setFeedbackTone('error');
       }
     } catch {
-      alert('Error connecting to Gemini AI generator.');
+      setFeedback('Error connecting to Gemini AI generator.');
+      setFeedbackTone('error');
     } finally {
       setIsGeneratingAI(false);
     }
