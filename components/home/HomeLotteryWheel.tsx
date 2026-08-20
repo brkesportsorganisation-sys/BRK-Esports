@@ -154,34 +154,8 @@ export default function HomeLotteryWheel() {
   };
 
   return (
-    <div id="home-lottery-section" className="mt-4 sm:mt-6 rounded-3xl p-5 sm:p-8 bg-white border border-purple-200 shadow-sm text-center relative overflow-hidden flex flex-col items-center justify-center space-y-5">
+    <div id="home-lottery-section" className="mt-4 sm:mt-6 rounded-3xl p-4 sm:p-6 bg-white border border-purple-200 shadow-sm text-center relative overflow-hidden flex flex-col items-center justify-center space-y-4">
       
-      {/* Top Header matching Rewards page style */}
-      <div className="space-y-1 max-w-lg mx-auto">
-        <span className="text-xs font-bold text-purple-600 uppercase tracking-widest flex items-center justify-center gap-1.5">
-          <Sparkles className="w-4 h-4" />
-          High-Reward Lucky Draw
-        </span>
-        <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 font-heading tracking-tight">
-          Spin & Win Real Cash & Diamonds
-        </h2>
-        
-        {/* User Balance & Cost Pill */}
-        <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
-          {currentUser && (
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700">
-              <span className="flex items-center gap-1 text-amber-600 font-black">
-                <Coins className="w-3.5 h-3.5" /> {(currentUser.coinBalance || 0).toLocaleString()} Coins
-              </span>
-              <span className="text-slate-300">•</span>
-              <span className="flex items-center gap-1 text-emerald-600 font-black">
-                <DollarSign className="w-3.5 h-3.5" /> ৳{(currentUser.walletBalance || 0).toLocaleString()}
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
-
       {feedbackMsg && (
         <div className="w-full max-w-md p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold flex items-center justify-between">
           <span>{feedbackMsg}</span>
