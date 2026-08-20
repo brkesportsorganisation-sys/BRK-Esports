@@ -3,8 +3,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { Copy, Eye, Filter, Loader2, PlusCircle, Search, ShieldCheck, Sparkles, Star, Trash2, UploadCloud, X } from 'lucide-react';
-import { Tournament, Mode, Format, TournamentStatus, CommunityAccessType, CommunityUnlockMode } from '@/lib/types';
+import { AlertCircle, CheckCircle2, Coins, Copy, Eye, Filter, Loader2, Plus, PlusCircle, Search, ShieldCheck, Sparkles, Star, Trash2, Trophy, UploadCloud, X } from 'lucide-react';
+import { Tournament, Mode, Format, TournamentStatus, CommunityAccessType, CommunityUnlockMode, PrizeTier } from '@/lib/types';
 import 'react-quill-new/dist/quill.snow.css';
 
 const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false });
@@ -32,6 +32,7 @@ interface TournamentFormState {
   secondPrize: number;
   thirdPrize: number;
   perKillPrize: number;
+  prizeDistribution: PrizeTier[];
   maxTeams: number;
   roomId: string;
   roomPassword: string;
@@ -80,6 +81,11 @@ const defaultForm: TournamentFormState = {
   secondPrize: 1000,
   thirdPrize: 500,
   perKillPrize: 10,
+  prizeDistribution: [
+    { rank: 1, label: '1st Place (Champion)', prize: 2000 },
+    { rank: 2, label: '2nd Place (Runner-up)', prize: 1000 },
+    { rank: 3, label: '3rd Place', prize: 500 },
+  ],
   maxTeams: 48,
   roomId: '',
   roomPassword: '',
@@ -272,8 +278,103 @@ export default function AdminTournamentsPage() {
     }
   };
 
+  const setPrizePreset = (count: number) => {
+    const total = form.prizePool || 1000;
+    const presets: Record<number, number[]> = {
+      1: [1.0],
+      3: [0.5, 0.3, 0.2],
+      5: [0.4, 0.25, 0.15, 0.1, 0.1],
+      8: [0.35, 0.2, 0.15, 0.1, 0.08, 0.05, 0.04, 0.03],
+      10: [0.3, 0.2, 0.15, 0.1, 0.07, 0.05, 0.04, 0.03, 0.03, 0.03],
+    };
+
+    const ratios = presets[count] || Array(count).fill(1 / count);
+    const newTiers: PrizeTier[] = ratios.map((ratio, idx) => {
+      const rank = idx + 1;
+      const label =
+        rank === 1 ? '1st Place (Champion)' :
+        rank === 2 ? '2nd Place (Runner-up)' :
+        rank === 3 ? '3rd Place' :
+        `${rank}th Place`;
+      return {
+        rank,
+        label,
+        prize: Math.round(total * ratio),
+      };
+    });
+
+    setForm(prev => ({
+      ...prev,
+      prizeDistribution: newTiers,
+      firstPrize: newTiers[0]?.prize || 0,
+      secondPrize: newTiers[1]?.prize || 0,
+      thirdPrize: newTiers[2]?.prize || 0,
+    }));
+  };
+
+  const addPrizeTier = () => {
+    setForm(prev => {
+      const current = prev.prizeDistribution || [];
+      const nextRank = current.length + 1;
+      const newTier: PrizeTier = {
+        rank: nextRank,
+        label: `${nextRank}th Place`,
+        prize: 0,
+      };
+      const updated = [...current, newTier];
+      return {
+        ...prev,
+        prizeDistribution: updated,
+      };
+    });
+  };
+
+  const removePrizeTier = (index: number) => {
+    setForm(prev => {
+      const current = prev.prizeDistribution || [];
+      const updated = current.filter((_, idx) => idx !== index).map((tier, idx) => ({
+        ...tier,
+        rank: idx + 1,
+      }));
+      return {
+        ...prev,
+        prizeDistribution: updated,
+        firstPrize: updated[0]?.prize || 0,
+        secondPrize: updated[1]?.prize || 0,
+        thirdPrize: updated[2]?.prize || 0,
+      };
+    });
+  };
+
+  const updatePrizeTier = (index: number, field: 'label' | 'prize', value: string | number) => {
+    setForm(prev => {
+      const current = [...(prev.prizeDistribution || [])];
+      if (!current[index]) return prev;
+      current[index] = {
+        ...current[index],
+        [field]: field === 'prize' ? Number(value) : String(value),
+      };
+      return {
+        ...prev,
+        prizeDistribution: current,
+        firstPrize: current[0]?.prize || 0,
+        secondPrize: current[1]?.prize || 0,
+        thirdPrize: current[2]?.prize || 0,
+      };
+    });
+  };
+
   const openEditModal = (item: Tournament) => {
     setEditingId(item.id);
+    const defaultTiers: PrizeTier[] = [
+      { rank: 1, label: '1st Place (Champion)', prize: item.firstPrize || Math.round((item.prizePool || 0) * 0.5) || 2000 },
+      ...(item.secondPrize || (item.prizePool && item.prizePool > 0) ? [{ rank: 2, label: '2nd Place (Runner-up)', prize: item.secondPrize || Math.round((item.prizePool || 0) * 0.3) || 1000 }] : []),
+      ...(item.thirdPrize || (item.prizePool && item.prizePool > 0) ? [{ rank: 3, label: '3rd Place', prize: item.thirdPrize || Math.round((item.prizePool || 0) * 0.2) || 500 }] : []),
+    ];
+    const initialDistribution = (item.prizeDistribution && item.prizeDistribution.length > 0)
+      ? item.prizeDistribution
+      : defaultTiers;
+
     setForm({
       title: item.title,
       description: item.description,
@@ -287,6 +388,7 @@ export default function AdminTournamentsPage() {
       secondPrize: item.secondPrize,
       thirdPrize: item.thirdPrize,
       perKillPrize: item.perKillPrize,
+      prizeDistribution: initialDistribution,
       maxTeams: item.maxTeams,
       roomId: item.roomId || '',
       roomPassword: item.roomPassword || '',
@@ -397,6 +499,10 @@ export default function AdminTournamentsPage() {
     setFeedbackTone('success');
     setIsSaving(true);
 
+    const firstPrize = form.prizeDistribution?.[0]?.prize || form.firstPrize || 0;
+    const secondPrize = form.prizeDistribution?.[1]?.prize || form.secondPrize || 0;
+    const thirdPrize = form.prizeDistribution?.[2]?.prize || form.thirdPrize || 0;
+
     const payload = {
       title: form.title.trim(),
       description: form.description.trim(),
@@ -407,10 +513,11 @@ export default function AdminTournamentsPage() {
       format: form.format,
       entryFee: form.entryFee,
       prizePool: form.prizePool,
-      firstPrize: form.firstPrize,
-      secondPrize: form.secondPrize,
-      thirdPrize: form.thirdPrize,
+      firstPrize,
+      secondPrize,
+      thirdPrize,
       perKillPrize: form.perKillPrize,
+      prizeDistribution: form.prizeDistribution,
       maxTeams: form.maxTeams,
       rules: 'Standard tournament rules apply.',
       roomId: form.roomId.trim(),
@@ -894,27 +1001,141 @@ export default function AdminTournamentsPage() {
                     <input type="number" min="2" value={form.maxTeams} onChange={(event) => setForm((prev) => ({ ...prev, maxTeams: Number(event.target.value) }))} className={`w-full rounded-2xl border bg-white px-3 py-3 text-slate-900 shadow-sm focus:border-red-300 focus:ring-1 focus:ring-red-300 outline-none ${validationErrors.maxTeams ? 'border-red-500' : 'border-slate-300'}`} />
                   </div>
                 </div>
-                {/* Prize Distribution */}
-                <div className="rounded-2xl border border-slate-300 bg-white p-4 shadow-sm">
-                  <p className="mb-4 text-xs uppercase tracking-[0.2em] font-bold text-slate-500">Prize Distribution</p>
-                  <div className="grid gap-3 md:grid-cols-2">
+                {/* ── Dynamic Prize Distribution Manager ── */}
+                <div className="rounded-2xl border border-slate-300 bg-white p-4 space-y-4 shadow-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2">
                     <div>
-                      <label className="mb-1.5 block text-xs font-semibold text-slate-600">1st Prize (৳)</label>
-                      <input type="number" min="0" value={form.firstPrize} onChange={(event) => setForm((prev) => ({ ...prev, firstPrize: Number(event.target.value) }))} className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-red-300 focus:ring-1 focus:ring-red-300" />
+                      <p className="text-xs uppercase tracking-[0.2em] font-black text-slate-800 flex items-center gap-1.5">
+                        <Trophy className="w-4 h-4 text-amber-500" />
+                        <span>Prize Breakdown & Distribution</span>
+                      </p>
+                      <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                        Set custom prize amounts for Top 3, Top 5, Top 10, or any number of places.
+                      </p>
                     </div>
-                    <div>
-                      <label className="mb-1.5 block text-xs font-semibold text-slate-600">2nd Prize (৳)</label>
-                      <input type="number" min="0" value={form.secondPrize} onChange={(event) => setForm((prev) => ({ ...prev, secondPrize: Number(event.target.value) }))} className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-red-300 focus:ring-1 focus:ring-red-300" />
-                    </div>
-                    <div>
-                      <label className="mb-1.5 block text-xs font-semibold text-slate-600">3rd Prize (৳)</label>
-                      <input type="number" min="0" value={form.thirdPrize} onChange={(event) => setForm((prev) => ({ ...prev, thirdPrize: Number(event.target.value) }))} className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-red-300 focus:ring-1 focus:ring-red-300" />
-                    </div>
-                    <div>
-                      <label className="mb-1.5 block text-xs font-semibold text-slate-600">Per Kill Prize (৳)</label>
-                      <input type="number" min="0" value={form.perKillPrize} onChange={(event) => setForm((prev) => ({ ...prev, perKillPrize: Number(event.target.value) }))} className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-red-300 focus:ring-1 focus:ring-red-300" />
+
+                    {/* Quick Presets */}
+                    <div className="flex items-center gap-1 flex-wrap">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase mr-1">Presets:</span>
+                      {[
+                        { count: 1, label: 'Top 1' },
+                        { count: 3, label: 'Top 3' },
+                        { count: 5, label: 'Top 5' },
+                        { count: 8, label: 'Top 8' },
+                        { count: 10, label: 'Top 10' },
+                      ].map(preset => (
+                        <button
+                          key={preset.count}
+                          type="button"
+                          onClick={() => setPrizePreset(preset.count)}
+                          className="px-2.5 py-1 rounded-lg text-[10px] font-black bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer border border-slate-200"
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
                     </div>
                   </div>
+
+                  {/* Prize Tiers Rows */}
+                  <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1 custom-scrollbar">
+                    {(form.prizeDistribution || []).map((tier, idx) => {
+                      const medal = tier.rank === 1 ? '🥇' : tier.rank === 2 ? '🥈' : tier.rank === 3 ? '🥉' : '🎖️';
+                      return (
+                        <div key={idx} className="flex items-center gap-2 p-2 rounded-xl bg-slate-50 border border-slate-200">
+                          <span className="text-sm shrink-0 w-6 text-center">{medal}</span>
+                          
+                          <input
+                            type="text"
+                            value={tier.label}
+                            onChange={(e) => updatePrizeTier(idx, 'label', e.target.value)}
+                            placeholder={`e.g. ${idx + 1}th Place`}
+                            className="flex-1 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-800 outline-none focus:border-brand-orange"
+                          />
+
+                          <div className="relative w-32 shrink-0">
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">৳</span>
+                            <input
+                              type="number"
+                              min="0"
+                              value={tier.prize}
+                              onChange={(e) => updatePrizeTier(idx, 'prize', Number(e.target.value))}
+                              placeholder="0"
+                              className="w-full pl-6 pr-2.5 py-1.5 text-xs font-black text-slate-900 rounded-lg border border-slate-300 bg-white outline-none focus:border-brand-orange text-right"
+                            />
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => removePrizeTier(idx)}
+                            disabled={(form.prizeDistribution?.length || 0) <= 1}
+                            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                            title="Remove Position"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Add Tier & Per Kill Prize */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={addPrizeTier}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-50 hover:bg-orange-100 text-brand-orange border border-orange-200 text-xs font-black transition-all cursor-pointer w-fit"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ Add Prize Position</span>
+                    </button>
+
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs font-bold text-slate-600 shrink-0">🎯 Per Kill Bounty:</label>
+                      <div className="relative w-28">
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">৳</span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={form.perKillPrize}
+                          onChange={(e) => setForm(prev => ({ ...prev, perKillPrize: Number(e.target.value) }))}
+                          className="w-full pl-5 pr-2 py-1 text-xs font-black text-rose-600 rounded-lg border border-slate-300 bg-white outline-none focus:border-brand-orange text-right"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Live Prize Calculation Bar */}
+                  {(() => {
+                    const totalAllocated = (form.prizeDistribution || []).reduce((acc, t) => acc + (Number(t.prize) || 0), 0);
+                    const pool = Number(form.prizePool) || 0;
+                    const diff = pool - totalAllocated;
+
+                    return (
+                      <div className="p-2.5 rounded-xl bg-slate-900 text-white flex items-center justify-between text-xs font-bold">
+                        <div className="flex items-center gap-3">
+                          <span>Pool: <strong className="text-brand-gold">৳{pool.toLocaleString()}</strong></span>
+                          <span className="text-slate-500">•</span>
+                          <span>Allocated: <strong className="text-emerald-400">৳{totalAllocated.toLocaleString()}</strong></span>
+                        </div>
+
+                        <div>
+                          {diff === 0 ? (
+                            <span className="text-[11px] text-emerald-400 font-bold flex items-center gap-1">
+                              <CheckCircle2 className="w-3.5 h-3.5" /> 100% Balanced
+                            </span>
+                          ) : diff > 0 ? (
+                            <span className="text-[11px] text-amber-400 font-bold">
+                              Unallocated: ৳{diff.toLocaleString()}
+                            </span>
+                          ) : (
+                            <span className="text-[11px] text-red-400 font-bold">
+                              Exceeds by ৳{Math.abs(diff).toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
