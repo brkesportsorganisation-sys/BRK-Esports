@@ -192,11 +192,24 @@ export async function createTournamentInDb(input: Record<string, any>) {
     communityIsDisabled: Boolean(input.community?.isDisabled ?? input.communityIsDisabled),
   };
 
-  const { data, error } = await supabaseAdmin
+  let { data, error } = await supabaseAdmin
     .from('Tournament')
     .insert([payload])
     .select()
     .single();
+
+  // Graceful fallback if database schema does not yet have prizeDistribution column
+  if (error && (error.message?.includes('prizeDistribution') || error.message?.includes('schema cache'))) {
+    const fallbackPayload = { ...payload };
+    delete (fallbackPayload as any).prizeDistribution;
+    const retry = await supabaseAdmin
+      .from('Tournament')
+      .insert([fallbackPayload])
+      .select()
+      .single();
+    data = retry.data;
+    error = retry.error;
+  }
 
   if (error) {
     throw new Error(error.message);
@@ -278,12 +291,26 @@ export async function updateTournamentInDb(id: string, input: Record<string, any
     updateData.communityIsDisabled = Boolean(input.community?.isDisabled ?? input.communityIsDisabled);
   }
 
-  const { data, error } = await supabaseAdmin
+  let { data, error } = await supabaseAdmin
     .from('Tournament')
     .update(updateData)
     .eq('id', id)
     .select()
     .single();
+
+  // Graceful fallback if database schema does not yet have prizeDistribution column
+  if (error && (error.message?.includes('prizeDistribution') || error.message?.includes('schema cache'))) {
+    const fallbackUpdateData = { ...updateData };
+    delete fallbackUpdateData.prizeDistribution;
+    const retry = await supabaseAdmin
+      .from('Tournament')
+      .update(fallbackUpdateData)
+      .eq('id', id)
+      .select()
+      .single();
+    data = retry.data;
+    error = retry.error;
+  }
 
   if (error) {
     throw new Error(error.message);
