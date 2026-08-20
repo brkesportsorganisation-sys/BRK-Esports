@@ -45,8 +45,18 @@ export async function GET(request: NextRequest) {
       } catch {}
     }
 
+    const userReferralCode = rest.referralCode || `REF_${(rest.id || '').replace(/[^a-zA-Z0-9]/g, '').slice(-4).toUpperCase() || Math.floor(1000 + Math.random() * 9000)}`;
+    if (!rest.referralCode && rest.id) {
+      try {
+        await supabaseAdmin.from('User').update({ referralCode: userReferralCode }).eq('id', rest.id);
+      } catch {}
+    }
+
     const sanitizedUser = {
       ...rest,
+      referralCode: userReferralCode,
+      totalReferrals: Number(rest.totalReferrals) || 0,
+      claimedMilestones: Array.isArray(rest.claimedMilestones) ? rest.claimedMilestones : [],
       currentStreak,
       lastStreakClaimDate,
       accountNumber: rest.accountNumber || `BRK-${(rest.id || '').replace(/[^a-zA-Z0-9]/g, '').slice(-6).toUpperCase() || Math.floor(100000 + Math.random() * 900000)}`,

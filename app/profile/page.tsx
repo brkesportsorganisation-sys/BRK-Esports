@@ -71,6 +71,7 @@ function ProfilePageContent() {
   const [copiedLink, setCopiedLink] = useState(false);
   const [passTimeLeft, setPassTimeLeft] = useState('');
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
+  const [claimingMilestoneId, setClaimingMilestoneId] = useState<number | null>(null);
   
   // Edit Profile Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -239,6 +240,18 @@ function ProfilePageContent() {
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    if (tabParam === 'referral' || (typeof window !== 'undefined' && window.location.hash === '#referral')) {
+      setActiveTab('OVERVIEW');
+      setTimeout(() => {
+        const el = document.getElementById('referral-section');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 200);
+    }
+  }, [tabParam]);
+
   const handleFetchIgnFromUid = async (uidToFetch: string) => {
     const clean = uidToFetch.trim();
     if (!clean || clean.length < 6) return;
@@ -364,7 +377,8 @@ function ProfilePageContent() {
   };
 
   const handleClaimMilestone = async (milestoneId: number, rewardType: 'COIN' | 'WALLET', rewardAmount: number) => {
-    if (!user) return;
+    if (!user || claimingMilestoneId !== null) return;
+    setClaimingMilestoneId(milestoneId);
     try {
       const res = await fetch('/api/user/milestone', {
         method: 'POST',
@@ -377,14 +391,21 @@ function ProfilePageContent() {
         }),
       });
 
-      if (res.ok) {
-        const data = await res.json();
+      const data = await res.json();
+
+      if (res.ok && data.user) {
         setUser(data.user);
         db.setCurrentUser(data.user);
+        alert(data.message || '🎉 Milestone reward claimed successfully!');
         return;
+      } else if (!res.ok) {
+        alert(data.message || 'Failed to claim milestone reward.');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn('Milestone claim API error:', err);
+      alert(err.message || 'Network error claiming milestone.');
+    } finally {
+      setClaimingMilestoneId(null);
     }
 
     const updated = db.claimReferralMilestone(user.id, milestoneId, rewardType, rewardAmount);
@@ -556,40 +577,8 @@ function ProfilePageContent() {
         {/* Tab 1: Overview Stats */}
         {activeTab === 'OVERVIEW' && (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-1 relative overflow-hidden">
-                <div className="text-xs text-slate-600 font-bold uppercase relative z-10">Total Kills</div>
-                <div className="font-heading font-black text-3xl text-red-500 relative z-10">{user.totalKills || 0}</div>
-                <div className="text-[11px] text-slate-600 font-medium relative z-10">Career Frags</div>
-                <div className="absolute -bottom-4 -right-4 text-slate-50 opacity-50 z-0"><Flame className="w-24 h-24" /></div>
-              </div>
-
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-1 relative overflow-hidden">
-                <div className="text-xs text-slate-600 font-bold uppercase relative z-10">Booyah Wins</div>
-                <div className="font-heading font-black text-3xl text-amber-500 relative z-10">{user.totalWins || 0}</div>
-                <div className="text-[11px] text-slate-600 font-medium relative z-10">Championship Titles</div>
-                <div className="absolute -bottom-4 -right-4 text-slate-50 opacity-50 z-0"><Trophy className="w-24 h-24" /></div>
-              </div>
-
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-1 relative overflow-hidden">
-                <div className="text-xs text-slate-600 font-bold uppercase relative z-10">Total Cash Won</div>
-                <div className="font-heading font-black text-3xl text-orange-500 relative z-10">৳ {user.earnings || 0}</div>
-                <div className="text-[11px] text-slate-600 font-medium relative z-10">Withdrawn Payouts</div>
-                <div className="absolute -bottom-4 -right-4 text-slate-50 opacity-50 z-0"><Wallet className="w-24 h-24" /></div>
-              </div>
-
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-1 relative overflow-hidden">
-                <div className="text-xs text-slate-600 font-bold uppercase relative z-10">Win Rate</div>
-                <div className="font-heading font-black text-3xl text-cyan-600 relative z-10">{user.winRate || 0}%</div>
-                <div className="text-[11px] text-slate-600 font-medium relative z-10">Competitive Efficiency</div>
-                <div className="absolute -bottom-4 -right-4 text-slate-50 opacity-50 z-0"><ShieldCheck className="w-24 h-24" /></div>
-              </div>
-
-            </div>
-
-            {/* Referral Booyah Pass */}
-            <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-200 shadow-sm space-y-6">
+            {/* Referral Booyah Pass - Prominently at the Top */}
+            <div id="referral-section" className="bg-white p-6 md:p-8 rounded-[2rem] border-2 border-red-100 shadow-md space-y-6 relative overflow-hidden">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                   <h3 className="font-heading font-black text-2xl text-slate-900 flex items-center gap-2">
@@ -628,7 +617,7 @@ function ProfilePageContent() {
                         setTimeout(() => setCopiedLink(false), 2000);
                       }
                     }}
-                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-sm font-bold transition-colors"
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-sm font-bold transition-colors cursor-pointer"
                   >
                     {copiedLink ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />} 
                     {copiedLink ? 'Copied' : 'Copy Link'}
@@ -639,7 +628,7 @@ function ProfilePageContent() {
                         window.open(`https://wa.me/?text=Join me on BRK Esports and compete in tournaments! ${window.location.origin}/register?ref=${user.referralCode}`, '_blank');
                       }
                     }}
-                    className="flex items-center justify-center w-10 h-10 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
+                    className="flex items-center justify-center w-10 h-10 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors cursor-pointer"
                     title="Share on WhatsApp"
                   >
                     <MessageCircle className="w-5 h-5" />
@@ -650,7 +639,7 @@ function ProfilePageContent() {
                         window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.origin + '/register?ref=' + user.referralCode)}`, '_blank');
                       }
                     }}
-                    className="flex items-center justify-center w-10 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                    className="flex items-center justify-center w-10 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors cursor-pointer"
                     title="Share on Facebook"
                   >
                     <Facebook className="w-5 h-5" />
@@ -699,9 +688,17 @@ function ProfilePageContent() {
                             {isUnlocked && !isClaimed ? (
                               <button
                                 onClick={() => handleClaimMilestone(milestone.id, milestone.rewardType, milestone.rewardAmount)}
-                                className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-[10px] font-bold uppercase rounded-lg shadow-sm transition-colors"
+                                disabled={claimingMilestoneId === milestone.id}
+                                className="px-3 py-1 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white text-[10px] font-bold uppercase rounded-lg shadow-sm transition-colors cursor-pointer flex items-center gap-1"
                               >
-                                Claim
+                                {claimingMilestoneId === milestone.id ? (
+                                  <>
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                    <span>Claiming...</span>
+                                  </>
+                                ) : (
+                                  <span>Claim</span>
+                                )}
                               </button>
                             ) : isClaimed ? (
                               <span className="px-3 py-1 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold uppercase rounded-lg">
@@ -714,6 +711,39 @@ function ProfilePageContent() {
                     })}
                   </div>
                 </div>
+              </div>
+
+            </div>
+
+            {/* Career Stats Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-1 relative overflow-hidden">
+                <div className="text-xs text-slate-600 font-bold uppercase relative z-10">Total Kills</div>
+                <div className="font-heading font-black text-3xl text-red-500 relative z-10">{user.totalKills || 0}</div>
+                <div className="text-[11px] text-slate-600 font-medium relative z-10">Career Frags</div>
+                <div className="absolute -bottom-4 -right-4 text-slate-50 opacity-50 z-0"><Flame className="w-24 h-24" /></div>
+              </div>
+
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-1 relative overflow-hidden">
+                <div className="text-xs text-slate-600 font-bold uppercase relative z-10">Booyah Wins</div>
+                <div className="font-heading font-black text-3xl text-amber-500 relative z-10">{user.totalWins || 0}</div>
+                <div className="text-[11px] text-slate-600 font-medium relative z-10">Championship Titles</div>
+                <div className="absolute -bottom-4 -right-4 text-slate-50 opacity-50 z-0"><Trophy className="w-24 h-24" /></div>
+              </div>
+
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-1 relative overflow-hidden">
+                <div className="text-xs text-slate-600 font-bold uppercase relative z-10">Total Cash Won</div>
+                <div className="font-heading font-black text-3xl text-orange-500 relative z-10">৳ {user.earnings || 0}</div>
+                <div className="text-[11px] text-slate-600 font-medium relative z-10">Withdrawn Payouts</div>
+                <div className="absolute -bottom-4 -right-4 text-slate-50 opacity-50 z-0"><Wallet className="w-24 h-24" /></div>
+              </div>
+
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-1 relative overflow-hidden">
+                <div className="text-xs text-slate-600 font-bold uppercase relative z-10">Win Rate</div>
+                <div className="font-heading font-black text-3xl text-cyan-600 relative z-10">{user.winRate || 0}%</div>
+                <div className="text-[11px] text-slate-600 font-medium relative z-10">Competitive Efficiency</div>
+                <div className="absolute -bottom-4 -right-4 text-slate-50 opacity-50 z-0"><ShieldCheck className="w-24 h-24" /></div>
               </div>
 
             </div>

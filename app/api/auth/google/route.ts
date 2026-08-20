@@ -149,20 +149,46 @@ export async function POST(request: NextRequest) {
     // Handle referral increment if refCode was provided
     if (refCode) {
       try {
+        const cleanRef = refCode.trim();
         const { data: referrer } = await supabaseAdmin
           .from('User')
-          .select('id, totalReferrals')
-          .eq('referralCode', refCode.trim())
+          .select('id, name, totalReferrals, referralCode')
+          .or(`referralCode.ilike.${cleanRef},accountNumber.ilike.${cleanRef}`)
           .maybeSingle();
 
-        if (referrer) {
+        if (referrer && referrer.id !== userId) {
+          const newTotal = (Number(referrer.totalReferrals) || 0) + 1;
           await supabaseAdmin
             .from('User')
             .update({
-              totalReferrals: (referrer.totalReferrals || 0) + 1,
+              totalReferrals: newTotal,
               updatedAt: new Date().toISOString(),
             })
             .eq('id', referrer.id);
+
+          try {
+            await supabaseAdmin
+              .from('User')
+              .update({ referredBy: referrer.id })
+              .eq('id', userId);
+          } catch {}
+
+          // Insert in-app push notification for the referrer
+          try {
+            const notifId = `notif_ref_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+            await supabaseAdmin.from('Notification').insert([{
+              id: notifId,
+              userId: referrer.id,
+              title: '🎉 নতুন রেফারেল সফল হয়েছে!',
+              message: `${displayName} আপনার রেফারেল লিংক ব্যবহার করে একাউন্ট খুলেছে! আপনার মোট রেফারেল সংখ্যা: ${newTotal} টি।`,
+              type: 'REWARD',
+              link: '/profile#referral',
+              icon: 'gift',
+              priority: 'HIGH',
+              isRead: false,
+              createdAt: new Date().toISOString(),
+            }]);
+          } catch {}
         }
       } catch (refErr) {
         console.warn('Referral update notice:', refErr);

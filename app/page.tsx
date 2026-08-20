@@ -19,12 +19,19 @@ import {
   Wallet,
   Bell,
   Timer,
-  Clock
+  Clock,
+  Copy,
+  Check,
+  Link as LinkIcon,
+  MessageCircle,
+  Facebook,
+  Gift
 } from 'lucide-react';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import HomeBannerSlider from '@/components/home/HomeBannerSlider';
-import { Tournament, Announcement } from '@/lib/types';
+import { Tournament, Announcement, User } from '@/lib/types';
+import { db } from '@/lib/db';
 import { useLanguage } from '@/lib/language-context';
 
 import { initialTournaments } from '@/lib/mock-data';
@@ -70,6 +77,8 @@ function getGameBadge(game?: string, title?: string) {
 
 export default function HomePage() {
   const { t, isBangla } = useLanguage();
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [siteSettings, setSiteSettings] = useState<Record<string, string>>(() => {
@@ -89,6 +98,11 @@ export default function HomePage() {
     minutes: 0,
     seconds: 0,
   });
+
+  useEffect(() => {
+    const cur = db.getCurrentUser();
+    if (cur) setCurrentUser(cur);
+  }, []);
 
   useEffect(() => {
     function calculateTimeLeft() {
@@ -185,7 +199,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
 
           {/* Referral Rewards & Monthly Event Crusade Banner (Unified in Home Hero Section - Whitish & Light Red Esports Theme) */}
-          <div className="mt-12 rounded-3xl p-5 sm:p-7 bg-gradient-to-br from-white via-red-50/30 to-orange-50/40 text-slate-900 border-2 border-red-200/90 shadow-xl shadow-red-500/5 relative overflow-hidden">
+          <div id="home-referral-section" className="mt-12 rounded-3xl p-5 sm:p-7 bg-gradient-to-br from-white via-red-50/30 to-orange-50/40 text-slate-900 border-2 border-red-200/90 shadow-xl shadow-red-500/5 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-96 h-96 bg-brand-orange/10 rounded-full blur-3xl pointer-events-none"></div>
             <div className="absolute -bottom-10 -left-10 w-80 h-80 bg-brand-red/5 rounded-full blur-3xl pointer-events-none"></div>
 
@@ -219,11 +233,11 @@ export default function HomePage() {
               {/* Action Buttons */}
               <div className="flex items-center gap-2 self-stretch sm:self-auto">
                 <Link
-                  href={siteSettings.ref_btn_1_link || '/profile'}
+                  href={currentUser ? '/profile#referral' : '/login?redirect=/profile#referral'}
                   className="flex-1 sm:flex-initial px-5 py-3 rounded-xl bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold hover:brightness-110 text-white font-heading font-black text-xs shadow-neon-red transition-all flex items-center justify-center space-x-1.5 whitespace-nowrap cursor-pointer"
                 >
                   <Users className="w-4 h-4" />
-                  <span>{siteSettings.ref_btn_1_text || 'GET REFERRAL LINK'}</span>
+                  <span>{currentUser ? (siteSettings.ref_btn_1_text || 'VIEW REFERRAL PASS') : 'GET REFERRAL LINK'}</span>
                 </Link>
 
                 <Link
@@ -235,6 +249,67 @@ export default function HomePage() {
                 </Link>
               </div>
             </div>
+
+            {/* Active User's Referral Link Quick Share Box on Home Page */}
+            {currentUser?.referralCode && (
+              <div className="mt-4 p-3.5 bg-white/95 rounded-2xl border border-red-200/90 shadow-sm flex flex-col sm:flex-row items-center gap-3 relative z-10">
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-700 shrink-0">
+                  <Gift className="w-4 h-4 text-brand-red" />
+                  <span>আপনার রেফারেল লিংক:</span>
+                </div>
+                <div className="flex-1 w-full relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <LinkIcon className="h-4 w-4 text-slate-400" />
+                  </div>
+                  <input
+                    type="text"
+                    readOnly
+                    value={typeof window !== 'undefined' ? `${window.location.origin}/register?ref=${currentUser.referralCode}` : ''}
+                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 font-mono focus:outline-none select-all"
+                  />
+                </div>
+                <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (typeof window !== 'undefined' && currentUser?.referralCode) {
+                        navigator.clipboard.writeText(`${window.location.origin}/register?ref=${currentUser.referralCode}`);
+                        setCopiedLink(true);
+                        setTimeout(() => setCopiedLink(false), 2000);
+                      }
+                    }}
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
+                  >
+                    {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedLink ? 'Copied!' : 'Copy Link'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (typeof window !== 'undefined' && currentUser?.referralCode) {
+                        window.open(`https://wa.me/?text=Join me on BRK Esports and compete in tournaments! ${window.location.origin}/register?ref=${currentUser.referralCode}`, '_blank');
+                      }
+                    }}
+                    className="flex items-center justify-center w-8 h-8 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-colors shadow-xs cursor-pointer"
+                    title="Share on WhatsApp"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (typeof window !== 'undefined' && currentUser?.referralCode) {
+                        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.origin + '/register?ref=' + currentUser.referralCode)}`, '_blank');
+                      }
+                    }}
+                    className="flex items-center justify-center w-8 h-8 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-colors shadow-xs cursor-pointer"
+                    title="Share on Facebook"
+                  >
+                    <Facebook className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Compact Milestone Stages Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-5 relative z-10">

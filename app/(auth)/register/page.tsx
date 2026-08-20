@@ -14,6 +14,7 @@ function RegisterContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const refCode = searchParams?.get('ref');
+  const [effectiveRef, setEffectiveRef] = useState<string>('');
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -28,6 +29,21 @@ function RegisterContent() {
   const [isFetchingIgn, setIsFetchingIgn] = useState(false);
   const [fetchStatus, setFetchStatus] = useState<{ status: 'idle' | 'loading' | 'success' | 'failed'; message?: string }>({ status: 'idle' });
   const ignRef = useRef<HTMLInputElement>(null);
+
+  // Persist referral code across session
+  useEffect(() => {
+    if (refCode) {
+      setEffectiveRef(refCode);
+      try {
+        sessionStorage.setItem('brk_ref_code', refCode);
+      } catch {}
+    } else {
+      try {
+        const stored = sessionStorage.getItem('brk_ref_code');
+        if (stored) setEffectiveRef(stored);
+      } catch {}
+    }
+  }, [refCode]);
 
   // Debounced auto-fetch Free Fire in-game name when UID is 5+ digits
   useEffect(() => {
@@ -73,7 +89,7 @@ function RegisterContent() {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password, ffUid, ign, refCode }),
+        body: JSON.stringify({ name, email, password, ffUid, ign, refCode: effectiveRef || refCode }),
       });
 
       const data = await res.json();
@@ -122,7 +138,7 @@ function RegisterContent() {
           name: user.displayName || '',
           avatar: user.photoURL || '',
           googleUid: user.uid,
-          refCode: refCode || undefined,
+          refCode: effectiveRef || refCode || undefined,
         }),
       });
 
@@ -183,6 +199,16 @@ function RegisterContent() {
               <span>Official Free Fire Esports Arena</span>
             </div>
           </div>
+
+          {effectiveRef && (
+            <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200/90 text-amber-900 text-xs font-bold flex items-center justify-between shadow-xs">
+              <span className="flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                রেফারেল কোড: <strong className="font-mono text-brand-orange">{effectiveRef}</strong>
+              </span>
+              <span className="text-[10px] bg-amber-500 text-white px-2 py-0.5 rounded-full font-bold">REFERRED</span>
+            </div>
+          )}
 
           {errorMsg && (
             <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs font-bold text-center">

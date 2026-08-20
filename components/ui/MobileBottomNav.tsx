@@ -41,8 +41,10 @@ export default function MobileBottomNav() {
   return (
     <nav 
       aria-label="Mobile Navigation"
-      className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 border-t border-slate-200/90 backdrop-blur-2xl px-1 py-1.5 shadow-xl shadow-slate-900/10 font-sans"
+      className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 border-t border-slate-200 backdrop-blur-2xl px-1 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_rgba(15,23,42,0.08),0_-1px_3px_rgba(15,23,42,0.04)] font-sans"
     >
+      {/* Top subtle highlight divider line */}
+      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-slate-300 to-transparent pointer-events-none" />
       <div className="flex items-center justify-around max-w-md mx-auto">
         {tabs.map((tab) => {
           const Icon = tab.icon;
