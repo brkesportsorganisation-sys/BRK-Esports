@@ -212,6 +212,21 @@ export default function AdminGamingShopPage() {
     }
   };
 
+  const handleToggleHomeFeatured = async (productId: string) => {
+    try {
+      const res = await fetch('/api/admin/shop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'TOGGLE_HOME_FEATURED', productId }),
+      });
+      if (res.ok) {
+        loadData();
+      }
+    } catch {
+      alert('Failed to toggle homepage featured status.');
+    }
+  };
+
   const handleResetDefaults = async () => {
     if (!confirm('Reset all shop items back to default Free Fire & Esports products?')) return;
     try {
@@ -479,19 +494,36 @@ export default function AdminGamingShopPage() {
 
                     {/* Actions Bar */}
                     <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
-                      <button
-                        onClick={() => handleToggleActive(product.id)}
-                        className={`p-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
-                          product.isActive
-                            ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                            : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                        }`}
-                        title={product.isActive ? 'Active in Shop (Click to disable)' : 'Disabled in Shop (Click to enable)'}
-                      >
-                        {product.isActive ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => handleToggleActive(product.id)}
+                          className={`p-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
+                            product.isActive
+                              ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                              : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                          }`}
+                          title={product.isActive ? 'Active in Shop (Click to disable)' : 'Disabled in Shop (Click to enable)'}
+                        >
+                          {product.isActive ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                        </button>
 
-                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleToggleHomeFeatured(product.id)}
+                          className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                            product.isFeaturedOnHome
+                              ? 'bg-amber-50 text-amber-700 border border-amber-300 shadow-xs'
+                              : 'bg-slate-100 text-slate-400 hover:text-slate-700'
+                          }`}
+                          title={product.isFeaturedOnHome ? 'Featured on Homepage (Click to remove)' : 'Show on Homepage'}
+                        >
+                          <Sparkles className={`w-3.5 h-3.5 ${product.isFeaturedOnHome ? 'text-amber-500 fill-amber-500' : ''}`} />
+                          <span className="text-[10px]">
+                            {product.isFeaturedOnHome ? 'On Home' : 'Feature'}
+                          </span>
+                        </button>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
                         <button
                           onClick={() => openEditModal(product)}
                           className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
@@ -790,6 +822,29 @@ export default function AdminGamingShopPage() {
                   onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
                   placeholder="Details regarding delivery and game pack..."
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs focus:outline-none focus:border-brand-orange"
+                />
+              </div>
+
+              {/* Homepage Featured Toggle Box */}
+              <div className="flex items-center justify-between p-4 bg-amber-50/70 border border-amber-200 rounded-2xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center">
+                    <Sparkles className="w-4 h-4 text-amber-500 fill-amber-500" />
+                  </div>
+                  <div>
+                    <div className="font-heading font-black text-xs text-amber-950">
+                      Show as Featured Item on Homepage (হোমপেজে দেখান)
+                    </div>
+                    <div className="text-[10px] text-amber-700">
+                      এই অপশন চালু রাখলে আইটেমটি সরাসরি ওয়েবসাইট হোমপেজের শপ সেকশনে শো করবে
+                    </div>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={Boolean(productForm.isFeaturedOnHome)}
+                  onChange={(e) => setProductForm({ ...productForm, isFeaturedOnHome: e.target.checked })}
+                  className="w-5 h-5 rounded accent-amber-500 cursor-pointer"
                 />
               </div>
 

@@ -115,6 +115,7 @@ export async function POST(request: NextRequest) {
         badge: product.badge || '',
         stock: product.stock !== undefined && product.stock !== '' ? Number(product.stock) : undefined,
         isActive: product.isActive !== false,
+        isFeaturedOnHome: Boolean(product.isFeaturedOnHome),
         deliveryType: product.deliveryType || 'FF_UID',
         createdAt: new Date().toISOString(),
       };
@@ -135,6 +136,7 @@ export async function POST(request: NextRequest) {
             diamonds: product.diamonds ? Number(product.diamonds) : undefined,
             bonusDiamonds: product.bonusDiamonds ? Number(product.bonusDiamonds) : undefined,
             stock: product.stock !== undefined && product.stock !== '' ? Number(product.stock) : undefined,
+            isFeaturedOnHome: Boolean(product.isFeaturedOnHome),
           };
         }
         return p;
@@ -159,6 +161,17 @@ export async function POST(request: NextRequest) {
       });
       await saveDynamicProducts(currentProducts);
       return NextResponse.json({ success: true, message: 'Product status updated.' });
+    }
+
+    if (action === 'TOGGLE_HOME_FEATURED' && productId) {
+      currentProducts = currentProducts.map(p => {
+        if (p.id === productId) {
+          return { ...p, isFeaturedOnHome: !p.isFeaturedOnHome };
+        }
+        return p;
+      });
+      await saveDynamicProducts(currentProducts);
+      return NextResponse.json({ success: true, message: 'Homepage featured status updated.' });
     }
 
     if (action === 'RESET_DEFAULTS') {
