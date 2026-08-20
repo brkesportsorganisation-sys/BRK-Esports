@@ -12,14 +12,9 @@ function generateId(prefix: string): string {
   return result;
 }
 
-const ALLOWED_PATTERN = /^[A-Za-z0-9_ ]+$/;
-
 function validateText(value: string, fieldName: string, required = true): string | null {
   if (!value || !value.trim()) {
     return required ? `${fieldName} is required.` : null;
-  }
-  if (!ALLOWED_PATTERN.test(value.trim())) {
-    return `${fieldName}: Only letters, numbers, underscores, and spaces are allowed.`;
   }
   return null;
 }
