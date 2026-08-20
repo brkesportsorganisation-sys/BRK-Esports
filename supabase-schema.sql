@@ -223,6 +223,9 @@ ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "communityDescription" TEXT;
 ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "hideInviteLinkFromPublic" BOOLEAN NOT NULL DEFAULT true;
 ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "communityUnlockMode" TEXT NOT NULL DEFAULT 'SLOT_PURCHASE_ONLY';
 ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "communityIsDisabled" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "allowCoinEntry" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "coinEntryFee" DOUBLE PRECISION;
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "entryFeeType" TEXT NOT NULL DEFAULT 'BOTH';
 
 
 -- =========================================================
