@@ -300,14 +300,24 @@ export default function RewardsHubPage() {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        const winningIdx = data.winningIndex ?? 0;
+        // Find exact index of the reward in client's active lotteryRewards list
+        const targetReward = data.reward;
+        let winningIdx = lotteryRewards.findIndex(r => r.id === targetReward?.id);
+        if (winningIdx === -1) {
+          winningIdx = data.winningIndex ?? 0;
+        }
+
         const totalSegments = lotteryRewards.length || 8;
         const segmentAngle = 360 / totalSegments;
 
-        // Calculate destination angle to land on target segment with random spins
-        const targetAngle = 360 - (winningIdx * segmentAngle + segmentAngle / 2);
-        const fullSpins = 360 * 5; // 5 full rotations
-        const finalRotation = wheelRotation + fullSpins + targetAngle;
+        // Target angle to position winning segment center under top pointer (12 o'clock)
+        const targetAngle = (360 - (winningIdx * segmentAngle + segmentAngle / 2)) % 360;
+        const currentMod = wheelRotation % 360;
+        let delta = (targetAngle - currentMod + 360) % 360;
+        if (delta === 0) delta = 360;
+
+        const fullSpins = 360 * 5; // 5 full rotations (1800 deg)
+        const finalRotation = wheelRotation + fullSpins + delta;
 
         setWheelRotation(finalRotation);
 
@@ -562,17 +572,16 @@ export default function RewardsHubPage() {
 
         {/* TAB 2: LOTTERY & LUCKY WHEEL */}
         {activeTab === 'LUCKY_SPIN' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-            
-            {/* Left: Interactive Wheel */}
-            <div className="lg:col-span-7 flex flex-col items-center justify-center p-6 bg-white border border-purple-200 rounded-3xl shadow-sm space-y-6">
+          <div className="max-w-2xl mx-auto w-full">
+            {/* Interactive Wheel Card */}
+            <div className="flex flex-col items-center justify-center p-6 sm:p-10 bg-white border border-purple-200 rounded-3xl shadow-sm space-y-6">
               
               <div className="text-center space-y-1">
                 <span className="text-xs font-bold text-purple-600 uppercase tracking-widest flex items-center justify-center gap-1.5">
                   <Sparkles className="w-4 h-4" />
                   High-Reward Lucky Draw
                 </span>
-                <h2 className="text-2xl font-black text-slate-900 font-heading">Spin & Win Real Cash & Diamonds</h2>
+                <h2 className="text-2xl sm:text-3xl font-black text-slate-900 font-heading">Spin & Win Real Cash & Diamonds</h2>
                 <p className="text-xs text-slate-600">
                   Cost per spin: <strong className="text-amber-600">{spinCoinCost} Coins</strong>
                 </p>
@@ -659,51 +668,6 @@ export default function RewardsHubPage() {
                 <Gift className="w-5 h-5" />
                 Spin Wheel ({spinCoinCost} Coins)
               </button>
-            </div>
-
-            {/* Right: Prizes Table Showcase */}
-            <div className="lg:col-span-5 space-y-6">
-              <div className="bg-white border border-slate-200 rounded-3xl p-6 space-y-4 shadow-sm">
-                <h3 className="font-black text-base text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3 font-heading">
-                  <Award className="w-5 h-5 text-purple-600" />
-                  Available Lottery Prizes
-                </h3>
-
-                <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
-                  {lotteryRewards.map((reward, index) => (
-                    <div
-                      key={reward.id}
-                      className="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between hover:border-purple-300 transition-all"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span 
-                          className="w-7 h-7 rounded-lg text-white font-black text-xs flex items-center justify-center shadow-2xs font-mono"
-                          style={{ backgroundColor: reward.color || '#F59E0B' }}
-                        >
-                          #{index + 1}
-                        </span>
-                        <div>
-                          <h4 className="text-xs font-bold text-slate-900">{reward.label}</h4>
-                          <span className="text-[10px] text-slate-500 uppercase font-mono">
-                            Type: {reward.type}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="text-right">
-                        <span className="text-xs font-black text-purple-700 block">
-                          {reward.probabilityPercent}% Chance
-                        </span>
-                        {reward.maxWinnersLimit && (
-                          <span className="text-[10px] text-slate-400 block">
-                            Left: {Math.max(0, reward.maxWinnersLimit - (reward.currentWonCount || 0))}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
         )}

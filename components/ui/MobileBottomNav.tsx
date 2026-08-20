@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Flame, Trophy, Wallet, Radio, Users, Award, Swords, Gift } from 'lucide-react';
+import { Flame, Trophy, Wallet, Radio, Users, Award, Swords, Gift, User as UserIcon } from 'lucide-react';
 import { useLanguage } from '@/lib/language-context';
 
 export default function MobileBottomNav() {
@@ -31,11 +31,11 @@ export default function MobileBottomNav() {
   }
 
   const tabs: { name: string; href: string; icon: React.ElementType; isLive?: boolean }[] = [
-    { name: t('nav_home', 'হোম'), href: '/', icon: Flame },
-    { name: t('nav_tournaments', 'টুর্নামেন্ট'), href: '/tournaments', icon: Trophy },
-    { name: t('nav_arena', 'অ্যারেনা'), href: '/arena', icon: Swords },
+    { name: t('nav_tournaments', 'টুর্নামেন্ট'), href: '/tournaments', icon: Trophy, isLive: isLiveActive },
     { name: t('nav_rewards', 'রিওয়ার্ডস'), href: '/ads', icon: Gift },
+    { name: t('nav_home', 'হোম'), href: '/', icon: Flame },
     { name: t('nav_wallet', 'ওয়ালেট'), href: '/wallet', icon: Wallet },
+    { name: t('nav_profile', 'প্রোফাইল'), href: '/profile', icon: UserIcon },
   ];
 
   return (

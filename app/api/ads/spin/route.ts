@@ -99,8 +99,9 @@ export async function POST(request: NextRequest) {
       randomNum -= weight;
     }
 
-    // Find index in original rewards list for client wheel rendering
-    const winningIndex = allRewards.findIndex(r => r.id === selectedReward.id);
+    // Find index in active rewards list for client wheel rendering
+    const activeRewards = allRewards.filter(r => r.isActive !== false);
+    const winningIndex = activeRewards.findIndex(r => r.id === selectedReward.id);
 
     // 6. Update User Balance in Supabase
     const prizeValue = Number(selectedReward.value || 0);
