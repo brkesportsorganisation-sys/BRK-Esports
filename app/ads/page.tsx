@@ -9,6 +9,7 @@ import Footer from '@/components/ui/Footer';
 import MobileBottomNav from '@/components/ui/MobileBottomNav';
 import DailyQuests from '@/components/rewards/DailyQuests';
 import ReferralSection from '@/components/rewards/ReferralSection';
+import { useLanguage } from '@/lib/language-context';
 import { 
   PlaySquare, 
   Coins, 
@@ -52,6 +53,7 @@ type AdItem = {
 };
 
 export default function RewardsHubPage() {
+  const { isBangla } = useLanguage();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<'WATCH_EARN' | 'LUCKY_SPIN'>('WATCH_EARN');
   
@@ -670,7 +672,7 @@ export default function RewardsHubPage() {
                   className="absolute z-20 w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-tr from-purple-600 via-indigo-600 to-purple-500 text-white font-black text-xs uppercase tracking-wider shadow-xl border-4 border-white flex flex-col items-center justify-center transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   <RotateCw className={`w-5 h-5 mb-0.5 ${isSpinning ? 'animate-spin' : ''}`} />
-                  <span>{isSpinning ? 'SPINNING' : 'SPIN'}</span>
+                  <span>{isSpinning ? (isBangla ? 'ঘুরছে...' : 'SPINNING') : (isBangla ? 'স্পিন' : 'SPIN')}</span>
                 </button>
               </div>
 
@@ -683,7 +685,7 @@ export default function RewardsHubPage() {
                     className="flex-1 w-full py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:brightness-110 text-white font-black text-xs sm:text-sm uppercase tracking-wider rounded-2xl transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <Coins className="w-4 h-4" />
-                    Spin ({spinCoinCost} Coins)
+                    <span>{isBangla ? `কয়েন দিয়ে স্পিন (${spinCoinCost} 🪙)` : `Spin with Coins (${spinCoinCost} 🪙)`}</span>
                   </button>
                 )}
 
@@ -694,7 +696,7 @@ export default function RewardsHubPage() {
                     className="flex-1 w-full py-3.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:brightness-110 text-white font-black text-xs sm:text-sm uppercase tracking-wider rounded-2xl transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <DollarSign className="w-4 h-4" />
-                    Spin (৳{spinCashCost} Cash)
+                    <span>{isBangla ? `টাকা দিয়ে স্পিন (৳${spinCashCost} 💵)` : `Spin with Taka (৳${spinCashCost} 💵)`}</span>
                   </button>
                 )}
               </div>

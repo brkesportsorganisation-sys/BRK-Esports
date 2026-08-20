@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { db } from '@/lib/db';
 import { User, LotteryRewardItem } from '@/lib/types';
+import { useLanguage } from '@/lib/language-context';
 
 const DEFAULT_LOTTERY_REWARDS: LotteryRewardItem[] = [
   { id: '1', label: '15 Coins', type: 'COINS', value: 15, probabilityPercent: 30, currentWonCount: 0, color: '#F59E0B', isActive: true },
@@ -28,6 +29,7 @@ const DEFAULT_LOTTERY_REWARDS: LotteryRewardItem[] = [
 ];
 
 export default function HomeLotteryWheel() {
+  const { isBangla } = useLanguage();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [lotteryRewards, setLotteryRewards] = useState<LotteryRewardItem[]>(DEFAULT_LOTTERY_REWARDS);
   const [spinCoinCost, setSpinCoinCost] = useState(20);
@@ -99,12 +101,12 @@ export default function HomeLotteryWheel() {
 
     if (method === 'COINS') {
       if ((currentUser.coinBalance || 0) < spinCoinCost) {
-        setFeedbackMsg(`আপনার পর্যাপ্ত কয়েন নেই। স্পিন করতে কমপক্ষে ${spinCoinCost} কয়েন প্রয়োজন।`);
+        setFeedbackMsg(isBangla ? `আপনার পর্যাপ্ত কয়েন নেই। স্পিন করতে কমপক্ষে ${spinCoinCost} কয়েন প্রয়োজন।` : `Insufficient coins. You need at least ${spinCoinCost} Coins to spin.`);
         return;
       }
     } else {
       if ((currentUser.walletBalance || 0) < spinCashCost) {
-        setFeedbackMsg(`আপনার ওয়ালেটে পর্যাপ্ত টাকা নেই। স্পিন করতে কমপক্ষে ৳${spinCashCost} প্রয়োজন।`);
+        setFeedbackMsg(isBangla ? `আপনার ওয়ালেটে পর্যাপ্ত টাকা নেই। স্পিন করতে কমপক্ষে ৳${spinCashCost} প্রয়োজন।` : `Insufficient balance. You need at least ৳${spinCashCost} to spin.`);
         return;
       }
     }
@@ -145,11 +147,11 @@ export default function HomeLotteryWheel() {
         }, 4600);
       } else {
         setIsSpinning(false);
-        setFeedbackMsg(data.message || 'স্পিন সম্পন্ন করা সম্ভব হয়নি।');
+        setFeedbackMsg(data.message || (isBangla ? 'স্পিন সম্পন্ন করা সম্ভব হয়নি।' : 'Failed to spin lottery wheel.'));
       }
     } catch (err: any) {
       setIsSpinning(false);
-      setFeedbackMsg(err?.message || 'Error occurred while spinning wheel.');
+      setFeedbackMsg(err?.message || (isBangla ? 'ত্রুটি ঘটেছে, পরে চেষ্টা করুন।' : 'Error occurred while spinning wheel.'));
     }
   };
 
@@ -246,7 +248,7 @@ export default function HomeLotteryWheel() {
           className="absolute z-20 w-18 h-18 sm:w-20 sm:h-20 rounded-full bg-gradient-to-tr from-purple-600 via-indigo-600 to-purple-500 text-white font-heading font-black text-xs uppercase tracking-wider shadow-xl border-4 border-white flex flex-col items-center justify-center transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
           <RotateCw className={`w-4 h-4 mb-0.5 ${isSpinning ? 'animate-spin' : ''}`} />
-          <span>{isSpinning ? '...' : 'SPIN'}</span>
+          <span>{isSpinning ? (isBangla ? 'ঘুরছে...' : '...') : (isBangla ? 'স্পিন' : 'SPIN')}</span>
         </button>
       </div>
 
@@ -262,7 +264,7 @@ export default function HomeLotteryWheel() {
             className="flex-1 w-full py-3 sm:py-3.5 px-4 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:brightness-110 text-white font-heading font-black text-xs sm:text-sm uppercase tracking-wider rounded-2xl transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
           >
             <Coins className="w-4 h-4" />
-            <span>Spin with Coins ({spinCoinCost} 🪙)</span>
+            <span>{isBangla ? `কয়েন দিয়ে স্পিন (${spinCoinCost} 🪙)` : `SPIN WITH COINS (${spinCoinCost} 🪙)`}</span>
           </button>
         )}
 
@@ -275,7 +277,7 @@ export default function HomeLotteryWheel() {
             className="flex-1 w-full py-3 sm:py-3.5 px-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:brightness-110 text-white font-heading font-black text-xs sm:text-sm uppercase tracking-wider rounded-2xl transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
           >
             <DollarSign className="w-4 h-4" />
-            <span>Spin with Taka (৳{spinCashCost} 💵)</span>
+            <span>{isBangla ? `টাকা দিয়ে স্পিন (৳${spinCashCost} 💵)` : `SPIN WITH TAKA (৳${spinCashCost} 💵)`}</span>
           </button>
         )}
 
@@ -297,15 +299,15 @@ export default function HomeLotteryWheel() {
 
               <div className="space-y-1">
                 <span className="text-[11px] font-black uppercase tracking-widest text-purple-600">
-                  {spinResult.type === 'TRY_AGAIN' ? 'BETTER LUCK NEXT TIME' : '🎉 CONGRATULATIONS!'}
+                  {spinResult.type === 'TRY_AGAIN' ? (isBangla ? 'আবার চেষ্টা করুন' : 'BETTER LUCK NEXT TIME') : (isBangla ? '🎉 অভিনন্দন!' : '🎉 CONGRATULATIONS!')}
                 </span>
                 <h3 className="font-heading font-black text-2xl text-slate-900 leading-tight">
                   {spinResult.label}
                 </h3>
                 <p className="text-xs text-slate-500 font-medium">
                   {spinResult.type === 'TRY_AGAIN'
-                    ? 'Do not give up! Spin again or complete daily quests for more chances.'
-                    : 'Your prize reward has been credited directly to your account!'}
+                    ? (isBangla ? 'হাল ছাড়বেন না! আরও সুযোগ পেতে আবার স্পিন করুন।' : 'Do not give up! Spin again for more chances.')
+                    : (isBangla ? 'আপনার পুরস্কারের রিওয়ার্ড সরাসরি আপনার একাউন্টে যোগ হয়েছে!' : 'Your prize reward has been credited directly to your account!')}
                 </p>
               </div>
 
@@ -314,7 +316,7 @@ export default function HomeLotteryWheel() {
                 onClick={() => setShowWinModal(false)}
                 className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 text-white font-heading font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-md cursor-pointer"
               >
-                CLAIM & CONTINUE
+                {isBangla ? 'পুরস্কার গ্রহণ করুন' : 'CLAIM & CONTINUE'}
               </button>
             </motion.div>
           </div>
