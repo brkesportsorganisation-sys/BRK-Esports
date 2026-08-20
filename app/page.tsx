@@ -206,7 +206,7 @@ export default function HomePage() {
       <Navbar />
 
       {/* Hero Banner Section (3-Banner Grid on PC / 1-Banner on Mobile) */}
-      <section className="relative pt-4 pb-12 overflow-hidden border-b border-slate-200 bg-slate-50/50">
+      <section className="relative pt-4 pb-4 overflow-hidden border-b border-slate-200 bg-slate-50/50">
         {/* Background Gradients & Particle Glows */}
         <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-r from-brand-red/10 via-brand-orange/10 to-brand-purple/10 rounded-full blur-[120px] pointer-events-none"></div>
 
