@@ -68,24 +68,18 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
   const thirdPrize = tournament.thirdPrize || Math.round((tournament.prizePool || 0) * 0.2) || 0;
   const perKillPrize = tournament.perKillPrize || 0;
 
-  // Load participants when SLOTS modal opens
-  const handleOpenSlots = async () => {
+  // Load participants seamlessly in the background when SLOTS modal opens
+  const handleOpenSlots = () => {
     setActiveModal('SLOTS');
-    if (participants.length === 0 && tournament.id) {
-      setLoadingParticipants(true);
-      try {
-        const res = await fetch(`/api/tournaments/${tournament.id}`, { cache: 'no-store' });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.participants) {
+    if (registeredCount > 0 && participants.length === 0 && tournament.id) {
+      fetch(`/api/tournaments/${tournament.id}`)
+        .then(res => (res.ok ? res.json() : null))
+        .then(data => {
+          if (data?.participants) {
             setParticipants(data.participants);
           }
-        }
-      } catch (err) {
-        console.warn('Failed to load slots participants:', err);
-      } finally {
-        setLoadingParticipants(false);
-      }
+        })
+        .catch(err => console.warn('Failed to load slots participants:', err));
     }
   };
 
@@ -300,39 +294,33 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
                   </div>
 
                   <div className="flex-1 overflow-y-auto pr-1 space-y-2 custom-scrollbar">
-                    {loadingParticipants ? (
-                      <div className="py-8 text-center text-xs text-slate-400 font-semibold animate-pulse">
-                        Loading registered squad slots...
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-2 gap-2">
-                        {Array.from({ length: maxSlots }, (_, i) => {
-                          const slotNum = i + 1;
-                          const participant = participants[i];
-                          const isOccupied = Boolean(participant);
+                    <div className="grid grid-cols-2 gap-2">
+                      {Array.from({ length: maxSlots }, (_, i) => {
+                        const slotNum = i + 1;
+                        const participant = participants[i];
+                        const isOccupied = Boolean(participant);
 
-                          return (
-                            <div
-                              key={slotNum}
-                              className={`p-2.5 rounded-xl border text-xs font-bold transition-colors ${
-                                isOccupied
-                                  ? 'bg-slate-900 text-white border-slate-800 shadow-2xs'
-                                  : 'bg-slate-50 text-slate-400 border-dashed border-slate-200'
-                              }`}
-                            >
-                              <div className="flex items-center justify-between gap-1">
-                                <span className="truncate">
-                                  {slotNum}. {isOccupied ? participant.squadName : 'Empty Slot'}
-                                </span>
-                                {isOccupied && (
-                                  <span className="text-emerald-400 shrink-0">✅</span>
-                                )}
-                              </div>
+                        return (
+                          <div
+                            key={slotNum}
+                            className={`p-2.5 rounded-xl border text-xs font-bold transition-colors ${
+                              isOccupied
+                                ? 'bg-slate-900 text-white border-slate-800 shadow-2xs'
+                                : 'bg-slate-50 text-slate-400 border-dashed border-slate-200'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="truncate">
+                                {slotNum}. {isOccupied ? participant.squadName : 'Empty Slot'}
+                              </span>
+                              {isOccupied && (
+                                <span className="text-emerald-400 shrink-0">✅</span>
+                              )}
                             </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
 
                   <button
@@ -422,7 +410,7 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
                     </div>
 
                     <div
-                      className="prose prose-xs max-w-none text-slate-700 leading-relaxed break-words whitespace-pre-wrap"
+                      className="prose prose-xs max-w-none text-slate-800 leading-relaxed break-words whitespace-pre-wrap [&_*]:!bg-transparent [&_*]:!text-slate-850 [&_p]:!bg-transparent [&_p]:!text-slate-850 [&_span]:!bg-transparent [&_span]:!text-slate-850 [&_div]:!bg-transparent [&_strong]:!text-slate-900 [&_b]:!text-slate-900"
                       dangerouslySetInnerHTML={{ __html: tournament.description || 'Standard competitive fair-play rules apply.' }}
                     />
                   </div>

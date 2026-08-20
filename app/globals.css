@@ -104,12 +104,18 @@ h1, h2, h3, h4, h5, h6, .font-heading {
   max-width: 100% !important;
   word-break: break-word !important;
   overflow-wrap: anywhere !important;
+  color: #1e293b !important;
 }
-.prose p, .prose span, .prose div, .prose li, .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+.prose * {
+  background-color: transparent !important;
+}
+.prose p, .prose span, .prose div, .prose li, .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6, .prose strong, .prose b, .prose em, .prose a {
   max-width: 100% !important;
   word-break: break-word !important;
   overflow-wrap: anywhere !important;
   white-space: normal !important;
+  background-color: transparent !important;
+  color: #1e293b !important;
 }
 .prose pre, .prose code {
   max-width: 100% !important;
@@ -117,9 +123,13 @@ h1, h2, h3, h4, h5, h6, .font-heading {
   overflow-wrap: anywhere !important;
   white-space: pre-wrap !important;
   overflow-x: auto;
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
 }
 .prose table { width: 100%; border-collapse: collapse; margin: 1rem 0; display: block; overflow-x: auto; max-width: 100%; }
-.prose th, .prose td { border: 1px solid #475569; padding: .65rem; text-align: left; }
-.prose th { background: #1e293b; }
+.prose th, .prose td { border: 1px solid #cbd5e1; padding: .65rem; text-align: left; }
+.prose th { background: #f8fafc !important; color: #0f172a !important; }
 .prose img, .prose iframe { max-width: 100%; border-radius: .75rem; height: auto; }
 .prose iframe { aspect-ratio: 16 / 9; width: 100%; height: auto; min-height: 240px; }

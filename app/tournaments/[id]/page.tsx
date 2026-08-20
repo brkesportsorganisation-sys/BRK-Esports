@@ -645,7 +645,7 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                   <Trophy className="w-5 h-5 text-brand-orange shrink-0" /> Tournament Rules & Overview
                 </h3>
                 <div 
-                  className="prose max-w-none text-slate-700 leading-relaxed min-w-0 w-full break-words [overflow-wrap:anywhere] [word-break:break-word] whitespace-pre-wrap [&_*]:max-w-full [&_*]:break-words [&_*]:[overflow-wrap:anywhere] [&_p]:break-words [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:overflow-x-auto [&_table]:overflow-x-auto [&_table]:block [&_img]:max-w-full [&_img]:h-auto"
+                  className="prose max-w-none text-slate-800 leading-relaxed min-w-0 w-full break-words [overflow-wrap:anywhere] [word-break:break-word] whitespace-pre-wrap [&_*]:max-w-full [&_*]:break-words [&_*]:[overflow-wrap:anywhere] [&_*]:!bg-transparent [&_*]:!text-slate-800 [&_p]:break-words [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:overflow-x-auto [&_table]:overflow-x-auto [&_table]:block [&_img]:max-w-full [&_img]:h-auto"
                   dangerouslySetInnerHTML={{ __html: tournament.description }}
                 />
               </div>
@@ -826,7 +826,7 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                       <Trophy className="w-3.5 h-3.5 shrink-0" /> Tournament Description
                     </h4>
                     <div
-                      className="text-sm text-slate-700 leading-relaxed prose prose-sm max-w-none min-w-0 w-full break-words [overflow-wrap:anywhere] [word-break:break-word] whitespace-pre-wrap [&_*]:max-w-full [&_*]:break-words [&_*]:[overflow-wrap:anywhere] [&_p]:break-words [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:overflow-x-auto [&_table]:overflow-x-auto [&_table]:block [&_img]:max-w-full [&_img]:h-auto"
+                      className="text-sm text-slate-800 leading-relaxed prose prose-sm max-w-none min-w-0 w-full break-words [overflow-wrap:anywhere] [word-break:break-word] whitespace-pre-wrap [&_*]:max-w-full [&_*]:break-words [&_*]:[overflow-wrap:anywhere] [&_*]:!bg-transparent [&_*]:!text-slate-800 [&_p]:break-words [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:overflow-x-auto [&_table]:overflow-x-auto [&_table]:block [&_img]:max-w-full [&_img]:h-auto"
                       dangerouslySetInnerHTML={{ __html: tournament.description }}
                     />
                   </div>
