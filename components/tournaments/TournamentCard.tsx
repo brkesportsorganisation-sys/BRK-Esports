@@ -337,7 +337,7 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
                             {isOccupied ? (
                               <div className="space-y-0.5">
                                 <div className="font-bold text-white text-xs truncate">
-                                  {participant.squadName || participant.name || 'Registered Squad'}
+                                  {participant.squadName || (participant as any).name || 'Registered Squad'}
                                 </div>
                                 {participant.iglName && (
                                   <div className="text-[10px] text-slate-300 truncate font-normal">
