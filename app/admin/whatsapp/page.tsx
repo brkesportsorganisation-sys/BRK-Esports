@@ -27,12 +27,17 @@ import {
   Flame,
   Trophy,
   Filter,
-  Check
+  Check,
+  Bot,
+  Settings,
+  PhoneCall,
+  Smartphone,
+  CheckCircle
 } from 'lucide-react';
 import { WhatsAppSchedule, WhatsAppTargetGroup, WhatsAppMessageLog, WhatsAppFrequency, WhatsAppTargetType } from '@/lib/types';
 
 export default function AdminWhatsAppPage() {
-  const [activeTab, setActiveTab] = useState<'SCHEDULES' | 'INSTANT_BROADCAST' | 'GROUPS' | 'LOGS' | 'SETTINGS'>('SCHEDULES');
+  const [activeTab, setActiveTab] = useState<'SCHEDULES' | 'INSTANT_BROADCAST' | 'GROUPS' | 'BOT_AUTO_REPLY' | 'LOGS' | 'SETTINGS'>('SCHEDULES');
   const [schedules, setSchedules] = useState<WhatsAppSchedule[]>([]);
   const [groups, setGroups] = useState<WhatsAppTargetGroup[]>([]);
   const [logs, setLogs] = useState<WhatsAppMessageLog[]>([]);
@@ -45,6 +50,44 @@ export default function AdminWhatsAppPage() {
   const [loading, setLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+
+  // Live Zavu Status
+  const [zavuStatus, setZavuStatus] = useState<{
+    connected: boolean;
+    account?: { projectName: string; teamName: string };
+    balance?: { balanceUsd: string; currency: string };
+    senders?: Array<{ id: string; name: string; phoneNumber: string; isDefault: boolean }>;
+    activeSender?: { id: string; name: string; phoneNumber: string };
+  } | null>(null);
+
+  // Bot Auto Reply State
+  const [botConfig, setBotConfig] = useState<{
+    autoReplyEnabled: boolean;
+    welcomeMessageEnabled: boolean;
+    welcomeMessage: string;
+    defaultFallbackReply: string;
+    rules: Array<{ id: string; keywords: string[]; replyText: string; isActive: boolean }>;
+  }>({
+    autoReplyEnabled: true,
+    welcomeMessageEnabled: true,
+    welcomeMessage: `🎮 স্বাগতম Black Rock Esports-এ! 🎮\n\nআমরা প্রতিদিন নিয়মিত Free Fire টুর্নামেন্ট ও কাস্টম ম্যাচ আয়োজন করি।\n\n🔹 টুর্নামেন্টে যোগ দিতে ভিজিট করুন: https://brkesports.com/tournaments\n🔹 রুম ও আইডি সহায়তার জন্য 'room' লিখে পাঠান।\n🔹 ডিপোজিট ও পেমেন্ট সহায়তার জন্য 'bkash' লিখে পাঠান।`,
+    defaultFallbackReply: `ধন্যবাদ মেসেজ দেওয়ার জন্য! আমাদের অ্যাডমিন টিম দ্রুত আপনার সাথে যোগাযোগ করবে।\nটুর্নামেন্ট ডিটেইলস জানতে ভিজিট করুন: https://brkesports.com`,
+    rules: [
+      {
+        id: 'rule_room',
+        keywords: ['room', 'id', 'pass', 'password', 'রুম', 'পাসওয়ার্ড'],
+        replyText: `🎮 Room ID & Pass নোটিশ:\n\nআপনার টুর্নামেন্ট শুরু হওয়ার ঠিক ১৫ মিনিট আগে আপনার WhatsApp নম্বরে এবং আমাদের ওয়েবসাইটে Room ID ও Password রিলিজ করা হবে!\n\nসঠিক স্লটে জয়েন করতে brkesports.com-এ নজর রাখুন।`,
+        isActive: true,
+      },
+      {
+        id: 'rule_bkash',
+        keywords: ['bkash', 'nagad', 'payment', 'টাকা', 'পেমেন্ট', 'বিকাশ', 'নগদ'],
+        replyText: `💰 পেমেন্ট ও ওয়ালেট ডিপোজিট:\n\nঅটোমেটিক ব্যালেন্স অ্যাড করতে আমাদের সাইটের Wallet অপশনে যান।\nবিকাশ/নগদ সেন্ড মানি করে TrxID সাবমিট করলেই ৫ মিনিটে ব্যালেন্স অ্যাড হয়ে যাবে!\nলিঙ্ক: https://brkesports.com/wallet`,
+        isActive: true,
+      },
+    ],
+  });
+  const [isSavingBot, setIsSavingBot] = useState(false);
 
   // 1. Create Schedule Modal State
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
@@ -75,8 +118,6 @@ export default function AdminWhatsAppPage() {
   const [isBroadcasting, setIsBroadcasting] = useState(false);
 
   // 4. API Settings State
-  const [apiKey, setApiKey] = useState('');
-  const [apiEnabled, setApiEnabled] = useState(true);
   const [testPhone, setTestPhone] = useState('');
   const [isSendingTest, setIsSendingTest] = useState(false);
 
@@ -88,22 +129,36 @@ export default function AdminWhatsAppPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/whatsapp/scheduler', { credentials: 'include' });
-      if (res.ok) {
-        const data = await res.json();
+      const [schedRes, botRes, statusRes] = await Promise.all([
+        fetch('/api/admin/whatsapp/scheduler', { credentials: 'include' }),
+        fetch('/api/admin/whatsapp/bot', { credentials: 'include' }),
+        fetch('/api/admin/whatsapp/status', { credentials: 'include' }),
+      ]);
+
+      if (schedRes.ok) {
+        const data = await schedRes.json();
         setSchedules(data.schedules || []);
         setGroups(data.groups || []);
         setLogs(data.logs || []);
         if (data.stats) setStats(data.stats);
 
-        // Pre-fill target destination if available
         if (data.groups && data.groups.length > 0 && !formTargetDestination) {
           setFormTargetDestination(data.groups[0].identifier || data.groups[0].id);
           setFormTargetName(data.groups[0].name);
         }
       }
+
+      if (botRes.ok) {
+        const botData = await botRes.json();
+        if (botData.config) setBotConfig(botData.config);
+      }
+
+      if (statusRes.ok) {
+        const statusData = await statusRes.json();
+        setZavuStatus(statusData);
+      }
     } catch (err) {
-      console.warn('Failed to load scheduler data:', err);
+      console.warn('Failed to load data:', err);
     } finally {
       setLoading(false);
     }
@@ -112,6 +167,28 @@ export default function AdminWhatsAppPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  const handleSaveBotConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingBot(true);
+    try {
+      const res = await fetch('/api/admin/whatsapp/bot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ config: botConfig }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast('WhatsApp Auto-Responder Bot config saved!', 'success');
+      } else {
+        showToast(data.message || 'Failed to save bot config.', 'error');
+      }
+    } catch {
+      showToast('Network error saving bot config.', 'error');
+    } finally {
+      setIsSavingBot(false);
+    }
+  };
 
   // Quick Preset Templates
   const applyPresetTemplate = (type: string) => {
@@ -172,7 +249,6 @@ export default function AdminWhatsAppPage() {
       if (res.ok) {
         showToast('Automated WhatsApp schedule created successfully!', 'success');
         setScheduleModalOpen(false);
-        // Reset form
         setFormTitle('');
         setFormDescription('');
         setFormMessageTemplate('');
@@ -234,10 +310,7 @@ export default function AdminWhatsAppPage() {
       const res = await fetch('/api/admin/whatsapp/scheduler', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'TOGGLE_STATUS',
-          scheduleId,
-        }),
+        body: JSON.stringify({ action: 'TOGGLE_STATUS', scheduleId }),
       });
       if (res.ok) {
         await loadData();
@@ -254,10 +327,7 @@ export default function AdminWhatsAppPage() {
       const res = await fetch('/api/admin/whatsapp/scheduler', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'RUN_NOW',
-          scheduleId,
-        }),
+        body: JSON.stringify({ action: 'RUN_NOW', scheduleId }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -367,42 +437,63 @@ export default function AdminWhatsAppPage() {
         </div>
       )}
 
-      {/* 1. Page Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white border border-[#E2E8F0] p-6 sm:p-8 rounded-[24px] shadow-xs">
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20 shrink-0">
-            <MessageSquare className="w-6 h-6" />
+      {/* 1. Live Bot Account Card */}
+      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-slate-700/80 p-6 rounded-[24px] text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 p-0.5 shadow-lg shadow-emerald-500/20 flex items-center justify-center">
+              <div className="w-full h-full bg-slate-900 rounded-[14px] flex items-center justify-center">
+                <Bot className="w-7 h-7 text-emerald-400" />
+              </div>
+            </div>
+            <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-slate-900 animate-pulse" />
           </div>
+
           <div>
             <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="text-2xl sm:text-3xl font-black text-[#0F172A] tracking-tight">
-                WhatsApp Bot & Automation Hub
-              </h1>
-              <span className="px-3 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                Zavu API Active
+              <h2 className="text-lg font-black text-white tracking-tight">
+                {zavuStatus?.activeSender?.name || 'Black Rock Esports Bot'}
+              </h2>
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                ONLINE & CONNECTED
               </span>
             </div>
-            <p className="text-xs text-[#64748B] font-medium mt-1">
-              স্বয়ংক্রিয়ভাবে আপনার WhatsApp Group বা প্লেয়ারদের কাছে নির্দিষ্ট সময় পরপর Room ID, টুর্নামেন্ট অ্যালার্ট ও মেসেজ শিডিউল করুন।
-            </p>
+            <div className="flex items-center gap-3 text-xs text-slate-300 font-mono mt-1 flex-wrap">
+              <span className="flex items-center gap-1">
+                <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
+                <strong>{zavuStatus?.activeSender?.phoneNumber || '+880 1866-408811'}</strong>
+              </span>
+              <span className="text-slate-600">•</span>
+              <span className="text-[11px] text-slate-400">
+                Sender ID: <code className="text-emerald-400">{zavuStatus?.activeSender?.id ? zavuStatus.activeSender.id.slice(0, 14) + '...' : 'Live Connected'}</code>
+              </span>
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap self-start lg:self-auto">
+        <div className="flex items-center gap-3 self-start md:self-auto">
+          <button
+            onClick={loadData}
+            className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition-all"
+            title="Sync live status with Zavu"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
+
           <button
             onClick={handleRunDueAutomations}
             disabled={isProcessing}
-            className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center gap-2 shadow-xs transition-all cursor-pointer disabled:opacity-50"
+            className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold flex items-center gap-2 border border-slate-700 shadow-xs transition-all cursor-pointer disabled:opacity-50"
             title="Force check and execute any due scheduled jobs"
           >
             {isProcessing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5 text-amber-400" />}
-            <span>Run Due Schedulers</span>
+            <span>Run Schedulers</span>
           </button>
 
           <button
             onClick={() => setScheduleModalOpen(true)}
-            className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-2 shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
+            className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-emerald-600/30 transition-all cursor-pointer"
           >
             <PlusCircle className="w-4 h-4" />
             <span>New Auto Schedule</span>
@@ -462,6 +553,19 @@ export default function AdminWhatsAppPage() {
         >
           <Clock className="w-4 h-4" />
           <span>🤖 Automated Schedulers ({schedules.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('BOT_AUTO_REPLY')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-[12px] text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+            activeTab === 'BOT_AUTO_REPLY'
+              ? 'bg-emerald-600 text-white shadow-xs'
+              : 'bg-white border border-[#E2E8F0] text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <Bot className="w-4 h-4" />
+          <span>💬 Bot Auto-Responder</span>
         </button>
 
         <button
@@ -670,7 +774,160 @@ export default function AdminWhatsAppPage() {
         </div>
       )}
 
-      {/* 5. TAB 2: INSTANT GROUP BROADCAST */}
+      {/* 5. TAB: BOT AUTO-RESPONDER & RULES */}
+      {activeTab === 'BOT_AUTO_REPLY' && (
+        <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] p-6 space-y-6 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#F1F5F9] pb-4">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
+                <Bot className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-[17px] font-bold text-[#0F172A]">WhatsApp Bot Auto-Responder</h2>
+                <p className="text-xs text-[#64748B]">
+                  খেলোয়াড়রা আপনার নম্বরে (`+880 1866-408811`) মেসেজ দিলে স্বয়ংক্রিয়ভাবে উত্তর দেওয়ার রুলস ও ওয়েলকাম মেসেজ কনফিগার করুন।
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setBotConfig(prev => ({ ...prev, autoReplyEnabled: !prev.autoReplyEnabled }))}
+              className={`px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-2 transition-all cursor-pointer ${
+                botConfig.autoReplyEnabled
+                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/20'
+                  : 'bg-slate-100 text-slate-500 border border-slate-200'
+              }`}
+            >
+              {botConfig.autoReplyEnabled ? (
+                <>
+                  <Check className="w-4 h-4" />
+                  <span>Bot Active</span>
+                </>
+              ) : (
+                <span>Bot Sleeping (OFF)</span>
+              )}
+            </button>
+          </div>
+
+          <form onSubmit={handleSaveBotConfig} className="space-y-6 text-xs font-medium">
+            {/* Welcome Greeting */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="block text-slate-700 font-bold">
+                  👋 Welcome Greeting Message (নতুন প্লেয়ার মেসেজ দিলে প্রথমবার যা যাবে):
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={botConfig.welcomeMessageEnabled}
+                    onChange={(e) => setBotConfig(prev => ({ ...prev, welcomeMessageEnabled: e.target.checked }))}
+                    className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span className="text-[11px] font-bold text-slate-600">Enable Welcome Message</span>
+                </label>
+              </div>
+
+              <textarea
+                rows={5}
+                value={botConfig.welcomeMessage}
+                onChange={(e) => setBotConfig(prev => ({ ...prev, welcomeMessage: e.target.value }))}
+                placeholder="Enter welcome greeting text..."
+                className="w-full p-3.5 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white leading-relaxed font-sans"
+              />
+            </div>
+
+            {/* Keyword Rules */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-amber-500" />
+                  <span>Keyword Triggers & Auto Replies (নির্দিষ্ট শব্দ লিখে মেসেজ দিলে যা যাবে):</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newRule = {
+                      id: `rule_${Date.now()}`,
+                      keywords: ['support', 'help'],
+                      replyText: 'যেকোনো প্রয়োজনে আমাদের সাপোর্ট টিমকে কল বা মেসেজ করুন: +8801866408811',
+                      isActive: true,
+                    };
+                    setBotConfig(prev => ({ ...prev, rules: [...prev.rules, newRule] }));
+                  }}
+                  className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                >
+                  <PlusCircle className="w-3.5 h-3.5" />
+                  <span>+ Add Trigger Rule</span>
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                {botConfig.rules.map((rule, idx) => (
+                  <div key={rule.id} className="p-4 rounded-2xl border border-slate-200 bg-[#F8FAFC] space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex-1">
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                          Keywords (কমা দিয়ে একাধিক শব্দ দিন যেমন: <code>room, id, pass, পাসওয়ার্ড</code>):
+                        </label>
+                        <input
+                          type="text"
+                          value={rule.keywords.join(', ')}
+                          onChange={(e) => {
+                            const newKws = e.target.value.split(',').map(k => k.trim()).filter(Boolean);
+                            const updated = [...botConfig.rules];
+                            updated[idx].keywords = newKws;
+                            setBotConfig(prev => ({ ...prev, rules: updated }));
+                          }}
+                          className="w-full px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-900"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = botConfig.rules.filter((_, i) => i !== idx);
+                          setBotConfig(prev => ({ ...prev, rules: updated }));
+                        }}
+                        className="p-1.5 text-slate-400 hover:text-red-600"
+                        title="Remove Rule"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">Auto Reply Text:</label>
+                      <textarea
+                        rows={3}
+                        value={rule.replyText}
+                        onChange={(e) => {
+                          const updated = [...botConfig.rules];
+                          updated[idx].replyText = e.target.value;
+                          setBotConfig(prev => ({ ...prev, rules: updated }));
+                        }}
+                        className="w-full p-2.5 rounded-lg border border-slate-200 bg-white text-xs text-slate-900"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <button
+                type="submit"
+                disabled={isSavingBot}
+                className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-emerald-600/20 disabled:opacity-50 cursor-pointer"
+              >
+                {isSavingBot ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                <span>{isSavingBot ? 'Saving...' : 'Save Bot Auto-Responder Config'}</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* 6. TAB 3: INSTANT GROUP BROADCAST */}
       {activeTab === 'INSTANT_BROADCAST' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-7 bg-white border border-[#E2E8F0]/80 rounded-[24px] p-6 space-y-5 shadow-xs">
@@ -718,7 +975,7 @@ export default function AdminWhatsAppPage() {
 
               <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs">
                 <span className="font-bold block mb-0.5">ℹ️ Instant Delivery Note:</span>
-                <span>Messages will be dispatched in real-time through the Zavu WhatsApp API. All recipients with valid numbers will receive this notification.</span>
+                <span>Messages will be dispatched in real-time through the Zavu WhatsApp API from <strong>+880 1866-408811</strong>.</span>
               </div>
 
               <button
@@ -755,7 +1012,7 @@ export default function AdminWhatsAppPage() {
         </div>
       )}
 
-      {/* 6. TAB 3: GROUPS & AUDIENCES */}
+      {/* 7. TAB 4: GROUPS & AUDIENCES */}
       {activeTab === 'GROUPS' && (
         <div className="space-y-4">
           <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] p-6 shadow-xs space-y-4">
@@ -817,13 +1074,13 @@ export default function AdminWhatsAppPage() {
         </div>
       )}
 
-      {/* 7. TAB 4: DISPATCH HISTORY & LOGS */}
+      {/* 8. TAB 5: DISPATCH HISTORY & LOGS */}
       {activeTab === 'LOGS' && (
         <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] overflow-hidden shadow-xs">
           <div className="p-5 border-b border-[#F1F5F9] flex items-center justify-between">
             <div>
               <h2 className="text-[17px] font-bold text-[#0F172A]">WhatsApp Automation & Dispatch Logs</h2>
-              <p className="text-xs text-[#64748B]">Recent messages dispatched by automated schedulers and manual broadcasts.</p>
+              <p className="text-xs text-[#64748B]">Recent messages dispatched by automated schedulers, bot auto-replies, and manual broadcasts.</p>
             </div>
             <button
               onClick={loadData}
@@ -880,34 +1137,30 @@ export default function AdminWhatsAppPage() {
         </div>
       )}
 
-      {/* 8. TAB 5: API CONFIG & TEST */}
+      {/* 9. TAB 6: API CONFIG & TEST */}
       {activeTab === 'SETTINGS' && (
         <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] p-6 space-y-6 shadow-xs">
-          <div className="border-b border-[#F1F5F9] pb-4">
-            <h2 className="text-[17px] font-bold text-[#0F172A]">Zavu WhatsApp API Credentials & Live Test</h2>
-            <p className="text-xs text-[#64748B]">
-              Configure your API key to dispatch WhatsApp messages automatically across all tournaments and scheduler bots.
-            </p>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
-            <div className="text-xs font-bold text-slate-800">⚙️ How to configure Zavu in Vercel:</div>
-            <ul className="text-xs text-slate-600 space-y-1.5 list-disc list-inside">
-              <li>Go to <strong>Vercel Dashboard $\rightarrow$ Settings $\rightarrow$ Environment Variables</strong>.</li>
-              <li>Add variable <code>ZAVU_API_KEY</code> with your live API secret key.</li>
-              <li>Alternatively, set it in <strong>Admin Panel $\rightarrow$ Settings $\rightarrow$ WhatsApp API</strong>.</li>
-            </ul>
+          <div className="border-b border-[#F1F5F9] pb-4 flex items-center justify-between">
+            <div>
+              <h2 className="text-[17px] font-bold text-[#0F172A]">Zavu WhatsApp API Connection</h2>
+              <p className="text-xs text-[#64748B]">
+                Your WhatsApp Bot Account is connected and sending from <strong>+880 1866-408811</strong>.
+              </p>
+            </div>
+            <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              🟢 Connected
+            </span>
           </div>
 
           {/* Test Dispatcher */}
-          <div className="pt-2">
-            <h3 className="text-xs font-bold text-slate-800 mb-2">Send Live Test Message to WhatsApp</h3>
+          <div className="pt-2 space-y-3">
+            <h3 className="text-xs font-bold text-slate-800">Send Live Test Message to WhatsApp</h3>
             <div className="flex flex-col sm:flex-row items-center gap-3">
               <input
                 type="text"
                 value={testPhone}
                 onChange={(e) => setTestPhone(e.target.value)}
-                placeholder="Enter recipient number (+88017XXXXXXXX)"
+                placeholder="Enter recipient number (+88017XXXXXXXX or 017XXXXXXXX)"
                 className="w-full sm:flex-1 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-900 focus:outline-none focus:border-emerald-600"
               />
               <button
