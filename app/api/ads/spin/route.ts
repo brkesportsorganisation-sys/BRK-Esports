@@ -195,6 +195,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       winningIndex: winningIndex >= 0 ? winningIndex : 0,
+      rewardIndex: winningIndex >= 0 ? winningIndex : 0,
       reward: selectedReward,
       user: sanitizedUser,
       message: prizeValue > 0 

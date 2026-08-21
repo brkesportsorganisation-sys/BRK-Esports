@@ -79,12 +79,13 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
   // Load participants seamlessly in the background when SLOTS modal opens
   const handleOpenSlots = () => {
     setActiveModal('SLOTS');
-    if (registeredCount > 0 && participants.length === 0 && tournament.id) {
+    if (tournament.id) {
       fetch(`/api/tournaments/${tournament.id}`)
         .then(res => (res.ok ? res.json() : null))
         .then(data => {
-          if (data?.participants) {
-            setParticipants(data.participants);
+          const list = data?.tournament?.participants || data?.participants || [];
+          if (list.length > 0) {
+            setParticipants(list);
           }
         })
         .catch(err => console.warn('Failed to load slots participants:', err));
@@ -305,7 +306,7 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
                   </div>
 
                   <div className="flex-1 overflow-y-auto pr-1 space-y-2 custom-scrollbar">
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {Array.from({ length: maxSlots }, (_, i) => {
                         const slotNum = i + 1;
                         const participant = participants[i];
@@ -314,19 +315,41 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
                         return (
                           <div
                             key={slotNum}
-                            className={`p-2.5 rounded-xl border text-xs font-bold transition-colors ${isOccupied
+                            className={`p-2.5 rounded-xl border text-xs transition-colors ${
+                              isOccupied
                                 ? 'bg-slate-900 text-white border-slate-800 shadow-2xs'
                                 : 'bg-slate-50 text-slate-400 border-dashed border-slate-200'
-                              }`}
+                            }`}
                           >
-                            <div className="flex items-center justify-between gap-1">
-                              <span className="truncate">
-                                {slotNum}. {isOccupied ? participant.squadName : 'Empty Slot'}
+                            <div className="flex items-center justify-between gap-1 mb-0.5">
+                              <span className="font-mono text-[10px] font-black text-brand-orange">
+                                SLOT #{slotNum}
                               </span>
-                              {isOccupied && (
-                                <span className="text-emerald-400 shrink-0">✅</span>
+                              {isOccupied ? (
+                                <span className="text-emerald-400 font-bold text-[10px] flex items-center gap-0.5">
+                                  <span>✅</span> <span>CONFIRMED</span>
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-semibold text-slate-400">OPEN</span>
                               )}
                             </div>
+                            
+                            {isOccupied ? (
+                              <div className="space-y-0.5">
+                                <div className="font-bold text-white text-xs truncate">
+                                  {participant.squadName || participant.name || 'Registered Squad'}
+                                </div>
+                                {participant.iglName && (
+                                  <div className="text-[10px] text-slate-300 truncate font-normal">
+                                    IGL: <strong className="text-white">{participant.iglName}</strong>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="text-slate-400 text-[11px] font-semibold">
+                                Empty Slot
+                              </div>
+                            )}
                           </div>
                         );
                       })}

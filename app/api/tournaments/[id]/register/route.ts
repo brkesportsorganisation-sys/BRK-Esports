@@ -235,22 +235,31 @@ export async function POST(
       .eq('id', userId);
 
     // 2. Create Participant
+    const participantRecord: Record<string, any> = {
+      id: registrationId,
+      registrationId,
+      tournamentId,
+      userId,
+      teamId: null, // Avoid FK violation on dynamic squad names
+      status: 'VERIFIED',
+      squadName: squadName.trim(),
+      iglName: iglName.trim(),
+      captainWhatsApp: captainWhatsApp ? captainWhatsApp.trim() : null,
+      player1Name: player1Name.trim(),
+      player2Name: player2Name.trim(),
+      player3Name: player3Name.trim(),
+      player4Name: player4Name.trim(),
+      backupPlayerName: backupPlayerName?.trim() || null,
+      joinedAt: new Date().toISOString(),
+    };
+
     const { error: partErr } = await supabaseAdmin
       .from('Participant')
-      .insert([{
-        id: registrationId,
-        tournamentId,
-        userId,
-        teamId,
-        squadName: squadName.trim(),
-        iglName: iglName.trim(),
-        player1Name: player1Name.trim(),
-        player2Name: player2Name.trim(),
-        player3Name: player3Name.trim(),
-        player4Name: player4Name.trim(),
-        backupPlayerName: backupPlayerName?.trim() || null,
-        joinedAt: new Date().toISOString(),
-      }]);
+      .insert([participantRecord]);
+
+    if (partErr) {
+      console.error('[POST /api/tournaments/[id]/register] Supabase Participant insert error:', partErr);
+    }
 
     // 3. Create Payment record
     const paymentId = `pay_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;

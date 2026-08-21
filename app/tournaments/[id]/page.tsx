@@ -513,7 +513,34 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
         remainingBalance: result.remainingBalance,
       });
       setIsJoined(true);
-      setTournament((prev) => prev ? { ...prev, registeredCount: prev.registeredCount + 1 } : prev);
+
+      const newParticipant = {
+        id: result.registrationId,
+        registrationId: result.registrationId,
+        tournamentId: resolvedParams.id,
+        userId: activeUser.id,
+        squadName: squadName.trim(),
+        iglName: iglName.trim(),
+        captainWhatsApp: captainWhatsApp.trim(),
+        player1Name: player1Name.trim(),
+        player2Name: player2Name.trim(),
+        player3Name: player3Name.trim(),
+        player4Name: player4Name.trim(),
+        backupPlayerName: backupPlayerName?.trim() || null,
+        joinedAt: new Date().toISOString(),
+        status: 'VERIFIED',
+      };
+
+      setMyRegistrations((prev) => [newParticipant, ...prev]);
+      setTournament((prev) => {
+        if (!prev) return prev;
+        const currentParticipants = (prev as any).participants || [];
+        return {
+          ...prev,
+          registeredCount: (prev.registeredCount || 0) + 1,
+          participants: [...currentParticipants, newParticipant],
+        };
+      });
     } catch (err: any) {
       setSubmitError(err?.message || 'Network error. Could not reach the server.');
     } finally {
@@ -825,11 +852,11 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
               {successData ? (
                 <div className="p-6 space-y-6">
                   <div className="text-center space-y-2">
-                    <div className="w-16 h-16 rounded-full bg-green-50 border-2 border-green-500 flex items-center justify-center mx-auto">
-                      <CheckCircle2 className="w-9 h-9 text-green-600" />
+                    <div className="w-16 h-16 rounded-full bg-emerald-50 border-2 border-emerald-500 flex items-center justify-center mx-auto shadow-sm">
+                      <CheckCircle2 className="w-9 h-9 text-emerald-600" />
                     </div>
                     <h4 className="font-heading font-black text-2xl text-slate-900">Registration Successful!</h4>
-                    <p className="text-sm text-slate-600">You have successfully registered for this tournament.</p>
+                    <p className="text-xs text-slate-600">Your slot is confirmed. You now have full access to Room ID and the official Discussion Group.</p>
                   </div>
 
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 divide-y divide-slate-200 text-sm">
@@ -850,19 +877,74 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                     ))}
                     <div className="flex items-center justify-between px-4 py-3">
                       <span className="text-slate-500 font-semibold">Status</span>
-                      <span className="px-3 py-1 rounded-full bg-yellow-50 border border-yellow-300 text-yellow-800 text-xs font-bold uppercase">Pending Admin Approval</span>
+                      <span className="px-3 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-700 text-xs font-bold uppercase flex items-center gap-1.5 shadow-2xs">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>APPROVED / CONFIRMED</span>
+                      </span>
                     </div>
                   </div>
 
-                  <div className="p-3 rounded-2xl bg-blue-50 border border-blue-200 text-xs text-blue-800 text-center">
-                    📋 Your registration is under review. You will gain access to Room ID & Password once approved.
-                  </div>
+                  {/* Room ID & Password Instant Access Card */}
+                  {tournament.roomId ? (
+                    <div className="p-4 rounded-2xl bg-gradient-to-br from-orange-50/80 to-amber-50/80 border border-orange-200 text-xs space-y-2">
+                      <div className="font-bold text-slate-900 flex items-center justify-between">
+                        <span className="flex items-center gap-1.5 text-brand-orange uppercase tracking-wider font-extrabold">
+                          <Gamepad2 className="w-4 h-4" /> Custom Room Access Unlocked
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase">LIVE READY</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 pt-1 font-mono text-sm">
+                        <div className="bg-white p-2.5 rounded-xl border border-orange-200">
+                          <div className="text-[10px] uppercase font-bold text-slate-500 font-sans">Room ID</div>
+                          <div className="font-black text-brand-orange text-base tracking-wider">{tournament.roomId}</div>
+                        </div>
+                        <div className="bg-white p-2.5 rounded-xl border border-orange-200">
+                          <div className="text-[10px] uppercase font-bold text-slate-500 font-sans">Room Password</div>
+                          <div className="font-black text-slate-900 text-base tracking-wider">{tournament.roomPassword || 'None'}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200 text-xs text-emerald-900 space-y-1.5">
+                      <div className="font-bold flex items-center gap-1.5 text-emerald-800">
+                        <Unlock className="w-4 h-4 text-emerald-600" /> Room ID & Password Access Unlocked!
+                      </div>
+                      <p className="text-emerald-700 leading-relaxed text-[11px]">
+                        আপনার স্লট নিশ্চিত করা হয়েছে। ম্যাচ শুরুর <strong>১০-১৫ মিনিট আগে</strong> স্বয়ংক্রিয়ভাবে রুম আইডি ও পাসওয়ার্ড পেজে লাইভ দেখতে পাবেন।
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Official Discussion / WhatsApp Community Group Link */}
+                  {communityLink && (
+                    <div className="p-3.5 rounded-2xl bg-emerald-50/90 border border-emerald-200 flex items-center justify-between gap-3">
+                      <div className="text-xs">
+                        <div className="font-bold text-emerald-900 flex items-center gap-1.5">
+                          <ShieldCheck className="w-4 h-4 text-emerald-600" /> Official Discussion Group
+                        </div>
+                        <div className="text-[11px] text-emerald-700 font-medium">Join match updates & discussions</div>
+                      </div>
+                      <a
+                        href={communityLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 shadow-xs transition-all shrink-0 cursor-pointer"
+                      >
+                        <span>Join Group</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </a>
+                    </div>
+                  )}
 
                   <button
-                    onClick={closeJoinModal}
-                    className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold text-white font-heading font-black text-sm shadow-neon-red hover:brightness-110 transition-all"
+                    onClick={() => {
+                      closeJoinModal();
+                      setActiveTab('ROOM');
+                    }}
+                    className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold text-white font-heading font-black text-sm shadow-neon-red hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    Go To Tournament →
+                    <Gamepad2 className="w-5 h-5" />
+                    <span>Go To Room ID & Slot Table →</span>
                   </button>
                 </div>
               ) : (

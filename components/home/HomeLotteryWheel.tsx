@@ -126,15 +126,27 @@ export default function HomeLotteryWheel() {
 
       if (res.ok && data.success) {
         const wonItem = data.reward as LotteryRewardItem;
-        const targetIndex = data.rewardIndex !== undefined ? data.rewardIndex : 0;
+        
+        // Find exact index of the won reward in current wheel's lotteryRewards list
+        let targetIndex = lotteryRewards.findIndex((r) => r.id === wonItem?.id);
+        if (targetIndex === -1) {
+          targetIndex = lotteryRewards.findIndex((r) => r.label === wonItem?.label);
+        }
+        if (targetIndex === -1) {
+          targetIndex = data.winningIndex ?? data.rewardIndex ?? 0;
+        }
+
         const totalItems = lotteryRewards.length || 8;
         const segmentAngle = 360 / totalItems;
 
-        // Pointer is at the top (0 degrees).
-        const targetAngle = 360 - (targetIndex * segmentAngle + segmentAngle / 2);
-        const fullSpins = 360 * 5;
+        // Pointer is at the top (12 o'clock / 0 degrees).
+        // Each segment i is centered at (i * segmentAngle + segmentAngle / 2).
+        // To align segment i with the top pointer, rotate by (360 - centerAngle).
+        const targetAngle = (360 - (targetIndex * segmentAngle + segmentAngle / 2)) % 360;
+        const fullSpins = 360 * 5; // 5 full dramatic rotations
         const currentMod = wheelRotation % 360;
-        const delta = ((targetAngle - currentMod + 360) % 360);
+        let delta = ((targetAngle - currentMod + 360) % 360);
+        if (delta === 0) delta = 360;
         const finalRotation = wheelRotation + fullSpins + delta;
 
         setWheelRotation(finalRotation);
@@ -144,7 +156,7 @@ export default function HomeLotteryWheel() {
           setSpinResult(wonItem);
           setShowWinModal(true);
           if (currentUser?.id) void refreshUser(currentUser.id);
-        }, 4600);
+        }, 4700);
       } else {
         setIsSpinning(false);
         setFeedbackMsg(data.message || (isBangla ? 'স্পিন সম্পন্ন করা সম্ভব হয়নি।' : 'Failed to spin lottery wheel.'));
