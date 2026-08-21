@@ -30,13 +30,36 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: error || 'Could not initialize Zavu client.' }, { status: 400 });
     }
 
+    // 1. Inspect and resolve active sender from Zavu account
+    let senderId: string | undefined;
+    try {
+      const senders: any[] = [];
+      for await (const s of client.senders.list()) {
+        senders.push(s);
+      }
+
+      if (senders.length === 0) {
+        return NextResponse.json({
+          success: false,
+          message: '⚠️ আপনার Zavu অ্যাকাউন্টে কোনো WhatsApp Sender / Phone Number এখনও কানেক্ট করা হয়নি। অনুগ্রহ করে Zavu Dashboard (https://dashboard.zavu.dev) এ গিয়ে Senders -> Add Sender এ ক্লিক করে আপনার WhatsApp নম্বরটি লিংক করুন।',
+        }, { status: 400 });
+      }
+
+      const defaultSender = senders.find(s => s.isDefault) || senders[0];
+      senderId = defaultSender?.id;
+    } catch (err: any) {
+      console.warn('[Zavu Sender Fetch]', err?.message);
+    }
+
     const testMessage = `🤖 BlackRock Esports WhatsApp Test 🤖\n\n✅ Zavu API is successfully connected and operational!\n🕒 Timestamp: ${new Date().toLocaleString()}`;
+
+    const requestOptions = senderId ? { headers: { 'Zavu-Sender': senderId } } : undefined;
 
     const response = await client.messages.send({
       channel: 'whatsapp',
       to: formattedPhone,
       text: testMessage,
-    });
+    }, requestOptions);
 
     return NextResponse.json({
       success: true,
@@ -45,9 +68,16 @@ export async function POST(request: Request) {
     });
   } catch (error: any) {
     console.error('[POST /api/admin/whatsapp/test]', error);
+    const rawMsg = error?.message || '';
+    let userMsg = rawMsg;
+
+    if (rawMsg.includes('No default sender') || rawMsg.includes('Zavu-Sender')) {
+      userMsg = '⚠️ আপনার Zavu অ্যাকাউন্টে কোনো WhatsApp Sender / নম্বর কানেক্ট করা হয়নি। অনুগ্রহ করে Zavu Dashboard (https://dashboard.zavu.dev) -> Senders-এ গিয়ে আপনার WhatsApp Number যুক্ত করুন।';
+    }
+
     return NextResponse.json(
-      { message: error?.message || 'Failed to send test WhatsApp message.' },
-      { status: 500 }
+      { message: userMsg },
+      { status: 400 }
     );
   }
 }

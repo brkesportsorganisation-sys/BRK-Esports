@@ -103,6 +103,27 @@ export async function getZavuClient(): Promise<{ client: Zavudev | null; error?:
   }
 }
 
+/**
+ * Helper to get default or first sender request options for Zavu SDK
+ */
+async function getSenderRequestOptions(client: Zavudev) {
+  try {
+    const senders: any[] = [];
+    for await (const s of client.senders.list()) {
+      senders.push(s);
+    }
+    if (senders.length > 0) {
+      const defaultSender = senders.find(s => s.isDefault) || senders[0];
+      if (defaultSender?.id) {
+        return { headers: { 'Zavu-Sender': defaultSender.id } };
+      }
+    }
+  } catch (err: any) {
+    console.warn('[Zavu Sender Option Check]', err?.message);
+  }
+  return undefined;
+}
+
 export interface SendRoomDetailsParams {
   playerPhone: string;
   roomId: string;
@@ -163,11 +184,12 @@ export async function sendRoomDetailsToPlayer({
   }
 
   try {
+    const requestOptions = await getSenderRequestOptions(client);
     const response = await client.messages.send({
       channel: 'whatsapp',
       to: formattedPhone,
       text,
-    });
+    }, requestOptions);
 
     await addWhatsAppLog({
       targetDestination: formattedPhone,
@@ -185,18 +207,24 @@ export async function sendRoomDetailsToPlayer({
     };
   } catch (err: any) {
     console.error('[WhatsApp Send Error]', err);
+    const rawMsg = err?.message || '';
+    let errMsg = rawMsg;
+    if (rawMsg.includes('No default sender') || rawMsg.includes('Zavu-Sender')) {
+      errMsg = '⚠️ আপনার Zavu অ্যাকাউন্টে কোনো WhatsApp Sender / Phone Number এখনও যুক্ত করা হয়নি। অনুগ্রহ করে Zavu ড্যাশবোর্ডে গিয়ে একটি Sender (WhatsApp QR বা Cloud API) কানেক্ট করুন।';
+    }
+
     await addWhatsAppLog({
       targetDestination: formattedPhone,
       targetName: playerName,
       messageText: text,
       triggerType: 'ROOM_ALERT',
       status: 'FAILED',
-      error: err?.message || 'Zavu dispatch error',
+      error: errMsg,
     });
 
     return {
       success: false,
-      message: err?.message || 'Failed to send WhatsApp message through Zavu API.',
+      message: errMsg,
       error: err,
     };
   }
@@ -227,11 +255,12 @@ export async function sendDirectWhatsappMessage({
   }
 
   try {
+    const requestOptions = await getSenderRequestOptions(client);
     const response = await client.messages.send({
       channel: 'whatsapp',
       to: formattedTo,
       text,
-    });
+    }, requestOptions);
 
     await addWhatsAppLog({
       targetDestination: formattedTo,
@@ -242,21 +271,27 @@ export async function sendDirectWhatsappMessage({
       responseId: (response as any)?.id || (response as any)?.messageId || 'sent',
     });
 
-
     return { success: true, message: `Delivered to ${formattedTo}`, response };
   } catch (err: any) {
+    const rawMsg = err?.message || '';
+    let errMsg = rawMsg;
+    if (rawMsg.includes('No default sender') || rawMsg.includes('Zavu-Sender')) {
+      errMsg = '⚠️ আপনার Zavu অ্যাকাউন্টে কোনো WhatsApp Sender / Phone Number এখনও যুক্ত করা হয়নি। অনুগ্রহ করে Zavu ড্যাশবোর্ডে গিয়ে একটি Sender কানেক্ট করুন।';
+    }
+
     await addWhatsAppLog({
       targetDestination: formattedTo,
       targetName,
       messageText: text,
       triggerType,
       status: 'FAILED',
-      error: err?.message || 'Dispatch error',
+      error: errMsg,
     });
 
-    return { success: false, message: err?.message || 'Failed to dispatch', error: err };
+    return { success: false, message: errMsg, error: err };
   }
 }
+
 
 /**
  * Broadcasts Room ID and Password to multiple players / squad captains.
