@@ -869,18 +869,7 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                 /* ── REGISTRATION FORM ── */
                 <form onSubmit={handleSubmit} className="p-6 space-y-6">
 
-                  {/* ── SECTION 1: Tournament Description ── */}
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-2 min-w-0 w-full overflow-hidden">
-                    <h4 className="text-xs font-bold uppercase tracking-widest text-brand-orange flex items-center gap-2">
-                      <Trophy className="w-3.5 h-3.5 shrink-0" /> Tournament Description
-                    </h4>
-                    <div
-                      className="text-sm text-slate-800 leading-relaxed prose prose-sm max-w-none min-w-0 w-full break-words [overflow-wrap:anywhere] [word-break:break-word] whitespace-pre-wrap [&_*]:max-w-full [&_*]:break-words [&_*]:[overflow-wrap:anywhere] [&_*]:!bg-transparent [&_*]:!text-slate-800 [&_p]:break-words [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:overflow-x-auto [&_table]:overflow-x-auto [&_table]:block [&_img]:max-w-full [&_img]:h-auto"
-                      dangerouslySetInnerHTML={{ __html: tournament.description }}
-                    />
-                  </div>
-
-                  {/* ── SECTION 2: Payment Method Selection ── */}
+                  {/* ── SECTION 1: Payment Method Selection ── */}
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-4">
                     <div className="flex items-center justify-between">
                       <h4 className="text-xs font-bold uppercase tracking-widest text-brand-orange flex items-center gap-2">
