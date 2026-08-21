@@ -533,8 +533,11 @@ export default function WalletPage() {
                             {p.status === 'REJECTED' && <AlertCircle className="w-3 h-3 text-red-600" />}
                             <span>
                               {p.status === 'VERIFIED' ? (isWithdrawal ? 'Paid / Sent' : 'Verified') : 
-                               p.status === 'PENDING' ? (isWithdrawal ? 'Pending Payout' : 'Pending Review') : 
-                               'Refunded'}
+                               p.status === 'PENDING' ? (
+                                 isWithdrawal ? 'Pending Payout' : 
+                                 Number(p.amount) > 500 ? 'Pending Admin Approval' : 'Auto-Credited (Pending)'
+                               ) : 
+                               'Refunded / Rejected'}
                             </span>
                           </span>
                         </td>
@@ -608,6 +611,13 @@ export default function WalletPage() {
 
                 <div className="text-[11px] text-slate-600 font-medium leading-relaxed">
                   Go to your <strong>{depositMethod} app</strong> ➡️ Tap <strong>Send Money</strong> ➡️ Enter the number above ➡️ Complete payment and copy the <strong>TrxID</strong>.
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-blue-50/80 border border-blue-200 text-[11px] text-blue-900 flex items-start gap-2">
+                  <span className="text-sm shrink-0">⚡</span>
+                  <div>
+                    <strong>ডিপোজিট রুল:</strong> ৳২০ - ৳৫০০ পর্যন্ত ডিপোজিট সাথে সাথে ওয়ালেটে অটো যোগ হবে। ৳৫০০ এর বেশি ডিপোজিট এডমিন প্যানেল ভেরিফাই করে অ্যাপ্রুভ করার পর ওয়ালেটে জমা হবে।
+                  </div>
                 </div>
               </div>
 

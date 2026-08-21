@@ -58,25 +58,58 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ message: 'Deposit record not found.' }, { status: 404 });
     }
 
+    const depositAmount = Number(payment.amount || 0);
+    const wasAutoCredited = payment.notes?.includes('[Auto-Credited') || 
+      (depositAmount <= 500 && !payment.notes?.includes('NOT Auto-Credited'));
+
     if (action === 'APPROVE') {
-      // 1. Mark payment as VERIFIED (already auto-credited on submission)
+      // 1. If NOT auto-credited (e.g. > ৳500), credit the player's wallet now
+      if (!wasAutoCredited) {
+        const { data: user } = await supabaseAdmin
+          .from('User')
+          .select('id, walletBalance, winningBalance')
+          .eq('id', payment.userId)
+          .single();
+
+        if (user) {
+          const currentWallet = Number(user.walletBalance || 0);
+          const currentWinning = Number(user.winningBalance || 0);
+          const newWallet = currentWallet + depositAmount;
+          const newWinning = currentWinning + depositAmount;
+
+          await supabaseAdmin
+            .from('User')
+            .update({
+              walletBalance: newWallet,
+              winningBalance: newWinning,
+              updatedAt: new Date().toISOString(),
+            })
+            .eq('id', user.id);
+        }
+      }
+
+      // 2. Mark payment as VERIFIED
       await supabaseAdmin
         .from('Payment')
         .update({
           status: 'VERIFIED',
-          notes: `${payment.notes || ''} [Verified & Confirmed by ${session.username || session.email}]`,
+          notes: wasAutoCredited
+            ? `${payment.notes || ''} [Verified & Confirmed by ${session.username || session.email}]`
+            : `${payment.notes || ''} [Approved & ৳${depositAmount} Credited to Wallet by ${session.username || session.email}]`,
           updatedAt: new Date().toISOString(),
         })
         .eq('id', paymentId);
 
-      // 2. Send in-app Confirmation Notification to player
+      // 3. Send in-app Confirmation Notification to player
       try {
         const notifId = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
         await supabaseAdmin.from('Notification').insert([{
           id: notifId,
           userId: payment.userId,
-          title: 'Deposit Verified! 🎉',
-          message: `আপনার ৳${payment.amount} ডিপোজিট (${payment.method}, TrxID: ${payment.trxId}) এডমিন কর্তৃক সফলভাবে ভেরিফাই ও কনফার্ম করা হয়েছে!`,
+          title: wasAutoCredited ? 'Deposit Verified! 🎉' : 'ডিপোজিট অ্যাপ্রুভ ও ওয়ালেটে জমা হয়েছে! 🎉',
+          message: wasAutoCredited
+            ? `আপনার ৳${payment.amount} ডিপোজিট (${payment.method}, TrxID: ${payment.trxId}) এডমিন কর্তৃক সফলভাবে ভেরিফাই ও কনফার্ম করা হয়েছে!`
+            : `আপনার ৳${payment.amount} ডিপোজিট রিকোয়েস্টটি (${payment.method}, TrxID: ${payment.trxId}) এডমিন কর্তৃক অনুমোদিত হয়েছে এবং আপনার ওয়ালেটে ৳${payment.amount} যোগ করা হয়েছে!`,
           isRead: false,
           createdAt: new Date().toISOString(),
         }]);
@@ -87,43 +120,44 @@ export async function PATCH(request: NextRequest) {
         'DEPOSIT_VERIFIED',
         'Payment',
         paymentId,
-        `Approved and verified deposit of ৳${payment.amount} (TrxID: ${payment.trxId}) for player ${payment.userName}`
+        `Approved deposit of ৳${payment.amount} (TrxID: ${payment.trxId}) for player ${payment.userName} (AutoCredited: ${wasAutoCredited})`
       );
 
       return NextResponse.json({ 
         success: true,
-        message: `Deposit of ৳${payment.amount} verified and confirmed.` 
+        message: wasAutoCredited 
+          ? `Deposit of ৳${payment.amount} verified and confirmed.`
+          : `Deposit of ৳${payment.amount} approved and credited to player's wallet.`
       });
     }
 
-    // If REJECTED (Fraud / Fake TrxID / Fake Screenshot -> Deduct / Minus balance)
+    // If REJECTED
     const reasonText = rejectionReason || 'Invalid Transaction ID, number mismatch, or payment not received';
-    const deductAmt = Number(payment.amount || 0);
-
-    // 1. Deduct the auto-credited balance from the player's wallet
-    const { data: user } = await supabaseAdmin
-      .from('User')
-      .select('id, walletBalance, winningBalance')
-      .eq('id', payment.userId)
-      .single();
-
     let newWallet = 0;
-    let newWinning = 0;
 
-    if (user) {
-      const currentWallet = Number(user.walletBalance || 0);
-      const currentWinning = Number(user.winningBalance || 0);
-      newWallet = Math.max(0, currentWallet - deductAmt);
-      newWinning = Math.max(0, currentWinning - deductAmt);
-
-      await supabaseAdmin
+    // 1. Only deduct balance from player's wallet IF it was actually auto-credited
+    if (wasAutoCredited) {
+      const { data: user } = await supabaseAdmin
         .from('User')
-        .update({
-          walletBalance: newWallet,
-          winningBalance: newWinning,
-          updatedAt: new Date().toISOString(),
-        })
-        .eq('id', user.id);
+        .select('id, walletBalance, winningBalance')
+        .eq('id', payment.userId)
+        .single();
+
+      if (user) {
+        const currentWallet = Number(user.walletBalance || 0);
+        const currentWinning = Number(user.winningBalance || 0);
+        newWallet = Math.max(0, currentWallet - depositAmount);
+        const newWinning = Math.max(0, currentWinning - depositAmount);
+
+        await supabaseAdmin
+          .from('User')
+          .update({
+            walletBalance: newWallet,
+            winningBalance: newWinning,
+            updatedAt: new Date().toISOString(),
+          })
+          .eq('id', user.id);
+      }
     }
 
     // 2. Mark payment as REJECTED
@@ -131,19 +165,23 @@ export async function PATCH(request: NextRequest) {
       .from('Payment')
       .update({
         status: 'REJECTED',
-        notes: `${payment.notes || ''} [Rejected & ৳${deductAmt} Deducted by ${session.username || session.email}: ${reasonText}]`,
+        notes: wasAutoCredited
+          ? `${payment.notes || ''} [Rejected & ৳${depositAmount} Deducted by ${session.username || session.email}: ${reasonText}]`
+          : `${payment.notes || ''} [Rejected by ${session.username || session.email}: ${reasonText}]`,
         updatedAt: new Date().toISOString(),
       })
       .eq('id', paymentId);
 
-    // 3. Send Rejection & Balance Deduction Notification to player
+    // 3. Send Rejection Notification to player
     try {
       const notifId = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
       await supabaseAdmin.from('Notification').insert([{
         id: notifId,
         userId: payment.userId,
-        title: 'ডিপোজিট বাতিল ও ব্যালেন্স কর্তন ⚠️',
-        message: `আপনার ৳${deductAmt} ডিপোজিট (TrxID: ${payment.trxId}) ভেরিফিকেশনে বাতিল হয়েছে এবং ওয়ালেট থেকে ৳${deductAmt} কেটে নেওয়া হয়েছে। কারণ: ${reasonText}। ভুল মনে হলে হেল্পলাইনে যোগাযোগ করুন।`,
+        title: wasAutoCredited ? 'ডিপোজিট বাতিল ও ব্যালেন্স কর্তন ⚠️' : 'ডিপোজিট রিকোয়েস্ট বাতিল ⚠️',
+        message: wasAutoCredited
+          ? `আপনার ৳${depositAmount} ডিপোজিট (TrxID: ${payment.trxId}) ভেরিফিকেশনে বাতিল হয়েছে এবং ওয়ালেট থেকে ৳${depositAmount} কেটে নেওয়া হয়েছে। কারণ: ${reasonText}। ভুল মনে হলে হেল্পলাইনে যোগাযোগ করুন।`
+          : `আপনার ৳${depositAmount} ডিপোজিট রিকোয়েস্টটি (TrxID: ${payment.trxId}) বাতিল করা হয়েছে। কারণ: ${reasonText}। ভুল মনে হলে হেল্পলাইনে যোগাযোগ করুন।`,
         isRead: false,
         createdAt: new Date().toISOString(),
       }]);
@@ -151,15 +189,17 @@ export async function PATCH(request: NextRequest) {
 
     await logAdminAction(
       session.username || session.email,
-      'DEPOSIT_REJECTED_AND_DEDUCTED',
+      wasAutoCredited ? 'DEPOSIT_REJECTED_AND_DEDUCTED' : 'DEPOSIT_REJECTED',
       'Payment',
       paymentId,
-      `Rejected deposit of ৳${deductAmt} (TrxID: ${payment.trxId}) for ${payment.userName} and deducted balance (Reason: ${reasonText})`
+      `Rejected deposit of ৳${depositAmount} (TrxID: ${payment.trxId}) for ${payment.userName} (Reason: ${reasonText})`
     );
 
     return NextResponse.json({ 
       success: true,
-      message: `Deposit rejected. ৳${deductAmt} has been deducted from player's balance.`,
+      message: wasAutoCredited
+        ? `Deposit rejected. ৳${depositAmount} has been deducted from player's balance.`
+        : `Deposit request rejected. (No balance was deducted since it was not auto-credited).`,
       newWalletBalance: newWallet
     });
   } catch (error: any) {
