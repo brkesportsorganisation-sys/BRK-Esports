@@ -164,7 +164,7 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
   }, [tournament, currentStatus]);
 
   const [currentUser, setCurrentUser] = useState<UserType | null>(null);
-  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'ROOM'>('OVERVIEW');
+  const [activeTab, setActiveTab] = useState<'ROOM' | 'DETAILS'>('ROOM');
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   // Modal state
@@ -582,29 +582,29 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
             <h1 className="font-heading font-black text-3xl sm:text-4xl lg:text-5xl text-white drop-shadow-md">{tournament.title}</h1>
           </div>
 
-          <div className="bg-white/95 backdrop-blur-md p-4 rounded-2xl border border-slate-200 shadow-xl flex items-center space-x-4 shrink-0">
+          <div className="bg-white/95 backdrop-blur-md p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xl flex items-center justify-between sm:justify-start gap-4 shrink-0 w-full sm:w-auto">
             <div>
-              <div className="text-[10px] text-slate-500 font-bold uppercase">Prize Pool</div>
-              <div className="text-2xl font-heading font-extrabold text-amber-600">৳ {tournament.prizePool.toLocaleString()}</div>
+              <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Prize Pool</div>
+              <div className="text-2xl sm:text-3xl font-heading font-extrabold text-amber-600 leading-tight">৳ {tournament.prizePool.toLocaleString()}</div>
             </div>
 
             {isLive ? (
-              <button className="px-6 py-3 rounded-xl bg-brand-red text-white font-heading font-bold text-sm shadow-neon-red flex items-center space-x-2">
-                <Flame className="w-5 h-5 animate-pulse" />
+              <button className="px-7 py-3.5 sm:px-8 sm:py-4 rounded-2xl bg-brand-red text-white font-heading font-black text-sm sm:text-base shadow-neon-red flex items-center space-x-2.5">
+                <Flame className="w-5 h-5 sm:w-6 sm:h-6 animate-pulse" />
                 <span>MATCH IS LIVE</span>
               </button>
             ) : isFinished ? (
-              <button className="px-6 py-3 rounded-xl bg-slate-200 text-slate-500 font-heading font-bold text-sm cursor-not-allowed">
+              <button className="px-7 py-3.5 sm:px-8 sm:py-4 rounded-2xl bg-slate-200 text-slate-500 font-heading font-bold text-sm sm:text-base cursor-not-allowed">
                 FINISHED
               </button>
             ) : isFull ? (
-              <button className="px-6 py-3 rounded-xl bg-slate-200 text-slate-500 font-heading font-bold text-sm cursor-not-allowed">SLOTS FULL</button>
+              <button className="px-7 py-3.5 sm:px-8 sm:py-4 rounded-2xl bg-slate-200 text-slate-500 font-heading font-bold text-sm sm:text-base cursor-not-allowed">SLOTS FULL</button>
             ) : (
               <button
                 onClick={openJoinModal}
-                className={`px-6 py-3 rounded-xl text-white font-heading font-bold text-sm shadow-neon-red hover:scale-105 transition-all flex items-center space-x-2 ${isJoined ? 'bg-gradient-to-r from-green-600 to-emerald-600 shadow-neon-cyan' : 'bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold'}`}
+                className={`px-7 py-3.5 sm:px-8 sm:py-4 rounded-2xl text-white font-heading font-black text-sm sm:text-base shadow-neon-red hover:scale-105 active:scale-95 transition-all flex items-center space-x-2.5 cursor-pointer ${isJoined ? 'bg-gradient-to-r from-green-600 to-emerald-600 shadow-neon-cyan' : 'bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold'}`}
               >
-                {isJoined ? <Check className="w-5 h-5" /> : <Trophy className="w-5 h-5" />}
+                {isJoined ? <Check className="w-5 h-5 sm:w-6 sm:h-6" /> : <Trophy className="w-5 h-5 sm:w-6 sm:h-6" />}
                 <span>{isJoined ? 'REGISTER ANOTHER SQUAD' : 'JOIN'} (৳{tournament.entryFee})</span>
               </button>
             )}
@@ -615,40 +615,48 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-6">
 
-        {/* Tabs */}
-        <div className="flex items-center space-x-2 border-b border-slate-200 overflow-x-auto pb-2">
-          {(['OVERVIEW', 'ROOM'] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-5 py-2.5 rounded-xl font-heading font-bold text-sm transition-all whitespace-nowrap cursor-pointer ${
-                activeTab === tab
-                  ? tab === 'ROOM'
-                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md'
-                    : 'bg-gradient-to-r from-brand-red to-brand-orange text-white shadow-neon-red'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white bg-slate-100/80 border border-slate-200'
-              }`}
-            >
-              {tab === 'ROOM' && <Lock className="w-4 h-4 inline mr-1.5" />}
-              {tab === 'OVERVIEW' && 'Overview'}
-              {tab === 'ROOM' && 'Room ID & Password'}
-            </button>
-          ))}
+        {/* Tabs - Room ID & Password positioned on the LEFT as the primary tab */}
+        <div className="flex items-center space-x-3 border-b border-slate-200 overflow-x-auto pb-2">
+          <button
+            onClick={() => setActiveTab('ROOM')}
+            className={`px-6 py-3 rounded-2xl font-heading font-bold text-sm transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
+              activeTab === 'ROOM'
+                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white bg-slate-100/80 border border-slate-200'
+            }`}
+          >
+            <Lock className="w-4 h-4" />
+            <span>Room ID & Password</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('DETAILS')}
+            className={`px-6 py-3 rounded-2xl font-heading font-bold text-sm transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
+              activeTab === 'DETAILS'
+                ? 'bg-gradient-to-r from-brand-red to-brand-orange text-white shadow-neon-red'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white bg-slate-100/80 border border-slate-200'
+            }`}
+          >
+            <Trophy className="w-4 h-4" />
+            <span>Match Details</span>
+          </button>
         </div>
 
-        {/* OVERVIEW TAB */}
-        {activeTab === 'OVERVIEW' && (
+        {/* ROOM & 12-SLOT GRID TAB (Primary Left Side View) */}
+        {activeTab === 'ROOM' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 min-w-0 w-full">
             <div className="lg:col-span-2 space-y-6 min-w-0 w-full">
-              <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200 shadow-sm space-y-4 min-w-0 w-full overflow-hidden">
-                <h3 className="font-heading font-black text-xl text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
-                  <Trophy className="w-5 h-5 text-brand-orange shrink-0" /> Tournament Rules & Overview
-                </h3>
-                <div 
-                  className="prose max-w-none text-slate-800 leading-relaxed min-w-0 w-full break-words [overflow-wrap:anywhere] [word-break:break-word] whitespace-pre-wrap [&_*]:max-w-full [&_*]:break-words [&_*]:[overflow-wrap:anywhere] [&_*]:!bg-transparent [&_*]:!text-slate-800 [&_p]:break-words [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:overflow-x-auto [&_table]:overflow-x-auto [&_table]:block [&_img]:max-w-full [&_img]:h-auto"
-                  dangerouslySetInnerHTML={{ __html: tournament.description }}
-                />
-              </div>
+              <SlotGrid
+                tournamentId={tournament.id}
+                tournamentTitle={tournament.title}
+                gameMode={tournament.mode}
+                maxTeams={tournament.maxTeams || 12}
+                participants={(tournament as any).participants || []}
+                roomId={tournament.roomId}
+                roomPassword={tournament.roomPassword}
+                startTime={tournament.matchTime || (tournament.tournamentStart ? String(tournament.tournamentStart) : undefined)}
+                isUserRegistered={isJoined || currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN'}
+              />
             </div>
 
             <div className="space-y-6">
@@ -730,20 +738,61 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
           </div>
         )}
 
-        {/* ROOM & 12-SLOT GRID TAB */}
-        {activeTab === 'ROOM' && (
-          <div className="space-y-6">
-            <SlotGrid
-              tournamentId={tournament.id}
-              tournamentTitle={tournament.title}
-              gameMode={tournament.mode}
-              maxTeams={tournament.maxTeams || 12}
-              participants={(tournament as any).participants || []}
-              roomId={tournament.roomId}
-              roomPassword={tournament.roomPassword}
-              startTime={tournament.matchTime || (tournament.tournamentStart ? String(tournament.tournamentStart) : undefined)}
-              isUserRegistered={isJoined || currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN'}
-            />
+        {/* DETAILS TAB */}
+        {activeTab === 'DETAILS' && (
+          <div className="max-w-3xl space-y-6">
+            <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200 shadow-sm space-y-4">
+              <h3 className="font-heading font-bold text-lg text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-brand-orange" /> Match Summary & Schedule
+              </h3>
+              <div className="space-y-3 text-sm">
+                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
+                  <span className="text-slate-600 font-bold uppercase">Format</span>
+                  <span className="font-bold text-brand-orange">{tournament.format.replace('_', ' ')}</span>
+                </div>
+                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
+                  <span className="text-slate-600 font-bold uppercase">Mode</span>
+                  <span className="font-bold text-brand-red">{tournament.mode}</span>
+                </div>
+                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
+                  <span className="text-slate-600 font-bold uppercase">Match Schedule</span>
+                  <span className="font-bold text-slate-900">{new Date(tournament.tournamentStart || tournament.matchTime).toLocaleString()}</span>
+                </div>
+                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
+                  <span className="text-slate-600 font-bold uppercase">Slots Registered</span>
+                  <span className="font-bold text-amber-600">{tournament.registeredCount} / {tournament.maxTeams} Teams</span>
+                </div>
+              </div>
+            </div>
+
+            {myRegistrations.length > 0 && (
+              <div className="bg-orange-50/40 rounded-3xl p-6 border border-brand-orange/30 space-y-4 shadow-sm">
+                <h3 className="font-heading font-bold text-lg text-slate-900 border-b border-brand-orange/20 pb-3 flex items-center gap-2">
+                  <Trophy className="w-5 h-5 text-brand-orange" /> My Registered Squads ({myRegistrations.length})
+                </h3>
+                <div className="space-y-3 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
+                  {myRegistrations.map((reg) => (
+                    <div
+                      key={reg.id}
+                      onClick={() => setSelectedRegistration(reg)}
+                      className="p-3.5 rounded-2xl bg-white border border-slate-200 flex items-center justify-between cursor-pointer hover:border-brand-orange/50 hover:bg-orange-50/30 transition-all shadow-xs"
+                    >
+                      <div>
+                        <div className="font-bold text-slate-900 text-sm">{reg.squadName}</div>
+                        <div className="text-[10px] text-slate-500 font-mono mt-0.5">ID: {reg.registrationId}</div>
+                      </div>
+                      <div className={`px-2.5 py-1 rounded-xl text-[10px] font-bold uppercase tracking-wider ${
+                        reg.status === 'VERIFIED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                        reg.status === 'REJECTED' ? 'bg-red-50 text-red-700 border border-red-200' :
+                        'bg-amber-50 text-amber-700 border border-amber-200'
+                      }`}>
+                        {reg.status}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
