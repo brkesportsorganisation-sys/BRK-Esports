@@ -80,6 +80,20 @@ function RegisterContent() {
     return () => clearTimeout(timer);
   }, [ffUid]);
 
+  // Auto redirect already logged-in users to Home page
+  useEffect(() => {
+    const user = db.getCurrentUser();
+    if (user) {
+      if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') {
+        router.replace('/admin');
+      } else if (user.role === 'VENDOR') {
+        router.replace('/vendor');
+      } else {
+        router.replace('/');
+      }
+    }
+  }, [router]);
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
@@ -102,7 +116,7 @@ function RegisterContent() {
 
       // Save user in local state & localStorage
       db.setCurrentUser(data.user);
-      router.push('/profile');
+      router.push('/');
     } catch {
       setErrorMsg('Failed to connect to server. Please try again.');
     } finally {
@@ -151,7 +165,7 @@ function RegisterContent() {
       }
 
       db.setCurrentUser(data.user);
-      router.push('/profile');
+      router.push('/');
     } catch (err: any) {
       console.error('Google Register Error:', err);
       if (err.code === 'auth/popup-closed-by-user') {

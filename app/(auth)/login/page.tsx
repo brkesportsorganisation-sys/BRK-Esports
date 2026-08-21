@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Flame, Lock, Mail, ArrowRight, Loader2 } from 'lucide-react';
@@ -16,6 +16,20 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Auto redirect already logged-in users to Home page
+  useEffect(() => {
+    const user = db.getCurrentUser();
+    if (user) {
+      if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') {
+        router.replace('/admin');
+      } else if (user.role === 'VENDOR') {
+        router.replace('/vendor');
+      } else {
+        router.replace('/');
+      }
+    }
+  }, [router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +55,7 @@ export default function LoginPage() {
           } else if (localFound.role === 'VENDOR') {
             router.push('/vendor');
           } else {
-            router.push('/profile');
+            router.push('/');
           }
           return;
         }
@@ -58,7 +72,7 @@ export default function LoginPage() {
       } else if (data.user.role === 'VENDOR') {
         router.push('/vendor');
       } else {
-        router.push('/profile');
+        router.push('/');
       }
     } catch {
       setErrorMsg('Failed to connect to server. Please try again.');
@@ -114,7 +128,7 @@ export default function LoginPage() {
       } else if (data.user.role === 'VENDOR') {
         router.push('/vendor');
       } else {
-        router.push('/profile');
+        router.push('/');
       }
     } catch (err: any) {
       console.error('Google Sign-In Error:', err);
