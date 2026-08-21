@@ -1,6 +1,7 @@
-# BRK Esports — Tournament Platform
+# BRK Esports — Tournament & WhatsApp Automation Platform
 
-Free Fire esports tournament platform with bKash/Nagad payment, admin dashboard, community features, and live match tracking.
+Free Fire esports tournament platform with bKash/Nagad payment, admin dashboard, automated WhatsApp bot scheduling (Zavu API), community features, and live match tracking.
+
 
 ## Tech Stack
 
