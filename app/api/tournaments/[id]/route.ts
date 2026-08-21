@@ -25,6 +25,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       .from('Participant')
       .select('*')
       .eq('tournamentId', id)
+      .order('joinedAt', { ascending: true });
+      
     allParticipants = participantsData || [];
 
     if (userId) {
@@ -41,6 +43,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         }
       }
     } catch {}
+
+    // Auto-sync real count with Supabase Tournament table if mismatched
+    const realCount = allParticipants.length;
+    if (tournament.registeredCount !== realCount) {
+      void supabaseAdmin
+        .from('Tournament')
+        .update({ registeredCount: realCount, updatedAt: new Date().toISOString() })
+        .eq('id', id)
+        .then(() => {});
+    }
   } catch (e) {
     console.error('Failed to fetch participants from Supabase:', e);
     // Fallback to local DB
@@ -52,12 +64,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   }
 
   const isUserRegistered = userRegistrations.length > 0;
+  const realCount = allParticipants.length;
   
   // Protect Room ID & Password from leaking to non-registered visitors
   const sanitizedTournament = {
     ...tournament,
     participants: allParticipants,
-    registeredCount: allParticipants.length > (tournament.registeredCount || 0) ? allParticipants.length : (tournament.registeredCount || 0),
+    registeredCount: realCount,
     roomId: isUserRegistered ? tournament.roomId : undefined,
     roomPassword: isUserRegistered ? tournament.roomPassword : undefined,
   };
