@@ -59,7 +59,8 @@ export async function POST(request: Request) {
       channel: 'whatsapp',
       to: formattedPhone,
       text: testMessage,
-    }, requestOptions);
+      ...(senderId ? { 'Zavu-Sender': senderId } : {}),
+    });
 
     return NextResponse.json({
       success: true,

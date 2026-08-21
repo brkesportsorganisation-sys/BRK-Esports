@@ -33,26 +33,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: error || 'Failed to initialize Zavu WhatsApp client.' }, { status: 500 });
     }
 
-    // Auto-detect Sender ID
+    // Auto-detect Sender ID (must be passed inside params, not options.headers)
     let senderId: string | undefined;
     try {
       for await (const s of client.senders.list()) {
-        if (s.isDefault || !senderId) {
-          senderId = s.id;
+        if ((s as any).isDefault || !senderId) {
+          senderId = (s as any).id;
         }
       }
     } catch (e: any) {
       console.warn('[direct-send sender detection]', e?.message);
     }
 
-    const requestOptions = senderId ? { headers: { 'Zavu-Sender': senderId } } : undefined;
-
-    // Send direct message
+    // Send direct message — 'Zavu-Sender' goes inside the params object (1st arg)
     const result = await client.messages.send({
       channel: 'whatsapp',
       to: formattedPhone,
       text: message.trim(),
-    }, requestOptions);
+      ...(senderId ? { 'Zavu-Sender': senderId } : {}),
+    });
 
     // Record log
     await addWhatsAppLog({

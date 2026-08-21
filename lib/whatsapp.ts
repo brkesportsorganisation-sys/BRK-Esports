@@ -104,22 +104,24 @@ export async function getZavuClient(): Promise<{ client: Zavudev | null; error?:
 }
 
 /**
- * Helper to get default or first sender request options for Zavu SDK
+ * Helper to get the default sender ID for the Zavu SDK.
+ * NOTE: The Zavu SDK's send() method expects 'Zavu-Sender' inside the PARAMS
+ * object (1st arg), NOT in options.headers (2nd arg).
  */
-async function getSenderRequestOptions(client: Zavudev) {
+async function getDefaultSenderId(client: Zavudev): Promise<string | undefined> {
   try {
     const senders: any[] = [];
     for await (const s of client.senders.list()) {
       senders.push(s);
     }
     if (senders.length > 0) {
-      const defaultSender = senders.find(s => s.isDefault) || senders[0];
+      const defaultSender = senders.find((s: any) => s.isDefault) || senders[0];
       if (defaultSender?.id) {
-        return { headers: { 'Zavu-Sender': defaultSender.id } };
+        return defaultSender.id;
       }
     }
   } catch (err: any) {
-    console.warn('[Zavu Sender Option Check]', err?.message);
+    console.warn('[Zavu Sender ID Check]', err?.message);
   }
   return undefined;
 }
@@ -184,12 +186,13 @@ export async function sendRoomDetailsToPlayer({
   }
 
   try {
-    const requestOptions = await getSenderRequestOptions(client);
+    const senderId = await getDefaultSenderId(client);
     const response = await client.messages.send({
       channel: 'whatsapp',
       to: formattedPhone,
       text,
-    }, requestOptions);
+      ...(senderId ? { 'Zavu-Sender': senderId } : {}),
+    });
 
     await addWhatsAppLog({
       targetDestination: formattedPhone,
@@ -255,12 +258,13 @@ export async function sendDirectWhatsappMessage({
   }
 
   try {
-    const requestOptions = await getSenderRequestOptions(client);
+    const senderId = await getDefaultSenderId(client);
     const response = await client.messages.send({
       channel: 'whatsapp',
       to: formattedTo,
       text,
-    }, requestOptions);
+      ...(senderId ? { 'Zavu-Sender': senderId } : {}),
+    });
 
     await addWhatsAppLog({
       targetDestination: formattedTo,
