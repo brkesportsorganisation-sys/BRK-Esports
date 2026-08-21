@@ -29,14 +29,16 @@ import {
   Mail,
   Key,
   Inbox,
-  AlertCircle
+  AlertCircle,
+  MessageSquare
 } from 'lucide-react';
 
 export default function AdminSettingsPage() {
-  const [activeTab, setActiveTab] = useState<'HOMEPAGE' | 'YOUTUBE_LIVE' | 'WELCOME_EMAIL' | 'PAYMENTS' | 'GENERAL'>('HOMEPAGE');
+  const [activeTab, setActiveTab] = useState<'HOMEPAGE' | 'YOUTUBE_LIVE' | 'WELCOME_EMAIL' | 'WHATSAPP' | 'PAYMENTS' | 'GENERAL'>('HOMEPAGE');
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+
 
   // 1. Homepage Hero & Banner States
   const [heroBadge, setHeroBadge] = useState('Season 5 Bangladesh Championship Live');
@@ -126,7 +128,15 @@ Login to your account and book your slot today!`);
   const [isSendingTestEmail, setIsSendingTestEmail] = useState(false);
   const [testEmailResult, setTestEmailResult] = useState<{ success: boolean; message: string } | null>(null);
 
-  // 4. Payment Agent Numbers & Thresholds
+  // 4. WhatsApp API (Zavu SDK) CMS
+  const [whatsappApiKey, setWhatsappApiKey] = useState('');
+  const [whatsappEnabled, setWhatsappEnabled] = useState(true);
+  const [whatsappRoomTemplate, setWhatsappRoomTemplate] = useState(`🎮 {TOURNAMENT_NAME} 🎮\n\nআপনার ম্যাচের রুম ডিটেইলস:\n🔹 Room ID: {ROOM_ID}\n🔹 Password: {ROOM_PASS}\n\nদ্রুত গেমে জয়েন করুন!`);
+  const [testWhatsappPhone, setTestWhatsappPhone] = useState('');
+  const [isSendingTestWhatsapp, setIsSendingTestWhatsapp] = useState(false);
+  const [testWhatsappResult, setTestWhatsappResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  // 5. Payment Agent Numbers & Thresholds
   const [bkashNo, setBkashNo] = useState('01712-998877');
   const [nagadNo, setNagadNo] = useState('01812-998877');
   const [rocketNo, setRocketNo] = useState('01912-998877');
@@ -138,7 +148,7 @@ Login to your account and book your slot today!`);
   const [platformShare, setPlatformShare] = useState('80');
   const [sellerShare, setSellerShare] = useState('20');
 
-  // 5. Platform General Branding
+  // 6. Platform General Branding
   const [siteName, setSiteName] = useState('BlackRock Esports');
   const [helpline, setHelpline] = useState('+880 1712-998877');
 
@@ -222,6 +232,11 @@ Login to your account and book your slot today!`);
         if (s.SMTP_PASS) setSmtpPass(s.SMTP_PASS);
         if (s.SMTP_FROM) setSmtpFrom(s.SMTP_FROM);
 
+        // WhatsApp & Zavu API Settings
+        if (s.ZAVU_API_KEY) setWhatsappApiKey(s.ZAVU_API_KEY);
+        if (s.WHATSAPP_ENABLED !== undefined) setWhatsappEnabled(s.WHATSAPP_ENABLED !== 'false');
+        if (s.WHATSAPP_ROOM_TEMPLATE) setWhatsappRoomTemplate(s.WHATSAPP_ROOM_TEMPLATE);
+
         // Payments & General
         if (s.bkash_no) setBkashNo(s.bkash_no);
         if (s.nagad_no) setNagadNo(s.nagad_no);
@@ -247,11 +262,12 @@ Login to your account and book your slot today!`);
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get('tab');
-      if (tabParam === 'PAYMENTS' || tabParam === 'HOMEPAGE' || tabParam === 'WELCOME_EMAIL' || tabParam === 'YOUTUBE_LIVE' || tabParam === 'GENERAL') {
+      if (tabParam === 'PAYMENTS' || tabParam === 'HOMEPAGE' || tabParam === 'WELCOME_EMAIL' || tabParam === 'WHATSAPP' || tabParam === 'YOUTUBE_LIVE' || tabParam === 'GENERAL') {
         setActiveTab(tabParam as any);
       }
     }
   }, []);
+
 
   const handleSaveAll = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -332,6 +348,11 @@ Login to your account and book your slot today!`);
         SMTP_PASS: smtpPass.trim(),
         SMTP_FROM: smtpFrom.trim(),
 
+        // WhatsApp (Zavu SDK) Settings
+        ZAVU_API_KEY: whatsappApiKey.trim(),
+        WHATSAPP_ENABLED: String(whatsappEnabled),
+        WHATSAPP_ROOM_TEMPLATE: whatsappRoomTemplate.trim(),
+
         // Payments & Messaging Monetization
         bkash_no: bkashNo,
         nagad_no: nagadNo,
@@ -363,6 +384,35 @@ Login to your account and book your slot today!`);
       alert('Network error while saving settings.');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleSendTestWhatsapp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!testWhatsappPhone.trim()) {
+      alert('Please enter a recipient phone number for WhatsApp testing (e.g. +88017XXXXXXXX).');
+      return;
+    }
+    setIsSendingTestWhatsapp(true);
+    setTestWhatsappResult(null);
+    try {
+      const res = await fetch('/api/admin/whatsapp/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ testPhone: testWhatsappPhone.trim() }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setTestWhatsappResult({ success: true, message: data.message || 'Test WhatsApp message sent successfully via Zavu!' });
+      } else {
+        setTestWhatsappResult({ success: false, message: data.message || 'Failed to send test WhatsApp message.' });
+      }
+    } catch (err: any) {
+      setTestWhatsappResult({ success: false, message: err?.message || 'Network error sending test WhatsApp message.' });
+    } finally {
+      setIsSendingTestWhatsapp(false);
     }
   };
 
@@ -432,6 +482,7 @@ Login to your account and book your slot today!`);
       setIsSendingTestEmail(false);
     }
   };
+
 
   const getYoutubeVideoId = (url: string) => {
     if (!url) return null;
@@ -510,6 +561,20 @@ Login to your account and book your slot today!`);
           <Mail className="w-4 h-4" />
           <span>📧 Welcome Email (Resend)</span>
         </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('WHATSAPP')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-[12px] text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
+            activeTab === 'WHATSAPP'
+              ? 'bg-emerald-600 text-white shadow-xs'
+              : 'bg-white border border-[#E2E8F0] text-emerald-600 hover:text-emerald-700'
+          }`}
+        >
+          <MessageSquare className="w-4 h-4" />
+          <span>💬 WhatsApp API (Zavu)</span>
+        </button>
+
 
         <button
           type="button"
@@ -1244,9 +1309,223 @@ Login to your account and book your slot today!`);
             </div>
           )}
 
+          {/* TAB: WHATSAPP API (ZAVU SDK) CONTROL */}
+          {activeTab === 'WHATSAPP' && (
+            <div className="space-y-6">
+              
+              {/* WhatsApp Service Status & API Key */}
+              <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] p-6 space-y-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#F1F5F9] pb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
+                      <MessageSquare className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-[17px] font-bold text-[#0F172A]">WhatsApp Business API (Zavu SDK)</h2>
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                          whatsappApiKey ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}>
+                          {whatsappApiKey ? '✓ API Connected' : '⚠ API Key Missing'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#64748B] mt-0.5">
+                        Automate Free Fire Match Room ID & Password dispatch, registrations notifications, and player alerts via WhatsApp.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setWhatsappEnabled(!whatsappEnabled)}
+                    className={`px-4 py-2 rounded-[14px] font-bold text-xs flex items-center gap-2 transition-all cursor-pointer ${
+                      whatsappEnabled
+                        ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/20'
+                        : 'bg-slate-100 text-slate-500 border border-slate-200'
+                    }`}
+                  >
+                    {whatsappEnabled ? (
+                      <>
+                        <Check className="w-4 h-4" />
+                        <span>WhatsApp Enabled</span>
+                      </>
+                    ) : (
+                      <span>WhatsApp Disabled</span>
+                    )}
+                  </button>
+                </div>
+
+                {/* Zavu API Key Configuration */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="sm:col-span-2">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-[#475569] font-bold text-xs">
+                        Zavu API Key *
+                      </label>
+                      <a
+                        href="https://dashboard.zavu.dev"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                      >
+                        <span>Open Zavu Dashboard</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
+                    <div className="relative">
+                      <Key className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="password"
+                        value={whatsappApiKey}
+                        onChange={(e) => setWhatsappApiKey(e.target.value)}
+                        placeholder="zavu_live_sk_xxxxxxxxxxxxxxxxxxxxx (or set ZAVU_API_KEY in Vercel)"
+                        className="w-full pl-10 pr-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] font-mono text-xs text-[#0F172A] focus:outline-none focus:border-emerald-600 focus:bg-white"
+                      />
+                    </div>
+                    <p className="text-[11px] text-[#64748B] mt-1.5 leading-relaxed">
+                      Enter your secret API key from Zavu Dashboard. This key will securely dispatch WhatsApp messages using the official <code>@zavudev/sdk</code>.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Room ID & Password Template */}
+                <div className="pt-2 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-[#475569] font-bold text-xs">
+                      Default Match Room ID & Password Template *
+                    </label>
+                    <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-mono">
+                      <span>Click to insert:</span>
+                      <button
+                        type="button"
+                        onClick={() => setWhatsappRoomTemplate(prev => prev + ' {TOURNAMENT_NAME}')}
+                        className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold hover:bg-emerald-100"
+                      >
+                        {'{TOURNAMENT_NAME}'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setWhatsappRoomTemplate(prev => prev + ' {ROOM_ID}')}
+                        className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-bold hover:bg-blue-100"
+                      >
+                        {'{ROOM_ID}'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setWhatsappRoomTemplate(prev => prev + ' {ROOM_PASS}')}
+                        className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-bold hover:bg-amber-100"
+                      >
+                        {'{ROOM_PASS}'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setWhatsappRoomTemplate(prev => prev + ' {PLAYER_NAME}')}
+                        className="px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 font-bold hover:bg-purple-100"
+                      >
+                        {'{PLAYER_NAME}'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                    <div className="lg:col-span-7">
+                      <textarea
+                        rows={7}
+                        value={whatsappRoomTemplate}
+                        onChange={(e) => setWhatsappRoomTemplate(e.target.value)}
+                        placeholder="Enter WhatsApp template text..."
+                        className="w-full px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] text-xs text-[#0F172A] focus:outline-none focus:border-emerald-600 leading-relaxed font-mono"
+                        required
+                      />
+                    </div>
+
+                    {/* Live WhatsApp Bubble Preview */}
+                    <div className="lg:col-span-5 bg-[#ECE5DD] rounded-2xl p-4 border border-[#D5CCC1] flex flex-col justify-between shadow-inner">
+                      <div className="flex items-center gap-2 mb-2 pb-2 border-b border-[#D5CCC1]/60">
+                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-[11px] font-bold text-slate-700">WhatsApp Live Preview</span>
+                      </div>
+                      <div className="bg-white rounded-xl rounded-tl-none p-3 shadow-xs text-[11px] text-slate-800 leading-relaxed whitespace-pre-wrap font-sans">
+                        {whatsappRoomTemplate
+                          .replace(/\{TOURNAMENT_NAME\}/g, 'Free Fire BR Squad Championship #42')
+                          .replace(/\{ROOM_ID\}/g, '8492048')
+                          .replace(/\{ROOM_PASS\}/g, '1234')
+                          .replace(/\{PLAYER_NAME\}/g, 'VORTEX_GAMER')}
+                        <div className="text-[9px] text-slate-400 text-right mt-1 font-mono">12:30 PM ✓✓</div>
+                      </div>
+                      <div className="text-[10px] text-slate-500 text-center mt-2 font-medium">
+                        Standard encrypted WhatsApp message format
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleSaveAll}
+                    disabled={isSaving}
+                    className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                  >
+                    {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                    <span>Save WhatsApp Configuration</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Test WhatsApp Dispatcher Box */}
+              <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] p-6 space-y-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+                <div className="flex items-center space-x-2 border-b border-[#F1F5F9] pb-3">
+                  <MessageSquare className="w-5 h-5 text-emerald-600" />
+                  <h3 className="text-sm font-bold text-[#0F172A]">Send A Live Test WhatsApp Message</h3>
+                </div>
+
+                <p className="text-xs text-slate-600">
+                  Enter a recipient phone number (with country code or standard 11-digit local format e.g. <code>+88017XXXXXXXX</code> or <code>017XXXXXXXX</code>) to test your Zavu integration in real-time.
+                </p>
+
+                {testWhatsappResult && (
+                  <div className={`p-3.5 rounded-xl text-xs font-semibold flex items-center gap-2 ${
+                    testWhatsappResult.success
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      : 'bg-red-50 text-red-700 border border-red-200'
+                  }`}>
+                    {testWhatsappResult.success ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> : <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />}
+                    <span>{testWhatsappResult.message}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleSendTestWhatsapp} className="flex flex-col sm:flex-row items-center gap-3">
+                  <div className="relative flex-1 w-full">
+                    <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="Enter phone number (e.g. +8801712345678 or 01712345678)"
+                      value={testWhatsappPhone}
+                      onChange={(e) => setTestWhatsappPhone(e.target.value)}
+                      className="w-full pl-10 pr-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-semibold text-[#0F172A] focus:outline-none focus:border-emerald-600"
+                      required
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSendingTestWhatsapp}
+                    className="w-full sm:w-auto px-5 py-2.5 rounded-[12px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 shadow-sm"
+                  >
+                    {isSendingTestWhatsapp ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5 text-white" />}
+                    <span>{isSendingTestWhatsapp ? 'Dispatching via Zavu...' : 'Send Test WhatsApp Message'}</span>
+                  </button>
+                </form>
+              </div>
+
+            </div>
+          )}
+
           {/* TAB 3: YOUTUBE LIVE STREAM & BROADCAST CONTROL */}
           {activeTab === 'YOUTUBE_LIVE' && (
             <div className="space-y-6">
+
               
               {/* Broadcast Status Toggle */}
               <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] p-6 space-y-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">

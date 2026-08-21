@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { AlertCircle, CheckCircle2, Coins, Copy, Eye, Filter, Loader2, Plus, PlusCircle, Search, ShieldCheck, Sparkles, Star, Trash2, Trophy, UploadCloud, X } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Coins, Copy, Eye, Filter, Loader2, Plus, PlusCircle, Search, ShieldCheck, Sparkles, Star, Trash2, Trophy, UploadCloud, X, MessageSquare, Send } from 'lucide-react';
 import { Tournament, Mode, Format, TournamentStatus, CommunityAccessType, CommunityUnlockMode, PrizeTier } from '@/lib/types';
 import 'react-quill-new/dist/quill.snow.css';
 
@@ -18,6 +18,7 @@ const toLocalISO = (dateString?: string | Date | null) => {
   const pad = (n: number) => n.toString().padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
+
 
 interface TournamentFormState {
   title: string;
@@ -147,6 +148,48 @@ export default function AdminTournamentsPage() {
   const [communityUsersLoading, setCommunityUsersLoading] = useState(false);
   const [descriptionHtmlMode, setDescriptionHtmlMode] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [isBroadcastingWhatsapp, setIsBroadcastingWhatsapp] = useState(false);
+
+  const handleBroadcastRoomWhatsapp = async () => {
+    if (!editingId) return;
+    if (!form.roomId.trim() || !form.roomPassword.trim()) {
+      setFeedbackTone('error');
+      setFeedback('Please enter both Room ID and Room Password before broadcasting.');
+      return;
+    }
+    if (!confirm(`Broadcast Room ID (${form.roomId}) and Password (${form.roomPassword}) to all verified registered players of "${form.title}" via WhatsApp?`)) {
+      return;
+    }
+    setIsBroadcastingWhatsapp(true);
+    try {
+      const res = await fetch('/api/admin/whatsapp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+        credentials: 'include',
+        body: JSON.stringify({
+          action: 'BROADCAST',
+          tournamentId: editingId,
+          tournamentTitle: form.title,
+          roomId: form.roomId.trim(),
+          pass: form.roomPassword.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setFeedbackTone('success');
+        setFeedback(data.message || 'WhatsApp Room ID broadcast successfully sent to players!');
+      } else {
+        setFeedbackTone('error');
+        setFeedback(data.message || 'Failed to broadcast WhatsApp message.');
+      }
+    } catch (err: any) {
+      setFeedbackTone('error');
+      setFeedback(err?.message || 'Network error broadcasting WhatsApp message.');
+    } finally {
+      setIsBroadcastingWhatsapp(false);
+    }
+  };
+
 
   const handleGenerateWithAI = async () => {
     setIsGeneratingAI(true);
@@ -1203,8 +1246,23 @@ export default function AdminTournamentsPage() {
                         <input type="datetime-local" value={form.roomReleaseTime} onChange={(event) => setForm((prev) => ({ ...prev, roomReleaseTime: event.target.value }))} className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-3 text-slate-900 shadow-sm focus:border-red-300 focus:ring-1 focus:ring-red-300 outline-none" />
                         <p className="mt-1 text-xs text-slate-500">Before this time, the room info will be locked for verified users.</p>
                       </div>
+
+                      {editingId && form.roomId && form.roomPassword && (
+                        <div className="col-span-1 md:col-span-2 pt-2">
+                          <button
+                            type="button"
+                            onClick={handleBroadcastRoomWhatsapp}
+                            disabled={isBroadcastingWhatsapp}
+                            className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer"
+                          >
+                            {isBroadcastingWhatsapp ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageSquare className="w-4 h-4" />}
+                            <span>{isBroadcastingWhatsapp ? 'Broadcasting via WhatsApp...' : '📢 Broadcast Room ID & Pass to Players via WhatsApp'}</span>
+                          </button>
+                        </div>
+                      )}
                     </>
                   )}
+
                 </div>
               </div>
 

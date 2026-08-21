@@ -44,8 +44,10 @@ import {
   ShoppingCart,
   Diamond,
   Swords,
-  Headphones
+  Headphones,
+  MessageSquare
 } from 'lucide-react';
+
 import { AdminPermissionKey } from '@/lib/types';
 
 interface AdminShellProps {
@@ -219,6 +221,7 @@ export default function AdminShell({ children }: AdminShellProps) {
     {
       title: 'PLAYERS & COMMUNITY',
       links: [
+        { href: '/admin/whatsapp', label: 'WhatsApp Bot & Automation (💬)', icon: MessageSquare, colorClass: 'text-emerald-500', permission: 'send_notifications' },
         { href: '/admin/support', label: 'Live Support Chat (🎧)', icon: Headphones, colorClass: 'text-emerald-500', permission: 'moderate_messages' },
         { href: '/admin/users', label: 'Player Accounts', icon: Users, colorClass: 'text-purple-600', permission: 'manage_users' },
         { href: '/admin/user-logs', label: 'Player Activity Logs (👥)', icon: History, colorClass: 'text-[#2563EB]', permission: 'manage_users' },
@@ -229,6 +232,7 @@ export default function AdminShell({ children }: AdminShellProps) {
         { href: '/admin/ads', label: 'Earn Rewards & Lottery', icon: Gift, colorClass: 'text-amber-500', permission: 'manage_watch_earn' },
       ]
     },
+
     {
       title: 'OWNER SECURITY & SETTINGS',
       links: [

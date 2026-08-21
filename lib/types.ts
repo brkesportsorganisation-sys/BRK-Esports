@@ -830,6 +830,62 @@ export interface SupportTicket {
   updatedAt: string;
 }
 
+export type WhatsAppTargetType = 'GROUP' | 'COMMUNITY' | 'TOURNAMENT_CAPTAINS' | 'CUSTOM_PHONE' | 'ALL_REGISTERED';
+export type WhatsAppMessageType = 'TEMPLATE' | 'CUSTOM_TEXT' | 'ROOM_ALERT' | 'REGISTRATION_REMINDER' | 'MATCH_COUNTDOWN' | 'PROMO';
+export type WhatsAppFrequency = 'ONCE' | 'EVERY_15_MIN' | 'EVERY_30_MIN' | 'EVERY_1_HOUR' | 'EVERY_2_HOURS' | 'EVERY_6_HOURS' | 'DAILY' | 'INTERVAL_MINUTES';
+
+export interface WhatsAppSchedule {
+  id: string;
+  title: string;
+  description?: string;
+  targetType: WhatsAppTargetType;
+  targetDestination: string; // Group JID/ID, Phone number, or Tournament ID
+  targetName?: string; // Display title, e.g. "Tournament WhatsApp Group #1"
+  messageType: WhatsAppMessageType;
+  messageTemplate: string;
+  frequency: WhatsAppFrequency;
+  intervalMinutes?: number; // for custom intervals e.g. 45
+  scheduledTime?: string; // e.g. "20:00"
+  scheduledDate?: string; // specific ISO date for ONCE
+  activeDays?: string[]; // ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
+  activeStartTime?: string; // e.g. "09:00"
+  activeEndTime?: string; // e.g. "23:00"
+  isActive: boolean;
+  status: 'ACTIVE' | 'PAUSED' | 'COMPLETED';
+  lastRunAt?: string;
+  nextRunAt?: string;
+  runCount: number;
+  lastStatus?: 'SUCCESS' | 'FAILED' | 'PENDING';
+  lastError?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WhatsAppTargetGroup {
+  id: string;
+  name: string;
+  category: 'TOURNAMENT_MAIN' | 'SCRIMS_VIP' | 'REGISTRATION_GROUP' | 'GENERAL' | 'CUSTOM';
+  identifier: string; // Phone number or group JID / link
+  description?: string;
+  memberCount?: number;
+  createdAt: string;
+}
+
+export interface WhatsAppMessageLog {
+  id: string;
+  scheduleId?: string;
+  scheduleTitle?: string;
+  targetDestination: string;
+  targetName?: string;
+  messageText: string;
+  triggerType: 'SCHEDULED_AUTOMATION' | 'INSTANT_BROADCAST' | 'ROOM_ALERT' | 'TEST';
+  status: 'SENT' | 'FAILED';
+  responseId?: string;
+  error?: string;
+  sentAt: string;
+}
+
+
 
 
 

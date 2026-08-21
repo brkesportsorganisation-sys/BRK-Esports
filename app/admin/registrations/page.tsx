@@ -5,9 +5,9 @@ import Link from 'next/link';
 import {
   Users, Search, Loader2, ChevronDown, ChevronRight,
   Download, RefreshCw, Trophy, Phone, User, Shield,
-  CheckCircle2, XCircle, Clock, Wallet, AlertTriangle
+  CheckCircle2, XCircle, Clock, Wallet, AlertTriangle,
+  MessageSquare, Send, X, Key, Gamepad2
 } from 'lucide-react';
-
 
 interface Registration {
   id: string;
@@ -63,10 +63,114 @@ export default function AdminRegistrationsPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
 
+  // WhatsApp Room Modal State
+  const [whatsappModal, setWhatsappModal] = useState<{
+    open: boolean;
+    isBroadcast: boolean;
+    tournamentId?: string;
+    tournamentTitle: string;
+    phone: string;
+    recipientName: string;
+    roomId: string;
+    roomPass: string;
+    customNote: string;
+  }>({
+    open: false,
+    isBroadcast: false,
+    tournamentTitle: '',
+    phone: '',
+    recipientName: '',
+    roomId: '',
+    roomPass: '',
+    customNote: '',
+  });
+  const [sendingWhatsapp, setSendingWhatsapp] = useState(false);
+
   const showToast = (msg: string, type: 'success' | 'error') => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3500);
   };
+
+  const openSingleWhatsappModal = (reg: Registration) => {
+    setWhatsappModal({
+      open: true,
+      isBroadcast: false,
+      tournamentId: reg.tournamentId,
+      tournamentTitle: reg.tournamentTitle,
+      phone: reg.captainWhatsApp || '',
+      recipientName: reg.iglName || reg.squadName || reg.userName || 'Captain',
+      roomId: '',
+      roomPass: '',
+      customNote: '',
+    });
+  };
+
+  const openBroadcastWhatsappModal = (tournamentTitle: string, sampleReg: Registration) => {
+    setWhatsappModal({
+      open: true,
+      isBroadcast: true,
+      tournamentId: sampleReg.tournamentId,
+      tournamentTitle: tournamentTitle,
+      phone: '',
+      recipientName: 'All Verified Captains',
+      roomId: '',
+      roomPass: '',
+      customNote: '',
+    });
+  };
+
+  const handleSendWhatsapp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!whatsappModal.roomId.trim() || !whatsappModal.roomPass.trim()) {
+      showToast('Room ID and Password are required', 'error');
+      return;
+    }
+
+    if (!whatsappModal.isBroadcast && !whatsappModal.phone.trim()) {
+      showToast('Player WhatsApp phone number is required', 'error');
+      return;
+    }
+
+    setSendingWhatsapp(true);
+    try {
+      const payload = whatsappModal.isBroadcast
+        ? {
+            action: 'BROADCAST',
+            tournamentId: whatsappModal.tournamentId,
+            tournamentTitle: whatsappModal.tournamentTitle,
+            roomId: whatsappModal.roomId.trim(),
+            pass: whatsappModal.roomPass.trim(),
+          }
+        : {
+            action: 'SINGLE',
+            playerPhone: whatsappModal.phone.trim(),
+            playerName: whatsappModal.recipientName,
+            tournamentTitle: whatsappModal.tournamentTitle,
+            roomId: whatsappModal.roomId.trim(),
+            pass: whatsappModal.roomPass.trim(),
+            customMessage: whatsappModal.customNote.trim() || undefined,
+          };
+
+      const res = await fetch('/api/admin/whatsapp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        showToast(data.message || 'WhatsApp message(s) dispatched successfully!', 'success');
+        setWhatsappModal((prev) => ({ ...prev, open: false }));
+      } else {
+        showToast(data.message || 'Failed to send WhatsApp message.', 'error');
+      }
+    } catch (err: any) {
+      showToast(err?.message || 'Network error sending WhatsApp message.', 'error');
+    } finally {
+      setSendingWhatsapp(false);
+    }
+  };
+
 
   const loadRegistrations = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -289,7 +393,16 @@ export default function AdminRegistrationsPage() {
                     <div className="font-heading font-extrabold text-slate-900 text-base">{tournamentTitle}</div>
                     <div className="text-xs text-slate-500 font-medium">{regs.length} team{regs.length > 1 ? 's' : ''} &bull; Entry Fee: BDT {regs[0].entryFee}</div>
                   </div>
-                  <div className="ml-auto flex items-center gap-2">
+                  <div className="ml-auto flex items-center gap-2 flex-wrap">
+                    {regs.filter(r => r.status === 'VERIFIED').length > 0 && (
+                      <button
+                        onClick={() => openBroadcastWhatsappModal(tournamentTitle, regs[0])}
+                        className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        <span>Broadcast Room via WhatsApp</span>
+                      </button>
+                    )}
                     {regs.filter(r => r.status === 'PENDING').length > 0 && (
                       <span className="px-3 py-1 rounded-full bg-orange-50 text-orange-600 text-xs font-bold border border-orange-200">
                         {regs.filter(r => r.status === 'PENDING').length} Pending
@@ -306,6 +419,7 @@ export default function AdminRegistrationsPage() {
                   setExpandedId={setExpandedId}
                   actionLoading={actionLoading}
                   onAction={handleAction}
+                  onOpenWhatsapp={openSingleWhatsappModal}
                 />
               </div>
             ))}
@@ -317,7 +431,135 @@ export default function AdminRegistrationsPage() {
             setExpandedId={setExpandedId}
             actionLoading={actionLoading}
             onAction={handleAction}
+            onOpenWhatsapp={openSingleWhatsappModal}
           />
+        )}
+
+        {/* WhatsApp Room ID / Password Sender Modal */}
+        {whatsappModal.open && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-emerald-50 to-teal-50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/20">
+                    <MessageSquare className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-black text-slate-900 text-base">
+                      {whatsappModal.isBroadcast ? 'Broadcast Room ID to All Teams' : 'Send Room Details via WhatsApp'}
+                    </h3>
+                    <p className="text-[11px] text-slate-500 font-medium">
+                      {whatsappModal.tournamentTitle}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setWhatsappModal((prev) => ({ ...prev, open: false }))}
+                  className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-white/80"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSendWhatsapp} className="p-6 space-y-4 text-xs font-medium">
+                {!whatsappModal.isBroadcast && (
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">
+                      Captain WhatsApp Number *
+                    </label>
+                    <div className="relative">
+                      <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        required
+                        value={whatsappModal.phone}
+                        onChange={(e) => setWhatsappModal((prev) => ({ ...prev, phone: e.target.value }))}
+                        placeholder="+88017XXXXXXXX"
+                        className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 font-semibold text-slate-900 focus:outline-none focus:border-emerald-500 focus:bg-white"
+                      />
+                    </div>
+                    <span className="text-[10px] text-slate-400 mt-1 block">
+                      Recipient: <strong>{whatsappModal.recipientName}</strong>
+                    </span>
+                  </div>
+                )}
+
+                {whatsappModal.isBroadcast && (
+                  <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs">
+                    <span className="font-bold block">📢 Broadcast Mode Enabled:</span>
+                    <span>This will deliver the Room ID & Password via WhatsApp to all <strong>verified squad captains</strong> in {whatsappModal.tournamentTitle}.</span>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">
+                      Custom Room ID *
+                    </label>
+                    <div className="relative">
+                      <Gamepad2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        required
+                        value={whatsappModal.roomId}
+                        onChange={(e) => setWhatsappModal((prev) => ({ ...prev, roomId: e.target.value }))}
+                        placeholder="e.g. 8492048"
+                        className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 font-mono font-bold text-slate-900 focus:outline-none focus:border-emerald-500 focus:bg-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">
+                      Room Password *
+                    </label>
+                    <div className="relative">
+                      <Key className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        required
+                        value={whatsappModal.roomPass}
+                        onChange={(e) => setWhatsappModal((prev) => ({ ...prev, roomPass: e.target.value }))}
+                        placeholder="e.g. 1234"
+                        className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 font-mono font-bold text-slate-900 focus:outline-none focus:border-emerald-500 focus:bg-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">
+                    Custom Message / Instructions (Optional)
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={whatsappModal.customNote}
+                    onChange={(e) => setWhatsappModal((prev) => ({ ...prev, customNote: e.target.value }))}
+                    placeholder="Leave empty to use standard BRK Esports tournament template."
+                    className="w-full p-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:border-emerald-500 focus:bg-white text-xs font-medium resize-none"
+                  />
+                </div>
+
+                <div className="pt-2 flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setWhatsappModal((prev) => ({ ...prev, open: false }))}
+                    className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-xs"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={sendingWhatsapp}
+                    className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {sendingWhatsapp ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    <span>{sendingWhatsapp ? 'Sending via Zavu...' : whatsappModal.isBroadcast ? 'Broadcast via WhatsApp' : 'Send WhatsApp Message'}</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         )}
       </main>
     </div>
@@ -330,12 +572,14 @@ function RegistrationTable({
   setExpandedId,
   actionLoading,
   onAction,
+  onOpenWhatsapp,
 }: {
   regs: Registration[];
   expandedId: string | null;
   setExpandedId: (id: string | null) => void;
   actionLoading: string | null;
   onAction: (id: string, action: 'APPROVE' | 'REJECT', fee: number) => void;
+  onOpenWhatsapp: (reg: Registration) => void;
 }) {
   return (
     <div className="space-y-2">
@@ -379,27 +623,38 @@ function RegistrationTable({
                 </div>
               </div>
 
-              {/* Action buttons - only for PENDING */}
-              {isPending && (
-                <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+              {/* Action buttons */}
+              <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+                {isPending ? (
+                  <>
+                    <button
+                      disabled={isActing}
+                      onClick={() => onAction(reg.id, 'APPROVE', reg.entryFee)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isActing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                      Approve
+                    </button>
+                    <button
+                      disabled={isActing}
+                      onClick={() => onAction(reg.id, 'REJECT', reg.entryFee)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isActing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
+                      Reject
+                    </button>
+                  </>
+                ) : (
                   <button
-                    disabled={isActing}
-                    onClick={() => onAction(reg.id, 'APPROVE', reg.entryFee)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={() => onOpenWhatsapp(reg)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold transition-all shadow-xs"
+                    title="Send Room ID & Pass to Captain via WhatsApp"
                   >
-                    {isActing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                    Approve
+                    <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>WhatsApp Room</span>
                   </button>
-                  <button
-                    disabled={isActing}
-                    onClick={() => onAction(reg.id, 'REJECT', reg.entryFee)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isActing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
-                    Reject
-                  </button>
-                </div>
-              )}
+                )}
+              </div>
 
               <div className="hidden sm:flex flex-col items-end text-right shrink-0">
                 <div className="text-xs text-slate-600 flex items-center gap-1 font-semibold">
@@ -501,10 +756,19 @@ function RegistrationTable({
                   </div>
                 </div>
 
-                {/* Contact */}
+                {/* Contact & WhatsApp Action */}
                 <div>
-                  <div className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-3 flex items-center gap-1.5">
-                    <Phone className="w-3 h-3" /> Contact Info
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="text-[10px] uppercase tracking-widest text-slate-500 font-bold flex items-center gap-1.5">
+                      <Phone className="w-3 h-3" /> Contact & WhatsApp Dispatch
+                    </div>
+                    <button
+                      onClick={() => onOpenWhatsapp(reg)}
+                      className="px-3 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      <span>Send Room Details to WhatsApp</span>
+                    </button>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     {[
