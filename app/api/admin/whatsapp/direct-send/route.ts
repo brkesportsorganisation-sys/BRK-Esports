@@ -66,14 +66,18 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `WhatsApp message delivered successfully to ${recipientName || formattedPhone} (${formattedPhone})!`,
+      message: `WhatsApp message dispatched to ${recipientName || formattedPhone} (${formattedPhone})!`,
       result,
     });
   } catch (err: any) {
     console.error('[POST /api/admin/whatsapp/direct-send]', err);
+    let errMsg = err?.message || 'Failed to send WhatsApp message via API.';
+    if (errMsg.includes('24 hours') || errMsg.includes('Re-engagement')) {
+      errMsg = 'Meta WhatsApp Policy: এই নম্বরে মেসেজ পাঠাতে হলে প্লেয়ারকে প্রথমে আপনার নম্বরে (+8801866408811) একটি মেসেজ দিয়ে ২৪ ঘণ্টার উইন্ডো খুলতে হবে।';
+    }
     return NextResponse.json({
       success: false,
-      message: err?.message || 'Failed to send WhatsApp message via API.',
+      message: errMsg,
     }, { status: 500 });
   }
 }
