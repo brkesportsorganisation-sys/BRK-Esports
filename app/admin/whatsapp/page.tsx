@@ -32,15 +32,34 @@ import {
   Settings,
   PhoneCall,
   Smartphone,
-  CheckCircle
+  CheckCircle,
+  Search,
+  UserCheck,
+  MessageCircle,
+  Copy
 } from 'lucide-react';
 import { WhatsAppSchedule, WhatsAppTargetGroup, WhatsAppMessageLog, WhatsAppFrequency, WhatsAppTargetType } from '@/lib/types';
 
+interface WhatsAppContact {
+  id: string;
+  name: string;
+  squadName?: string;
+  phone: string;
+  formattedPhone: string;
+  role: 'CAPTAIN' | 'PLAYER' | 'USER';
+  tournamentId?: string;
+  tournamentTitle?: string;
+  roomId?: string;
+  roomPassword?: string;
+  status?: string;
+}
+
 export default function AdminWhatsAppPage() {
-  const [activeTab, setActiveTab] = useState<'SCHEDULES' | 'INSTANT_BROADCAST' | 'GROUPS' | 'BOT_AUTO_REPLY' | 'LOGS' | 'SETTINGS'>('SCHEDULES');
+  const [activeTab, setActiveTab] = useState<'DIRECT_INBOX' | 'SCHEDULES' | 'BOT_AUTO_REPLY' | 'INSTANT_BROADCAST' | 'GROUPS' | 'LOGS' | 'SETTINGS'>('DIRECT_INBOX');
   const [schedules, setSchedules] = useState<WhatsAppSchedule[]>([]);
   const [groups, setGroups] = useState<WhatsAppTargetGroup[]>([]);
   const [logs, setLogs] = useState<WhatsAppMessageLog[]>([]);
+  const [contacts, setContacts] = useState<WhatsAppContact[]>([]);
   const [stats, setStats] = useState<{ totalSchedules: number; activeSchedules: number; totalExecutions: number; totalGroups: number }>({
     totalSchedules: 0,
     activeSchedules: 0,
@@ -59,6 +78,16 @@ export default function AdminWhatsAppPage() {
     senders?: Array<{ id: string; name: string; phoneNumber: string; isDefault: boolean }>;
     activeSender?: { id: string; name: string; phoneNumber: string };
   } | null>(null);
+
+  // Direct Inbox State
+  const [searchContactQuery, setSearchContactQuery] = useState('');
+  const [selectedContact, setSelectedContact] = useState<WhatsAppContact | null>(null);
+  const [directPhone, setDirectPhone] = useState('');
+  const [directName, setDirectName] = useState('');
+  const [directMessage, setDirectMessage] = useState('');
+  const [isSendingDirect, setIsSendingDirect] = useState(false);
+  const [customRoomId, setCustomRoomId] = useState('');
+  const [customRoomPass, setCustomRoomPass] = useState('');
 
   // Bot Auto Reply State
   const [botConfig, setBotConfig] = useState<{
@@ -114,7 +143,7 @@ export default function AdminWhatsAppPage() {
 
   // 3. Instant Broadcast State
   const [broadcastTarget, setBroadcastTarget] = useState('ALL_REGISTERED');
-  const [broadcastMessage, setBroadcastMessage] = useState(`🎮 BRK ESPORTS INSTANT NOTIFICATION 🎮\n\nআজকের টুর্নামেন্টের রুম আইডি ও জরুরি আপডেট প্রকাশ করা হয়েছে!\n\nসবাই দ্রুত অ্যাপে লগইন করে রুম চেক করুন: https://brkesports.com`);
+  const [broadcastMessage, setBroadcastMessage] = useState(`🎮 BRK ESPORTS TOURNAMENT NOTIFICATION 🎮\n\nআজকের টুর্নামেন্টের রুম আইডি ও জরুরি আপডেট প্রকাশ করা হয়েছে!\n\nসবাই দ্রুত অ্যাপে লগইন করে রুম চেক করুন: https://brkesports.com`);
   const [isBroadcasting, setIsBroadcasting] = useState(false);
 
   // 4. API Settings State
@@ -129,10 +158,11 @@ export default function AdminWhatsAppPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [schedRes, botRes, statusRes] = await Promise.all([
+      const [schedRes, botRes, statusRes, contactsRes] = await Promise.all([
         fetch('/api/admin/whatsapp/scheduler', { credentials: 'include' }),
         fetch('/api/admin/whatsapp/bot', { credentials: 'include' }),
         fetch('/api/admin/whatsapp/status', { credentials: 'include' }),
+        fetch('/api/admin/whatsapp/contacts', { credentials: 'include' }),
       ]);
 
       if (schedRes.ok) {
@@ -157,6 +187,14 @@ export default function AdminWhatsAppPage() {
         const statusData = await statusRes.json();
         setZavuStatus(statusData);
       }
+
+      if (contactsRes.ok) {
+        const contactData = await contactsRes.json();
+        setContacts(contactData.contacts || []);
+        if (contactData.contacts && contactData.contacts.length > 0 && !selectedContact) {
+          selectContactHandler(contactData.contacts[0]);
+        }
+      }
     } catch (err) {
       console.warn('Failed to load data:', err);
     } finally {
@@ -167,6 +205,79 @@ export default function AdminWhatsAppPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  const selectContactHandler = (c: WhatsAppContact) => {
+    setSelectedContact(c);
+    setDirectPhone(c.phone || c.formattedPhone);
+    setDirectName(c.name || c.squadName || 'Player');
+    setCustomRoomId(c.roomId || 'BRK-ROOM-01');
+    setCustomRoomPass(c.roomPassword || '1234');
+    
+    // Default message template for this player
+    setDirectMessage(
+      `🎮 আসসালামু আলাইকুম ${c.name} (${c.squadName || 'Squad Captain'})!\n\nআপনার "${c.tournamentTitle || 'Black Rock Tournament'}" টুর্নামেন্টের জরুরি নোটিশ:\n🔹 Room ID: ${c.roomId || '98765432'}\n🔹 Password: ${c.roomPassword || '1234'}\n\nসঠিক স্লটে দ্রুত জয়েন করুন! 🔥\nলিঙ্ক: https://brkesports.com`
+    );
+  };
+
+  const applyDirectTemplate = (templateType: 'ROOM_ID' | 'VERIFIED' | 'PAYMENT' | 'ANTI_CHEAT') => {
+    const name = directName || 'Player';
+    const squad = selectedContact?.squadName || 'Squad';
+    const tour = selectedContact?.tournamentTitle || 'Black Rock Tournament';
+    const rId = customRoomId || selectedContact?.roomId || '98765432';
+    const rPass = customRoomPass || selectedContact?.roomPassword || '1234';
+
+    if (templateType === 'ROOM_ID') {
+      setDirectMessage(
+        `🎮 আসসালামু আলাইকুম ${name} (${squad})!\n\nআপনার "${tour}" টুর্নামেন্টের রুম আইডি ও পাসওয়ার্ড:\n🔹 Room ID: ${rId}\n🔹 Password: ${rPass}\n\nসঠিক স্লটে দ্রুত জয়েন করুন! ম্যাচ শুরু হওয়ার ৫ মিনিট আগে রুম লক হবে। 🔥`
+      );
+    } else if (templateType === 'VERIFIED') {
+      setDirectMessage(
+        `✅ অভিনন্দন ${name}!\n\nআপনার স্কোয়াড "${squad}" সফলভাবে "${tour}"-এ রেজিস্টার্ড ও ভেরিফাইড হয়েছে।\n\nম্যাচের ঠিক ১৫ মিনিট আগে আপনাকে WhatsApp-এ Room ID ও Password দেওয়া হবে। ধন্যবাদ!`
+      );
+    } else if (templateType === 'PAYMENT') {
+      setDirectMessage(
+        `💰 জরুরি পেমেন্ট নোটিশ:\n\nপ্রিয় ${name}, টুর্নামেন্টে আপনার স্লট কনফার্ম করতে অনুগ্রহ করে বিকাশ/নগদে এন্ট্রি ফি পরিশোধ করে TrxID সাবমিট করুন।\nডিপোজিট লিঙ্ক: https://brkesports.com/wallet`
+      );
+    } else if (templateType === 'ANTI_CHEAT') {
+      setDirectMessage(
+        `🛡️ BLACKROCK ANTI-CHEAT সতর্কতা:\n\nপ্রিয় ${name} (${squad}), টুর্নামেন্টে কোনো প্রকার হ্যাক, কনফিগ বা এম্যুলেটর ব্যবহার সম্পূর্ণ নিষিদ্ধ। দোষী প্রমাণিত হলে সাথে সাথে লাইফটাইম ব্যান করা হবে। Fair Play বজায় রাখুন!`
+      );
+    }
+  };
+
+  const handleSendDirectMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!directPhone.trim() || !directMessage.trim()) {
+      showToast('Phone number and message text are required.', 'error');
+      return;
+    }
+
+    setIsSendingDirect(true);
+    try {
+      const res = await fetch('/api/admin/whatsapp/direct-send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: directPhone.trim(),
+          recipientName: directName.trim(),
+          message: directMessage.trim(),
+          templateType: 'CUSTOM_DM',
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        showToast(data.message || 'WhatsApp message sent successfully!', 'success');
+        await loadData();
+      } else {
+        showToast(data.message || 'Failed to send WhatsApp message.', 'error');
+      }
+    } catch (err: any) {
+      showToast(err?.message || 'Network error.', 'error');
+    } finally {
+      setIsSendingDirect(false);
+    }
+  };
 
   const handleSaveBotConfig = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -187,29 +298,6 @@ export default function AdminWhatsAppPage() {
       showToast('Network error saving bot config.', 'error');
     } finally {
       setIsSavingBot(false);
-    }
-  };
-
-  // Quick Preset Templates
-  const applyPresetTemplate = (type: string) => {
-    if (type === 'ROOM_ALERT') {
-      setFormTitle('Match Room ID & Password Auto-Alert');
-      setFormMessageTemplate(`🎮 BRK ESPORTS ROOM ID ALERT 🎮\n\nম্যাচের রুম আইডি ও পাসওয়ার্ড রিলিজ করা হয়েছে!\n🔹 Tournament: {TOURNAMENT_NAME}\n🔹 Room ID: {ROOM_ID}\n🔹 Password: {ROOM_PASS}\n\nসঠিক স্লটে জয়েন করুন এবং Booyah ছিনিয়ে নিন! 🔥`);
-      setFormFrequency('DAILY');
-      setFormScheduledTime('20:45');
-    } else if (type === 'REG_OPEN') {
-      setFormTitle('Daily Tournament Registration Open Reminder');
-      setFormMessageTemplate(`🔥 BRK ESPORTS TOURNAMENT SLOTS OPEN 🔥\n\nআজকের গ্র্যান্ড টুর্নামেন্টের স্লট বুকিং চলছে!\n🏆 Prize Pool: ৳4,000 CASH\n🎟️ Entry Fee: ৳100 (অথবা 1,000 Coins)\n\nদ্রুত আপনার স্কোয়াড রেজিস্টার করুন: https://brkesports.com/tournaments`);
-      setFormFrequency('EVERY_2_HOURS');
-    } else if (type === 'COUNTDOWN_15MIN') {
-      setFormTitle('15 Minutes Match Countdown Alert');
-      setFormMessageTemplate(`⏰ ম্যাচ শুরু হতে আর মাত্র ১৫ মিনিট বাকি! ⏰\n\nসব প্লেয়ারদের গেমে জয়েন করে রুমের নির্ধারিত স্লটে বসে যাওয়ার অনুরোধ করা হচ্ছে!\n\nদেরি হলে স্লট ক্যানসেল হতে পারে। শুভকামনা সবাইকে! 🏆`);
-      setFormFrequency('DAILY');
-      setFormScheduledTime('20:45');
-    } else if (type === 'ANTI_CHEAT') {
-      setFormTitle('Anti-Cheat & Strict Match Rules Notice');
-      setFormMessageTemplate(`🛡️ BLACKROCK ANTI-CHEAT & RULES NOTICE 🛡️\n\n⚠️ কোনো প্রকার হ্যাক, কনফিগ, গ্লিচ বা পিসি এম্যুলেটর ব্যবহার সম্পূর্ণ নিষিদ্ধ!\n🚫 দোষী প্রমাণিত হলে সাথে সাথে ব্যান ও ওয়ালেট বাজেয়াপ্ত করা হবে।\n\nFair Play Maintain করুন!`);
-      setFormFrequency('EVERY_6_HOURS');
     }
   };
 
@@ -423,6 +511,18 @@ export default function AdminWhatsAppPage() {
     }
   };
 
+  // Filtered contacts
+  const filteredContacts = contacts.filter((c) => {
+    const q = searchContactQuery.toLowerCase();
+    return (
+      (c.name || '').toLowerCase().includes(q) ||
+      (c.squadName || '').toLowerCase().includes(q) ||
+      (c.phone || '').includes(q) ||
+      (c.formattedPhone || '').includes(q) ||
+      (c.tournamentTitle || '').toLowerCase().includes(q)
+    );
+  });
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12 font-sans">
       
@@ -475,7 +575,7 @@ export default function AdminWhatsAppPage() {
         <div className="flex items-center gap-3 self-start md:self-auto">
           <button
             onClick={loadData}
-            className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition-all"
+            className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition-all cursor-pointer"
             title="Sync live status with Zavu"
           >
             <RefreshCw className="w-4 h-4" />
@@ -505,26 +605,26 @@ export default function AdminWhatsAppPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 bg-white border border-[#E2E8F0]/80 rounded-[20px] shadow-xs space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Active Automations</span>
-            <Radio className="w-4 h-4 text-emerald-500 animate-pulse" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Captains & Players</span>
+            <Users className="w-4 h-4 text-emerald-500" />
           </div>
-          <div className="text-2xl font-black text-emerald-600">{stats.activeSchedules}</div>
+          <div className="text-2xl font-black text-emerald-600">{contacts.length}</div>
+          <p className="text-[11px] text-slate-500 font-medium">WhatsApp verified contacts</p>
+        </div>
+
+        <div className="p-5 bg-white border border-[#E2E8F0]/80 rounded-[20px] shadow-xs space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Active Automations</span>
+            <Radio className="w-4 h-4 text-blue-500 animate-pulse" />
+          </div>
+          <div className="text-2xl font-black text-slate-900">{stats.activeSchedules}</div>
           <p className="text-[11px] text-slate-500 font-medium">Running on automated intervals</p>
         </div>
 
         <div className="p-5 bg-white border border-[#E2E8F0]/80 rounded-[20px] shadow-xs space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Schedulers</span>
-            <Clock className="w-4 h-4 text-blue-500" />
-          </div>
-          <div className="text-2xl font-black text-slate-900">{stats.totalSchedules}</div>
-          <p className="text-[11px] text-slate-500 font-medium">Configured bot tasks</p>
-        </div>
-
-        <div className="p-5 bg-white border border-[#E2E8F0]/80 rounded-[20px] shadow-xs space-y-1">
-          <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Connected Groups</span>
-            <Users className="w-4 h-4 text-purple-500" />
+            <MessageCircle className="w-4 h-4 text-purple-500" />
           </div>
           <div className="text-2xl font-black text-purple-600">{stats.totalGroups}</div>
           <p className="text-[11px] text-slate-500 font-medium">Tournament & Community groups</p>
@@ -542,6 +642,19 @@ export default function AdminWhatsAppPage() {
 
       {/* 3. Navigation Tabs */}
       <div className="flex items-center gap-2 border-b border-[#E2E8F0] pb-2 overflow-x-auto">
+        <button
+          type="button"
+          onClick={() => setActiveTab('DIRECT_INBOX')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-[12px] text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+            activeTab === 'DIRECT_INBOX'
+              ? 'bg-emerald-600 text-white shadow-xs'
+              : 'bg-white border border-[#E2E8F0] text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <Smartphone className="w-4 h-4" />
+          <span>📱 Direct Player Inbox & DM ({contacts.length})</span>
+        </button>
+
         <button
           type="button"
           onClick={() => setActiveTab('SCHEDULES')}
@@ -578,7 +691,7 @@ export default function AdminWhatsAppPage() {
           }`}
         >
           <Send className="w-4 h-4" />
-          <span>📢 Instant Group Broadcast</span>
+          <span>📢 Group Broadcast</span>
         </button>
 
         <button
@@ -621,7 +734,232 @@ export default function AdminWhatsAppPage() {
         </button>
       </div>
 
-      {/* 4. TAB 1: AUTOMATED SCHEDULERS */}
+      {/* ======================================================== */}
+      {/* 4. TAB: DIRECT PLAYER INBOX & DM (PRIMARY TAB) */}
+      {/* ======================================================== */}
+      {activeTab === 'DIRECT_INBOX' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          {/* Left: Contacts List */}
+          <div className="lg:col-span-5 bg-white border border-[#E2E8F0]/80 rounded-[24px] p-5 space-y-4 shadow-xs flex flex-col h-[650px]">
+            <div className="flex items-center justify-between border-b border-[#F1F5F9] pb-3">
+              <div>
+                <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                  <Users className="w-4 h-4 text-emerald-600" />
+                  <span>Registered Captains & Players</span>
+                </h3>
+                <p className="text-[11px] text-slate-500">
+                  Select a player to send direct Room ID or custom message
+                </p>
+              </div>
+              <button
+                onClick={loadData}
+                className="p-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600"
+                title="Refresh contacts"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Search Box */}
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-400" />
+              <input
+                type="text"
+                value={searchContactQuery}
+                onChange={(e) => setSearchContactQuery(e.target.value)}
+                placeholder="Search by player, squad, or phone number..."
+                className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white"
+              />
+            </div>
+
+            {/* Contacts Scrollable List */}
+            <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+              {filteredContacts.length === 0 ? (
+                <div className="p-8 text-center text-slate-400 space-y-2">
+                  <Users className="w-8 h-8 mx-auto text-slate-300" />
+                  <p className="text-xs">No registered contacts found matching your search.</p>
+                </div>
+              ) : (
+                filteredContacts.map((c) => {
+                  const isSelected = selectedContact?.id === c.id;
+                  return (
+                    <div
+                      key={c.id}
+                      onClick={() => selectContactHandler(c)}
+                      className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                        isSelected
+                          ? 'bg-emerald-50/80 border-emerald-500 shadow-xs'
+                          : 'bg-[#F8FAFC] border-slate-200/80 hover:bg-slate-50 hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-900 text-xs truncate">
+                            {c.name}
+                          </span>
+                          <span className={`px-2 py-0.2 rounded-md text-[9px] font-bold uppercase tracking-wider ${
+                            c.role === 'CAPTAIN' ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-blue-100 text-blue-800'
+                          }`}>
+                            {c.role === 'CAPTAIN' ? 'Captain' : 'User'}
+                          </span>
+                        </div>
+
+                        {c.squadName && (
+                          <div className="text-[11px] text-slate-600 font-semibold flex items-center gap-1">
+                            <Gamepad2 className="w-3 h-3 text-slate-400" />
+                            <span>Squad: <strong>{c.squadName}</strong></span>
+                          </div>
+                        )}
+
+                        <div className="text-[10px] text-emerald-700 font-mono font-bold flex items-center gap-1">
+                          <Smartphone className="w-3 h-3" />
+                          <span>{c.formattedPhone || c.phone}</span>
+                        </div>
+
+                        {c.tournamentTitle && (
+                          <div className="text-[9px] text-slate-400 truncate">
+                            🏆 {c.tournamentTitle}
+                          </div>
+                        )}
+                      </div>
+
+                      <ChevronRight className={`w-4 h-4 shrink-0 ${isSelected ? 'text-emerald-600' : 'text-slate-300'}`} />
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {/* Right: Interactive WhatsApp Message Composer */}
+          <div className="lg:col-span-7 bg-white border border-[#E2E8F0]/80 rounded-[24px] p-6 shadow-xs flex flex-col justify-between space-y-5">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between border-b border-[#F1F5F9] pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+                    <Send className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-sm">Direct WhatsApp Message Composer</h3>
+                    <p className="text-[11px] text-slate-500">
+                      Sending directly from <strong>+880 1866-408811</strong> to player's WhatsApp
+                    </p>
+                  </div>
+                </div>
+
+                {selectedContact && (
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    Recipient: {selectedContact.squadName || selectedContact.name}
+                  </span>
+                )}
+              </div>
+
+              {/* Recipient Details & Quick Template Chips */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Target Phone Number *</label>
+                  <input
+                    type="text"
+                    required
+                    value={directPhone}
+                    onChange={(e) => setDirectPhone(e.target.value)}
+                    placeholder="+88017XXXXXXXX"
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Player / Squad Name</label>
+                  <input
+                    type="text"
+                    value={directName}
+                    onChange={(e) => setDirectName(e.target.value)}
+                    placeholder="Player or Squad Name"
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white"
+                  />
+                </div>
+              </div>
+
+              {/* Quick Template Chips */}
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-bold text-slate-700">⚡ 1-Click Message Templates:</label>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => applyDirectTemplate('ROOM_ID')}
+                    className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-bold border border-emerald-200 flex items-center gap-1 cursor-pointer"
+                  >
+                    <Gamepad2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>🎮 Send Room ID & Pass</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => applyDirectTemplate('VERIFIED')}
+                    className="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-800 text-[11px] font-bold border border-blue-200 flex items-center gap-1 cursor-pointer"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
+                    <span>✅ Slot Verified Notice</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => applyDirectTemplate('PAYMENT')}
+                    className="px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 text-[11px] font-bold border border-amber-200 flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>💰 Payment Reminder</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => applyDirectTemplate('ANTI_CHEAT')}
+                    className="px-3 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-800 text-[11px] font-bold border border-purple-200 flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>🛡️ Anti-Cheat Warning</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Message Content Area */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="block text-[11px] font-bold text-slate-700">WhatsApp Message Content *</label>
+                  <span className="text-[10px] text-slate-400">Direct WhatsApp formatting supported</span>
+                </div>
+                <textarea
+                  rows={8}
+                  required
+                  value={directMessage}
+                  onChange={(e) => setDirectMessage(e.target.value)}
+                  placeholder="Type message text to deliver directly to player's WhatsApp..."
+                  className="w-full p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-sans text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white leading-relaxed font-medium"
+                />
+              </div>
+            </div>
+
+            {/* Submit Dispatcher Button */}
+            <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-3">
+              <span className="text-[11px] text-slate-500">
+                🚀 Delivered via official Zavu API
+              </span>
+
+              <button
+                type="button"
+                onClick={handleSendDirectMessage}
+                disabled={isSendingDirect || !directPhone.trim() || !directMessage.trim()}
+                className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+              >
+                {isSendingDirect ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                <span>{isSendingDirect ? 'Delivering via Zavu API...' : 'Send WhatsApp Message Now'}</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      )}
+
+      {/* 5. TAB 2: AUTOMATED SCHEDULERS */}
       {activeTab === 'SCHEDULES' && (
         <div className="space-y-4">
           <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] overflow-hidden shadow-xs">
@@ -636,14 +974,14 @@ export default function AdminWhatsAppPage() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={loadData}
-                  className="p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100"
+                  className="p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100 cursor-pointer"
                   title="Refresh"
                 >
                   <RefreshCw className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setScheduleModalOpen(true)}
-                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm"
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer"
                 >
                   <PlusCircle className="w-3.5 h-3.5" />
                   <span>New Schedule</span>
@@ -662,7 +1000,7 @@ export default function AdminWhatsAppPage() {
                 </p>
                 <button
                   onClick={() => setScheduleModalOpen(true)}
-                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold inline-flex items-center gap-1.5"
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
                 >
                   <PlusCircle className="w-4 h-4" />
                   <span>Create First Schedule</span>
@@ -774,7 +1112,7 @@ export default function AdminWhatsAppPage() {
         </div>
       )}
 
-      {/* 5. TAB: BOT AUTO-RESPONDER & RULES */}
+      {/* 6. TAB: BOT AUTO-RESPONDER & RULES */}
       {activeTab === 'BOT_AUTO_REPLY' && (
         <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] p-6 space-y-6 shadow-xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#F1F5F9] pb-4">
@@ -855,7 +1193,7 @@ export default function AdminWhatsAppPage() {
                     };
                     setBotConfig(prev => ({ ...prev, rules: [...prev.rules, newRule] }));
                   }}
-                  className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                  className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 cursor-pointer"
                 >
                   <PlusCircle className="w-3.5 h-3.5" />
                   <span>+ Add Trigger Rule</span>
@@ -888,7 +1226,7 @@ export default function AdminWhatsAppPage() {
                           const updated = botConfig.rules.filter((_, i) => i !== idx);
                           setBotConfig(prev => ({ ...prev, rules: updated }));
                         }}
-                        className="p-1.5 text-slate-400 hover:text-red-600"
+                        className="p-1.5 text-slate-400 hover:text-red-600 cursor-pointer"
                         title="Remove Rule"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -927,7 +1265,7 @@ export default function AdminWhatsAppPage() {
         </div>
       )}
 
-      {/* 6. TAB 3: INSTANT GROUP BROADCAST */}
+      {/* 7. TAB 3: INSTANT GROUP BROADCAST */}
       {activeTab === 'INSTANT_BROADCAST' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-7 bg-white border border-[#E2E8F0]/80 rounded-[24px] p-6 space-y-5 shadow-xs">
@@ -949,7 +1287,7 @@ export default function AdminWhatsAppPage() {
                   onChange={(e) => setBroadcastTarget(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
                 >
-                  <option value="ALL_REGISTERED">👥 All Verified Squad Captains (Active Tournaments)</option>
+                  <option value="ALL_REGISTERED">👥 All Verified Squad Captains ({contacts.length} players)</option>
                   {groups.map((g) => (
                     <option key={g.id} value={g.identifier}>
                       💬 {g.name} ({g.category})
@@ -1012,7 +1350,7 @@ export default function AdminWhatsAppPage() {
         </div>
       )}
 
-      {/* 7. TAB 4: GROUPS & AUDIENCES */}
+      {/* 8. TAB 4: GROUPS & AUDIENCES */}
       {activeTab === 'GROUPS' && (
         <div className="space-y-4">
           <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] p-6 shadow-xs space-y-4">
@@ -1026,7 +1364,7 @@ export default function AdminWhatsAppPage() {
 
               <button
                 onClick={() => setGroupModalOpen(true)}
-                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm self-start sm:self-auto"
+                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm self-start sm:self-auto cursor-pointer"
               >
                 <PlusCircle className="w-3.5 h-3.5" />
                 <span>Add New Group</span>
@@ -1043,7 +1381,7 @@ export default function AdminWhatsAppPage() {
                       </span>
                       <button
                         onClick={() => handleDeleteGroup(grp.id)}
-                        className="text-slate-400 hover:text-red-600 p-1"
+                        className="text-slate-400 hover:text-red-600 p-1 cursor-pointer"
                         title="Delete Group"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -1074,17 +1412,17 @@ export default function AdminWhatsAppPage() {
         </div>
       )}
 
-      {/* 8. TAB 5: DISPATCH HISTORY & LOGS */}
+      {/* 9. TAB 5: DISPATCH HISTORY & LOGS */}
       {activeTab === 'LOGS' && (
         <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] overflow-hidden shadow-xs">
           <div className="p-5 border-b border-[#F1F5F9] flex items-center justify-between">
             <div>
               <h2 className="text-[17px] font-bold text-[#0F172A]">WhatsApp Automation & Dispatch Logs</h2>
-              <p className="text-xs text-[#64748B]">Recent messages dispatched by automated schedulers, bot auto-replies, and manual broadcasts.</p>
+              <p className="text-xs text-[#64748B]">Recent messages dispatched by automated schedulers, bot auto-replies, and direct player messages.</p>
             </div>
             <button
               onClick={loadData}
-              className="p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100"
+              className="p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100 cursor-pointer"
             >
               <RefreshCw className="w-4 h-4" />
             </button>
@@ -1137,7 +1475,7 @@ export default function AdminWhatsAppPage() {
         </div>
       )}
 
-      {/* 9. TAB 6: API CONFIG & TEST */}
+      {/* 10. TAB 6: API CONFIG & TEST */}
       {activeTab === 'SETTINGS' && (
         <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] p-6 space-y-6 shadow-xs">
           <div className="border-b border-[#F1F5F9] pb-4 flex items-center justify-between">
@@ -1220,52 +1558,13 @@ export default function AdminWhatsAppPage() {
               </div>
               <button
                 onClick={() => setScheduleModalOpen(false)}
-                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-white/80"
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-white/80 cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
             <form onSubmit={handleCreateSchedule} className="p-6 space-y-5 text-xs font-medium max-h-[75vh] overflow-y-auto">
-              
-              {/* Quick Template Presets */}
-              <div className="p-3.5 rounded-2xl bg-[#F8FAFC] border border-slate-200 space-y-2">
-                <div className="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                  <span>Choose a Quick Preset Template:</span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => applyPresetTemplate('ROOM_ALERT')}
-                    className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-emerald-500 text-[11px] font-bold text-slate-700 shadow-2xs"
-                  >
-                    🎮 Match Room ID & Pass Alert
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => applyPresetTemplate('REG_OPEN')}
-                    className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-emerald-500 text-[11px] font-bold text-slate-700 shadow-2xs"
-                  >
-                    🔥 Registration Open (Every 2h)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => applyPresetTemplate('COUNTDOWN_15MIN')}
-                    className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-emerald-500 text-[11px] font-bold text-slate-700 shadow-2xs"
-                  >
-                    ⏰ 15-Min Match Warning
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => applyPresetTemplate('ANTI_CHEAT')}
-                    className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-emerald-500 text-[11px] font-bold text-slate-700 shadow-2xs"
-                  >
-                    🛡️ Anti-Cheat & Fair Play
-                  </button>
-                </div>
-              </div>
-
               {/* Basic Details */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
@@ -1402,61 +1701,13 @@ export default function AdminWhatsAppPage() {
                     </div>
                   )}
                 </div>
-
-                {/* Active Window Hours */}
-                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-200">
-                  <div>
-                    <label className="block text-slate-600 font-bold mb-1 text-[11px]">Active Start Time (Morning)</label>
-                    <input
-                      type="time"
-                      value={formActiveStartTime}
-                      onChange={(e) => setFormActiveStartTime(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-800"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-slate-600 font-bold mb-1 text-[11px]">Active End Time (Night)</label>
-                    <input
-                      type="time"
-                      value={formActiveEndTime}
-                      onChange={(e) => setFormActiveEndTime(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-800"
-                    />
-                  </div>
-                </div>
               </div>
 
               {/* Message Template */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="block text-slate-700 font-bold">
-                    WhatsApp Message Template Content *
-                  </label>
-                  <div className="flex flex-wrap gap-1 text-[10px] font-mono">
-                    <button
-                      type="button"
-                      onClick={() => setFormMessageTemplate(prev => prev + ' {TOURNAMENT_NAME}')}
-                      className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold hover:bg-emerald-100"
-                    >
-                      {'{TOURNAMENT_NAME}'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFormMessageTemplate(prev => prev + ' {ROOM_ID}')}
-                      className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-bold hover:bg-blue-100"
-                    >
-                      {'{ROOM_ID}'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFormMessageTemplate(prev => prev + ' {ROOM_PASS}')}
-                      className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-bold hover:bg-amber-100"
-                    >
-                      {'{ROOM_PASS}'}
-                    </button>
-                  </div>
-                </div>
-
+                <label className="block text-slate-700 font-bold">
+                  WhatsApp Message Template Content *
+                </label>
                 <textarea
                   rows={6}
                   required
@@ -1471,14 +1722,14 @@ export default function AdminWhatsAppPage() {
                 <button
                   type="button"
                   onClick={() => setScheduleModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-xs"
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-xs cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isProcessing}
-                  className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 flex items-center gap-2 disabled:opacity-50"
+                  className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
                   {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                   <span>{isProcessing ? 'Saving...' : 'Save & Activate Automation'}</span>
@@ -1507,7 +1758,7 @@ export default function AdminWhatsAppPage() {
               </div>
               <button
                 onClick={() => setGroupModalOpen(false)}
-                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-white/80"
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-white/80 cursor-pointer"
               >
                 ✕
               </button>
@@ -1583,14 +1834,14 @@ export default function AdminWhatsAppPage() {
                 <button
                   type="button"
                   onClick={() => setGroupModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-xs"
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-xs cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isProcessing}
-                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 flex items-center gap-2 disabled:opacity-50"
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
                   {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                   <span>Save Group</span>
