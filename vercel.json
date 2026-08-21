@@ -2,11 +2,7 @@
   "crons": [
     {
       "path": "/api/admin/whatsapp/cron",
-      "schedule": "*/10 * * * *"
-    },
-    {
-      "path": "/api/cron/ai-notifications",
-      "schedule": "0 */2 * * *"
+      "schedule": "0 14 * * *"
     }
   ]
 }
