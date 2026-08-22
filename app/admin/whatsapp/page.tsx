@@ -150,13 +150,15 @@ export default function AdminWhatsAppPage() {
   });
   const [isSavingBot, setIsSavingBot] = useState(false);
 
-  // 1. Create Schedule Modal State
+  // 1. Create Schedule Modal State (Multi-Group Support)
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [formTitle, setFormTitle] = useState('');
   const [formDescription, setFormDescription] = useState('');
   const [formTargetType, setFormTargetType] = useState<WhatsAppTargetType>('GROUP');
-  const [formTargetDestination, setFormTargetDestination] = useState('');
-  const [formTargetName, setFormTargetName] = useState('');
+  const [formTargetGroupMode, setFormTargetGroupMode] = useState<'ALL_GROUPS' | 'SELECTED_GROUPS'>('ALL_GROUPS');
+  const [formSelectedGroupIds, setFormSelectedGroupIds] = useState<string[]>([]);
+  const [formTargetDestination, setFormTargetDestination] = useState('ALL_GROUPS');
+  const [formTargetName, setFormTargetName] = useState('All Connected Groups');
   const [formFrequency, setFormFrequency] = useState<WhatsAppFrequency>('EVERY_1_HOUR');
   const [formIntervalMinutes, setFormIntervalMinutes] = useState('60');
   const [formMaxExecutions, setFormMaxExecutions] = useState('0'); // 0 = unlimited
@@ -172,6 +174,20 @@ export default function AdminWhatsAppPage() {
     '⚡ আর মাত্র কয়েকটি স্লট বাকি! আপনার স্কোয়াড নিশ্চিত করুন: https://brkesports.com/tournaments',
     '🚨 শেষ সুযোগ! কিছুক্ষণের মধ্যে রেজিস্ট্রেশন বন্ধ হয়ে যাবে। Booyah জিতুন: https://brkesports.com'
   ]);
+
+  const toggleFormGroupSelection = (identifier: string) => {
+    setFormSelectedGroupIds(prev =>
+      prev.includes(identifier) ? prev.filter(i => i !== identifier) : [...prev, identifier]
+    );
+  };
+
+  const toggleFormSelectAllGroups = () => {
+    if (formSelectedGroupIds.length === groups.length) {
+      setFormSelectedGroupIds([]);
+    } else {
+      setFormSelectedGroupIds(groups.map(g => g.identifier || g.id));
+    }
+  };
 
   // 2. Add Group Modal State
   const [groupModalOpen, setGroupModalOpen] = useState(false);
@@ -236,9 +252,10 @@ export default function AdminWhatsAppPage() {
 
         if (data.groups && data.groups.length > 0) {
           setSelectedGroupIds(prev => prev.length === 0 ? data.groups.map((g: any) => g.identifier || g.id) : prev);
+          setFormSelectedGroupIds(prev => prev.length === 0 ? data.groups.map((g: any) => g.identifier || g.id) : prev);
           if (!formTargetDestination) {
             setFormTargetDestination('ALL_GROUPS');
-            setFormTargetName('All Connected Groups');
+            setFormTargetName(`All Connected Groups (${data.groups.length})`);
           }
         }
       }
@@ -536,6 +553,25 @@ export default function AdminWhatsAppPage() {
       return;
     }
 
+    let finalTargetDestination = formTargetDestination;
+    let finalTargetName = formTargetName || 'Target Audience';
+
+    if (formTargetType === 'GROUP') {
+      if (formTargetGroupMode === 'ALL_GROUPS') {
+        finalTargetDestination = 'ALL_GROUPS';
+        finalTargetName = `All Connected Groups (${groups.length})`;
+      } else {
+        if (formSelectedGroupIds.length === 0) {
+          showToast('Please select at least one WhatsApp group for this schedule.', 'error');
+          return;
+        }
+        finalTargetDestination = formSelectedGroupIds.join(',');
+        finalTargetName = formSelectedGroupIds.length === groups.length
+          ? `All Connected Groups (${groups.length})`
+          : `${formSelectedGroupIds.length} Selected Groups`;
+      }
+    }
+
     setIsProcessing(true);
     try {
       const res = await fetch('/api/admin/whatsapp/scheduler', {
@@ -547,8 +583,8 @@ export default function AdminWhatsAppPage() {
             title: formTitle,
             description: formDescription,
             targetType: formTargetType,
-            targetDestination: formTargetDestination,
-            targetName: formTargetName || 'Target Audience',
+            targetDestination: finalTargetDestination,
+            targetName: finalTargetName,
             frequency: formFrequency,
             intervalMinutes: Number(formIntervalMinutes),
             maxExecutions: Number(formMaxExecutions) > 0 ? Number(formMaxExecutions) : undefined,
@@ -2399,61 +2435,124 @@ export default function AdminWhatsAppPage() {
               </div>
 
               {/* Target Audience */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">Target Recipient Type *</label>
-                  <select
-                    value={formTargetType}
-                    onChange={(e) => {
-                      const val = e.target.value as WhatsAppTargetType;
-                      setFormTargetType(val);
-                      if (val === 'TOURNAMENT_CAPTAINS') {
-                        setFormTargetDestination('ACTIVE_TOURNAMENTS');
-                        setFormTargetName('All Active Squad Captains');
-                      }
-                    }}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
-                  >
-                    <option value="GROUP">💬 WhatsApp Group</option>
-                    <option value="TOURNAMENT_CAPTAINS">👥 Verified Squad Captains</option>
-                    <option value="CUSTOM_PHONE">📱 Custom Phone Number</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">Target Group / Phone *</label>
-                  {formTargetType === 'GROUP' ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">Target Recipient Type *</label>
                     <select
-                      value={formTargetDestination}
+                      value={formTargetType}
                       onChange={(e) => {
-                        setFormTargetDestination(e.target.value);
-                        if (e.target.value === 'ALL_GROUPS') {
-                          setFormTargetName(`All Connected Groups (${groups.length})`);
-                        } else {
-                          const sel = groups.find(g => g.identifier === e.target.value || g.id === e.target.value);
-                          if (sel) setFormTargetName(sel.name);
+                        const val = e.target.value as WhatsAppTargetType;
+                        setFormTargetType(val);
+                        if (val === 'TOURNAMENT_CAPTAINS') {
+                          setFormTargetDestination('ACTIVE_TOURNAMENTS');
+                          setFormTargetName('All Active Squad Captains');
                         }
                       }}
                       className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
                     >
-                      <option value="ALL_GROUPS">📢 All Connected WhatsApp Groups ({groups.length} groups)</option>
-                      {groups.map((g) => (
-                        <option key={g.id} value={g.identifier}>
-                          💬 {g.name} ({g.category})
-                        </option>
-                      ))}
+                      <option value="GROUP">💬 WhatsApp Group(s)</option>
+                      <option value="TOURNAMENT_CAPTAINS">👥 Verified Squad Captains</option>
+                      <option value="CUSTOM_PHONE">📱 Custom Phone Number</option>
                     </select>
-                  ) : (
-                    <input
-                      type="text"
-                      required
-                      value={formTargetDestination}
-                      onChange={(e) => setFormTargetDestination(e.target.value)}
-                      placeholder={formTargetType === 'TOURNAMENT_CAPTAINS' ? 'ACTIVE_TOURNAMENTS' : '+88017XXXXXXXX'}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white font-mono"
-                    />
+                  </div>
+
+                  {formTargetType !== 'GROUP' && (
+                    <div>
+                      <label className="block text-slate-700 font-bold mb-1">Target Phone / Identifier *</label>
+                      <input
+                        type="text"
+                        required
+                        value={formTargetDestination}
+                        onChange={(e) => setFormTargetDestination(e.target.value)}
+                        placeholder={formTargetType === 'TOURNAMENT_CAPTAINS' ? 'ACTIVE_TOURNAMENTS' : '+88017XXXXXXXX'}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white font-mono"
+                      />
+                    </div>
                   )}
                 </div>
+
+                {/* Multi-Group Selection for Schedules */}
+                {formTargetType === 'GROUP' && (
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-slate-800 font-bold text-xs">Target WhatsApp Groups *</label>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormTargetGroupMode('ALL_GROUPS');
+                            setFormSelectedGroupIds(groups.map(g => g.identifier || g.id));
+                          }}
+                          className={`px-3 py-1 rounded-lg font-bold text-[11px] transition-all cursor-pointer ${
+                            formTargetGroupMode === 'ALL_GROUPS'
+                              ? 'bg-emerald-600 text-white shadow-xs'
+                              : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
+                          }`}
+                        >
+                          📢 All Groups ({groups.length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFormTargetGroupMode('SELECTED_GROUPS')}
+                          className={`px-3 py-1 rounded-lg font-bold text-[11px] transition-all cursor-pointer ${
+                            formTargetGroupMode === 'SELECTED_GROUPS'
+                              ? 'bg-emerald-600 text-white shadow-xs'
+                              : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
+                          }`}
+                        >
+                          🎯 Pick Groups ({formSelectedGroupIds.length})
+                        </button>
+                      </div>
+                    </div>
+
+                    {formTargetGroupMode === 'SELECTED_GROUPS' && (
+                      <div className="space-y-2 pt-1 border-t border-slate-200/60">
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-slate-500">Select which groups will receive this schedule:</span>
+                          <button
+                            type="button"
+                            onClick={toggleFormSelectAllGroups}
+                            className="font-bold text-emerald-700 hover:underline cursor-pointer"
+                          >
+                            {formSelectedGroupIds.length === groups.length ? 'Deselect All' : `Select All (${groups.length})`}
+                          </button>
+                        </div>
+
+                        {groups.length === 0 ? (
+                          <p className="text-xs text-slate-400 py-1">No groups found. Please sync groups first.</p>
+                        ) : (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1">
+                            {groups.map((g) => {
+                              const isChecked = formSelectedGroupIds.includes(g.identifier) || formSelectedGroupIds.includes(g.id);
+                              return (
+                                <label
+                                  key={g.id}
+                                  className={`p-2 rounded-xl border cursor-pointer flex items-start gap-2 transition-all text-xs ${
+                                    isChecked
+                                      ? 'bg-white border-emerald-500 shadow-2xs text-slate-900 ring-1 ring-emerald-500/30'
+                                      : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={() => toggleFormGroupSelection(g.identifier || g.id)}
+                                    className="mt-0.5 text-emerald-600 rounded focus:ring-emerald-500 cursor-pointer"
+                                  />
+                                  <div className="min-w-0 flex-1">
+                                    <div className="font-bold text-xs truncate">{g.name}</div>
+                                    <div className="text-[10px] text-slate-400 font-mono truncate">{g.identifier}</div>
+                                  </div>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Timing, Frequency & Execution Limits */}
