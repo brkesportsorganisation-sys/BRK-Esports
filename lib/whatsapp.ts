@@ -206,6 +206,75 @@ export async function sendGreenApiMessage({
 }
 
 /**
+ * Sends an image or file with caption via Green-API (100% Free Developer Tier)
+ */
+export async function sendGreenApiFile({
+  chatId,
+  urlFile,
+  fileName = 'banner.jpg',
+  caption,
+  apiUrl,
+  instanceId,
+  apiToken,
+}: {
+  chatId: string;
+  urlFile: string;
+  fileName?: string;
+  caption?: string;
+  apiUrl?: string;
+  instanceId?: string;
+  apiToken?: string;
+}) {
+  const settings = await getWhatsAppSettings();
+  const host = (apiUrl || settings.greenApiUrl || 'https://7107.api.greenapi.com').replace(/\/+$/, '');
+  const activeId = instanceId || settings.greenApiInstanceId || '710722716896';
+  const activeToken = apiToken || settings.greenApiToken;
+
+  if (!activeToken) {
+    return { success: false, message: 'Green-API API Token is not configured. Please paste your token in Admin Settings.' };
+  }
+
+  const targetChatId = formatWaapiChatId(chatId);
+
+  try {
+    const res = await fetch(`${host}/waInstance${activeId}/sendFileByUrl/${activeToken}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        chatId: targetChatId,
+        urlFile,
+        fileName,
+        caption: caption || '',
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || (data?.idMessage === undefined && data?.error)) {
+      return {
+        success: false,
+        message: data?.message || data?.error || `Green-API sendFileByUrl failed (${res.status})`,
+        data,
+      };
+    }
+
+    return {
+      success: true,
+      message: `Image with caption delivered via Green-API to ${targetChatId}`,
+      data,
+    };
+  } catch (err: any) {
+    console.error('[sendGreenApiFile Error]', err);
+    return {
+      success: false,
+      message: err?.message || 'Failed to send image via Green-API.',
+      error: err,
+    };
+  }
+}
+
+/**
  * Fetches all chats & groups from Green-API instance
  */
 export async function fetchGreenApiChats(apiUrl?: string, instanceId?: string, apiToken?: string) {
@@ -604,11 +673,15 @@ export async function sendRoomDetailsToPlayer({
 export async function sendDirectWhatsappMessage({
   to,
   text,
+  imageUrl,
+  mediaUrl,
   targetName = 'Contact',
   triggerType = 'INSTANT_BROADCAST',
 }: {
   to: string;
   text: string;
+  imageUrl?: string;
+  mediaUrl?: string;
   targetName?: string;
   triggerType?: 'SCHEDULED_AUTOMATION' | 'INSTANT_BROADCAST' | 'ROOM_ALERT' | 'TEST';
 }) {
@@ -618,21 +691,35 @@ export async function sendDirectWhatsappMessage({
   }
 
   const settings = await getWhatsAppSettings();
+  const activeImageUrl = imageUrl || mediaUrl;
 
   // 1. Send via Green-API (Developer Free & Production) if configured
   if (settings.provider === 'GREEN_API' && settings.greenApiToken) {
-    const greenRes = await sendGreenApiMessage({
-      chatId: formattedTo,
-      message: text,
-      apiUrl: settings.greenApiUrl,
-      instanceId: settings.greenApiInstanceId,
-      apiToken: settings.greenApiToken,
-    });
+    let greenRes: any;
+    if (activeImageUrl) {
+      greenRes = await sendGreenApiFile({
+        chatId: formattedTo,
+        urlFile: activeImageUrl,
+        caption: text,
+        apiUrl: settings.greenApiUrl,
+        instanceId: settings.greenApiInstanceId,
+        apiToken: settings.greenApiToken,
+      });
+    } else {
+      greenRes = await sendGreenApiMessage({
+        chatId: formattedTo,
+        message: text,
+        apiUrl: settings.greenApiUrl,
+        instanceId: settings.greenApiInstanceId,
+        apiToken: settings.greenApiToken,
+      });
+    }
 
     await addWhatsAppLog({
       targetDestination: formattedTo,
       targetName,
       messageText: text,
+      imageUrl: activeImageUrl,
       triggerType,
       status: greenRes.success ? 'SENT' : 'FAILED',
       responseId: (greenRes.data as any)?.idMessage || 'green_api_sent',
@@ -648,7 +735,7 @@ export async function sendDirectWhatsappMessage({
   if (settings.provider === 'WAAPI' && settings.waapiApiKey) {
     const waapiRes = await sendWaapiMessage({
       chatId: formattedTo,
-      message: text,
+      message: activeImageUrl ? `${text}\n\n🖼️ Media: ${activeImageUrl}` : text,
       instanceId: settings.waapiInstanceId,
       apiKey: settings.waapiApiKey,
     });
@@ -1196,6 +1283,7 @@ export async function executeScheduledJob(schedule: WhatsAppSchedule): Promise<{
     const result = await sendDirectWhatsappMessage({
       to: r.phone,
       text: personalizedText,
+      imageUrl: schedule.imageUrl || schedule.mediaUrl,
       targetName: r.name || schedule.targetName,
       triggerType: 'SCHEDULED_AUTOMATION',
     });

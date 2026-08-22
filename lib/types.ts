@@ -843,6 +843,8 @@ export interface WhatsAppSchedule {
   targetName?: string; // Display title, e.g. "Tournament WhatsApp Group #1"
   messageType: WhatsAppMessageType;
   messageTemplate: string;
+  imageUrl?: string; // Optional image/banner URL to send with caption
+  mediaUrl?: string; // Alias
   messagesSequence?: string[]; // Optional sequence/rotation of messages (e.g. Message 1, Message 2, etc.)
   messagesMode?: 'SINGLE' | 'ROTATIONAL' | 'SEQUENTIAL';
   maxExecutions?: number; // Maximum times to send before auto-completing (0 or undefined = unlimited)
@@ -881,6 +883,7 @@ export interface WhatsAppMessageLog {
   targetDestination: string;
   targetName?: string;
   messageText: string;
+  imageUrl?: string;
   triggerType: 'SCHEDULED_AUTOMATION' | 'INSTANT_BROADCAST' | 'ROOM_ALERT' | 'TEST';
   status: 'SENT' | 'FAILED';
   responseId?: string;

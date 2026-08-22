@@ -108,6 +108,8 @@ export async function POST(req: NextRequest) {
       targetName: schedule.targetName?.trim() || 'WhatsApp Target',
       messageType: schedule.messageType || (messagesSequence ? 'ROTATIONAL' : 'TEMPLATE'),
       messageTemplate: schedule.messageTemplate.trim(),
+      imageUrl: schedule.imageUrl?.trim() || schedule.mediaUrl?.trim() || undefined,
+      mediaUrl: schedule.imageUrl?.trim() || schedule.mediaUrl?.trim() || undefined,
       messagesSequence,
       messagesMode: schedule.messagesMode || (messagesSequence ? 'ROTATIONAL' : 'SINGLE'),
       maxExecutions,

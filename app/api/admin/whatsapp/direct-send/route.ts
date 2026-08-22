@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { phone, recipientName, message, templateType } = body;
+    const { phone, recipientName, message, imageUrl, mediaUrl, templateType } = body;
 
     if (!phone || !message) {
       return NextResponse.json({ message: 'Phone number and message are required.' }, { status: 400 });
@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
     const res = await sendDirectWhatsappMessage({
       to: formattedPhone,
       text: message.trim(),
+      imageUrl: imageUrl || mediaUrl,
       targetName: recipientName || 'Direct Player',
       triggerType: templateType === 'ROOM_ID' ? 'ROOM_ALERT' : 'INSTANT_BROADCAST',
     });

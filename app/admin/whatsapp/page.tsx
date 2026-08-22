@@ -165,6 +165,7 @@ export default function AdminWhatsAppPage() {
   const [formActiveStartTime, setFormActiveStartTime] = useState('09:00');
   const [formActiveEndTime, setFormActiveEndTime] = useState('23:00');
   const [formMessageTemplate, setFormMessageTemplate] = useState('');
+  const [formImageUrl, setFormImageUrl] = useState('');
   const [formUseSequence, setFormUseSequence] = useState(false);
   const [formMessagesSequence, setFormMessagesSequence] = useState<string[]>([
     '🔥 টুর্নামেন্ট স্লট বুকিং চলছে! দ্রুত রেজিস্টার করুন: https://brkesports.com/tournaments',
@@ -183,6 +184,7 @@ export default function AdminWhatsAppPage() {
   // 3. Instant Broadcast State
   const [broadcastTarget, setBroadcastTarget] = useState('ALL_REGISTERED');
   const [broadcastMessage, setBroadcastMessage] = useState(`🎮 BRK ESPORTS TOURNAMENT NOTIFICATION 🎮\n\nআজকের টুর্নামেন্টের রুম আইডি ও জরুরি আপডেট প্রকাশ করা হয়েছে!\n\nসবাই দ্রুত অ্যাপে লগইন করে রুম চেক করুন: https://brkesports.com`);
+  const [broadcastImageUrl, setBroadcastImageUrl] = useState('');
   const [isBroadcasting, setIsBroadcasting] = useState(false);
 
   // 4. API Settings State
@@ -539,6 +541,7 @@ export default function AdminWhatsAppPage() {
             activeStartTime: formActiveStartTime,
             activeEndTime: formActiveEndTime,
             messageTemplate: primaryTemplate,
+            imageUrl: formImageUrl.trim() || undefined,
             isActive: true,
           },
         }),
@@ -727,6 +730,7 @@ export default function AdminWhatsAppPage() {
             phone: broadcastTarget,
             recipientName: groupDisplayName,
             message: broadcastMessage.trim(),
+            imageUrl: broadcastImageUrl.trim() || undefined,
             templateType: 'GROUP_BROADCAST',
           }),
           credentials: 'include',
@@ -1726,9 +1730,40 @@ export default function AdminWhatsAppPage() {
               </div>
 
               <div>
-                <label className="block text-slate-700 font-bold mb-1.5">Broadcast Message Content *</label>
+                <label className="block text-slate-700 font-bold mb-1.5 flex items-center justify-between">
+                  <span>🖼️ Attach Picture / Banner URL (ছবি / ব্যানার - Optional)</span>
+                  {broadcastImageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setBroadcastImageUrl('')}
+                      className="text-[11px] text-red-500 hover:underline cursor-pointer"
+                    >
+                      Clear Image
+                    </button>
+                  )}
+                </label>
+                <input
+                  type="url"
+                  value={broadcastImageUrl}
+                  onChange={(e) => setBroadcastImageUrl(e.target.value)}
+                  placeholder="https://example.com/tournament_poster.jpg"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-mono text-slate-900 focus:outline-none focus:border-emerald-600"
+                />
+                <div className="flex gap-2 mt-1.5 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setBroadcastImageUrl('https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=60')}
+                    className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold cursor-pointer"
+                  >
+                    + Sample Gaming Banner
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-bold mb-1.5">Broadcast Message Content (Caption) *</label>
                 <textarea
-                  rows={8}
+                  rows={7}
                   required
                   value={broadcastMessage}
                   onChange={(e) => setBroadcastMessage(e.target.value)}
@@ -1756,7 +1791,12 @@ export default function AdminWhatsAppPage() {
                 <span className="text-xs font-bold text-slate-800">Live WhatsApp Preview</span>
               </div>
 
-              <div className="bg-white rounded-2xl rounded-tl-none p-4 shadow-sm text-xs text-slate-800 leading-relaxed whitespace-pre-wrap font-sans">
+              <div className="bg-white rounded-2xl rounded-tl-none p-3.5 shadow-sm text-xs text-slate-800 leading-relaxed whitespace-pre-wrap font-sans">
+                {broadcastImageUrl && (
+                  <div className="rounded-xl overflow-hidden mb-2.5 max-h-48 border border-slate-200 bg-slate-100">
+                    <img src={broadcastImageUrl} alt="Broadcast Banner" className="w-full h-40 object-cover" />
+                  </div>
+                )}
                 {broadcastMessage}
                 <div className="text-[10px] text-slate-400 text-right mt-2 font-mono">
                   {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ✓✓
@@ -2433,6 +2473,33 @@ export default function AdminWhatsAppPage() {
                     className="w-full p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white"
                   />
                 )}
+                {/* Optional Schedule Image / Banner */}
+                <div className="space-y-1.5">
+                  <label className="block text-slate-700 font-bold text-xs flex items-center justify-between">
+                    <span>🖼️ Attach Picture / Banner (ছবি / ব্যানার লিঙ্ক - Optional)</span>
+                    {formImageUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setFormImageUrl('')}
+                        className="text-[11px] text-red-500 hover:underline cursor-pointer"
+                      >
+                        Clear Image
+                      </button>
+                    )}
+                  </label>
+                  <input
+                    type="url"
+                    value={formImageUrl}
+                    onChange={(e) => setFormImageUrl(e.target.value)}
+                    placeholder="https://example.com/banner.jpg"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white"
+                  />
+                  {formImageUrl && (
+                    <div className="rounded-xl overflow-hidden mt-2 max-h-32 border border-slate-200 bg-slate-100">
+                      <img src={formImageUrl} alt="Schedule Banner Preview" className="w-full h-28 object-cover" />
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Sticky Modal Action Footer */}
