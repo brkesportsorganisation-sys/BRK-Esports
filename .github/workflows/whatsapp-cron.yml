@@ -1,0 +1,17 @@
+name: WhatsApp Schedules Background Cron
+
+on:
+  schedule:
+    # Runs every 5 minutes completely FREE via GitHub Actions
+    - cron: '*/5 * * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+jobs:
+  trigger-whatsapp-cron:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger WhatsApp Automation Endpoint
+        run: |
+          curl -X POST "https://brk-esports.vercel.app/api/admin/whatsapp/cron" \
+            -H "Content-Type: application/json" \
+            --silent --show-error || true
