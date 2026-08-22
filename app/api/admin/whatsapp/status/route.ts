@@ -78,7 +78,11 @@ export async function GET() {
       },
       balance: balanceData,
       senders,
-      activeSender: senders.find(s => s.isDefault) || senders[0] || null,
+      activeSender:
+        senders.find(s => s.phoneNumber?.includes('880') || s.whatsapp?.displayPhoneNumber?.includes('880')) ||
+        senders.find(s => s.isDefault) ||
+        senders[0] ||
+        null,
     });
   } catch (error: any) {
     console.error('[GET /api/admin/whatsapp/status]', error);

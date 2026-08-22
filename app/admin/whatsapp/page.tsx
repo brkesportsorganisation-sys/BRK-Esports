@@ -630,15 +630,27 @@ export default function AdminWhatsAppPage() {
               <h2 className="text-lg font-black text-white tracking-tight">
                 {zavuStatus?.activeSender?.name || 'Black Rock Esports Bot'}
               </h2>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                ONLINE & CONNECTED
-              </span>
+              {loading || zavuStatus === null ? (
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-500/20 text-slate-400 border border-slate-500/30 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse" />
+                  CONNECTING...
+                </span>
+              ) : zavuStatus.connected !== false ? (
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  ONLINE &amp; CONNECTED
+                </span>
+              ) : (
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-500/20 text-red-300 border border-red-500/30 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                  DISCONNECTED
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-3 text-xs text-slate-300 font-mono mt-1 flex-wrap">
               <span className="flex items-center gap-1">
                 <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
-                <strong>{zavuStatus?.activeSender?.phoneNumber || '+880 1866-408811'}</strong>
+                <strong>{zavuStatus?.activeSender?.phoneNumber || '+880 1846-587311'}</strong>
               </span>
               <span className="text-slate-600">•</span>
               <span className="text-[11px] text-slate-400">
@@ -685,7 +697,7 @@ export default function AdminWhatsAppPage() {
         <div className="flex-1">
           <div className="font-bold text-amber-900 text-sm">⚠️ Meta WhatsApp Free-form Message Policy (24-Hour Window)</div>
           <p className="text-[12px] text-amber-800 mt-1 leading-relaxed">
-            আপনার WhatsApp number <strong>(+880 1866-408811)</strong> থেকে কোনো player-কে প্রথমবার message পাঠাতে হলে, সেই player-কে আগে আপনার নম্বরে একটি message পাঠাতে হবে এবং তারপর 24 ঘণ্টার মধ্যে reply করতে হবে।
+            আপনার WhatsApp number <strong>(+880 1846-587311)</strong> থেকে কোনো player-কে প্রথমবার message পাঠাতে হলে, সেই player-কে আগে আপনার নম্বরে একটি message পাঠাতে হবে এবং তারপর 24 ঘণ্টার মধ্যে reply করতে হবে।
             এটি Meta-এর policy। Messages status <strong>&apos;queued&apos;</strong> দেখালে সাধারণত এটিই কারণ।
             Approved WhatsApp Templates ব্যবহার করে এই সীমাবদ্ধতা এড়ানো যায় — Zavu Dashboard থেকে Template তৈরি করুন।
           </p>
@@ -966,7 +978,7 @@ export default function AdminWhatsAppPage() {
                       <div>
                         <h3 className="font-bold text-slate-900 text-sm">Direct WhatsApp Message Composer</h3>
                         <p className="text-[11px] text-slate-500">
-                          Sending directly from <strong>+880 1866-408811</strong> to player&apos;s WhatsApp
+                          Sending directly from <strong>+880 1846-587311</strong> to player&apos;s WhatsApp
                         </p>
                       </div>
                     </div>
@@ -1102,7 +1114,7 @@ export default function AdminWhatsAppPage() {
                   </div>
                   <div className="flex items-center gap-2 text-[11px] text-emerald-100 bg-white/10 rounded-xl px-3 py-2 w-fit">
                     <Smartphone className="w-3.5 h-3.5 text-white" />
-                    <span>From: <strong className="text-white">{zavuStatus?.activeSender?.phoneNumber || '+880 1866-408811'}</strong> (Zavu API)</span>
+                    <span>From: <strong className="text-white">{zavuStatus?.activeSender?.phoneNumber || '+880 1846-587311'}</strong> (Zavu API)</span>
                   </div>
                 </div>
 
@@ -1473,7 +1485,7 @@ export default function AdminWhatsAppPage() {
               <div>
                 <h2 className="text-[17px] font-bold text-[#0F172A]">WhatsApp Bot Auto-Responder</h2>
                 <p className="text-xs text-[#64748B]">
-                  খেলোয়াড়রা আপনার নম্বরে (`+880 1866-408811`) মেসেজ দিলে স্বয়ংক্রিয়ভাবে উত্তর দেওয়ার রুলস ও ওয়েলকাম মেসেজ কনফিগার করুন।
+                  খেলোয়াড়রা আপনার নম্বরে (`+880 1846-587311`) মেসেজ দিলে স্বয়ংক্রিয়ভাবে উত্তর দেওয়ার রুলস ও ওয়েলকাম মেসেজ কনফিগার করুন।
                 </p>
               </div>
             </div>
@@ -1538,7 +1550,7 @@ export default function AdminWhatsAppPage() {
                     const newRule = {
                       id: `rule_${Date.now()}`,
                       keywords: ['support', 'help'],
-                      replyText: 'যেকোনো প্রয়োজনে আমাদের সাপোর্ট টিমকে কল বা মেসেজ করুন: +8801866408811',
+                      replyText: 'যেকোনো প্রয়োজনে আমাদের সাপোর্ট টিমকে কল বা মেসেজ করুন: +8801846587311',
                       isActive: true,
                     };
                     setBotConfig(prev => ({ ...prev, rules: [...prev.rules, newRule] }));
@@ -1663,7 +1675,7 @@ export default function AdminWhatsAppPage() {
 
               <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs">
                 <span className="font-bold block mb-0.5">ℹ️ Instant Delivery Note:</span>
-                <span>Messages will be dispatched in real-time through the Zavu WhatsApp API from <strong>+880 1866-408811</strong>.</span>
+                <span>Messages will be dispatched in real-time through the Zavu WhatsApp API from <strong>+880 1846-587311</strong>.</span>
               </div>
 
               <button
@@ -1832,7 +1844,7 @@ export default function AdminWhatsAppPage() {
             <div>
               <h2 className="text-[17px] font-bold text-[#0F172A]">Zavu WhatsApp API Connection</h2>
               <p className="text-xs text-[#64748B]">
-                Your WhatsApp Bot Account is connected and sending from <strong>+880 1866-408811</strong>.
+                Your WhatsApp Bot Account is connected and sending from <strong>+880 1846-587311</strong>.
               </p>
             </div>
             <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">

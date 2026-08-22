@@ -105,10 +105,11 @@ export async function getZavuClient(): Promise<{ client: Zavudev | null; error?:
 
 /**
  * Helper to get the default sender ID for the Zavu SDK.
+ * Prioritizes Bangladesh (+880) numbers over US/other demo numbers.
  * NOTE: The Zavu SDK's send() method expects 'Zavu-Sender' inside the PARAMS
  * object (1st arg), NOT in options.headers (2nd arg).
  */
-async function getDefaultSenderId(client: Zavudev): Promise<string | undefined> {
+export async function getDefaultSenderId(client: Zavudev): Promise<string | undefined> {
   try {
     const senders: any[] = [];
     const seenIds = new Set<string>();
@@ -119,6 +120,14 @@ async function getDefaultSenderId(client: Zavudev): Promise<string | undefined> 
       senders.push(s);
     }
     if (senders.length > 0) {
+      // Prioritize Bangladesh numbers or verified numbers matching +880
+      const bdSender = senders.find((s: any) => 
+        (s.phoneNumber && s.phoneNumber.includes('880')) ||
+        (s.whatsapp?.displayPhoneNumber && s.whatsapp.displayPhoneNumber.includes('880'))
+      );
+      if (bdSender?.id) {
+        return bdSender.id;
+      }
       const defaultSender = senders.find((s: any) => s.isDefault) || senders[0];
       if (defaultSender?.id) {
         return defaultSender.id;
@@ -219,7 +228,7 @@ export async function sendRoomDetailsToPlayer({
     if (rawMsg.includes('No default sender') || rawMsg.includes('Zavu-Sender')) {
       errMsg = '⚠️ আপনার Zavu অ্যাকাউন্টে কোনো WhatsApp Sender / Phone Number এখনও যুক্ত করা হয়নি। অনুগ্রহ করে Zavu ড্যাশবোর্ডে গিয়ে একটি Sender (WhatsApp QR বা Cloud API) কানেক্ট করুন।';
     } else if (rawMsg.includes('24') || rawMsg.includes('Re-engagement') || rawMsg.includes('outside the allowed window') || rawMsg.includes('session')) {
-      errMsg = `⚠️ Meta WhatsApp 24-ঘণ্টা নীতি: এই নম্বর (${formattedPhone}) আপনার WhatsApp নম্বরে (+880 1866-408811) প্রথমে একটি মেসেজ না পাঠালে আপনি Free-form message পাঠাতে পারবেন না। প্লেয়ারকে আগে আপনাকে message করতে বলুন অথবা Approved Template ব্যবহার করুন।`;
+      errMsg = `⚠️ Meta WhatsApp 24-ঘণ্টা নীতি: এই নম্বর (${formattedPhone}) আপনার WhatsApp নম্বরে (+880 1846-587311) প্রথমে একটি মেসেজ না পাঠালে আপনি Free-form message পাঠাতে পারবেন না। প্লেয়ারকে আগে আপনাকে message করতে বলুন অথবা Approved Template ব্যবহার করুন।`;
     }
 
     await addWhatsAppLog({
@@ -288,7 +297,7 @@ export async function sendDirectWhatsappMessage({
     if (rawMsg.includes('No default sender') || rawMsg.includes('Zavu-Sender')) {
       errMsg = '⚠️ আপনার Zavu অ্যাকাউন্টে কোনো WhatsApp Sender / Phone Number এখনও যুক্ত করা হয়নি। অনুগ্রহ করে Zavu ড্যাশবোর্ডে গিয়ে একটি Sender কানেক্ট করুন।';
     } else if (rawMsg.includes('24') || rawMsg.includes('Re-engagement') || rawMsg.includes('outside the allowed window') || rawMsg.includes('session')) {
-      errMsg = `⚠️ Meta WhatsApp 24-ঘণ্টা নীতি: এই নম্বরে (${formattedTo}) Free-form message পাঠাতে হলে প্লেয়ারকে আগে আপনার নম্বরে (+880 1866-408811) একটি মেসেজ দিয়ে 24 ঘণ্টার উইন্ডো খুলতে হবে।`;
+      errMsg = `⚠️ Meta WhatsApp 24-ঘণ্টা নীতি: এই নম্বরে (${formattedTo}) Free-form message পাঠাতে হলে প্লেয়ারকে আগে আপনার নম্বরে (+880 1846-587311) একটি মেসেজ দিয়ে 24 ঘণ্টার উইন্ডো খুলতে হবে।`;
     }
 
     await addWhatsAppLog({

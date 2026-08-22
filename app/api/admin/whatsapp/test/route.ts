@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyAdminSession, requireAdminRole } from '@/lib/admin-auth';
-import { getZavuClient, normalizePhoneNumber } from '@/lib/whatsapp';
+import { getZavuClient, normalizePhoneNumber, getDefaultSenderId } from '@/lib/whatsapp';
 
 async function getSession() {
   const cookieStore = await cookies();
@@ -15,6 +15,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
   }
 
+  let formattedPhone = '';
+
   try {
     const body = await request.json();
     const { testPhone } = body;
@@ -23,7 +25,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Test recipient phone number is required.' }, { status: 400 });
     }
 
-    const formattedPhone = normalizePhoneNumber(testPhone);
+    formattedPhone = normalizePhoneNumber(testPhone);
     const { client, error } = await getZavuClient();
 
     if (!client) {
@@ -31,24 +33,13 @@ export async function POST(request: Request) {
     }
 
     // 1. Inspect and resolve active sender from Zavu account
-    let senderId: string | undefined;
-    try {
-      const senders: any[] = [];
-      for await (const s of client.senders.list()) {
-        senders.push(s);
-      }
+    const senderId = await getDefaultSenderId(client);
 
-      if (senders.length === 0) {
-        return NextResponse.json({
-          success: false,
-          message: '⚠️ আপনার Zavu অ্যাকাউন্টে কোনো WhatsApp Sender / Phone Number এখনও কানেক্ট করা হয়নি। অনুগ্রহ করে Zavu Dashboard (https://dashboard.zavu.dev) এ গিয়ে Senders -> Add Sender এ ক্লিক করে আপনার WhatsApp নম্বরটি লিংক করুন।',
-        }, { status: 400 });
-      }
-
-      const defaultSender = senders.find(s => s.isDefault) || senders[0];
-      senderId = defaultSender?.id;
-    } catch (err: any) {
-      console.warn('[Zavu Sender Fetch]', err?.message);
+    if (!senderId) {
+      return NextResponse.json({
+        success: false,
+        message: '⚠️ আপনার Zavu অ্যাকাউন্টে কোনো WhatsApp Sender / Phone Number এখনও কানেক্ট করা হয়নি। অনুগ্রহ করে Zavu Dashboard (https://dashboard.zavu.dev) এ গিয়ে Senders -> Add Sender এ ক্লিক করে আপনার WhatsApp নম্বরটি লিংক করুন।',
+      }, { status: 400 });
     }
 
     const testMessage = `🤖 BlackRock Esports WhatsApp Test 🤖\n\n✅ Zavu API is successfully connected and operational!\n🕒 Timestamp: ${new Date().toLocaleString()}\n\n🎮 BRK ESPORTS - https://brkesports.com`;
@@ -57,7 +48,7 @@ export async function POST(request: Request) {
       channel: 'whatsapp',
       to: formattedPhone,
       text: testMessage,
-      ...(senderId ? { 'Zavu-Sender': senderId } : {}),
+      'Zavu-Sender': senderId,
     });
 
     return NextResponse.json({
@@ -73,7 +64,7 @@ export async function POST(request: Request) {
     if (rawMsg.includes('No default sender') || rawMsg.includes('Zavu-Sender')) {
       userMsg = '⚠️ আপনার Zavu অ্যাকাউন্টে কোনো WhatsApp Sender / নম্বর কানেক্ট করা হয়নি। অনুগ্রহ করে Zavu Dashboard (https://dashboard.zavu.dev) থেকে Senders সেকশনে গিয়ে আপনার WhatsApp Number যুক্ত করুন।';
     } else if (rawMsg.includes('24') || rawMsg.includes('Re-engagement') || rawMsg.includes('outside the allowed window') || rawMsg.includes('session')) {
-      userMsg = `⚠️ Meta WhatsApp 24-ঘণ্টা নীতি: এই নম্বরে (${formattedPhone}) Free-form message পাঠাতে হলে recipient-কে আগে আপনার নম্বরে (+880 1866-408811) একটি মেসেজ দিয়ে 24 ঘণ্টার উইন্ডো খুলতে হবে।`;
+      userMsg = `⚠️ Meta WhatsApp 24-ঘণ্টা নীতি: এই নম্বরে (${formattedPhone}) Free-form message পাঠাতে হলে recipient-কে আগে আপনার নম্বরে (+880 1846-587311) একটি মেসেজ দিয়ে 24 ঘণ্টার উইন্ডো খুলতে হবে।`;
     }
 
     return NextResponse.json(

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyAdminSession, requireAdminRole } from '@/lib/admin-auth';
-import { getZavuClient, normalizePhoneNumber, addWhatsAppLog } from '@/lib/whatsapp';
+import { getZavuClient, normalizePhoneNumber, addWhatsAppLog, getDefaultSenderId } from '@/lib/whatsapp';
 
 async function getSession() {
   const cookieStore = await cookies();
@@ -33,17 +33,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: error || 'Failed to initialize Zavu WhatsApp client.' }, { status: 500 });
     }
 
-    // Auto-detect Sender ID (must be passed inside params, not options.headers)
-    let senderId: string | undefined;
-    try {
-      for await (const s of client.senders.list()) {
-        if ((s as any).isDefault || !senderId) {
-          senderId = (s as any).id;
-        }
-      }
-    } catch (e: any) {
-      console.warn('[direct-send sender detection]', e?.message);
-    }
+    // Auto-detect Sender ID (prioritizes Bangladesh sender)
+    const senderId = await getDefaultSenderId(client);
 
     // Send direct message — 'Zavu-Sender' goes inside the params object (1st arg)
     const result = await client.messages.send({
@@ -72,7 +63,7 @@ export async function POST(req: NextRequest) {
     console.error('[POST /api/admin/whatsapp/direct-send]', err);
     let errMsg = err?.message || 'Failed to send WhatsApp message via API.';
     if (errMsg.includes('24 hours') || errMsg.includes('Re-engagement') || errMsg.includes('outside the allowed window') || errMsg.includes('session')) {
-      errMsg = 'Meta WhatsApp Policy: এই নম্বরে message পাঠাতে হলে প্লেয়ারকে আগে আপনার নম্বরে (+8801866408811) একটি মেসেজ দিয়ে 24 ঘণ্টার উইন্ডো খুলতে হবে। অথবা Zavu Dashboard থেকে Approved WhatsApp Template ব্যবহার করুন।';
+      errMsg = 'Meta WhatsApp Policy: এই নম্বরে message পাঠাতে হলে প্লেয়ারকে আগে আপনার নম্বরে (+880 1846-587311) একটি মেসেজ দিয়ে 24 ঘণ্টার উইন্ডো খুলতে হবে। অথবা Zavu Dashboard থেকে Approved WhatsApp Template ব্যবহার করুন।';
     }
     return NextResponse.json({
       success: false,
