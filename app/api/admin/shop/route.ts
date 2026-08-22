@@ -34,6 +34,7 @@ async function saveDynamicProducts(products: ShopProduct[]) {
   const { error } = await supabaseAdmin
     .from('SiteSetting')
     .upsert({
+      id: 'setting_GAMING_SHOP_ITEMS',
       key: 'GAMING_SHOP_ITEMS',
       value: JSON.stringify(products),
       updatedAt: new Date().toISOString(),

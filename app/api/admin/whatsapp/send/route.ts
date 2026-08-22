@@ -59,20 +59,31 @@ export async function POST(request: Request) {
       }
 
       // Fetch tournament title
-      const { data: tour } = await supabaseAdmin
-        .from('Tournament')
-        .select('title')
-        .eq('id', tournamentId)
-        .single();
+      let resolvedTitle = tournamentTitle || 'BlackRock Esports Tournament';
+      if (tournamentId && tournamentId !== 'ACTIVE_TOURNAMENTS' && tournamentId !== 'ALL') {
+        const { data: tour } = await supabaseAdmin
+          .from('Tournament')
+          .select('title')
+          .eq('id', tournamentId)
+          .maybeSingle();
 
-      const resolvedTitle = tournamentTitle || tour?.title || 'BlackRock Esports Tournament';
+        if (tour?.title) {
+          resolvedTitle = tour.title;
+        }
+      }
 
-      // Fetch all verified registrations
-      const { data: regs, error: regErr } = await supabaseAdmin
-        .from('TournamentRegistration')
-        .select('id, captainWhatsApp, iglName, squadName, userName, status')
-        .eq('tournamentId', tournamentId)
-        .eq('status', 'VERIFIED');
+      // Fetch all verified registrations from Participant table
+      let query = supabaseAdmin
+        .from('Participant')
+        .select('id, captainWhatsApp, iglName, squadName, status, tournamentId')
+        .eq('status', 'VERIFIED')
+        .not('captainWhatsApp', 'is', null);
+
+      if (tournamentId && tournamentId !== 'ACTIVE_TOURNAMENTS' && tournamentId !== 'ALL') {
+        query = query.eq('tournamentId', tournamentId);
+      }
+
+      const { data: regs, error: regErr } = await query;
 
       if (regErr) {
         return NextResponse.json({ message: regErr.message }, { status: 500 });
@@ -89,7 +100,7 @@ export async function POST(request: Request) {
         .filter((r) => r.captainWhatsApp && r.captainWhatsApp.trim().length > 0)
         .map((r) => ({
           phone: r.captainWhatsApp,
-          name: r.iglName || r.squadName || r.userName || 'Captain',
+          name: r.iglName || r.squadName || 'Captain',
         }));
 
       if (recipients.length === 0) {
@@ -104,6 +115,7 @@ export async function POST(request: Request) {
         roomId,
         pass,
         tournamentTitle: resolvedTitle,
+        customMessage,
       });
 
       return NextResponse.json({

@@ -45,20 +45,28 @@ export async function broadcastRoomDetailsToTournament(
 
   try {
     // 1. Fetch tournament title
-    const { data: tour } = await supabaseAdmin
-      .from('Tournament')
-      .select('title')
-      .eq('id', tournamentId)
-      .single();
+    let tournamentTitle = 'BlackRock Esports Tournament';
+    if (tournamentId && tournamentId !== 'ACTIVE_TOURNAMENTS' && tournamentId !== 'ALL') {
+      const { data: tour } = await supabaseAdmin
+        .from('Tournament')
+        .select('title')
+        .eq('id', tournamentId)
+        .maybeSingle();
+      if (tour?.title) tournamentTitle = tour.title;
+    }
 
-    const tournamentTitle = tour?.title || 'BlackRock Esports Tournament';
+    // 2. Fetch all verified registrations from Participant table
+    let query = supabaseAdmin
+      .from('Participant')
+      .select('id, captainWhatsApp, iglName, squadName, status, tournamentId')
+      .eq('status', 'VERIFIED')
+      .not('captainWhatsApp', 'is', null);
 
-    // 2. Fetch all verified registrations for this tournament
-    const { data: regs, error } = await supabaseAdmin
-      .from('TournamentRegistration')
-      .select('id, captainWhatsApp, iglName, squadName, userName, status')
-      .eq('tournamentId', tournamentId)
-      .eq('status', 'VERIFIED');
+    if (tournamentId && tournamentId !== 'ACTIVE_TOURNAMENTS' && tournamentId !== 'ALL') {
+      query = query.eq('tournamentId', tournamentId);
+    }
+
+    const { data: regs, error } = await query;
 
     if (error) {
       return { success: false, message: error.message };
@@ -76,7 +84,7 @@ export async function broadcastRoomDetailsToTournament(
       .filter((r) => r.captainWhatsApp && r.captainWhatsApp.trim().length > 0)
       .map((r) => ({
         phone: r.captainWhatsApp,
-        name: r.iglName || r.squadName || r.userName || 'Captain',
+        name: r.iglName || r.squadName || 'Captain',
       }));
 
     if (recipients.length === 0) {

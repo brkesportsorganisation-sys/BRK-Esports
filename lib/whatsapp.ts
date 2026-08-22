@@ -12,8 +12,17 @@ import { WhatsAppSchedule, WhatsAppTargetGroup, WhatsAppMessageLog, WhatsAppFreq
  */
 export function normalizePhoneNumber(rawPhone: string): string {
   if (!rawPhone) return '';
+  const trimmed = rawPhone.trim();
+  // Preserve WhatsApp Group JIDs (e.g. 120363028392819283@g.us, @broadcast)
+  if (trimmed.includes('@g.us') || trimmed.includes('@broadcast') || trimmed.includes('@s.whatsapp.net')) {
+    return trimmed;
+  }
+  // Preserve WhatsApp Group & Channel Links
+  if (trimmed.includes('chat.whatsapp.com/') || trimmed.includes('whatsapp.com/channel/')) {
+    return trimmed;
+  }
   // Remove spaces, hyphens, parentheses, and other non-digit chars (except leading +)
-  let cleaned = rawPhone.trim().replace(/[^\d+]/g, '');
+  let cleaned = trimmed.replace(/[^\d+]/g, '');
 
   if (cleaned.startsWith('+')) {
     return cleaned;
@@ -322,11 +331,13 @@ export async function broadcastRoomDetails({
   roomId,
   pass,
   tournamentTitle = 'BRK ESPORTS TOURNAMENT',
+  customMessage,
 }: {
   recipients: Array<{ phone: string; name?: string }>;
   roomId: string;
   pass: string;
   tournamentTitle?: string;
+  customMessage?: string;
 }) {
   const results = [];
   let successCount = 0;
@@ -339,6 +350,7 @@ export async function broadcastRoomDetails({
       roomId,
       pass,
       tournamentTitle,
+      customMessage,
     });
 
     if (res.success) {
@@ -586,6 +598,26 @@ export async function addWhatsAppLog(log: Omit<WhatsAppMessageLog, 'id' | 'sentA
 }
 
 /**
+ * Sends a message directly to a WhatsApp group via JID or saved group identifier.
+ */
+export async function sendGroupWhatsappMessage({
+  groupDestination,
+  text,
+  targetName = 'WhatsApp Group',
+}: {
+  groupDestination: string;
+  text: string;
+  targetName?: string;
+}) {
+  return sendDirectWhatsappMessage({
+    to: groupDestination,
+    text,
+    targetName,
+    triggerType: 'INSTANT_BROADCAST',
+  });
+}
+
+/**
  * Calculates next run timestamp based on schedule interval and time preferences.
  */
 export function calculateNextRunTime(schedule: WhatsAppSchedule): string {
@@ -596,6 +628,14 @@ export function calculateNextRunTime(schedule: WhatsAppSchedule): string {
       return new Date(schedule.scheduledDate).toISOString();
     }
     return new Date(now.getTime() + 60000).toISOString();
+  }
+
+  if (schedule.frequency === 'EVERY_5_MIN') {
+    return new Date(now.getTime() + 5 * 60 * 1000).toISOString();
+  }
+
+  if (schedule.frequency === 'EVERY_10_MIN') {
+    return new Date(now.getTime() + 10 * 60 * 1000).toISOString();
   }
 
   if (schedule.frequency === 'EVERY_15_MIN') {
@@ -618,8 +658,12 @@ export function calculateNextRunTime(schedule: WhatsAppSchedule): string {
     return new Date(now.getTime() + 360 * 60 * 1000).toISOString();
   }
 
+  if (schedule.frequency === 'EVERY_12_HOURS') {
+    return new Date(now.getTime() + 720 * 60 * 1000).toISOString();
+  }
+
   if (schedule.frequency === 'INTERVAL_MINUTES') {
-    const mins = Math.max(5, schedule.intervalMinutes || 60);
+    const mins = Math.max(1, schedule.intervalMinutes || 60);
     return new Date(now.getTime() + mins * 60 * 1000).toISOString();
   }
 
@@ -640,30 +684,86 @@ export function calculateNextRunTime(schedule: WhatsAppSchedule): string {
 
 /**
  * Executes an individual WhatsApp schedule job immediately.
+ * Supports:
+ * - Specific message sequences or rotating messages (messagesSequence)
+ * - Dynamic placeholders: {COUNT}, {MAX_COUNT}, {REMAINING}, {TIME}, {DATE}, {SITE_LINK}
+ * - Execution count limit (maxExecutions) with automatic completion
  */
 export async function executeScheduledJob(schedule: WhatsAppSchedule): Promise<{
   success: boolean;
   message: string;
   sentCount: number;
 }> {
-  if (!schedule.isActive || schedule.status === 'PAUSED') {
-    return { success: false, message: 'Schedule is paused or inactive.', sentCount: 0 };
+  if (!schedule.isActive || schedule.status === 'PAUSED' || schedule.status === 'COMPLETED') {
+    return { success: false, message: 'Schedule is completed, paused or inactive.', sentCount: 0 };
+  }
+
+  const currentRunCount = schedule.runCount || 0;
+  const maxRuns = schedule.maxExecutions || 0;
+
+  // Check if max execution limit is already reached
+  if (maxRuns > 0 && currentRunCount >= maxRuns) {
+    // Mark as completed
+    const allSchedules = await getWhatsAppSchedules();
+    const idx = allSchedules.findIndex(s => s.id === schedule.id);
+    if (idx >= 0) {
+      allSchedules[idx] = { ...allSchedules[idx], status: 'COMPLETED', isActive: false };
+      await saveWhatsAppSchedules(allSchedules);
+    }
+    return {
+      success: false,
+      message: `Schedule has reached its maximum limit of ${maxRuns} message(s).`,
+      sentCount: 0,
+    };
   }
 
   // 1. Resolve Target Recipients
   let recipients: Array<{ phone: string; name?: string }> = [];
 
-  if (schedule.targetType === 'TOURNAMENT_CAPTAINS' || schedule.targetType === 'ALL_REGISTERED') {
-    // Fetch verified tournament registrations from Supabase
+  if (schedule.targetType === 'GROUP' || schedule.targetType === 'COMMUNITY') {
+    const allGroups = await getWhatsAppTargetGroups();
+    const matched = allGroups.find(
+      g => g.id === schedule.targetDestination || g.identifier === schedule.targetDestination || g.name === schedule.targetName
+    );
+    const identifier = matched ? matched.identifier : schedule.targetDestination;
+    const resolvedName = matched ? matched.name : (schedule.targetName || 'WhatsApp Group');
+
+    if (identifier === 'TOURNAMENT_CAPTAINS' || identifier === 'ALL_REGISTERED') {
+      try {
+        const { data: regs } = await supabaseAdmin
+          .from('Participant')
+          .select('captainWhatsApp, iglName, squadName, tournamentId, status')
+          .eq('status', 'VERIFIED')
+          .not('captainWhatsApp', 'is', null);
+
+        if (regs && regs.length > 0) {
+          recipients = regs
+            .filter(r => r.captainWhatsApp && r.captainWhatsApp.trim().length > 0)
+            .map(r => ({
+              phone: r.captainWhatsApp,
+              name: r.iglName || r.squadName || 'Captain',
+            }));
+        }
+      } catch (err) {
+        console.warn('[executeScheduledJob] could not fetch registrations:', err);
+      }
+    } else if (identifier) {
+      recipients.push({
+        phone: identifier,
+        name: resolvedName,
+      });
+    }
+  } else if (schedule.targetType === 'TOURNAMENT_CAPTAINS' || schedule.targetType === 'ALL_REGISTERED') {
+    // Fetch verified tournament registrations from Supabase Participant table
     try {
-      const query = supabaseAdmin
-        .from('TournamentRegistration')
-        .select('captainWhatsApp, iglName, squadName, userName, tournamentId')
+      let query = supabaseAdmin
+        .from('Participant')
+        .select('captainWhatsApp, iglName, squadName, tournamentId, status')
         .eq('status', 'VERIFIED')
         .not('captainWhatsApp', 'is', null);
 
       if (schedule.targetDestination && schedule.targetDestination !== 'ACTIVE_TOURNAMENTS') {
-        query.eq('tournamentId', schedule.targetDestination);
+        query = query.eq('tournamentId', schedule.targetDestination);
       }
 
       const { data: regs } = await query;
@@ -673,31 +773,42 @@ export async function executeScheduledJob(schedule: WhatsAppSchedule): Promise<{
           .filter(r => r.captainWhatsApp && r.captainWhatsApp.trim().length > 0)
           .map(r => ({
             phone: r.captainWhatsApp,
-            name: r.iglName || r.squadName || r.userName || 'Captain',
+            name: r.iglName || r.squadName || 'Captain',
           }));
       }
     } catch (err) {
       console.warn('[executeScheduledJob] could not fetch registrations:', err);
     }
   } else {
-    // Single number or Group recipient
+    // Single phone number or Custom phone recipient
     if (schedule.targetDestination) {
       recipients.push({
         phone: schedule.targetDestination,
-        name: schedule.targetName || 'WhatsApp Group',
+        name: schedule.targetName || 'WhatsApp Target',
       });
     }
   }
 
   if (recipients.length === 0) {
-    return { success: false, message: 'No valid recipient phone numbers found for this schedule.', sentCount: 0 };
+    return { success: false, message: 'No valid recipient target found for this schedule.', sentCount: 0 };
   }
 
-  // 2. Format Template Message
+  // 2. Resolve Message Template (support rotation / sequence)
+  let rawTemplate = schedule.messageTemplate;
+  if (schedule.messagesSequence && schedule.messagesSequence.length > 0) {
+    const seqIdx = currentRunCount % schedule.messagesSequence.length;
+    rawTemplate = schedule.messagesSequence[seqIdx] || schedule.messageTemplate;
+  }
+
   const nowStr = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   const dateStr = new Date().toLocaleDateString('en-GB');
+  const executionNum = currentRunCount + 1;
+  const remainingCount = maxRuns > 0 ? Math.max(0, maxRuns - executionNum) : 'Unlimited';
 
-  let formattedMessage = schedule.messageTemplate
+  const formattedMessage = rawTemplate
+    .replace(/\{COUNT\}/g, String(executionNum))
+    .replace(/\{MAX_COUNT\}/g, maxRuns > 0 ? String(maxRuns) : 'Unlimited')
+    .replace(/\{REMAINING\}/g, String(remainingCount))
     .replace(/\{TIME\}/g, nowStr)
     .replace(/\{DATE\}/g, dateStr)
     .replace(/\{SITE_LINK\}/g, 'https://brkesports.com');
@@ -725,16 +836,19 @@ export async function executeScheduledJob(schedule: WhatsAppSchedule): Promise<{
     }
   }
 
-  // 4. Update Schedule stats
-  const nextRun = calculateNextRunTime(schedule);
+  // 4. Check if this execution concludes the schedule limit
+  const isCompleted = (schedule.frequency === 'ONCE') || (maxRuns > 0 && executionNum >= maxRuns);
+  const nextRun = isCompleted ? undefined : calculateNextRunTime(schedule);
+
   const updatedSchedule: WhatsAppSchedule = {
     ...schedule,
-    runCount: (schedule.runCount || 0) + 1,
+    runCount: executionNum,
     lastRunAt: new Date().toISOString(),
     nextRunAt: nextRun,
     lastStatus: successCount > 0 ? 'SUCCESS' : 'FAILED',
     lastError: failCount > 0 ? `Failed on ${failCount} recipient(s)` : undefined,
-    status: schedule.frequency === 'ONCE' ? 'COMPLETED' : schedule.status,
+    status: isCompleted ? 'COMPLETED' : schedule.status,
+    isActive: isCompleted ? false : schedule.isActive,
   };
 
   const allSchedules = await getWhatsAppSchedules();
@@ -748,7 +862,9 @@ export async function executeScheduledJob(schedule: WhatsAppSchedule): Promise<{
 
   return {
     success: successCount > 0,
-    message: `Scheduled broadcast finished: Delivered to ${successCount} of ${recipients.length} target(s).`,
+    message: isCompleted
+      ? `Dispatched run #${executionNum} of ${maxRuns > 0 ? maxRuns : 1}. Target reached — Schedule COMPLETED.`
+      : `Dispatched run #${executionNum} (${remainingCount} remaining). Delivered to ${successCount} target(s).`,
     sentCount: successCount,
   };
 }

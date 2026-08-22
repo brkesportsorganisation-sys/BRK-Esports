@@ -74,12 +74,13 @@ export async function POST(request: NextRequest) {
 
       try {
         await supabaseAdmin
-          .from('SiteSettings')
+          .from('SiteSetting')
           .upsert({
+            id: 'setting_banner_slide_speed',
             key: 'banner_slide_speed',
             value: String(autoSlideInterval || 4000),
             updatedAt: new Date().toISOString(),
-          });
+          }, { onConflict: 'key' });
       } catch {}
 
       return NextResponse.json({ success: true, settings: updated });

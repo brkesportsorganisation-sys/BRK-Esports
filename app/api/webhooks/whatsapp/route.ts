@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { getZavuClient, normalizePhoneNumber, addWhatsAppLog } from '@/lib/whatsapp';
+import { getZavuClient, normalizePhoneNumber, addWhatsAppLog, sendDirectWhatsappMessage } from '@/lib/whatsapp';
 
 export async function POST(req: NextRequest) {
   try {
@@ -53,34 +53,13 @@ export async function POST(req: NextRequest) {
     }
 
     if (replyText) {
-      const { client } = await getZavuClient();
-      if (client) {
-        const formattedFrom = normalizePhoneNumber(from);
-        
-        // Find sender
-        let senderId: string | undefined;
-        try {
-          for await (const s of client.senders.list()) {
-            if (s.isDefault || !senderId) senderId = s.id;
-          }
-        } catch {}
-
-        const requestOptions = senderId ? { headers: { 'Zavu-Sender': senderId } } : undefined;
-
-        await client.messages.send({
-          channel: 'whatsapp',
-          to: formattedFrom,
-          text: replyText,
-        }, requestOptions);
-
-        await addWhatsAppLog({
-          targetDestination: formattedFrom,
-          targetName: 'Incoming Player',
-          messageText: `[BOT AUTO-REPLY]: ${replyText}`,
-          triggerType: 'SCHEDULED_AUTOMATION',
-          status: 'SENT',
-        });
-      }
+      const formattedFrom = normalizePhoneNumber(from);
+      await sendDirectWhatsappMessage({
+        to: formattedFrom,
+        text: replyText,
+        targetName: 'Incoming Player (Bot Auto-Reply)',
+        triggerType: 'SCHEDULED_AUTOMATION',
+      });
     }
 
     return NextResponse.json({ success: true, replied: !!replyText });

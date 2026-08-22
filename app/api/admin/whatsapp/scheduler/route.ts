@@ -94,6 +94,11 @@ export async function POST(req: NextRequest) {
     const schedules = await getWhatsAppSchedules();
     const newId = `sched_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
 
+    const maxExecutions = Number(schedule.maxExecutions) > 0 ? Number(schedule.maxExecutions) : undefined;
+    const messagesSequence = Array.isArray(schedule.messagesSequence) && schedule.messagesSequence.length > 0
+      ? schedule.messagesSequence.map((m: string) => m.trim()).filter(Boolean)
+      : undefined;
+
     const newSchedule: WhatsAppSchedule = {
       id: newId,
       title: schedule.title.trim(),
@@ -101,8 +106,11 @@ export async function POST(req: NextRequest) {
       targetType: schedule.targetType || 'GROUP',
       targetDestination: schedule.targetDestination.trim(),
       targetName: schedule.targetName?.trim() || 'WhatsApp Target',
-      messageType: schedule.messageType || 'TEMPLATE',
+      messageType: schedule.messageType || (messagesSequence ? 'ROTATIONAL' : 'TEMPLATE'),
       messageTemplate: schedule.messageTemplate.trim(),
+      messagesSequence,
+      messagesMode: schedule.messagesMode || (messagesSequence ? 'ROTATIONAL' : 'SINGLE'),
+      maxExecutions,
       frequency: schedule.frequency || 'EVERY_1_HOUR',
       intervalMinutes: Number(schedule.intervalMinutes) || 60,
       scheduledTime: schedule.scheduledTime || '20:00',
@@ -121,7 +129,7 @@ export async function POST(req: NextRequest) {
     schedules.unshift(newSchedule);
     await saveWhatsAppSchedules(schedules);
 
-    await logAdminAction(session?.sub || session?.email || 'admin', 'CREATE_WHATSAPP_SCHEDULE', `Created schedule: ${newSchedule.title}`);
+    await logAdminAction(session?.sub || session?.email || 'admin', 'CREATE_WHATSAPP_SCHEDULE', `Created schedule: ${newSchedule.title} (Limit: ${maxExecutions || 'Unlimited'})`);
 
     return NextResponse.json({
       success: true,

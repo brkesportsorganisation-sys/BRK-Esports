@@ -831,8 +831,8 @@ export interface SupportTicket {
 }
 
 export type WhatsAppTargetType = 'GROUP' | 'COMMUNITY' | 'TOURNAMENT_CAPTAINS' | 'CUSTOM_PHONE' | 'ALL_REGISTERED';
-export type WhatsAppMessageType = 'TEMPLATE' | 'CUSTOM_TEXT' | 'ROOM_ALERT' | 'REGISTRATION_REMINDER' | 'MATCH_COUNTDOWN' | 'PROMO';
-export type WhatsAppFrequency = 'ONCE' | 'EVERY_15_MIN' | 'EVERY_30_MIN' | 'EVERY_1_HOUR' | 'EVERY_2_HOURS' | 'EVERY_6_HOURS' | 'DAILY' | 'INTERVAL_MINUTES';
+export type WhatsAppMessageType = 'TEMPLATE' | 'CUSTOM_TEXT' | 'ROOM_ALERT' | 'REGISTRATION_REMINDER' | 'MATCH_COUNTDOWN' | 'PROMO' | 'ROTATIONAL';
+export type WhatsAppFrequency = 'ONCE' | 'EVERY_5_MIN' | 'EVERY_10_MIN' | 'EVERY_15_MIN' | 'EVERY_30_MIN' | 'EVERY_1_HOUR' | 'EVERY_2_HOURS' | 'EVERY_6_HOURS' | 'EVERY_12_HOURS' | 'DAILY' | 'INTERVAL_MINUTES';
 
 export interface WhatsAppSchedule {
   id: string;
@@ -843,6 +843,9 @@ export interface WhatsAppSchedule {
   targetName?: string; // Display title, e.g. "Tournament WhatsApp Group #1"
   messageType: WhatsAppMessageType;
   messageTemplate: string;
+  messagesSequence?: string[]; // Optional sequence/rotation of messages (e.g. Message 1, Message 2, etc.)
+  messagesMode?: 'SINGLE' | 'ROTATIONAL' | 'SEQUENTIAL';
+  maxExecutions?: number; // Maximum times to send before auto-completing (0 or undefined = unlimited)
   frequency: WhatsAppFrequency;
   intervalMinutes?: number; // for custom intervals e.g. 45
   scheduledTime?: string; // e.g. "20:00"
