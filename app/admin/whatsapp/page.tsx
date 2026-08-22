@@ -89,6 +89,14 @@ export default function AdminWhatsAppPage() {
   const [customRoomId, setCustomRoomId] = useState('');
   const [customRoomPass, setCustomRoomPass] = useState('');
 
+  // Custom DM Sender State (send to any arbitrary number)
+  const [dmMode, setDmMode] = useState<'CONTACTS' | 'CUSTOM'>('CONTACTS');
+  const [customDmPhone, setCustomDmPhone] = useState('');
+  const [customDmName, setCustomDmName] = useState('');
+  const [customDmMessage, setCustomDmMessage] = useState('');
+  const [isSendingCustomDm, setIsSendingCustomDm] = useState(false);
+  const [sendHistory, setSendHistory] = useState<Array<{ phone: string; name: string; msg: string; at: string; ok: boolean }>>([]);
+
   // Bot Auto Reply State
   const [botConfig, setBotConfig] = useState<{
     autoReplyEnabled: boolean;
@@ -276,6 +284,74 @@ export default function AdminWhatsAppPage() {
       showToast(err?.message || 'Network error.', 'error');
     } finally {
       setIsSendingDirect(false);
+    }
+  };
+
+  // Quick templates for the custom DM sender
+  const applyCustomTemplate = (tpl: 'ROOM_ID' | 'WELCOME' | 'PAYMENT' | 'WARN' | 'CUSTOM') => {
+    const n = customDmName || 'Player';
+    if (tpl === 'ROOM_ID') {
+      setCustomDmMessage(
+        `🎮 আসসালামু আলাইকুম ${n}!\n\nআপনার টুর্নামেন্টের রুম ডিটেইলস:\n🔹 Room ID: [ROOM_ID_HERE]\n🔹 Password: [PASS_HERE]\n\nদ্রুত জয়েন করুন! ম্যাচ শুরুর ৫ মিনিট আগে রুম লক হবে 🔥\n\n— BlackRock Esports`
+      );
+    } else if (tpl === 'WELCOME') {
+      setCustomDmMessage(
+        `🎮 স্বাগতম BlackRock Esports-এ, ${n}!\n\nআমরা প্রতিদিন নিয়মিত Free Fire টুর্নামেন্ট আয়োজন করি।\n\n🏆 টুর্নামেন্টে যোগ দিতে: https://brkesports.com/tournaments\n💰 ওয়ালেট ডিপোজিট: https://brkesports.com/wallet\n\nকোনো প্রশ্ন থাকলে জানান! আমরা সাহায্য করতে সদা প্রস্তুত। ✅`
+      );
+    } else if (tpl === 'PAYMENT') {
+      setCustomDmMessage(
+        `💰 পেমেন্ট রিমাইন্ডার:\n\nপ্রিয় ${n}, টুর্নামেন্টে আপনার স্লট কনফার্ম করতে দয়া করে এন্ট্রি ফি পরিশোধ করুন।\n\n🔗 ডিপোজিট লিঙ্ক: https://brkesports.com/wallet\n\nনির্ধারিত সময়ের মধ্যে পেমেন্ট না করলে স্লট বাতিল হতে পারে।`
+      );
+    } else if (tpl === 'WARN') {
+      setCustomDmMessage(
+        `🛡️ BlackRock Esports সতর্কবার্তা:\n\nপ্রিয় ${n}, টুর্নামেন্টে Hack / Config / Emulator ব্যবহার সম্পূর্ণ নিষিদ্ধ।\n\n⚠️ দোষী প্রমাণিত হলে তাৎক্ষণিক লাইফটাইম ব্যান করা হবে।\n\nFair Play বজায় রাখুন এবং সবার জন্য খেলাটি উপভোগ্য রাখুন। 🙏`
+      );
+    }
+  };
+
+  const handleSendCustomDm = async () => {
+    const phone = customDmPhone.trim();
+    const msg = customDmMessage.trim();
+    if (!phone || !msg) {
+      showToast('Phone number and message are required.', 'error');
+      return;
+    }
+
+    setIsSendingCustomDm(true);
+    try {
+      const res = await fetch('/api/admin/whatsapp/direct-send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone,
+          recipientName: customDmName.trim() || 'Contact',
+          message: msg,
+          templateType: 'CUSTOM_DM',
+        }),
+        credentials: 'include',
+      });
+
+      const data = await res.json();
+      const ok = res.ok && data.success;
+      setSendHistory((prev) => [
+        { phone, name: customDmName.trim() || phone, msg: msg.slice(0, 60) + (msg.length > 60 ? '…' : ''), at: new Date().toLocaleTimeString(), ok },
+        ...prev.slice(0, 9),
+      ]);
+
+      if (ok) {
+        showToast(`✅ Message delivered to ${customDmName.trim() || phone}!`, 'success');
+        setCustomDmMessage('');
+      } else {
+        showToast(data.message || 'Failed to send message.', 'error');
+      }
+    } catch (err: any) {
+      showToast(err?.message || 'Network error.', 'error');
+      setSendHistory((prev) => [
+        { phone, name: customDmName.trim() || phone, msg: msg.slice(0, 60) + '…', at: new Date().toLocaleTimeString(), ok: false },
+        ...prev.slice(0, 9),
+      ]);
+    } finally {
+      setIsSendingCustomDm(false);
     }
   };
 
@@ -735,226 +811,485 @@ export default function AdminWhatsAppPage() {
       </div>
 
       {/* ======================================================== */}
-      {/* 4. TAB: DIRECT PLAYER INBOX & DM (PRIMARY TAB) */}
+      {/* 4. TAB: DIRECT PLAYER INBOX & DM (PRIMARY TAB)         */}
       {/* ======================================================== */}
       {activeTab === 'DIRECT_INBOX' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          
-          {/* Left: Contacts List */}
-          <div className="lg:col-span-5 bg-white border border-[#E2E8F0]/80 rounded-[24px] p-5 space-y-4 shadow-xs flex flex-col h-[650px]">
-            <div className="flex items-center justify-between border-b border-[#F1F5F9] pb-3">
-              <div>
-                <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                  <Users className="w-4 h-4 text-emerald-600" />
-                  <span>Registered Captains & Players</span>
-                </h3>
-                <p className="text-[11px] text-slate-500">
-                  Select a player to send direct Room ID or custom message
-                </p>
-              </div>
-              <button
-                onClick={loadData}
-                className="p-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600"
-                title="Refresh contacts"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-              </button>
-            </div>
+        <div className="space-y-5">
 
-            {/* Search Box */}
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-400" />
-              <input
-                type="text"
-                value={searchContactQuery}
-                onChange={(e) => setSearchContactQuery(e.target.value)}
-                placeholder="Search by player, squad, or phone number..."
-                className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white"
-              />
-            </div>
-
-            {/* Contacts Scrollable List */}
-            <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
-              {filteredContacts.length === 0 ? (
-                <div className="p-8 text-center text-slate-400 space-y-2">
-                  <Users className="w-8 h-8 mx-auto text-slate-300" />
-                  <p className="text-xs">No registered contacts found matching your search.</p>
-                </div>
-              ) : (
-                filteredContacts.map((c) => {
-                  const isSelected = selectedContact?.id === c.id;
-                  return (
-                    <div
-                      key={c.id}
-                      onClick={() => selectContactHandler(c)}
-                      className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                        isSelected
-                          ? 'bg-emerald-50/80 border-emerald-500 shadow-xs'
-                          : 'bg-[#F8FAFC] border-slate-200/80 hover:bg-slate-50 hover:border-slate-300'
-                      }`}
-                    >
-                      <div className="space-y-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-slate-900 text-xs truncate">
-                            {c.name}
-                          </span>
-                          <span className={`px-2 py-0.2 rounded-md text-[9px] font-bold uppercase tracking-wider ${
-                            c.role === 'CAPTAIN' ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-blue-100 text-blue-800'
-                          }`}>
-                            {c.role === 'CAPTAIN' ? 'Captain' : 'User'}
-                          </span>
-                        </div>
-
-                        {c.squadName && (
-                          <div className="text-[11px] text-slate-600 font-semibold flex items-center gap-1">
-                            <Gamepad2 className="w-3 h-3 text-slate-400" />
-                            <span>Squad: <strong>{c.squadName}</strong></span>
-                          </div>
-                        )}
-
-                        <div className="text-[10px] text-emerald-700 font-mono font-bold flex items-center gap-1">
-                          <Smartphone className="w-3 h-3" />
-                          <span>{c.formattedPhone || c.phone}</span>
-                        </div>
-
-                        {c.tournamentTitle && (
-                          <div className="text-[9px] text-slate-400 truncate">
-                            🏆 {c.tournamentTitle}
-                          </div>
-                        )}
-                      </div>
-
-                      <ChevronRight className={`w-4 h-4 shrink-0 ${isSelected ? 'text-emerald-600' : 'text-slate-300'}`} />
-                    </div>
-                  );
-                })
-              )}
-            </div>
+          {/* Mode Toggle */}
+          <div className="flex items-center gap-3 p-1 bg-slate-100 rounded-2xl w-fit">
+            <button
+              type="button"
+              onClick={() => setDmMode('CONTACTS')}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                dmMode === 'CONTACTS'
+                  ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <UserCheck className="w-3.5 h-3.5" />
+              <span>📋 Registered Contacts ({contacts.length})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setDmMode('CUSTOM')}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                dmMode === 'CUSTOM'
+                  ? 'bg-white text-emerald-700 shadow-sm border border-emerald-200'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>✉️ Send to Any Number</span>
+            </button>
           </div>
 
-          {/* Right: Interactive WhatsApp Message Composer */}
-          <div className="lg:col-span-7 bg-white border border-[#E2E8F0]/80 rounded-[24px] p-6 shadow-xs flex flex-col justify-between space-y-5">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between border-b border-[#F1F5F9] pb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
-                    <Send className="w-4 h-4" />
-                  </div>
+          {/* ─────────── MODE 1: CONTACTS ─────────── */}
+          {dmMode === 'CONTACTS' && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+              {/* Left: Contacts List */}
+              <div className="lg:col-span-5 bg-white border border-[#E2E8F0]/80 rounded-[24px] p-5 space-y-4 shadow-xs flex flex-col h-[650px]">
+                <div className="flex items-center justify-between border-b border-[#F1F5F9] pb-3">
                   <div>
-                    <h3 className="font-bold text-slate-900 text-sm">Direct WhatsApp Message Composer</h3>
+                    <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                      <Users className="w-4 h-4 text-emerald-600" />
+                      <span>Registered Captains & Players</span>
+                    </h3>
                     <p className="text-[11px] text-slate-500">
-                      Sending directly from <strong>+880 1866-408811</strong> to player's WhatsApp
+                      Select a player to send direct Room ID or custom message
                     </p>
                   </div>
+                  <button
+                    onClick={loadData}
+                    className="p-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600"
+                    title="Refresh contacts"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                  </button>
                 </div>
 
-                {selectedContact && (
-                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    Recipient: {selectedContact.squadName || selectedContact.name}
+                {/* Search Box */}
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-400" />
+                  <input
+                    type="text"
+                    value={searchContactQuery}
+                    onChange={(e) => setSearchContactQuery(e.target.value)}
+                    placeholder="Search by player, squad, or phone number..."
+                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white"
+                  />
+                </div>
+
+                {/* Contacts Scrollable List */}
+                <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                  {filteredContacts.length === 0 ? (
+                    <div className="p-8 text-center text-slate-400 space-y-2">
+                      <Users className="w-8 h-8 mx-auto text-slate-300" />
+                      <p className="text-xs">No registered contacts found matching your search.</p>
+                    </div>
+                  ) : (
+                    filteredContacts.map((c) => {
+                      const isSelected = selectedContact?.id === c.id;
+                      return (
+                        <div
+                          key={c.id}
+                          onClick={() => selectContactHandler(c)}
+                          className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                            isSelected
+                              ? 'bg-emerald-50/80 border-emerald-500 shadow-xs'
+                              : 'bg-[#F8FAFC] border-slate-200/80 hover:bg-slate-50 hover:border-slate-300'
+                          }`}
+                        >
+                          <div className="space-y-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-slate-900 text-xs truncate">
+                                {c.name}
+                              </span>
+                              <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider ${
+                                c.role === 'CAPTAIN' ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-blue-100 text-blue-800'
+                              }`}>
+                                {c.role === 'CAPTAIN' ? 'Captain' : 'User'}
+                              </span>
+                            </div>
+
+                            {c.squadName && (
+                              <div className="text-[11px] text-slate-600 font-semibold flex items-center gap-1">
+                                <Gamepad2 className="w-3 h-3 text-slate-400" />
+                                <span>Squad: <strong>{c.squadName}</strong></span>
+                              </div>
+                            )}
+
+                            <div className="text-[10px] text-emerald-700 font-mono font-bold flex items-center gap-1">
+                              <Smartphone className="w-3 h-3" />
+                              <span>{c.formattedPhone || c.phone}</span>
+                            </div>
+
+                            {c.tournamentTitle && (
+                              <div className="text-[9px] text-slate-400 truncate">
+                                🏆 {c.tournamentTitle}
+                              </div>
+                            )}
+                          </div>
+
+                          <ChevronRight className={`w-4 h-4 shrink-0 ${isSelected ? 'text-emerald-600' : 'text-slate-300'}`} />
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              {/* Right: Interactive WhatsApp Message Composer */}
+              <div className="lg:col-span-7 bg-white border border-[#E2E8F0]/80 rounded-[24px] p-6 shadow-xs flex flex-col justify-between space-y-5">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between border-b border-[#F1F5F9] pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+                        <Send className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-slate-900 text-sm">Direct WhatsApp Message Composer</h3>
+                        <p className="text-[11px] text-slate-500">
+                          Sending directly from <strong>+880 1866-408811</strong> to player&apos;s WhatsApp
+                        </p>
+                      </div>
+                    </div>
+
+                    {selectedContact && (
+                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        Recipient: {selectedContact.squadName || selectedContact.name}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Recipient Details & Quick Template Chips */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Target Phone Number *</label>
+                      <input
+                        type="text"
+                        required
+                        value={directPhone}
+                        onChange={(e) => setDirectPhone(e.target.value)}
+                        placeholder="+88017XXXXXXXX"
+                        className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Player / Squad Name</label>
+                      <input
+                        type="text"
+                        value={directName}
+                        onChange={(e) => setDirectName(e.target.value)}
+                        placeholder="Player or Squad Name"
+                        className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Quick Template Chips */}
+                  <div className="space-y-1.5">
+                    <label className="block text-[11px] font-bold text-slate-700">⚡ 1-Click Message Templates:</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => applyDirectTemplate('ROOM_ID')}
+                        className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-bold border border-emerald-200 flex items-center gap-1 cursor-pointer"
+                      >
+                        <Gamepad2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>🎮 Send Room ID & Pass</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => applyDirectTemplate('VERIFIED')}
+                        className="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-800 text-[11px] font-bold border border-blue-200 flex items-center gap-1 cursor-pointer"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
+                        <span>✅ Slot Verified Notice</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => applyDirectTemplate('PAYMENT')}
+                        className="px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 text-[11px] font-bold border border-amber-200 flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>💰 Payment Reminder</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => applyDirectTemplate('ANTI_CHEAT')}
+                        className="px-3 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-800 text-[11px] font-bold border border-purple-200 flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>🛡️ Anti-Cheat Warning</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Message Content Area */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-[11px] font-bold text-slate-700">WhatsApp Message Content *</label>
+                      <span className="text-[10px] text-slate-400">Direct WhatsApp formatting supported</span>
+                    </div>
+                    <textarea
+                      rows={8}
+                      required
+                      value={directMessage}
+                      onChange={(e) => setDirectMessage(e.target.value)}
+                      placeholder="Type message text to deliver directly to player's WhatsApp..."
+                      className="w-full p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-sans text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white leading-relaxed font-medium"
+                    />
+                  </div>
+                </div>
+
+                {/* Submit Dispatcher Button */}
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-3">
+                  <span className="text-[11px] text-slate-500">
+                    🚀 Delivered via official Zavu API
                   </span>
-                )}
-              </div>
-
-              {/* Recipient Details & Quick Template Chips */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Target Phone Number *</label>
-                  <input
-                    type="text"
-                    required
-                    value={directPhone}
-                    onChange={(e) => setDirectPhone(e.target.value)}
-                    placeholder="+88017XXXXXXXX"
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Player / Squad Name</label>
-                  <input
-                    type="text"
-                    value={directName}
-                    onChange={(e) => setDirectName(e.target.value)}
-                    placeholder="Player or Squad Name"
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white"
-                  />
-                </div>
-              </div>
-
-              {/* Quick Template Chips */}
-              <div className="space-y-1.5">
-                <label className="block text-[11px] font-bold text-slate-700">⚡ 1-Click Message Templates:</label>
-                <div className="flex flex-wrap gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => applyDirectTemplate('ROOM_ID')}
-                    className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-bold border border-emerald-200 flex items-center gap-1 cursor-pointer"
-                  >
-                    <Gamepad2 className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>🎮 Send Room ID & Pass</span>
-                  </button>
 
                   <button
                     type="button"
-                    onClick={() => applyDirectTemplate('VERIFIED')}
-                    className="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-800 text-[11px] font-bold border border-blue-200 flex items-center gap-1 cursor-pointer"
+                    onClick={handleSendDirectMessage}
+                    disabled={isSendingDirect || !directPhone.trim() || !directMessage.trim()}
+                    className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
                   >
-                    <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
-                    <span>✅ Slot Verified Notice</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => applyDirectTemplate('PAYMENT')}
-                    className="px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 text-[11px] font-bold border border-amber-200 flex items-center gap-1 cursor-pointer"
-                  >
-                    <span>💰 Payment Reminder</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => applyDirectTemplate('ANTI_CHEAT')}
-                    className="px-3 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-800 text-[11px] font-bold border border-purple-200 flex items-center gap-1 cursor-pointer"
-                  >
-                    <span>🛡️ Anti-Cheat Warning</span>
+                    {isSendingDirect ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    <span>{isSendingDirect ? 'Delivering via Zavu API...' : 'Send WhatsApp Message Now'}</span>
                   </button>
                 </div>
               </div>
 
-              {/* Message Content Area */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="block text-[11px] font-bold text-slate-700">WhatsApp Message Content *</label>
-                  <span className="text-[10px] text-slate-400">Direct WhatsApp formatting supported</span>
-                </div>
-                <textarea
-                  rows={8}
-                  required
-                  value={directMessage}
-                  onChange={(e) => setDirectMessage(e.target.value)}
-                  placeholder="Type message text to deliver directly to player's WhatsApp..."
-                  className="w-full p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-sans text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white leading-relaxed font-medium"
-                />
-              </div>
             </div>
+          )}
 
-            {/* Submit Dispatcher Button */}
-            <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-3">
-              <span className="text-[11px] text-slate-500">
-                🚀 Delivered via official Zavu API
-              </span>
+          {/* ─────────── MODE 2: CUSTOM NUMBER DM ─────────── */}
+          {dmMode === 'CUSTOM' && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-              <button
-                type="button"
-                onClick={handleSendDirectMessage}
-                disabled={isSendingDirect || !directPhone.trim() || !directMessage.trim()}
-                className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
-              >
-                {isSendingDirect ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                <span>{isSendingDirect ? 'Delivering via Zavu API...' : 'Send WhatsApp Message Now'}</span>
-              </button>
+              {/* Left: Composer Panel */}
+              <div className="lg:col-span-7 space-y-5">
+
+                {/* Header card */}
+                <div className="bg-gradient-to-br from-emerald-600 to-teal-600 rounded-[24px] p-6 text-white shadow-lg shadow-emerald-500/20">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center">
+                      <Send className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-black tracking-tight">Direct WhatsApp DM</h2>
+                      <p className="text-xs text-emerald-100">যেকোনো নম্বরে সরাসরি WhatsApp মেসেজ পাঠান</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 text-[11px] text-emerald-100 bg-white/10 rounded-xl px-3 py-2 w-fit">
+                    <Smartphone className="w-3.5 h-3.5 text-white" />
+                    <span>From: <strong className="text-white">{zavuStatus?.activeSender?.phoneNumber || '+880 1866-408811'}</strong> (Zavu API)</span>
+                  </div>
+                </div>
+
+                {/* Input Card */}
+                <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] p-6 shadow-xs space-y-5">
+
+                  {/* Phone + Name row */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1.5">
+                        📱 WhatsApp নম্বর *
+                      </label>
+                      <div className="relative">
+                        <Smartphone className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-400" />
+                        <input
+                          type="tel"
+                          value={customDmPhone}
+                          onChange={(e) => setCustomDmPhone(e.target.value)}
+                          placeholder="+88017XXXXXXXX"
+                          className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm font-mono font-bold text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white focus:ring-2 focus:ring-emerald-100 transition-all"
+                        />
+                      </div>
+                      <p className="text-[10px] text-slate-400 mt-1">বাংলাদেশ নম্বর: 01XXXXXXXXX বা +8801XXXXXXXXX</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1.5">
+                        👤 Recipient নাম (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={customDmName}
+                        onChange={(e) => setCustomDmName(e.target.value)}
+                        placeholder="Player / Contact Name"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm font-semibold text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white focus:ring-2 focus:ring-emerald-100 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Quick Templates */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-2">⚡ Quick Templates:</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {[
+                        { key: 'ROOM_ID' as const, label: '🎮 Room ID', color: 'emerald' },
+                        { key: 'WELCOME' as const, label: '👋 Welcome', color: 'blue' },
+                        { key: 'PAYMENT' as const, label: '💰 Payment', color: 'amber' },
+                        { key: 'WARN' as const, label: '🛡️ Warning', color: 'red' },
+                      ].map((tpl) => (
+                        <button
+                          key={tpl.key}
+                          type="button"
+                          onClick={() => applyCustomTemplate(tpl.key)}
+                          className={`py-2 px-3 rounded-xl text-[11px] font-bold border transition-all cursor-pointer text-center ${
+                            tpl.color === 'emerald' ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200' :
+                            tpl.color === 'blue'    ? 'bg-blue-50 hover:bg-blue-100 text-blue-800 border-blue-200' :
+                            tpl.color === 'amber'   ? 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200' :
+                                                      'bg-red-50 hover:bg-red-100 text-red-800 border-red-200'
+                          }`}
+                        >
+                          {tpl.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Message Composer */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-[11px] font-bold text-slate-700">✉️ Message Content *</label>
+                      <span className={`text-[10px] font-bold ${customDmMessage.length > 900 ? 'text-red-500' : customDmMessage.length > 600 ? 'text-amber-500' : 'text-slate-400'}`}>
+                        {customDmMessage.length} / 1000
+                      </span>
+                    </div>
+                    <textarea
+                      rows={9}
+                      maxLength={1000}
+                      value={customDmMessage}
+                      onChange={(e) => setCustomDmMessage(e.target.value)}
+                      placeholder="এখানে আপনার WhatsApp মেসেজ লিখুন...&#10;&#10;Emoji ব্যবহার করতে পারেন 🎮🔥✅"
+                      className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-200 text-sm font-sans text-slate-900 focus:outline-none focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100 leading-relaxed resize-none transition-all"
+                    />
+                  </div>
+
+                  {/* Send Button */}
+                  <button
+                    type="button"
+                    onClick={handleSendCustomDm}
+                    disabled={isSendingCustomDm || !customDmPhone.trim() || !customDmMessage.trim()}
+                    className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-sm shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-3 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99]"
+                  >
+                    {isSendingCustomDm ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Sending via Zavu WhatsApp API...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" />
+                        <span>🚀 Send WhatsApp Message Now</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Right: Preview + History */}
+              <div className="lg:col-span-5 space-y-5">
+
+                {/* WhatsApp Message Preview */}
+                <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] p-5 shadow-xs">
+                  <h3 className="text-xs font-black text-slate-700 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
+                    WhatsApp Preview
+                  </h3>
+                  {/* WhatsApp-style chat bubble */}
+                  <div className="rounded-2xl overflow-hidden"
+                    style={{ background: 'url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFklEQVR42mNk+A9QTwMJAAD4iB7QFM5IQAAAAABJRU5ErkJggg==)', backgroundColor: '#e5ddd5' }}
+                  >
+                    <div className="p-4 space-y-2 min-h-[180px]">
+                      {customDmMessage ? (
+                        <div className="max-w-[85%] ml-auto bg-[#dcf8c6] rounded-[16px_16px_4px_16px] p-3 shadow-sm">
+                          <p className="text-[12px] text-slate-900 whitespace-pre-wrap leading-relaxed font-medium break-words">
+                            {customDmMessage}
+                          </p>
+                          <div className="flex items-center justify-end gap-1 mt-1.5">
+                            <span className="text-[9px] text-slate-400 font-mono">{new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+                            <CheckCircle className="w-3 h-3 text-teal-500" />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center h-[140px] text-slate-400 text-xs text-center">
+                          <div>
+                            <MessageSquare className="w-8 h-8 mx-auto text-slate-300 mb-2" />
+                            <p>Message preview will appear here</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span className="text-[10px] text-slate-500 font-medium">
+                      To: <strong className="text-slate-700 font-mono">{customDmPhone || '+880...'}</strong>
+                      {customDmName && <> · <span>{customDmName}</span></>}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Session Send History */}
+                <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] p-5 shadow-xs">
+                  <h3 className="text-xs font-black text-slate-700 uppercase tracking-wider mb-3 flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                      <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+                      Session History
+                    </span>
+                    {sendHistory.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setSendHistory([])}
+                        className="text-[10px] text-slate-400 hover:text-red-500 font-bold cursor-pointer"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </h3>
+
+                  {sendHistory.length === 0 ? (
+                    <div className="py-8 text-center text-slate-400 text-xs">
+                      <Send className="w-6 h-6 mx-auto text-slate-300 mb-2" />
+                      <p>No messages sent yet this session</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1 custom-scrollbar">
+                      {sendHistory.map((h, i) => (
+                        <div
+                          key={i}
+                          className={`flex items-start gap-3 p-3 rounded-xl border text-xs ${
+                            h.ok ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'
+                          }`}
+                        >
+                          <div className={`mt-0.5 w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${h.ok ? 'bg-emerald-500' : 'bg-red-500'}`}>
+                            {h.ok ? <CheckCircle className="w-3 h-3 text-white" /> : <AlertCircle className="w-3 h-3 text-white" />}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between gap-1 mb-0.5">
+                              <span className={`font-bold font-mono text-[11px] ${h.ok ? 'text-emerald-800' : 'text-red-700'}`}>
+                                {h.name} ({h.phone})
+                              </span>
+                              <span className="text-[9px] text-slate-400 shrink-0">{h.at}</span>
+                            </div>
+                            <p className="text-[10px] text-slate-600 truncate">{h.msg}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
             </div>
-          </div>
+          )}
 
         </div>
       )}
