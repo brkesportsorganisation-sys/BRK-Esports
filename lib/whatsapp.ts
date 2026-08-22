@@ -381,83 +381,21 @@ export async function broadcastRoomDetails({
 
 const DEFAULT_GROUPS: WhatsAppTargetGroup[] = [
   {
-    id: 'grp_tournament_main',
-    name: 'Main Tournament WhatsApp Group 🎮',
-    category: 'TOURNAMENT_MAIN',
-    identifier: 'https://chat.whatsapp.com/sample-main-group',
-    description: 'Official tournament participant discussion and room link group.',
-    memberCount: 250,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'grp_scrims_vip',
-    name: 'VIP Tier-1 Scrims Community ⚔️',
-    category: 'SCRIMS_VIP',
-    identifier: 'https://chat.whatsapp.com/sample-scrims-vip',
-    description: 'Daily competitive scrims and slot confirmation group.',
-    memberCount: 120,
-    createdAt: new Date().toISOString(),
-  },
-  {
     id: 'grp_registered_captains',
     name: 'All Registered Squad Captains (Dynamic 👥)',
     category: 'REGISTRATION_GROUP',
     identifier: 'TOURNAMENT_CAPTAINS',
     description: 'Dynamic recipient group targeting all verified team captains from active tournaments.',
-    memberCount: 48,
+    memberCount: 0,
     createdAt: new Date().toISOString(),
   },
 ];
 
-const DEFAULT_SCHEDULES: WhatsAppSchedule[] = [
-  {
-    id: 'sched_room_reminder_9pm',
-    title: 'Daily 9:00 PM Tournament Room ID Auto-Alert',
-    description: 'Sends room ID and password reminder alert 15 minutes before the 9:00 PM prime squad match.',
-    targetType: 'TOURNAMENT_CAPTAINS',
-    targetDestination: 'ACTIVE_TOURNAMENTS',
-    targetName: 'All Active Squad Captains',
-    messageType: 'ROOM_ALERT',
-    messageTemplate: `🎮 BRK ESPORTS ROOM ID ALERT 🎮\n\nম্যাচের রুম আইডি ও পাসওয়ার্ড রিলিজ করা হয়েছে!\n🔹 Tournament: {TOURNAMENT_NAME}\n🔹 Room ID: {ROOM_ID}\n🔹 Password: {ROOM_PASS}\n\nসঠিক স্লটে জয়েন করুন এবং Booyah ছিনিয়ে নিন! 🔥`,
-    frequency: 'DAILY',
-    scheduledTime: '20:45',
-    activeDays: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'],
-    isActive: true,
-    status: 'ACTIVE',
-    runCount: 14,
-    lastRunAt: new Date(Date.now() - 3600000 * 24).toISOString(),
-    nextRunAt: new Date(Date.now() + 3600000 * 4).toISOString(),
-    lastStatus: 'SUCCESS',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'sched_daily_reg_promo',
-    title: 'Slot Registration Reminder & Prize Boost (Every 2 Hours)',
-    description: 'Recurring notification to group members about available tournament slots and entry fees.',
-    targetType: 'GROUP',
-    targetDestination: '+8801712345678',
-    targetName: 'Main Tournament Community',
-    messageType: 'REGISTRATION_REMINDER',
-    messageTemplate: `🔥 BRK ESPORTS TOURNAMENT SLOTS OPEN 🔥\n\nআজকের গ্র্যান্ড ফ্রি ফায়ার টুর্নামেন্টের স্লট বুকিং চলছে!\n🏆 Prize Pool: ৳4,000 CASH\n🎟️ Entry Fee: ৳100 (অথবা 1,000 Coins)\n\nদ্রুত আপনার স্কোয়াড রেজিস্টার করুন: https://brkesports.com/tournaments`,
-    frequency: 'EVERY_2_HOURS',
-    intervalMinutes: 120,
-    activeStartTime: '10:00',
-    activeEndTime: '23:00',
-    activeDays: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'],
-    isActive: true,
-    status: 'ACTIVE',
-    runCount: 38,
-    lastRunAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-    nextRunAt: new Date(Date.now() + 3600000 * 2).toISOString(),
-    lastStatus: 'SUCCESS',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
+const DEFAULT_SCHEDULES: WhatsAppSchedule[] = [];
 
 /**
  * Loads all WhatsApp scheduled jobs from SiteSetting store.
+ * Filters out any legacy demo mock data.
  */
 export async function getWhatsAppSchedules(): Promise<WhatsAppSchedule[]> {
   try {
@@ -469,15 +407,20 @@ export async function getWhatsAppSchedules(): Promise<WhatsAppSchedule[]> {
 
     if (setting?.value) {
       const parsed = typeof setting.value === 'string' ? JSON.parse(setting.value) : setting.value;
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+      if (Array.isArray(parsed)) {
+        // Filter out legacy demo schedules
+        const realSchedules = parsed.filter(s => 
+          s.id !== 'sched_room_reminder_9pm' && 
+          s.id !== 'sched_daily_reg_promo'
+        );
+        return realSchedules;
       }
     }
   } catch (err) {
     console.warn('[getWhatsAppSchedules] could not load from SiteSetting:', err);
   }
 
-  return DEFAULT_SCHEDULES;
+  return [];
 }
 
 /**
@@ -503,6 +446,7 @@ export async function saveWhatsAppSchedules(schedules: WhatsAppSchedule[]): Prom
 
 /**
  * Loads all WhatsApp Target Groups from SiteSetting store.
+ * Filters out legacy sample-main-group and sample-scrims-vip demo data.
  */
 export async function getWhatsAppTargetGroups(): Promise<WhatsAppTargetGroup[]> {
   try {
@@ -514,8 +458,17 @@ export async function getWhatsAppTargetGroups(): Promise<WhatsAppTargetGroup[]> 
 
     if (setting?.value) {
       const parsed = typeof setting.value === 'string' ? JSON.parse(setting.value) : setting.value;
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+      if (Array.isArray(parsed)) {
+        // Filter out legacy demo groups with sample links
+        const realGroups = parsed.filter(g => 
+          g.identifier !== 'https://chat.whatsapp.com/sample-main-group' &&
+          g.identifier !== 'https://chat.whatsapp.com/sample-scrims-vip' &&
+          g.id !== 'grp_tournament_main' &&
+          g.id !== 'grp_scrims_vip'
+        );
+        if (realGroups.length > 0) {
+          return realGroups;
+        }
       }
     }
   } catch (err) {
