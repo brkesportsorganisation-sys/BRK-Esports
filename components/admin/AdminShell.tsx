@@ -71,9 +71,12 @@ export default function AdminShell({ children }: AdminShellProps) {
   const [pendingCount, setPendingCount] = useState(0);
   const [pendingShopCount, setPendingShopCount] = useState(0);
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
-    'VENDORS': false,
-    'COMMUNITY': false,
-    'SETTINGS': false
+    'TOURNAMENTS & MATCHES': false,
+    'HOSTS & VENDORS': false,
+    'SHOP & COMMERCE': false,
+    'WHATSAPP & AUTOMATION': false,
+    'PLAYERS & COMMUNITY': false,
+    'SECURITY & SETTINGS': false,
   });
 
   const toggleSection = (title: string) => {
@@ -194,50 +197,63 @@ export default function AdminShell({ children }: AdminShellProps) {
     links: NavLinkItem[];
   }
 
-  // Top Standalone Links matching reference design
+  // Top Standalone Quick Access Links
   const topStandaloneLinks: NavLinkItem[] = [
-    { href: '/admin', label: 'Dashboard Overview', icon: LayoutGrid, colorClass: 'text-blue-500', permission: 'view_dashboard' },
-    { href: '/admin/tournaments', label: 'Tournaments & Slots', icon: Trophy, colorClass: 'text-pink-500', permission: 'manage_tournaments' },
-    { href: '/admin/payments', label: 'Deposit & Revenue', icon: DollarSign, colorClass: 'text-emerald-500', permission: 'manage_deposits' },
+    { href: '/admin', label: 'Dashboard Overview', icon: LayoutGrid, colorClass: 'text-blue-600', permission: 'view_dashboard' },
   ];
 
-  // Collapsible Dropdown Sections matching reference design
+  // 6 Clean, Organized Categories for Administrative Control
   const navSections: NavSection[] = [
     {
-      title: 'OPERATIONS & TOURNAMENTS',
+      title: '🏆 TOURNAMENTS & MATCHES',
       links: [
         { href: '/admin/tournaments', label: 'All Tournaments', icon: Trophy, colorClass: 'text-pink-500', permission: 'manage_tournaments' },
-        { href: '/admin/vendors', label: 'Vendors & Hosts (🏪)', icon: Store, colorClass: 'text-violet-600', permission: 'manage_tournaments' },
         { href: '/admin/registrations', label: 'Slot Registrations', icon: ClipboardList, colorClass: 'text-purple-500', badge: pendingCount, permission: 'manage_tournaments' },
         { href: '/admin/matches', label: 'Match Results & Rooms', icon: Gamepad2, colorClass: 'text-amber-600', permission: 'enter_results' },
-        { href: '/admin/shop', label: 'Gaming Shop & Diamonds (🛍️)', icon: ShoppingBag, colorClass: 'text-cyan-500', badge: pendingShopCount, permission: 'manage_deposits' },
         { href: '/admin/arena', label: '1v1 Arena Duels (⚔️)', icon: Swords, colorClass: 'text-red-500', permission: 'manage_tournaments' },
-        { href: '/admin/lfg', label: 'LFG Recruitment Board', icon: Crosshair, colorClass: 'text-blue-500', permission: 'moderate_lfg' },
         { href: '/admin/tournament-settings', label: 'Tournament Match Rules', icon: FileText, colorClass: 'text-pink-500', permission: 'manage_settings' },
-        { href: '/admin/banners', label: 'Banners & Sliders (🖼️)', icon: Sparkles, colorClass: 'text-orange-500', permission: 'manage_settings' },
-        { href: '/admin/withdrawals', label: 'Winning Payouts', icon: Coins, colorClass: 'text-amber-500', permission: 'manage_withdrawals' },
       ]
     },
     {
-      title: 'PLAYERS & COMMUNITY',
+      title: '🏪 HOSTS & VENDORS',
       links: [
-        { href: '/admin/whatsapp', label: 'WhatsApp Bot & Automation (💬)', icon: MessageSquare, colorClass: 'text-emerald-500', permission: 'send_notifications' },
-        { href: '/admin/support', label: 'Live Support Chat (🎧)', icon: Headphones, colorClass: 'text-emerald-500', permission: 'moderate_messages' },
-        { href: '/admin/users', label: 'Player Accounts', icon: Users, colorClass: 'text-purple-600', permission: 'manage_users' },
-        { href: '/admin/user-logs', label: 'Player Activity Logs (👥)', icon: History, colorClass: 'text-[#2563EB]', permission: 'manage_users' },
-        { href: '/admin/teams', label: 'Squad Clans Directory', icon: Swords, colorClass: 'text-orange-500', permission: 'manage_tournaments' },
-        { href: '/admin/notifications', label: 'Announcements & Alerts', icon: Bell, colorClass: 'text-pink-400', permission: 'send_notifications' },
-        { href: '/admin/moderation', label: 'Chat Moderation', icon: ShieldAlert, colorClass: 'text-red-500', permission: 'moderate_messages' },
-        { href: '/admin/unlocks', label: 'Contact Unlocks (৳)', icon: DollarSign, colorClass: 'text-emerald-500', permission: 'view_financial_reports' },
+        { href: '/admin/vendors', label: 'Vendors & Hosts (🏪)', icon: Store, colorClass: 'text-violet-600', permission: 'manage_tournaments' },
+        { href: '/admin/withdrawals', label: 'Host Earnings & Payouts', icon: Coins, colorClass: 'text-amber-500', permission: 'manage_withdrawals' },
+      ]
+    },
+    {
+      title: '🛍️ SHOP & COMMERCE',
+      links: [
+        { href: '/admin/shop', label: 'Shop Orders & Diamonds', icon: ShoppingBag, colorClass: 'text-cyan-500', badge: pendingShopCount, permission: 'manage_deposits' },
+        { href: '/admin/payments', label: 'Deposit & Revenue Ledger', icon: DollarSign, colorClass: 'text-emerald-500', permission: 'manage_deposits' },
+        { href: '/admin/unlocks', label: 'Contact Unlocks (৳)', icon: DollarSign, colorClass: 'text-emerald-600', permission: 'view_financial_reports' },
         { href: '/admin/ads', label: 'Earn Rewards & Lottery', icon: Gift, colorClass: 'text-amber-500', permission: 'manage_watch_earn' },
       ]
     },
-
     {
-      title: 'OWNER SECURITY & SETTINGS',
+      title: '💬 WHATSAPP & AUTOMATION',
+      links: [
+        { href: '/admin/whatsapp', label: 'WhatsApp Bot & Schedules', icon: MessageSquare, colorClass: 'text-emerald-500', permission: 'send_notifications' },
+        { href: '/admin/support', label: 'Live Support Chat Desk', icon: Headphones, colorClass: 'text-blue-500', permission: 'moderate_messages' },
+        { href: '/admin/notifications', label: 'Broadcast Alerts & Notices', icon: Bell, colorClass: 'text-pink-400', permission: 'send_notifications' },
+      ]
+    },
+    {
+      title: '👥 PLAYERS & COMMUNITY',
+      links: [
+        { href: '/admin/users', label: 'Player Accounts Directory', icon: Users, colorClass: 'text-purple-600', permission: 'manage_users' },
+        { href: '/admin/teams', label: 'Squad Clans Directory', icon: Swords, colorClass: 'text-orange-500', permission: 'manage_tournaments' },
+        { href: '/admin/lfg', label: 'LFG Recruitment Board', icon: Crosshair, colorClass: 'text-blue-500', permission: 'moderate_lfg' },
+        { href: '/admin/user-logs', label: 'Player Activity Logs (👥)', icon: History, colorClass: 'text-[#2563EB]', permission: 'manage_users' },
+        { href: '/admin/moderation', label: 'Chat Moderation & Bans', icon: ShieldAlert, colorClass: 'text-red-500', permission: 'moderate_messages' },
+      ]
+    },
+    {
+      title: '🛡️ SECURITY & SETTINGS',
       links: [
         { href: '/admin/anti-cheat', label: 'Anti-Cheat Shield (🛡️)', icon: ShieldAlert, colorClass: 'text-red-600', permission: 'manage_users', ownerOnly: true },
-        { href: '/admin/roles', label: 'Sub-Admin Roles', icon: KeyRound, colorClass: 'text-indigo-500', permission: 'manage_roles', ownerOnly: true },
+        { href: '/admin/banners', label: 'Banners & Sliders (🖼️)', icon: Sparkles, colorClass: 'text-orange-500', permission: 'manage_settings' },
+        { href: '/admin/roles', label: 'Sub-Admin Role Manager', icon: KeyRound, colorClass: 'text-indigo-500', permission: 'manage_roles', ownerOnly: true },
         { href: '/admin/delete-requests', label: 'Delete Approvals', icon: ShieldAlert, colorClass: 'text-red-500', permission: 'approve_deletes', ownerOnly: true },
         { href: '/admin/activity-log', label: 'Admin Activity Log (🛡️)', icon: ShieldCheck, colorClass: 'text-teal-600', permission: 'manage_roles', ownerOnly: true },
         { href: '/admin/settings', label: 'Platform Settings & CMS', icon: Settings, colorClass: 'text-slate-400', permission: 'manage_settings', ownerOnly: true },
