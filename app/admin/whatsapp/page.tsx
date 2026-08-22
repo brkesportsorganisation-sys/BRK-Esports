@@ -146,6 +146,12 @@ export default function AdminWhatsAppPage() {
         replyText: `💰 পেমেন্ট ও ওয়ালেট ডিপোজিট:\n\nঅটোমেটিক ব্যালেন্স অ্যাড করতে আমাদের সাইটের Wallet অপশনে যান।\nবিকাশ/নগদ সেন্ড মানি করে TrxID সাবমিট করলেই ৫ মিনিটে ব্যালেন্স অ্যাড হয়ে যাবে!\nলিঙ্ক: https://brkesports.com/wallet`,
         isActive: true,
       },
+      {
+        id: 'rule_stop',
+        keywords: ['stop', 'unsubscribe', 'বন্ধ', 'off', 'cancel'],
+        replyText: `✅ আপনার অনুরোধ অনুযায়ী আপনাকে নোটিফিকেশন লিস্ট থেকে বাদ দেওয়া হয়েছে। ভবিষ্যতে এই নম্বরে আর কোনো প্রমোশনাল মেসেজ যাবে না। ধন্যবাদ!`,
+        isActive: true,
+      },
     ],
   });
   const [isSavingBot, setIsSavingBot] = useState(false);
