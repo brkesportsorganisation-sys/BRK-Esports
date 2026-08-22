@@ -48,16 +48,23 @@ export function normalizePhoneNumber(rawPhone: string): string {
 }
 
 export interface WhatsAppSettings {
+  provider: 'WAAPI' | 'ZAVU';
   apiKey: string;
+  waapiApiKey: string;
+  waapiInstanceId: string;
+  zavuApiKey: string;
   isEnabled: boolean;
   defaultTemplate: string;
 }
 
 /**
- * Fetches WhatsApp / Zavu settings from database or environment variables.
+ * Fetches WhatsApp settings (WaAPI or Zavu) from database or environment variables.
  */
 export async function getWhatsAppSettings(): Promise<WhatsAppSettings> {
   let dbApiKey = '';
+  let dbWaapiKey = '';
+  let dbWaapiInstance = '';
+  let dbProvider = '';
   let isEnabled = true;
   let defaultTemplate = `🎮 {TOURNAMENT_NAME} 🎮\n\nআপনার ম্যাচের রুম ডিটেইলস:\n🔹 Room ID: {ROOM_ID}\n🔹 Password: {ROOM_PASS}\n\nদ্রুত গেমে জয়েন করুন!`;
 
@@ -71,21 +78,201 @@ export async function getWhatsAppSettings(): Promise<WhatsAppSettings> {
       return acc;
     }, {});
 
+    if (map.WAAPI_API_KEY) dbWaapiKey = map.WAAPI_API_KEY;
+    if (map.WAAPI_INSTANCE_ID) dbWaapiInstance = map.WAAPI_INSTANCE_ID;
     if (map.ZAVU_API_KEY) dbApiKey = map.ZAVU_API_KEY;
     if (map.WHATSAPP_API_KEY && !dbApiKey) dbApiKey = map.WHATSAPP_API_KEY;
+    if (map.WHATSAPP_PROVIDER) dbProvider = map.WHATSAPP_PROVIDER;
     if (map.WHATSAPP_ENABLED !== undefined) isEnabled = map.WHATSAPP_ENABLED === 'true';
     if (map.WHATSAPP_ROOM_TEMPLATE) defaultTemplate = map.WHATSAPP_ROOM_TEMPLATE;
   } catch (err) {
     console.warn('[WhatsApp] Could not fetch settings from database:', err);
   }
 
-  const apiKey = dbApiKey || process.env.ZAVU_API_KEY || process.env.ZAVUDEV_API_KEY || '';
+  const waapiApiKey = dbWaapiKey || process.env.WAAPI_API_KEY || '';
+  const waapiInstanceId = dbWaapiInstance || process.env.WAAPI_INSTANCE_ID || '102791';
+  const zavuApiKey = dbApiKey || process.env.ZAVU_API_KEY || process.env.ZAVUDEV_API_KEY || '';
+
+  const provider: 'WAAPI' | 'ZAVU' = (dbProvider as any) || (waapiApiKey ? 'WAAPI' : 'ZAVU');
+  const apiKey = provider === 'WAAPI' ? waapiApiKey : zavuApiKey;
 
   return {
+    provider,
     apiKey,
+    waapiApiKey,
+    waapiInstanceId,
+    zavuApiKey,
     isEnabled,
     defaultTemplate,
   };
+}
+
+/**
+ * Normalizes destination to WaAPI compatible format (e.g. 88017... @c.us or group JID @g.us)
+ */
+export function formatWaapiChatId(to: string): string {
+  if (!to) return '';
+  const trimmed = to.trim();
+  if (trimmed.includes('@g.us') || trimmed.includes('@c.us') || trimmed.includes('@s.whatsapp.net')) {
+    return trimmed.replace('@s.whatsapp.net', '@c.us');
+  }
+  const digitsOnly = trimmed.replace(/\D/g, '');
+  if (digitsOnly.startsWith('880')) {
+    return `${digitsOnly}@c.us`;
+  }
+  if (digitsOnly.startsWith('01')) {
+    return `88${digitsOnly}@c.us`;
+  }
+  return `${digitsOnly}@c.us`;
+}
+
+/**
+ * Sends a message via WaAPI instance
+ */
+export async function sendWaapiMessage({
+  chatId,
+  message,
+  instanceId,
+  apiKey,
+}: {
+  chatId: string;
+  message: string;
+  instanceId?: string;
+  apiKey?: string;
+}) {
+  const settings = await getWhatsAppSettings();
+  const activeKey = apiKey || settings.waapiApiKey;
+  const activeInstance = instanceId || settings.waapiInstanceId || '102791';
+
+  if (!activeKey) {
+    return { success: false, message: 'WaAPI API Token is not configured. Please enter your API Token in Admin Settings.' };
+  }
+
+  const targetChatId = formatWaapiChatId(chatId);
+
+  try {
+    const res = await fetch(`https://waapi.app/api/v1/instances/${activeInstance}/client/action/send-message`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${activeKey}`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        chatId: targetChatId,
+        message,
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return {
+        success: false,
+        message: data?.message || data?.error || `WaAPI request failed (${res.status})`,
+        data,
+      };
+    }
+
+    return {
+      success: true,
+      message: `Delivered via WaAPI to ${targetChatId}`,
+      data,
+    };
+  } catch (err: any) {
+    console.error('[sendWaapiMessage Error]', err);
+    return {
+      success: false,
+      message: err?.message || 'Failed to send message via WaAPI.',
+      error: err,
+    };
+  }
+}
+
+/**
+ * Fetches all chats & groups from WaAPI instance
+ */
+export async function fetchWaapiChats(instanceId?: string, apiKey?: string) {
+  const settings = await getWhatsAppSettings();
+  const activeKey = apiKey || settings.waapiApiKey;
+  const activeInstance = instanceId || settings.waapiInstanceId || '102791';
+
+  if (!activeKey) {
+    return { success: false, message: 'WaAPI API Token is not configured.', chats: [], groups: [] };
+  }
+
+  try {
+    const res = await fetch(`https://waapi.app/api/v1/instances/${activeInstance}/client/action/get-chats`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${activeKey}`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({}),
+    });
+
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return {
+        success: false,
+        message: json?.message || `Failed to fetch chats from WaAPI: ${res.status}`,
+        chats: [],
+        groups: [],
+      };
+    }
+
+    const rawList = Array.isArray(json?.data?.data)
+      ? json.data.data
+      : Array.isArray(json?.data)
+      ? json.data
+      : Array.isArray(json)
+      ? json
+      : [];
+
+    const groups: WhatsAppTargetGroup[] = [];
+    const chats: any[] = [];
+
+    for (const item of rawList) {
+      const idStr = typeof item.id === 'object' ? item.id?._serialized || item.id?.user : String(item.id || '');
+      const isGroup = item.isGroup === true || idStr.includes('@g.us');
+      const name = item.name || item.formattedTitle || (isGroup ? 'WhatsApp Group' : idStr);
+
+      if (isGroup && idStr) {
+        groups.push({
+          id: `grp_waapi_${idStr.replace(/[^a-zA-Z0-9]/g, '_')}`,
+          name: name,
+          category: name.toLowerCase().includes('scrim') ? 'SCRIMS_VIP' : name.toLowerCase().includes('tour') ? 'TOURNAMENT_MAIN' : 'GENERAL',
+          identifier: idStr,
+          description: `Synced WhatsApp Group (${idStr})`,
+          memberCount: item.groupMetadata?.participants?.length || item.unreadCount || 0,
+          createdAt: new Date().toISOString(),
+        });
+      }
+
+      chats.push({
+        id: idStr,
+        name,
+        isGroup,
+        unreadCount: item.unreadCount || 0,
+      });
+    }
+
+    return {
+      success: true,
+      totalChats: rawList.length,
+      groupsCount: groups.length,
+      groups,
+      chats,
+    };
+  } catch (err: any) {
+    console.error('[fetchWaapiChats Error]', err);
+    return {
+      success: false,
+      message: err?.message || 'Network error while fetching chats from WaAPI.',
+      chats: [],
+      groups: [],
+    };
+  }
 }
 
 /**
@@ -94,7 +281,7 @@ export async function getWhatsAppSettings(): Promise<WhatsAppSettings> {
 export async function getZavuClient(): Promise<{ client: Zavudev | null; error?: string }> {
   const settings = await getWhatsAppSettings();
 
-  if (!settings.apiKey) {
+  if (!settings.zavuApiKey && !settings.apiKey) {
     return {
       client: null,
       error: 'Zavu API key is missing. Please set ZAVU_API_KEY in environment variables or Admin Settings.',
@@ -102,7 +289,7 @@ export async function getZavuClient(): Promise<{ client: Zavudev | null; error?:
   }
 
   try {
-    const client = new Zavudev({ apiKey: settings.apiKey });
+    const client = new Zavudev({ apiKey: settings.zavuApiKey || settings.apiKey });
     return { client };
   } catch (err: any) {
     return {
@@ -114,9 +301,6 @@ export async function getZavuClient(): Promise<{ client: Zavudev | null; error?:
 
 /**
  * Helper to get the default sender ID for the Zavu SDK.
- * Prioritizes Bangladesh (+880) numbers over US/other demo numbers.
- * NOTE: The Zavu SDK's send() method expects 'Zavu-Sender' inside the PARAMS
- * object (1st arg), NOT in options.headers (2nd arg).
  */
 export async function getDefaultSenderId(client: Zavudev): Promise<string | undefined> {
   try {
@@ -129,7 +313,6 @@ export async function getDefaultSenderId(client: Zavudev): Promise<string | unde
       senders.push(s);
     }
     if (senders.length > 0) {
-      // Prioritize Bangladesh numbers or verified numbers matching +880
       const bdSender = senders.find((s: any) => 
         (s.phoneNumber && s.phoneNumber.includes('880')) ||
         (s.whatsapp?.displayPhoneNumber && s.whatsapp.displayPhoneNumber.includes('880'))
@@ -158,7 +341,7 @@ export interface SendRoomDetailsParams {
 }
 
 /**
- * Sends Match Room ID and Password to a player via WhatsApp.
+ * Sends Match Room ID and Password to a player via WhatsApp (WaAPI or Zavu).
  */
 export async function sendRoomDetailsToPlayer({
   playerPhone,
@@ -192,12 +375,6 @@ export async function sendRoomDetailsToPlayer({
     };
   }
 
-  const { client, error } = await getZavuClient();
-  if (!client) {
-    return { success: false, message: error || 'Zavu client initialization failed.' };
-  }
-
-  // Construct message text
   let text = customMessage;
   if (!text) {
     text = settings.defaultTemplate
@@ -205,6 +382,33 @@ export async function sendRoomDetailsToPlayer({
       .replace(/\{ROOM_ID\}/g, roomId)
       .replace(/\{ROOM_PASS\}/g, pass)
       .replace(/\{PLAYER_NAME\}/g, playerName);
+  }
+
+  // 1. Send via WaAPI if configured
+  if (settings.provider === 'WAAPI' && settings.waapiApiKey) {
+    const waapiRes = await sendWaapiMessage({
+      chatId: formattedPhone,
+      message: text,
+      instanceId: settings.waapiInstanceId,
+      apiKey: settings.waapiApiKey,
+    });
+
+    await addWhatsAppLog({
+      targetDestination: formattedPhone,
+      targetName: playerName,
+      messageText: text,
+      triggerType: 'ROOM_ALERT',
+      status: waapiRes.success ? 'SENT' : 'FAILED',
+      error: waapiRes.success ? undefined : waapiRes.message,
+    });
+
+    return waapiRes;
+  }
+
+  // 2. Otherwise send via Zavu SDK
+  const { client, error } = await getZavuClient();
+  if (!client) {
+    return { success: false, message: error || 'Zavu client initialization failed.' };
   }
 
   try {
@@ -235,9 +439,9 @@ export async function sendRoomDetailsToPlayer({
     const rawMsg = err?.message || '';
     let errMsg = rawMsg;
     if (rawMsg.includes('No default sender') || rawMsg.includes('Zavu-Sender')) {
-      errMsg = '⚠️ আপনার Zavu অ্যাকাউন্টে কোনো WhatsApp Sender / Phone Number এখনও যুক্ত করা হয়নি। অনুগ্রহ করে Zavu ড্যাশবোর্ডে গিয়ে একটি Sender (WhatsApp QR বা Cloud API) কানেক্ট করুন।';
-    } else if (rawMsg.includes('24') || rawMsg.includes('Re-engagement') || rawMsg.includes('outside the allowed window') || rawMsg.includes('session')) {
-      errMsg = `⚠️ Meta WhatsApp 24-ঘণ্টা নীতি: এই নম্বর (${formattedPhone}) আপনার WhatsApp নম্বরে (+880 1846-587311) প্রথমে একটি মেসেজ না পাঠালে আপনি Free-form message পাঠাতে পারবেন না। প্লেয়ারকে আগে আপনাকে message করতে বলুন অথবা Approved Template ব্যবহার করুন।`;
+      errMsg = '⚠️ আপনার Zavu অ্যাকাউন্টে কোনো WhatsApp Sender এখনও যুক্ত করা হয়নি।';
+    } else if (rawMsg.includes('24') || rawMsg.includes('Re-engagement')) {
+      errMsg = `⚠️ Meta WhatsApp 24-ঘণ্টা নীতি: এই নম্বর (${formattedPhone}) আগে মেসেজ না পাঠালে সরাসরি মেসেজ যাবে না।`;
     }
 
     await addWhatsAppLog({
@@ -258,7 +462,7 @@ export async function sendRoomDetailsToPlayer({
 }
 
 /**
- * Sends a generic direct message to a destination phone or group via WhatsApp.
+ * Sends a generic direct message to a destination phone or group via WhatsApp (WaAPI or Zavu).
  */
 export async function sendDirectWhatsappMessage({
   to,
@@ -272,13 +476,37 @@ export async function sendDirectWhatsappMessage({
   triggerType?: 'SCHEDULED_AUTOMATION' | 'INSTANT_BROADCAST' | 'ROOM_ALERT' | 'TEST';
 }) {
   const formattedTo = normalizePhoneNumber(to);
-  if (!formattedTo || formattedTo.length < 9) {
-    return { success: false, message: `Invalid phone format: ${to}` };
+  if (!formattedTo || formattedTo.length < 5) {
+    return { success: false, message: `Invalid phone/chat format: ${to}` };
   }
 
+  const settings = await getWhatsAppSettings();
+
+  // 1. Send via WaAPI if configured
+  if (settings.provider === 'WAAPI' && settings.waapiApiKey) {
+    const waapiRes = await sendWaapiMessage({
+      chatId: formattedTo,
+      message: text,
+      instanceId: settings.waapiInstanceId,
+      apiKey: settings.waapiApiKey,
+    });
+
+    await addWhatsAppLog({
+      targetDestination: formattedTo,
+      targetName,
+      messageText: text,
+      triggerType,
+      status: waapiRes.success ? 'SENT' : 'FAILED',
+      error: waapiRes.success ? undefined : waapiRes.message,
+    });
+
+    return waapiRes;
+  }
+
+  // 2. Otherwise send via Zavu SDK
   const { client, error } = await getZavuClient();
   if (!client) {
-    return { success: false, message: error || 'Zavu client initialization failed.' };
+    return { success: false, message: error || 'WhatsApp client initialization failed.' };
   }
 
   try {
@@ -304,9 +532,9 @@ export async function sendDirectWhatsappMessage({
     const rawMsg = err?.message || '';
     let errMsg = rawMsg;
     if (rawMsg.includes('No default sender') || rawMsg.includes('Zavu-Sender')) {
-      errMsg = '⚠️ আপনার Zavu অ্যাকাউন্টে কোনো WhatsApp Sender / Phone Number এখনও যুক্ত করা হয়নি। অনুগ্রহ করে Zavu ড্যাশবোর্ডে গিয়ে একটি Sender কানেক্ট করুন।';
-    } else if (rawMsg.includes('24') || rawMsg.includes('Re-engagement') || rawMsg.includes('outside the allowed window') || rawMsg.includes('session')) {
-      errMsg = `⚠️ Meta WhatsApp 24-ঘণ্টা নীতি: এই নম্বরে (${formattedTo}) Free-form message পাঠাতে হলে প্লেয়ারকে আগে আপনার নম্বরে (+880 1846-587311) একটি মেসেজ দিয়ে 24 ঘণ্টার উইন্ডো খুলতে হবে।`;
+      errMsg = '⚠️ কোনো WhatsApp Sender যুক্ত করা হয়নি।';
+    } else if (rawMsg.includes('24') || rawMsg.includes('Re-engagement')) {
+      errMsg = `⚠️ Meta WhatsApp 24-ঘণ্টা নীতি: এই নম্বরে (${formattedTo}) মেসেজ পাঠানোর অনুমতি নেই।`;
     }
 
     await addWhatsAppLog({
@@ -321,7 +549,6 @@ export async function sendDirectWhatsappMessage({
     return { success: false, message: errMsg, error: err };
   }
 }
-
 
 /**
  * Broadcasts Room ID and Password to multiple players / squad captains.

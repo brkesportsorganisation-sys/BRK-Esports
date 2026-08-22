@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
 
     if (!sendResult.success) {
       return NextResponse.json(
-        { success: false, message: sendResult.message, error: sendResult.error },
+        { success: false, message: sendResult.message, error: (sendResult as any).error },
         { status: 400 }
       );
     }
@@ -155,13 +155,14 @@ export async function POST(req: NextRequest) {
     await logAdminAction(
       session?.sub || session?.email || 'admin',
       'SEND_GROUP_WHATSAPP',
+      'WHATSAPP',
       `Sent direct message to group: ${resolvedName} (${resolvedDestination})`
     );
 
     return NextResponse.json({
       success: true,
       message: `Message dispatched successfully to group "${resolvedName}"!`,
-      response: sendResult.response,
+      response: (sendResult as any).response || (sendResult as any).data,
     });
 
   } catch (error: any) {

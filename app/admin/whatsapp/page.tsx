@@ -94,8 +94,25 @@ export default function AdminWhatsAppPage() {
   const [isSendingCustomDm, setIsSendingCustomDm] = useState(false);
   const [sendHistory, setSendHistory] = useState<Array<{ phone: string; name: string; msg: string; at: string; ok: boolean }>>([]);
 
-  // Zavu Connection Status
+  // WhatsApp Gateway Connection Status (WaAPI / Zavu)
   const [zavuStatus, setZavuStatus] = useState<any>(null);
+  const [isSyncingGroups, setIsSyncingGroups] = useState(false);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [gatewaySettings, setGatewaySettings] = useState<{
+    provider: 'WAAPI' | 'ZAVU';
+    waapiApiKey: string;
+    waapiApiKeyFull?: string;
+    waapiInstanceId: string;
+    zavuApiKey: string;
+    zavuApiKeyFull?: string;
+    isEnabled: boolean;
+  }>({
+    provider: 'WAAPI',
+    waapiApiKey: '',
+    waapiInstanceId: '102791',
+    zavuApiKey: '',
+    isEnabled: true,
+  });
 
   // Bot Auto Reply State
   const [botConfig, setBotConfig] = useState<{
@@ -178,11 +195,12 @@ export default function AdminWhatsAppPage() {
         await fetch('/api/admin/whatsapp/cron', { method: 'POST', credentials: 'include' });
       } catch {}
 
-      const [schedRes, botRes, statusRes, contactsRes] = await Promise.all([
+      const [schedRes, botRes, statusRes, contactsRes, settingsRes] = await Promise.all([
         fetch('/api/admin/whatsapp/scheduler', { credentials: 'include' }),
         fetch('/api/admin/whatsapp/bot', { credentials: 'include' }),
         fetch('/api/admin/whatsapp/status', { credentials: 'include' }),
         fetch('/api/admin/whatsapp/contacts', { credentials: 'include' }),
+        fetch('/api/admin/whatsapp/settings', { credentials: 'include' }),
       ]);
 
       if (schedRes.ok) {
@@ -206,6 +224,21 @@ export default function AdminWhatsAppPage() {
       if (statusRes.ok) {
         const statusData = await statusRes.json();
         setZavuStatus(statusData);
+      }
+
+      if (settingsRes.ok) {
+        const setJson = await settingsRes.json();
+        if (setJson?.settings) {
+          setGatewaySettings({
+            provider: setJson.settings.provider || 'WAAPI',
+            waapiApiKey: setJson.settings.waapiApiKeyFull || setJson.settings.waapiApiKey || '',
+            waapiApiKeyFull: setJson.settings.waapiApiKeyFull || '',
+            waapiInstanceId: setJson.settings.waapiInstanceId || '102791',
+            zavuApiKey: setJson.settings.zavuApiKeyFull || setJson.settings.zavuApiKey || '',
+            zavuApiKeyFull: setJson.settings.zavuApiKeyFull || '',
+            isEnabled: setJson.settings.isEnabled !== false,
+          });
+        }
       }
 
       if (contactsRes.ok) {
@@ -389,6 +422,57 @@ export default function AdminWhatsAppPage() {
       showToast('Network error saving bot config.', 'error');
     } finally {
       setIsSavingBot(false);
+    }
+  };
+
+  const handleSyncGroups = async () => {
+    setIsSyncingGroups(true);
+    try {
+      const res = await fetch('/api/admin/whatsapp/sync-groups', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          instanceId: gatewaySettings.waapiInstanceId || '102791',
+          apiKey: gatewaySettings.waapiApiKey,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast(data.message || 'WhatsApp groups synced successfully!', 'success');
+        if (data.groups) setGroups(data.groups);
+        await loadData({ silent: true });
+      } else {
+        showToast(data.message || 'Failed to sync groups. Please check your WaAPI Token & Instance.', 'error');
+      }
+    } catch (err: any) {
+      showToast(err?.message || 'Sync failed.', 'error');
+    } finally {
+      setIsSyncingGroups(false);
+    }
+  };
+
+  const handleSaveGatewaySettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingSettings(true);
+    try {
+      const res = await fetch('/api/admin/whatsapp/settings', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(gatewaySettings),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast('WhatsApp Gateway settings saved successfully!', 'success');
+        await loadData();
+      } else {
+        showToast(data.message || 'Failed to save settings.', 'error');
+      }
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to save settings.', 'error');
+    } finally {
+      setIsSavingSettings(false);
     }
   };
 
@@ -1647,54 +1731,89 @@ export default function AdminWhatsAppPage() {
               </p>
             </div>
 
-            <button
-              onClick={() => setGroupModalOpen(true)}
-              className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 cursor-pointer self-start sm:self-auto"
-            >
-              <PlusCircle className="w-3.5 h-3.5" />
-              <span>Add New Group</span>
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-            {groups.map((grp) => (
-              <div
-                key={grp.id}
-                className="p-4 rounded-2xl bg-[#F8FAFC] border border-slate-200 space-y-3 shadow-2xs flex flex-col justify-between hover:border-emerald-300 transition-all"
+            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+              <button
+                onClick={handleSyncGroups}
+                disabled={isSyncingGroups}
+                className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-sm cursor-pointer disabled:opacity-50 active:scale-95 transition-all"
               >
-                <div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100/60 text-emerald-800 border border-emerald-200 uppercase">
-                      {grp.category.replace('_', ' ')}
-                    </span>
-                    <button
-                      onClick={() => handleDeleteGroup(grp.id)}
-                      className="text-slate-400 hover:text-red-600 p-1 cursor-pointer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${isSyncingGroups ? 'animate-spin' : ''}`} />
+                <span>{isSyncingGroups ? 'Syncing...' : 'Sync Groups from WhatsApp'}</span>
+              </button>
 
-                  <h3 className="font-bold text-slate-900 text-sm mt-2">{grp.name}</h3>
-                  {grp.description && (
-                    <p className="text-xs text-slate-500 mt-1 line-clamp-2">{grp.description}</p>
-                  )}
-                </div>
-
-                <div className="pt-2 border-t border-slate-200/60 space-y-1">
-                  <div className="text-[10px] text-slate-500 font-mono truncate">
-                    Target: <strong className="text-slate-800">{grp.identifier}</strong>
-                  </div>
-                  {grp.memberCount ? (
-                    <div className="text-[11px] text-slate-600 font-semibold flex items-center gap-1">
-                      <Users className="w-3 h-3 text-slate-400" />
-                      <span>~{grp.memberCount} Members</span>
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-            ))}
+              <button
+                onClick={() => setGroupModalOpen(true)}
+                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 cursor-pointer self-start sm:self-auto active:scale-95 transition-all"
+              >
+                <PlusCircle className="w-3.5 h-3.5" />
+                <span>Add New Group</span>
+              </button>
+            </div>
           </div>
+
+          {groups.length === 0 ? (
+            <div className="p-12 text-center rounded-2xl bg-[#F8FAFC] border border-dashed border-slate-300 space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
+                <Users className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-800 text-sm">No WhatsApp Groups Connected Yet</h3>
+                <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
+                  Click <strong>&quot;Sync Groups from WhatsApp&quot;</strong> to automatically import your active WhatsApp groups from your linked device, or click <strong>&quot;Add New Group&quot;</strong> to add one manually with an invite link.
+                </p>
+              </div>
+              <div className="pt-2 flex items-center justify-center gap-2">
+                <button
+                  onClick={handleSyncGroups}
+                  disabled={isSyncingGroups}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isSyncingGroups ? 'animate-spin' : ''}`} />
+                  <span>Sync WhatsApp Groups</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+              {groups.map((grp) => (
+                <div
+                  key={grp.id}
+                  className="p-4 rounded-2xl bg-[#F8FAFC] border border-slate-200 space-y-3 shadow-2xs flex flex-col justify-between hover:border-emerald-300 transition-all"
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100/60 text-emerald-800 border border-emerald-200 uppercase">
+                        {grp.category.replace('_', ' ')}
+                      </span>
+                      <button
+                        onClick={() => handleDeleteGroup(grp.id)}
+                        className="text-slate-400 hover:text-red-600 p-1 cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <h3 className="font-bold text-slate-900 text-sm mt-2">{grp.name}</h3>
+                    {grp.description && (
+                      <p className="text-xs text-slate-500 mt-1 line-clamp-2">{grp.description}</p>
+                    )}
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-200/60 space-y-1">
+                    <div className="text-[10px] text-slate-500 font-mono truncate">
+                      Target: <strong className="text-slate-800">{grp.identifier}</strong>
+                    </div>
+                    {grp.memberCount ? (
+                      <div className="text-[11px] text-slate-600 font-semibold flex items-center gap-1">
+                        <Users className="w-3 h-3 text-slate-400" />
+                        <span>~{grp.memberCount} Members</span>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -1746,57 +1865,184 @@ export default function AdminWhatsAppPage() {
       {/* 11. TAB 7: API CONFIG & TEST                             */}
       {/* ======================================================== */}
       {activeTab === 'SETTINGS' && (
-        <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] p-5 sm:p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)] space-y-5 max-w-2xl">
-          <div className="border-b border-[#F1F5F9] pb-3">
-            <h2 className="text-base font-bold text-[#0F172A]">Zavu WhatsApp API Gateway Settings</h2>
-            <p className="text-xs text-slate-500">Connection details and live test messaging tool.</p>
-          </div>
-
-          <div className="space-y-3 text-xs">
-            <div className="p-4 rounded-xl bg-[#F8FAFC] border border-slate-200 space-y-2">
-              <span className="font-bold text-slate-700 block">Sender Account:</span>
-              <div className="font-mono text-emerald-700 font-bold">{zavuStatus?.activeSender?.phoneNumber || '+880 1846-587311'}</div>
-              <div className="text-[11px] text-slate-500">Gateway Status: {zavuStatus?.connected !== false ? '🟢 Connected' : '🔴 Offline'}</div>
+        <div className="space-y-6 max-w-3xl">
+          {/* Main Gateway Settings Card */}
+          <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] p-5 sm:p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)] space-y-5">
+            <div className="border-b border-[#F1F5F9] pb-3">
+              <h2 className="text-base font-bold text-[#0F172A]">WhatsApp Gateway & Provider Settings</h2>
+              <p className="text-xs text-slate-500">Configure your WaAPI instance token or Zavu credentials.</p>
             </div>
 
-            <div className="space-y-2 pt-2">
-              <label className="block text-slate-700 font-bold">Send Live Test Message:</label>
-              <div className="flex gap-2">
+            <form onSubmit={handleSaveGatewaySettings} className="space-y-5 text-xs font-medium">
+              {/* Active Provider Selector */}
+              <div>
+                <label className="block text-slate-700 font-bold mb-1.5">Active WhatsApp Gateway Provider *</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label className={`p-3.5 rounded-2xl border cursor-pointer flex items-center gap-3 transition-all ${
+                    gatewaySettings.provider === 'WAAPI'
+                      ? 'bg-emerald-50/70 border-emerald-500 text-emerald-950 ring-2 ring-emerald-500/20'
+                      : 'bg-[#F8FAFC] border-slate-200 text-slate-700 hover:border-slate-300'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="provider"
+                      value="WAAPI"
+                      checked={gatewaySettings.provider === 'WAAPI'}
+                      onChange={() => setGatewaySettings(prev => ({ ...prev, provider: 'WAAPI' }))}
+                      className="text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <div>
+                      <div className="font-bold text-xs">WaAPI (QR Device Linked)</div>
+                      <div className="text-[11px] text-slate-500">Auto-syncs all groups & sends from personal number</div>
+                    </div>
+                  </label>
+
+                  <label className={`p-3.5 rounded-2xl border cursor-pointer flex items-center gap-3 transition-all ${
+                    gatewaySettings.provider === 'ZAVU'
+                      ? 'bg-emerald-50/70 border-emerald-500 text-emerald-950 ring-2 ring-emerald-500/20'
+                      : 'bg-[#F8FAFC] border-slate-200 text-slate-700 hover:border-slate-300'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="provider"
+                      value="ZAVU"
+                      checked={gatewaySettings.provider === 'ZAVU'}
+                      onChange={() => setGatewaySettings(prev => ({ ...prev, provider: 'ZAVU' }))}
+                      className="text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <div>
+                      <div className="font-bold text-xs">Zavu (Cloud API)</div>
+                      <div className="text-[11px] text-slate-500">Official Meta WhatsApp Business Cloud gateway</div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* WaAPI Configuration Box */}
+              <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-slate-200 space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                    WaAPI Instance Credentials
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800">
+                    Instance #{gatewaySettings.waapiInstanceId || '102791'}
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">WaAPI API Token (Bearer Token) *</label>
+                  <input
+                    type="text"
+                    value={gatewaySettings.waapiApiKey}
+                    onChange={(e) => setGatewaySettings(prev => ({ ...prev, waapiApiKey: e.target.value }))}
+                    placeholder="Paste WaAPI API Token (e.g. cMm1iOuY0d6xwpO...)"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E2E8F0] text-xs font-mono text-slate-900 focus:outline-none focus:border-emerald-600"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">Instance ID *</label>
+                    <input
+                      type="text"
+                      value={gatewaySettings.waapiInstanceId}
+                      onChange={(e) => setGatewaySettings(prev => ({ ...prev, waapiInstanceId: e.target.value }))}
+                      placeholder="102791"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E2E8F0] text-xs font-mono text-slate-900 focus:outline-none focus:border-emerald-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">Webhook URL (Copy to WaAPI)</label>
+                    <div className="flex gap-1.5">
+                      <input
+                        type="text"
+                        readOnly
+                        value="https://brk-esports.vercel.app/api/webhooks/whatsapp"
+                        className="flex-1 px-3 py-2 rounded-xl bg-slate-100 border border-slate-200 text-[11px] font-mono text-slate-700 select-all cursor-text"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText('https://brk-esports.vercel.app/api/webhooks/whatsapp');
+                          showToast('Webhook URL copied to clipboard!', 'success');
+                        }}
+                        className="p-2.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 cursor-pointer shrink-0"
+                        title="Copy Webhook URL"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Zavu Configuration Box */}
+              <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-slate-200 space-y-3">
+                <span className="font-bold text-slate-900 text-xs block">Zavu Cloud API Key (Optional / Fallback)</span>
                 <input
                   type="text"
-                  value={testPhone}
-                  onChange={(e) => setTestPhone(e.target.value)}
-                  placeholder="+88017XXXXXXXX"
-                  className="flex-1 px-3.5 py-2.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-mono text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white"
+                  value={gatewaySettings.zavuApiKey}
+                  onChange={(e) => setGatewaySettings(prev => ({ ...prev, zavuApiKey: e.target.value }))}
+                  placeholder="zv_live_..."
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E2E8F0] text-xs font-mono text-slate-900 focus:outline-none focus:border-emerald-600"
                 />
-                <button
-                  type="button"
-                  disabled={isSendingTest || !testPhone.trim()}
-                  onClick={async () => {
-                    setIsSendingTest(true);
-                    try {
-                      const res = await fetch('/api/admin/whatsapp/test', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ phone: testPhone.trim() }),
-                      });
-                      const d = await res.json();
-                      if (res.ok) {
-                        showToast('Test message sent successfully!', 'success');
-                      } else {
-                        showToast(d.message || 'Test failed.', 'error');
-                      }
-                    } catch {
-                      showToast('Network error.', 'error');
-                    } finally {
-                      setIsSendingTest(false);
-                    }
-                  }}
-                  className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shrink-0 cursor-pointer disabled:opacity-50"
-                >
-                  {isSendingTest ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send Test'}
-                </button>
               </div>
+
+              <button
+                type="submit"
+                disabled={isSavingSettings}
+                className="w-full sm:w-auto px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 cursor-pointer disabled:opacity-50 active:scale-95 transition-all"
+              >
+                {isSavingSettings ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                <span>{isSavingSettings ? 'Saving Settings...' : 'Save WhatsApp Settings'}</span>
+              </button>
+            </form>
+          </div>
+
+          {/* Test Message Tool */}
+          <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] p-5 sm:p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)] space-y-3 text-xs">
+            <div className="border-b border-[#F1F5F9] pb-3">
+              <h3 className="font-bold text-slate-900 text-sm">Send Live Test Message</h3>
+              <p className="text-[11px] text-slate-500">Verify end-to-end messaging using your active gateway.</p>
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <input
+                type="text"
+                value={testPhone}
+                onChange={(e) => setTestPhone(e.target.value)}
+                placeholder="+88017XXXXXXXX"
+                className="flex-1 px-3.5 py-2.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-mono text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white"
+              />
+              <button
+                type="button"
+                disabled={isSendingTest || !testPhone.trim()}
+                onClick={async () => {
+                  setIsSendingTest(true);
+                  try {
+                    const res = await fetch('/api/admin/whatsapp/test', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ phone: testPhone.trim() }),
+                    });
+                    const d = await res.json();
+                    if (res.ok && d.success) {
+                      showToast(d.message || 'Test message sent successfully!', 'success');
+                    } else {
+                      showToast(d.message || 'Test failed.', 'error');
+                    }
+                  } catch {
+                    showToast('Network error.', 'error');
+                  } finally {
+                    setIsSendingTest(false);
+                  }
+                }}
+                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shrink-0 cursor-pointer disabled:opacity-50 active:scale-95 transition-all"
+              >
+                {isSendingTest ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send Test'}
+              </button>
             </div>
           </div>
         </div>

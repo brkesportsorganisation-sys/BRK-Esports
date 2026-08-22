@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyAdminSession, requireAdminRole } from '@/lib/admin-auth';
-import { getZavuClient, normalizePhoneNumber, addWhatsAppLog, getDefaultSenderId } from '@/lib/whatsapp';
+import { sendDirectWhatsappMessage, normalizePhoneNumber } from '@/lib/whatsapp';
 
 async function getSession() {
   const cookieStore = await cookies();
@@ -24,50 +24,34 @@ export async function POST(req: NextRequest) {
     }
 
     const formattedPhone = normalizePhoneNumber(phone);
-    if (!formattedPhone || formattedPhone.length < 10) {
+    if (!formattedPhone || formattedPhone.length < 5) {
       return NextResponse.json({ message: 'Invalid phone number format.' }, { status: 400 });
     }
 
-    const { client, error } = await getZavuClient();
-    if (!client) {
-      return NextResponse.json({ message: error || 'Failed to initialize Zavu WhatsApp client.' }, { status: 500 });
-    }
-
-    // Auto-detect Sender ID (prioritizes Bangladesh sender)
-    const senderId = await getDefaultSenderId(client);
-
-    // Send direct message — 'Zavu-Sender' goes inside the params object (1st arg)
-    const result = await client.messages.send({
-      channel: 'whatsapp',
+    const res = await sendDirectWhatsappMessage({
       to: formattedPhone,
       text: message.trim(),
-      ...(senderId ? { 'Zavu-Sender': senderId } : {}),
+      targetName: recipientName || 'Direct Player',
+      triggerType: templateType === 'ROOM_ID' ? 'ROOM_ALERT' : 'INSTANT_BROADCAST',
     });
 
-    // Record log
-    await addWhatsAppLog({
-      targetDestination: formattedPhone,
-      targetName: recipientName || 'Direct Player',
-      messageText: message.trim(),
-      triggerType: templateType === 'ROOM_ID' ? 'ROOM_ALERT' : 'INSTANT_BROADCAST',
-      status: 'SENT',
-      responseId: String((result as any)?.message?.id || (result as any)?.id || ''),
-    });
+    if (!res.success) {
+      return NextResponse.json({
+        success: false,
+        message: res.message || 'Failed to send WhatsApp message.',
+      }, { status: 400 });
+    }
 
     return NextResponse.json({
       success: true,
       message: `WhatsApp message dispatched to ${recipientName || formattedPhone} (${formattedPhone})!`,
-      result,
+      result: (res as any).response || (res as any).data,
     });
   } catch (err: any) {
     console.error('[POST /api/admin/whatsapp/direct-send]', err);
-    let errMsg = err?.message || 'Failed to send WhatsApp message via API.';
-    if (errMsg.includes('24 hours') || errMsg.includes('Re-engagement') || errMsg.includes('outside the allowed window') || errMsg.includes('session')) {
-      errMsg = 'Meta WhatsApp Policy: এই নম্বরে message পাঠাতে হলে প্লেয়ারকে আগে আপনার নম্বরে (+880 1846-587311) একটি মেসেজ দিয়ে 24 ঘণ্টার উইন্ডো খুলতে হবে। অথবা Zavu Dashboard থেকে Approved WhatsApp Template ব্যবহার করুন।';
-    }
     return NextResponse.json({
       success: false,
-      message: errMsg,
+      message: err?.message || 'Failed to send WhatsApp message.',
     }, { status: 500 });
   }
 }

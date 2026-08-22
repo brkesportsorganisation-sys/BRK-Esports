@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyAdminSession, requireAdminRole } from '@/lib/admin-auth';
-import { getZavuClient } from '@/lib/whatsapp';
+import { getWhatsAppSettings, getZavuClient } from '@/lib/whatsapp';
 
 async function getSession() {
   const cookieStore = await cookies();
@@ -16,27 +16,76 @@ export async function GET() {
   }
 
   try {
+    const settings = await getWhatsAppSettings();
+
+    // 1. WaAPI Status Check
+    if (settings.provider === 'WAAPI' && settings.waapiApiKey) {
+      const instId = settings.waapiInstanceId || '102791';
+      try {
+        const res = await fetch(`https://waapi.app/api/v1/instances/${instId}`, {
+          headers: {
+            'Authorization': `Bearer ${settings.waapiApiKey}`,
+            'Accept': 'application/json',
+          },
+        });
+        const json = await res.json().catch(() => ({}));
+
+        if (res.ok) {
+          const inst = json.instance || json.data || json;
+          const statusStr = inst.status || 'ready';
+          const isConnected = statusStr === 'ready' || statusStr === 'authenticated' || statusStr === 'CONNECTED';
+
+          return NextResponse.json({
+            connected: isConnected,
+            provider: 'WAAPI',
+            statusText: statusStr.toUpperCase(),
+            account: {
+              projectName: 'BRK ESPORTS ORG (WaAPI)',
+              teamName: inst.name || 'Esports Manager',
+              instanceId: instId,
+            },
+            senders: [
+              {
+                id: `waapi_${instId}`,
+                name: inst.name || 'Esports Manager',
+                phoneNumber: inst.owner || '+880 1846-587311',
+                isDefault: true,
+              },
+            ],
+            activeSender: {
+              id: `waapi_${instId}`,
+              name: inst.name || 'Esports Manager',
+              phoneNumber: inst.owner || '+880 1846-587311',
+            },
+          });
+        }
+      } catch (err: any) {
+        console.warn('[WaAPI Status Check Error]', err?.message);
+      }
+    }
+
+    // 2. Zavu Status Check
     const { client, error } = await getZavuClient();
     if (!client) {
       return NextResponse.json({
         connected: false,
-        error: error || 'Zavu API client could not be initialized.',
+        provider: settings.provider,
+        error: error || 'WhatsApp client could not be initialized.',
       });
     }
 
-    // 1. Fetch Account Info
+    // Fetch Account Info
     const me = await client.me.retrieve().catch(err => {
       console.warn('[Zavu Me]', err?.message);
       return null;
     });
 
-    // 2. Fetch Live Senders
+    // Fetch Live Senders
     const senders: any[] = [];
     try {
       const seenPhoneNumberIds = new Set<string>();
       for await (const s of client.senders.list()) {
-        const phoneNumId = (s as any).whatsapp?.phoneNumberId || '';
-        // Deduplicate senders that share the same underlying phone number
+        const phoneNumId = (s as any).whatsapp?.phoneNumberId || s.id;
         if (phoneNumId && seenPhoneNumberIds.has(phoneNumId)) continue;
         if (phoneNumId) seenPhoneNumberIds.add(phoneNumId);
 
@@ -59,7 +108,7 @@ export async function GET() {
       console.warn('[Zavu Senders List]', sErr?.message);
     }
 
-    // 3. Fetch Balance
+    // Fetch Balance
     let balanceData = null;
     try {
       const b = await client.balance.retrieve();
@@ -71,6 +120,7 @@ export async function GET() {
 
     return NextResponse.json({
       connected: true,
+      provider: 'ZAVU',
       account: {
         projectName: me?.project?.name || 'BRK ESPORTS ORG',
         teamName: me?.team?.name || 'BRK ESPORTS ORG',
@@ -87,7 +137,7 @@ export async function GET() {
   } catch (error: any) {
     console.error('[GET /api/admin/whatsapp/status]', error);
     return NextResponse.json(
-      { connected: false, message: error?.message || 'Failed to fetch Zavu status.' },
+      { connected: false, message: error?.message || 'Failed to fetch WhatsApp status.' },
       { status: 500 }
     );
   }
