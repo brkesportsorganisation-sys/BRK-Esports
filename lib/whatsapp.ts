@@ -393,16 +393,19 @@ export async function sendRoomDetailsToPlayer({
       apiKey: settings.waapiApiKey,
     });
 
-    await addWhatsAppLog({
-      targetDestination: formattedPhone,
-      targetName: playerName,
-      messageText: text,
-      triggerType: 'ROOM_ALERT',
-      status: waapiRes.success ? 'SENT' : 'FAILED',
-      error: waapiRes.success ? undefined : waapiRes.message,
-    });
+    if (waapiRes.success) {
+      await addWhatsAppLog({
+        targetDestination: formattedPhone,
+        targetName: playerName,
+        messageText: text,
+        triggerType: 'ROOM_ALERT',
+        status: 'SENT',
+        responseId: (waapiRes.data as any)?.id || 'waapi_sent',
+      });
+      return waapiRes;
+    }
 
-    return waapiRes;
+    console.warn(`[WhatsApp] WaAPI room alert failed (${waapiRes.message}). Falling back to Zavu for ${formattedPhone}...`);
   }
 
   // 2. Otherwise send via Zavu SDK
@@ -491,16 +494,37 @@ export async function sendDirectWhatsappMessage({
       apiKey: settings.waapiApiKey,
     });
 
-    await addWhatsAppLog({
-      targetDestination: formattedTo,
-      targetName,
-      messageText: text,
-      triggerType,
-      status: waapiRes.success ? 'SENT' : 'FAILED',
-      error: waapiRes.success ? undefined : waapiRes.message,
-    });
+    if (waapiRes.success) {
+      await addWhatsAppLog({
+        targetDestination: formattedTo,
+        targetName,
+        messageText: text,
+        triggerType,
+        status: 'SENT',
+        responseId: (waapiRes.data as any)?.id || 'waapi_sent',
+      });
+      return waapiRes;
+    }
 
-    return waapiRes;
+    // If destination is a WhatsApp Group (@g.us), WaAPI is strictly required
+    if (formattedTo.includes('@g.us') || formattedTo.includes('chat.whatsapp.com')) {
+      let friendlyError = waapiRes.message;
+      if (friendlyError.includes('trial') || friendlyError.includes('Trial')) {
+        friendlyError = '⚠️ WaAPI Trial Limit: Free Trial অ্যাকাউন্টে WhatsApp Group-এ মেসেজ পাঠানো যায় না। WaAPI প্ল্যান আপগ্রেড প্রয়োজন।';
+      }
+      await addWhatsAppLog({
+        targetDestination: formattedTo,
+        targetName,
+        messageText: text,
+        triggerType,
+        status: 'FAILED',
+        error: friendlyError,
+      });
+      return { success: false, message: friendlyError };
+    }
+
+    // If destination is an individual phone number and WaAPI failed, smoothly fallback to Zavu SDK!
+    console.warn(`[WhatsApp] WaAPI dispatch failed (${waapiRes.message}). Falling back to Zavu for ${formattedTo}...`);
   }
 
   // 2. Otherwise send via Zavu SDK
