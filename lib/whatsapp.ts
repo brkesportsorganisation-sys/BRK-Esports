@@ -993,6 +993,14 @@ export function calculateNextRunTime(schedule: WhatsAppSchedule): string {
     return new Date(now.getTime() + 60000).toISOString();
   }
 
+  if (schedule.frequency === 'EVERY_1_MIN') {
+    return new Date(now.getTime() + 1 * 60 * 1000).toISOString();
+  }
+
+  if (schedule.frequency === 'EVERY_2_MIN') {
+    return new Date(now.getTime() + 2 * 60 * 1000).toISOString();
+  }
+
   if (schedule.frequency === 'EVERY_5_MIN') {
     return new Date(now.getTime() + 5 * 60 * 1000).toISOString();
   }

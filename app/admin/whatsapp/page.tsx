@@ -1411,7 +1411,9 @@ export default function AdminWhatsAppPage() {
                         <div className="flex items-center justify-between text-[11px]">
                           <span className="text-slate-500">Frequency:</span>
                           <strong className="text-slate-800">
-                            {s.frequency === 'EVERY_5_MIN' ? 'Every 5 Mins' :
+                            {s.frequency === 'EVERY_1_MIN' ? '⚡ Every 1 Min' :
+                             s.frequency === 'EVERY_2_MIN' ? '⚡ Every 2 Mins' :
+                             s.frequency === 'EVERY_5_MIN' ? 'Every 5 Mins' :
                              s.frequency === 'EVERY_10_MIN' ? 'Every 10 Mins' :
                              s.frequency === 'EVERY_15_MIN' ? 'Every 15 Mins' :
                              s.frequency === 'EVERY_30_MIN' ? 'Every 30 Mins' :
@@ -1500,7 +1502,9 @@ export default function AdminWhatsAppPage() {
 
                           <td className="px-4 py-3.5">
                             <span className="font-bold text-slate-900 block">
-                              {s.frequency === 'EVERY_5_MIN' ? 'Every 5 Minutes' :
+                              {s.frequency === 'EVERY_1_MIN' ? '⚡ Every 1 Minute' :
+                               s.frequency === 'EVERY_2_MIN' ? '⚡ Every 2 Minutes' :
+                               s.frequency === 'EVERY_5_MIN' ? 'Every 5 Minutes' :
                                s.frequency === 'EVERY_10_MIN' ? 'Every 10 Minutes' :
                                s.frequency === 'EVERY_15_MIN' ? 'Every 15 Minutes' :
                                s.frequency === 'EVERY_30_MIN' ? 'Every 30 Minutes' :
@@ -2281,6 +2285,8 @@ export default function AdminWhatsAppPage() {
                       onChange={(e) => setFormFrequency(e.target.value as WhatsAppFrequency)}
                       className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
                     >
+                      <option value="EVERY_1_MIN">⚡ Every 1 Minute (প্রতি ১ মিনিট)</option>
+                      <option value="EVERY_2_MIN">⚡ Every 2 Minutes (প্রতি ২ মিনিট)</option>
                       <option value="EVERY_5_MIN">Every 5 Minutes (প্রতি ৫ মিনিট)</option>
                       <option value="EVERY_10_MIN">Every 10 Minutes (প্রতি ১০ মিনিট)</option>
                       <option value="EVERY_15_MIN">Every 15 Minutes (প্রতি ১৫ মিনিট)</option>

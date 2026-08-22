@@ -832,7 +832,7 @@ export interface SupportTicket {
 
 export type WhatsAppTargetType = 'GROUP' | 'COMMUNITY' | 'TOURNAMENT_CAPTAINS' | 'CUSTOM_PHONE' | 'ALL_REGISTERED';
 export type WhatsAppMessageType = 'TEMPLATE' | 'CUSTOM_TEXT' | 'ROOM_ALERT' | 'REGISTRATION_REMINDER' | 'MATCH_COUNTDOWN' | 'PROMO' | 'ROTATIONAL';
-export type WhatsAppFrequency = 'ONCE' | 'EVERY_5_MIN' | 'EVERY_10_MIN' | 'EVERY_15_MIN' | 'EVERY_30_MIN' | 'EVERY_1_HOUR' | 'EVERY_2_HOURS' | 'EVERY_6_HOURS' | 'EVERY_12_HOURS' | 'DAILY' | 'INTERVAL_MINUTES';
+export type WhatsAppFrequency = 'ONCE' | 'EVERY_1_MIN' | 'EVERY_2_MIN' | 'EVERY_5_MIN' | 'EVERY_10_MIN' | 'EVERY_15_MIN' | 'EVERY_30_MIN' | 'EVERY_1_HOUR' | 'EVERY_2_HOURS' | 'EVERY_6_HOURS' | 'EVERY_12_HOURS' | 'DAILY' | 'INTERVAL_MINUTES';
 
 export interface WhatsAppSchedule {
   id: string;
