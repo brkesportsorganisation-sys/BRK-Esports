@@ -181,11 +181,26 @@ export default function AdminWhatsAppPage() {
   const [groupDescription, setGroupDescription] = useState('');
   const [groupMemberCount, setGroupMemberCount] = useState('100');
 
-  // 3. Instant Broadcast State
-  const [broadcastTarget, setBroadcastTarget] = useState('ALL_REGISTERED');
+  // 3. Instant Broadcast State (Multi-Group Support)
+  const [broadcastTargetMode, setBroadcastTargetMode] = useState<'ALL_GROUPS' | 'SELECTED_GROUPS' | 'ALL_REGISTERED'>('SELECTED_GROUPS');
+  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
   const [broadcastMessage, setBroadcastMessage] = useState(`🎮 BRK ESPORTS TOURNAMENT NOTIFICATION 🎮\n\nআজকের টুর্নামেন্টের রুম আইডি ও জরুরি আপডেট প্রকাশ করা হয়েছে!\n\nসবাই দ্রুত অ্যাপে লগইন করে রুম চেক করুন: https://brkesports.com`);
   const [broadcastImageUrl, setBroadcastImageUrl] = useState('');
   const [isBroadcasting, setIsBroadcasting] = useState(false);
+
+  const toggleGroupSelection = (identifier: string) => {
+    setSelectedGroupIds(prev => 
+      prev.includes(identifier) ? prev.filter(i => i !== identifier) : [...prev, identifier]
+    );
+  };
+
+  const toggleSelectAllGroups = () => {
+    if (selectedGroupIds.length === groups.length) {
+      setSelectedGroupIds([]);
+    } else {
+      setSelectedGroupIds(groups.map(g => g.identifier || g.id));
+    }
+  };
 
   // 4. API Settings State
   const [testPhone, setTestPhone] = useState('');
@@ -219,9 +234,12 @@ export default function AdminWhatsAppPage() {
         setLogs(data.logs || []);
         if (data.stats) setStats(data.stats);
 
-        if (data.groups && data.groups.length > 0 && !formTargetDestination) {
-          setFormTargetDestination(data.groups[0].identifier || data.groups[0].id);
-          setFormTargetName(data.groups[0].name);
+        if (data.groups && data.groups.length > 0) {
+          setSelectedGroupIds(prev => prev.length === 0 ? data.groups.map((g: any) => g.identifier || g.id) : prev);
+          if (!formTargetDestination) {
+            setFormTargetDestination('ALL_GROUPS');
+            setFormTargetName('All Connected Groups');
+          }
         }
       }
 
@@ -694,9 +712,14 @@ export default function AdminWhatsAppPage() {
       return;
     }
 
+    if (broadcastTargetMode === 'SELECTED_GROUPS' && selectedGroupIds.length === 0) {
+      showToast('Please select at least one WhatsApp group.', 'error');
+      return;
+    }
+
     setIsBroadcasting(true);
     try {
-      if (broadcastTarget === 'ALL_REGISTERED') {
+      if (broadcastTargetMode === 'ALL_REGISTERED') {
         const res = await fetch('/api/admin/whatsapp/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -707,6 +730,7 @@ export default function AdminWhatsAppPage() {
             roomId: 'INFO',
             pass: 'INFO',
             customMessage: broadcastMessage.trim(),
+            imageUrl: broadcastImageUrl.trim() || undefined,
           }),
         });
 
@@ -719,30 +743,50 @@ export default function AdminWhatsAppPage() {
           showToast(data.message || 'No registered captains found to broadcast.', 'error');
         }
       } else {
-        // Direct broadcast to the specific WhatsApp Group or JID!
-        const targetGroup = groups.find(g => g.identifier === broadcastTarget || g.id === broadcastTarget);
-        const groupDisplayName = targetGroup?.name || 'WhatsApp Group';
+        // Multi-Group Broadcast (ALL_GROUPS or SELECTED_GROUPS)
+        const targetList = broadcastTargetMode === 'ALL_GROUPS'
+          ? groups
+          : groups.filter(g => selectedGroupIds.includes(g.identifier) || selectedGroupIds.includes(g.id));
 
-        const res = await fetch('/api/admin/whatsapp/direct-send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            phone: broadcastTarget,
-            recipientName: groupDisplayName,
-            message: broadcastMessage.trim(),
-            imageUrl: broadcastImageUrl.trim() || undefined,
-            templateType: 'GROUP_BROADCAST',
-          }),
-          credentials: 'include',
-        });
+        if (targetList.length === 0) {
+          showToast('No WhatsApp groups found to broadcast.', 'error');
+          return;
+        }
 
-        const data = await res.json();
-        if (res.ok && data.success) {
-          showToast(`✅ Broadcast delivered to "${groupDisplayName}"!`, 'success');
+        let sentSuccess = 0;
+        let sentFailed = 0;
+
+        for (const grp of targetList) {
+          try {
+            const res = await fetch('/api/admin/whatsapp/direct-send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                phone: grp.identifier,
+                recipientName: grp.name || 'WhatsApp Group',
+                message: broadcastMessage.trim(),
+                imageUrl: broadcastImageUrl.trim() || undefined,
+                templateType: 'GROUP_BROADCAST',
+              }),
+              credentials: 'include',
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+              sentSuccess++;
+            } else {
+              sentFailed++;
+            }
+          } catch {
+            sentFailed++;
+          }
+        }
+
+        if (sentSuccess > 0) {
+          showToast(`✅ Broadcast delivered to ${sentSuccess} WhatsApp group(s)!${sentFailed > 0 ? ` (${sentFailed} failed)` : ''}`, 'success');
           setBroadcastMessage('');
           await loadData();
         } else {
-          showToast(data.message || 'Failed to dispatch broadcast to group.', 'error');
+          showToast(`❌ Failed to deliver to ${sentFailed} group(s).`, 'error');
         }
       }
     } catch (err: any) {
@@ -1713,21 +1757,117 @@ export default function AdminWhatsAppPage() {
             </div>
 
             <form onSubmit={handleInstantBroadcast} className="space-y-4 text-xs font-medium">
+              {/* Target Mode Selector */}
               <div>
-                <label className="block text-slate-700 font-bold mb-1.5">Select Target Audience / Group *</label>
-                <select
-                  value={broadcastTarget}
-                  onChange={(e) => setBroadcastTarget(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
-                >
-                  <option value="ALL_REGISTERED">👥 All Verified Squad Captains ({contacts.length} players)</option>
-                  {groups.map((g) => (
-                    <option key={g.id} value={g.identifier}>
-                      💬 {g.name} ({g.category})
-                    </option>
-                  ))}
-                </select>
+                <label className="block text-slate-700 font-bold mb-1.5">Broadcast Target Mode *</label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setBroadcastTargetMode('SELECTED_GROUPS')}
+                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                      broadcastTargetMode === 'SELECTED_GROUPS'
+                        ? 'bg-emerald-50 border-emerald-500 text-emerald-950 ring-2 ring-emerald-500/20'
+                        : 'bg-[#F8FAFC] border-slate-200 text-slate-700 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="font-bold text-xs flex items-center justify-between">
+                      <span>🎯 Selected Groups</span>
+                      <span className="px-1.5 py-0.5 rounded bg-emerald-200/70 text-emerald-900 text-[10px]">
+                        {selectedGroupIds.length}
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-slate-500 mt-1">Pick multiple specific groups</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBroadcastTargetMode('ALL_GROUPS');
+                      setSelectedGroupIds(groups.map(g => g.identifier || g.id));
+                    }}
+                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                      broadcastTargetMode === 'ALL_GROUPS'
+                        ? 'bg-emerald-50 border-emerald-500 text-emerald-950 ring-2 ring-emerald-500/20'
+                        : 'bg-[#F8FAFC] border-slate-200 text-slate-700 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="font-bold text-xs flex items-center justify-between">
+                      <span>📢 All Groups</span>
+                      <span className="px-1.5 py-0.5 rounded bg-emerald-200/70 text-emerald-900 text-[10px]">
+                        {groups.length}
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-slate-500 mt-1">Send to all {groups.length} groups at once</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setBroadcastTargetMode('ALL_REGISTERED')}
+                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                      broadcastTargetMode === 'ALL_REGISTERED'
+                        ? 'bg-emerald-50 border-emerald-500 text-emerald-950 ring-2 ring-emerald-500/20'
+                        : 'bg-[#F8FAFC] border-slate-200 text-slate-700 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="font-bold text-xs flex items-center justify-between">
+                      <span>👥 Captains DM</span>
+                      <span className="px-1.5 py-0.5 rounded bg-emerald-200/70 text-emerald-900 text-[10px]">
+                        {contacts.length}
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-slate-500 mt-1">Direct message to registered squad captains</div>
+                  </button>
+                </div>
               </div>
+
+              {/* Multi-Group Checkbox Grid */}
+              {broadcastTargetMode === 'SELECTED_GROUPS' && (
+                <div className="p-3.5 rounded-2xl bg-[#F8FAFC] border border-slate-200 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-800 text-xs">
+                      Select WhatsApp Groups ({selectedGroupIds.length} of {groups.length} selected):
+                    </span>
+                    <button
+                      type="button"
+                      onClick={toggleSelectAllGroups}
+                      className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer"
+                    >
+                      {selectedGroupIds.length === groups.length ? 'Deselect All' : `Select All (${groups.length})`}
+                    </button>
+                  </div>
+
+                  {groups.length === 0 ? (
+                    <p className="text-xs text-slate-400 py-2">No groups synced yet. Go to Connected Groups tab to sync.</p>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+                      {groups.map((g) => {
+                        const isChecked = selectedGroupIds.includes(g.identifier) || selectedGroupIds.includes(g.id);
+                        return (
+                          <label
+                            key={g.id}
+                            className={`p-2.5 rounded-xl border cursor-pointer flex items-start gap-2.5 transition-all text-xs ${
+                              isChecked
+                                ? 'bg-white border-emerald-500 shadow-2xs text-slate-900 ring-1 ring-emerald-500/30'
+                                : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => toggleGroupSelection(g.identifier || g.id)}
+                              className="mt-0.5 text-emerald-600 rounded focus:ring-emerald-500 cursor-pointer"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="font-bold text-xs truncate">{g.name}</div>
+                              <div className="text-[10px] text-slate-400 font-mono truncate">{g.identifier}</div>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div>
                 <label className="block text-slate-700 font-bold mb-1.5 flex items-center justify-between">
@@ -1906,7 +2046,8 @@ export default function AdminWhatsAppPage() {
                     <button
                       type="button"
                       onClick={() => {
-                        setBroadcastTarget(grp.identifier);
+                        setBroadcastTargetMode('SELECTED_GROUPS');
+                        setSelectedGroupIds([grp.identifier || grp.id]);
                         setBroadcastMessage(`🎮 [${grp.name}] টুর্নামেন্ট আপডেট:\n\nরুম আইডি ও জরুরি নোটিশ প্রকাশ করা হয়েছে! সবাই দ্রুত প্রস্তুত থাকুন: https://brkesports.com`);
                         setActiveTab('INSTANT_BROADCAST');
                         showToast(`Selected "${grp.name}". Compose message to send now.`, 'success');
@@ -2286,14 +2427,19 @@ export default function AdminWhatsAppPage() {
                       value={formTargetDestination}
                       onChange={(e) => {
                         setFormTargetDestination(e.target.value);
-                        const sel = groups.find(g => g.identifier === e.target.value || g.id === e.target.value);
-                        if (sel) setFormTargetName(sel.name);
+                        if (e.target.value === 'ALL_GROUPS') {
+                          setFormTargetName(`All Connected Groups (${groups.length})`);
+                        } else {
+                          const sel = groups.find(g => g.identifier === e.target.value || g.id === e.target.value);
+                          if (sel) setFormTargetName(sel.name);
+                        }
                       }}
                       className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
                     >
+                      <option value="ALL_GROUPS">📢 All Connected WhatsApp Groups ({groups.length} groups)</option>
                       {groups.map((g) => (
                         <option key={g.id} value={g.identifier}>
-                          {g.name} ({g.category})
+                          💬 {g.name} ({g.category})
                         </option>
                       ))}
                     </select>

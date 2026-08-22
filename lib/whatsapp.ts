@@ -1180,36 +1180,61 @@ export async function executeScheduledJob(schedule: WhatsAppSchedule): Promise<{
 
   if (schedule.targetType === 'GROUP' || schedule.targetType === 'COMMUNITY') {
     const allGroups = await getWhatsAppTargetGroups();
-    const matched = allGroups.find(
-      g => g.id === schedule.targetDestination || g.identifier === schedule.targetDestination || g.name === schedule.targetName
-    );
-    const identifier = matched ? matched.identifier : schedule.targetDestination;
-    const resolvedName = matched ? matched.name : (schedule.targetName || 'WhatsApp Group');
 
-    if (identifier === 'TOURNAMENT_CAPTAINS' || identifier === 'ALL_REGISTERED') {
-      try {
-        const { data: regs } = await supabaseAdmin
-          .from('Participant')
-          .select('captainWhatsApp, iglName, squadName, tournamentId, status')
-          .eq('status', 'VERIFIED')
-          .not('captainWhatsApp', 'is', null);
-
-        if (regs && regs.length > 0) {
-          recipients = regs
-            .filter(r => r.captainWhatsApp && r.captainWhatsApp.trim().length > 0)
-            .map(r => ({
-              phone: r.captainWhatsApp,
-              name: r.iglName || r.squadName || 'Captain',
-            }));
+    if (schedule.targetDestination === 'ALL_GROUPS') {
+      for (const g of allGroups) {
+        if (g.identifier) {
+          recipients.push({
+            phone: g.identifier,
+            name: g.name || 'WhatsApp Group',
+          });
         }
-      } catch (err) {
-        console.warn('[executeScheduledJob] could not fetch registrations:', err);
       }
-    } else if (identifier) {
-      recipients.push({
-        phone: identifier,
-        name: resolvedName,
-      });
+    } else if (schedule.targetDestination.includes(',')) {
+      const ids = schedule.targetDestination.split(',').map(s => s.trim()).filter(Boolean);
+      for (const id of ids) {
+        const matched = allGroups.find(g => g.id === id || g.identifier === id || g.name === id);
+        const identifier = matched ? matched.identifier : id;
+        const resolvedName = matched ? matched.name : (schedule.targetName || 'WhatsApp Group');
+        if (identifier) {
+          recipients.push({
+            phone: identifier,
+            name: resolvedName,
+          });
+        }
+      }
+    } else {
+      const matched = allGroups.find(
+        g => g.id === schedule.targetDestination || g.identifier === schedule.targetDestination || g.name === schedule.targetName
+      );
+      const identifier = matched ? matched.identifier : schedule.targetDestination;
+      const resolvedName = matched ? matched.name : (schedule.targetName || 'WhatsApp Group');
+
+      if (identifier === 'TOURNAMENT_CAPTAINS' || identifier === 'ALL_REGISTERED') {
+        try {
+          const { data: regs } = await supabaseAdmin
+            .from('Participant')
+            .select('captainWhatsApp, iglName, squadName, tournamentId, status')
+            .eq('status', 'VERIFIED')
+            .not('captainWhatsApp', 'is', null);
+
+          if (regs && regs.length > 0) {
+            recipients = regs
+              .filter(r => r.captainWhatsApp && r.captainWhatsApp.trim().length > 0)
+              .map(r => ({
+                phone: r.captainWhatsApp,
+                name: r.iglName || r.squadName || 'Captain',
+              }));
+          }
+        } catch (err) {
+          console.warn('[executeScheduledJob] could not fetch registrations:', err);
+        }
+      } else if (identifier) {
+        recipients.push({
+          phone: identifier,
+          name: resolvedName,
+        });
+      }
     }
   } else if (schedule.targetType === 'TOURNAMENT_CAPTAINS' || schedule.targetType === 'ALL_REGISTERED') {
     // Fetch verified tournament registrations from Supabase Participant table
