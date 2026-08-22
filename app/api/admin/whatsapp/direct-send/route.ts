@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
       messageText: message.trim(),
       triggerType: templateType === 'ROOM_ID' ? 'ROOM_ALERT' : 'INSTANT_BROADCAST',
       status: 'SENT',
-      responseId: String((result as any)?.id || ''),
+      responseId: String((result as any)?.message?.id || (result as any)?.id || ''),
     });
 
     return NextResponse.json({
@@ -71,8 +71,8 @@ export async function POST(req: NextRequest) {
   } catch (err: any) {
     console.error('[POST /api/admin/whatsapp/direct-send]', err);
     let errMsg = err?.message || 'Failed to send WhatsApp message via API.';
-    if (errMsg.includes('24 hours') || errMsg.includes('Re-engagement')) {
-      errMsg = 'Meta WhatsApp Policy: এই নম্বরে মেসেজ পাঠাতে হলে প্লেয়ারকে প্রথমে আপনার নম্বরে (+8801866408811) একটি মেসেজ দিয়ে ২৪ ঘণ্টার উইন্ডো খুলতে হবে।';
+    if (errMsg.includes('24 hours') || errMsg.includes('Re-engagement') || errMsg.includes('outside the allowed window') || errMsg.includes('session')) {
+      errMsg = 'Meta WhatsApp Policy: এই নম্বরে message পাঠাতে হলে প্লেয়ারকে আগে আপনার নম্বরে (+8801866408811) একটি মেসেজ দিয়ে 24 ঘণ্টার উইন্ডো খুলতে হবে। অথবা Zavu Dashboard থেকে Approved WhatsApp Template ব্যবহার করুন।';
     }
     return NextResponse.json({
       success: false,

@@ -51,9 +51,7 @@ export async function POST(request: Request) {
       console.warn('[Zavu Sender Fetch]', err?.message);
     }
 
-    const testMessage = `🤖 BlackRock Esports WhatsApp Test 🤖\n\n✅ Zavu API is successfully connected and operational!\n🕒 Timestamp: ${new Date().toLocaleString()}`;
-
-    const requestOptions = senderId ? { headers: { 'Zavu-Sender': senderId } } : undefined;
+    const testMessage = `🤖 BlackRock Esports WhatsApp Test 🤖\n\n✅ Zavu API is successfully connected and operational!\n🕒 Timestamp: ${new Date().toLocaleString()}\n\n🎮 BRK ESPORTS - https://brkesports.com`;
 
     const response = await client.messages.send({
       channel: 'whatsapp',
@@ -64,7 +62,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: `Test WhatsApp message sent successfully to ${formattedPhone}!`,
+      message: `Test WhatsApp message sent successfully to ${formattedPhone}! Status: ${(response as any)?.message?.status || 'queued'}`,
       response,
     });
   } catch (error: any) {
@@ -73,7 +71,9 @@ export async function POST(request: Request) {
     let userMsg = rawMsg;
 
     if (rawMsg.includes('No default sender') || rawMsg.includes('Zavu-Sender')) {
-      userMsg = '⚠️ আপনার Zavu অ্যাকাউন্টে কোনো WhatsApp Sender / নম্বর কানেক্ট করা হয়নি। অনুগ্রহ করে Zavu Dashboard (https://dashboard.zavu.dev) -> Senders-এ গিয়ে আপনার WhatsApp Number যুক্ত করুন।';
+      userMsg = '⚠️ আপনার Zavu অ্যাকাউন্টে কোনো WhatsApp Sender / নম্বর কানেক্ট করা হয়নি। অনুগ্রহ করে Zavu Dashboard (https://dashboard.zavu.dev) থেকে Senders সেকশনে গিয়ে আপনার WhatsApp Number যুক্ত করুন।';
+    } else if (rawMsg.includes('24') || rawMsg.includes('Re-engagement') || rawMsg.includes('outside the allowed window') || rawMsg.includes('session')) {
+      userMsg = `⚠️ Meta WhatsApp 24-ঘণ্টা নীতি: এই নম্বরে (${formattedPhone}) Free-form message পাঠাতে হলে recipient-কে আগে আপনার নম্বরে (+880 1866-408811) একটি মেসেজ দিয়ে 24 ঘণ্টার উইন্ডো খুলতে হবে।`;
     }
 
     return NextResponse.json(

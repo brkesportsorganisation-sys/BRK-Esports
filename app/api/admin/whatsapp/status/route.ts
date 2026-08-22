@@ -33,13 +33,25 @@ export async function GET() {
     // 2. Fetch Live Senders
     const senders: any[] = [];
     try {
+      const seenPhoneNumberIds = new Set<string>();
       for await (const s of client.senders.list()) {
+        const phoneNumId = (s as any).whatsapp?.phoneNumberId || '';
+        // Deduplicate senders that share the same underlying phone number
+        if (phoneNumId && seenPhoneNumberIds.has(phoneNumId)) continue;
+        if (phoneNumId) seenPhoneNumberIds.add(phoneNumId);
+
+        const phoneNumber =
+          (s as any).phoneNumber ||
+          (s as any).whatsapp?.displayPhoneNumber ||
+          '';
+
         senders.push({
           id: s.id,
           name: s.name,
-          phoneNumber: s.phoneNumber || s.whatsapp?.displayPhoneNumber || '',
+          phoneNumber,
           isDefault: s.isDefault,
           channels: s.channels,
+          whatsapp: (s as any).whatsapp || null,
           createdAt: s.createdAt,
         });
       }

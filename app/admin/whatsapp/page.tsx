@@ -677,6 +677,21 @@ export default function AdminWhatsAppPage() {
         </div>
       </div>
 
+      {/* Meta 24h Policy Info Banner */}
+      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
+        <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center shrink-0 mt-0.5">
+          <span className="text-amber-600 font-black text-sm">!</span>
+        </div>
+        <div className="flex-1">
+          <div className="font-bold text-amber-900 text-sm">⚠️ Meta WhatsApp Free-form Message Policy (24-Hour Window)</div>
+          <p className="text-[12px] text-amber-800 mt-1 leading-relaxed">
+            আপনার WhatsApp number <strong>(+880 1866-408811)</strong> থেকে কোনো player-কে প্রথমবার message পাঠাতে হলে, সেই player-কে আগে আপনার নম্বরে একটি message পাঠাতে হবে এবং তারপর 24 ঘণ্টার মধ্যে reply করতে হবে।
+            এটি Meta-এর policy। Messages status <strong>&apos;queued&apos;</strong> দেখালে সাধারণত এটিই কারণ।
+            Approved WhatsApp Templates ব্যবহার করে এই সীমাবদ্ধতা এড়ানো যায় — Zavu Dashboard থেকে Template তৈরি করুন।
+          </p>
+        </div>
+      </div>
+
       {/* 2. Stats Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 bg-white border border-[#E2E8F0]/80 rounded-[20px] shadow-xs space-y-1">
