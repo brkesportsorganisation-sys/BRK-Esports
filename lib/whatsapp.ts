@@ -48,8 +48,11 @@ export function normalizePhoneNumber(rawPhone: string): string {
 }
 
 export interface WhatsAppSettings {
-  provider: 'WAAPI' | 'ZAVU';
+  provider: 'GREEN_API' | 'WAAPI' | 'ZAVU';
   apiKey: string;
+  greenApiUrl: string;
+  greenApiInstanceId: string;
+  greenApiToken: string;
   waapiApiKey: string;
   waapiInstanceId: string;
   zavuApiKey: string;
@@ -58,12 +61,15 @@ export interface WhatsAppSettings {
 }
 
 /**
- * Fetches WhatsApp settings (WaAPI or Zavu) from database or environment variables.
+ * Fetches WhatsApp settings (Green-API, WaAPI or Zavu) from database or environment variables.
  */
 export async function getWhatsAppSettings(): Promise<WhatsAppSettings> {
   let dbApiKey = '';
   let dbWaapiKey = '';
   let dbWaapiInstance = '';
+  let dbGreenUrl = '';
+  let dbGreenInstance = '';
+  let dbGreenToken = '';
   let dbProvider = '';
   let isEnabled = true;
   let defaultTemplate = `🎮 {TOURNAMENT_NAME} 🎮\n\nআপনার ম্যাচের রুম ডিটেইলস:\n🔹 Room ID: {ROOM_ID}\n🔹 Password: {ROOM_PASS}\n\nদ্রুত গেমে জয়েন করুন!`;
@@ -78,6 +84,9 @@ export async function getWhatsAppSettings(): Promise<WhatsAppSettings> {
       return acc;
     }, {});
 
+    if (map.GREEN_API_URL) dbGreenUrl = map.GREEN_API_URL;
+    if (map.GREEN_API_INSTANCE_ID) dbGreenInstance = map.GREEN_API_INSTANCE_ID;
+    if (map.GREEN_API_TOKEN) dbGreenToken = map.GREEN_API_TOKEN;
     if (map.WAAPI_API_KEY) dbWaapiKey = map.WAAPI_API_KEY;
     if (map.WAAPI_INSTANCE_ID) dbWaapiInstance = map.WAAPI_INSTANCE_ID;
     if (map.ZAVU_API_KEY) dbApiKey = map.ZAVU_API_KEY;
@@ -89,16 +98,23 @@ export async function getWhatsAppSettings(): Promise<WhatsAppSettings> {
     console.warn('[WhatsApp] Could not fetch settings from database:', err);
   }
 
+  const greenApiUrl = dbGreenUrl || process.env.GREEN_API_URL || 'https://7107.api.greenapi.com';
+  const greenApiInstanceId = dbGreenInstance || process.env.GREEN_API_INSTANCE_ID || '710722716896';
+  const greenApiToken = dbGreenToken || process.env.GREEN_API_TOKEN || '';
   const waapiApiKey = dbWaapiKey || process.env.WAAPI_API_KEY || '';
   const waapiInstanceId = dbWaapiInstance || process.env.WAAPI_INSTANCE_ID || '102791';
   const zavuApiKey = dbApiKey || process.env.ZAVU_API_KEY || process.env.ZAVUDEV_API_KEY || '';
 
-  const provider: 'WAAPI' | 'ZAVU' = (dbProvider as any) || (waapiApiKey ? 'WAAPI' : 'ZAVU');
-  const apiKey = provider === 'WAAPI' ? waapiApiKey : zavuApiKey;
+  const provider: 'GREEN_API' | 'WAAPI' | 'ZAVU' = 
+    (dbProvider as any) || (greenApiToken ? 'GREEN_API' : waapiApiKey ? 'WAAPI' : 'ZAVU');
+  const apiKey = provider === 'GREEN_API' ? greenApiToken : provider === 'WAAPI' ? waapiApiKey : zavuApiKey;
 
   return {
     provider,
     apiKey,
+    greenApiUrl,
+    greenApiInstanceId,
+    greenApiToken,
     waapiApiKey,
     waapiInstanceId,
     zavuApiKey,
@@ -124,6 +140,124 @@ export function formatWaapiChatId(to: string): string {
     return `88${digitsOnly}@c.us`;
   }
   return `${digitsOnly}@c.us`;
+}
+
+/**
+ * Sends a message via Green-API (Developer Free Tier & Production)
+ */
+export async function sendGreenApiMessage({
+  chatId,
+  message,
+  apiUrl,
+  instanceId,
+  apiToken,
+}: {
+  chatId: string;
+  message: string;
+  apiUrl?: string;
+  instanceId?: string;
+  apiToken?: string;
+}) {
+  const settings = await getWhatsAppSettings();
+  const host = (apiUrl || settings.greenApiUrl || 'https://7107.api.greenapi.com').replace(/\/+$/, '');
+  const activeId = instanceId || settings.greenApiInstanceId || '710722716896';
+  const activeToken = apiToken || settings.greenApiToken;
+
+  if (!activeToken) {
+    return { success: false, message: 'Green-API API Token is not configured. Please paste your token in Admin Settings.' };
+  }
+
+  const targetChatId = formatWaapiChatId(chatId);
+
+  try {
+    const res = await fetch(`${host}/waInstance${activeId}/sendMessage/${activeToken}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        chatId: targetChatId,
+        message,
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || (data?.idMessage === undefined && data?.error)) {
+      return {
+        success: false,
+        message: data?.message || data?.error || `Green-API request failed (${res.status})`,
+        data,
+      };
+    }
+
+    return {
+      success: true,
+      message: `Delivered via Green-API to ${targetChatId}`,
+      data,
+    };
+  } catch (err: any) {
+    console.error('[sendGreenApiMessage Error]', err);
+    return {
+      success: false,
+      message: err?.message || 'Failed to send message via Green-API.',
+      error: err,
+    };
+  }
+}
+
+/**
+ * Fetches all chats & groups from Green-API instance
+ */
+export async function fetchGreenApiChats(apiUrl?: string, instanceId?: string, apiToken?: string) {
+  const settings = await getWhatsAppSettings();
+  const host = (apiUrl || settings.greenApiUrl || 'https://7107.api.greenapi.com').replace(/\/+$/, '');
+  const activeId = instanceId || settings.greenApiInstanceId || '710722716896';
+  const activeToken = apiToken || settings.greenApiToken;
+
+  if (!activeToken) {
+    return { success: false, message: 'Green-API API Token is not configured.', chats: [], groups: [] };
+  }
+
+  try {
+    const res = await fetch(`${host}/waInstance${activeId}/getChats/${activeToken}`, {
+      method: 'GET',
+    });
+
+    const data = await res.json().catch(() => ([]));
+    if (!res.ok || !Array.isArray(data)) {
+      return {
+        success: false,
+        message: (data as any)?.message || `Failed to fetch chats from Green-API (${res.status})`,
+        chats: [],
+        groups: [],
+      };
+    }
+
+    const groups: WhatsAppTargetGroup[] = data
+      .filter((c: any) => c.id && c.id.endsWith('@g.us'))
+      .map((g: any) => ({
+        id: `grp_${g.id}`,
+        name: g.name || 'WhatsApp Group',
+        category: 'TOURNAMENT_MAIN',
+        identifier: g.id,
+        description: 'Synced from Green-API WhatsApp account',
+        createdAt: new Date().toISOString(),
+      }));
+
+    return {
+      success: true,
+      totalChats: data.length,
+      chats: data,
+      groups,
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      message: err?.message || 'Failed to fetch chats from Green-API',
+      chats: [],
+      groups: [],
+    };
+  }
 }
 
 /**
@@ -485,7 +619,32 @@ export async function sendDirectWhatsappMessage({
 
   const settings = await getWhatsAppSettings();
 
-  // 1. Send via WaAPI if configured
+  // 1. Send via Green-API (Developer Free & Production) if configured
+  if (settings.provider === 'GREEN_API' && settings.greenApiToken) {
+    const greenRes = await sendGreenApiMessage({
+      chatId: formattedTo,
+      message: text,
+      apiUrl: settings.greenApiUrl,
+      instanceId: settings.greenApiInstanceId,
+      apiToken: settings.greenApiToken,
+    });
+
+    await addWhatsAppLog({
+      targetDestination: formattedTo,
+      targetName,
+      messageText: text,
+      triggerType,
+      status: greenRes.success ? 'SENT' : 'FAILED',
+      responseId: (greenRes.data as any)?.idMessage || 'green_api_sent',
+      error: greenRes.success ? undefined : greenRes.message,
+    });
+
+    if (greenRes.success || formattedTo.includes('@g.us')) {
+      return greenRes;
+    }
+  }
+
+  // 2. Send via WaAPI if configured
   if (settings.provider === 'WAAPI' && settings.waapiApiKey) {
     const waapiRes = await sendWaapiMessage({
       chatId: formattedTo,

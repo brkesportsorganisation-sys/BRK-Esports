@@ -94,12 +94,16 @@ export default function AdminWhatsAppPage() {
   const [isSendingCustomDm, setIsSendingCustomDm] = useState(false);
   const [sendHistory, setSendHistory] = useState<Array<{ phone: string; name: string; msg: string; at: string; ok: boolean }>>([]);
 
-  // WhatsApp Gateway Connection Status (WaAPI / Zavu)
+  // WhatsApp Gateway Connection Status (Green-API / WaAPI / Zavu)
   const [zavuStatus, setZavuStatus] = useState<any>(null);
   const [isSyncingGroups, setIsSyncingGroups] = useState(false);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [gatewaySettings, setGatewaySettings] = useState<{
-    provider: 'WAAPI' | 'ZAVU';
+    provider: 'GREEN_API' | 'WAAPI' | 'ZAVU';
+    greenApiUrl: string;
+    greenApiInstanceId: string;
+    greenApiToken: string;
+    greenApiTokenFull?: string;
     waapiApiKey: string;
     waapiApiKeyFull?: string;
     waapiInstanceId: string;
@@ -107,7 +111,10 @@ export default function AdminWhatsAppPage() {
     zavuApiKeyFull?: string;
     isEnabled: boolean;
   }>({
-    provider: 'ZAVU',
+    provider: 'GREEN_API',
+    greenApiUrl: 'https://7107.api.greenapi.com',
+    greenApiInstanceId: '710722716896',
+    greenApiToken: '',
     waapiApiKey: '',
     waapiInstanceId: '102791',
     zavuApiKey: '',
@@ -230,7 +237,11 @@ export default function AdminWhatsAppPage() {
         const setJson = await settingsRes.json();
         if (setJson?.settings) {
           setGatewaySettings({
-            provider: setJson.settings.provider || 'WAAPI',
+            provider: setJson.settings.provider || 'GREEN_API',
+            greenApiUrl: setJson.settings.greenApiUrl || 'https://7107.api.greenapi.com',
+            greenApiInstanceId: setJson.settings.greenApiInstanceId || '710722716896',
+            greenApiToken: setJson.settings.greenApiTokenFull || setJson.settings.greenApiToken || '',
+            greenApiTokenFull: setJson.settings.greenApiTokenFull || '',
             waapiApiKey: setJson.settings.waapiApiKeyFull || setJson.settings.waapiApiKey || '',
             waapiApiKeyFull: setJson.settings.waapiApiKeyFull || '',
             waapiInstanceId: setJson.settings.waapiInstanceId || '102791',
@@ -1882,118 +1893,180 @@ export default function AdminWhatsAppPage() {
               {/* Active Provider Selector */}
               <div>
                 <label className="block text-slate-700 font-bold mb-1.5">Active WhatsApp Gateway Provider *</label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <label className={`p-3.5 rounded-2xl border cursor-pointer flex items-center gap-3 transition-all ${
-                    gatewaySettings.provider === 'WAAPI'
-                      ? 'bg-emerald-50/70 border-emerald-500 text-emerald-950 ring-2 ring-emerald-500/20'
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <label className={`p-3.5 rounded-2xl border cursor-pointer flex flex-col justify-between gap-2 transition-all ${
+                    gatewaySettings.provider === 'GREEN_API'
+                      ? 'bg-emerald-50/80 border-emerald-500 text-emerald-950 ring-2 ring-emerald-500/20'
                       : 'bg-[#F8FAFC] border-slate-200 text-slate-700 hover:border-slate-300'
                   }`}>
-                    <input
-                      type="radio"
-                      name="provider"
-                      value="WAAPI"
-                      checked={gatewaySettings.provider === 'WAAPI'}
-                      onChange={() => setGatewaySettings(prev => ({ ...prev, provider: 'WAAPI' }))}
-                      className="text-emerald-600 focus:ring-emerald-500"
-                    />
-                    <div>
-                      <div className="font-bold text-xs">WaAPI (QR Device Linked)</div>
-                      <div className="text-[11px] text-slate-500">Auto-syncs all groups & sends from personal number</div>
+                    <div className="flex items-center gap-2.5">
+                      <input
+                        type="radio"
+                        name="provider"
+                        value="GREEN_API"
+                        checked={gatewaySettings.provider === 'GREEN_API'}
+                        onChange={() => setGatewaySettings(prev => ({ ...prev, provider: 'GREEN_API' }))}
+                        className="text-emerald-600 focus:ring-emerald-500"
+                      />
+                      <div className="font-bold text-xs text-emerald-900">🟢 Green-API (Free)</div>
                     </div>
+                    <div className="text-[11px] text-emerald-700 font-medium">100% Free Developer Tier for Groups & Schedulers</div>
                   </label>
 
-                  <label className={`p-3.5 rounded-2xl border cursor-pointer flex items-center gap-3 transition-all ${
-                    gatewaySettings.provider === 'ZAVU'
-                      ? 'bg-emerald-50/70 border-emerald-500 text-emerald-950 ring-2 ring-emerald-500/20'
+                  <label className={`p-3.5 rounded-2xl border cursor-pointer flex flex-col justify-between gap-2 transition-all ${
+                    gatewaySettings.provider === 'WAAPI'
+                      ? 'bg-emerald-50/80 border-emerald-500 text-emerald-950 ring-2 ring-emerald-500/20'
                       : 'bg-[#F8FAFC] border-slate-200 text-slate-700 hover:border-slate-300'
                   }`}>
-                    <input
-                      type="radio"
-                      name="provider"
-                      value="ZAVU"
-                      checked={gatewaySettings.provider === 'ZAVU'}
-                      onChange={() => setGatewaySettings(prev => ({ ...prev, provider: 'ZAVU' }))}
-                      className="text-emerald-600 focus:ring-emerald-500"
-                    />
-                    <div>
-                      <div className="font-bold text-xs">Zavu (Cloud API)</div>
-                      <div className="text-[11px] text-slate-500">Official Meta WhatsApp Business Cloud gateway</div>
+                    <div className="flex items-center gap-2.5">
+                      <input
+                        type="radio"
+                        name="provider"
+                        value="WAAPI"
+                        checked={gatewaySettings.provider === 'WAAPI'}
+                        onChange={() => setGatewaySettings(prev => ({ ...prev, provider: 'WAAPI' }))}
+                        className="text-emerald-600 focus:ring-emerald-500"
+                      />
+                      <div className="font-bold text-xs">WaAPI Instance</div>
                     </div>
+                    <div className="text-[11px] text-slate-500">QR Device Linked instance (waapi.app)</div>
+                  </label>
+
+                  <label className={`p-3.5 rounded-2xl border cursor-pointer flex flex-col justify-between gap-2 transition-all ${
+                    gatewaySettings.provider === 'ZAVU'
+                      ? 'bg-emerald-50/80 border-emerald-500 text-emerald-950 ring-2 ring-emerald-500/20'
+                      : 'bg-[#F8FAFC] border-slate-200 text-slate-700 hover:border-slate-300'
+                  }`}>
+                    <div className="flex items-center gap-2.5">
+                      <input
+                        type="radio"
+                        name="provider"
+                        value="ZAVU"
+                        checked={gatewaySettings.provider === 'ZAVU'}
+                        onChange={() => setGatewaySettings(prev => ({ ...prev, provider: 'ZAVU' }))}
+                        className="text-emerald-600 focus:ring-emerald-500"
+                      />
+                      <div className="font-bold text-xs">Zavu (Cloud API)</div>
+                    </div>
+                    <div className="text-[11px] text-slate-500">Meta WhatsApp Official Cloud direct messaging</div>
                   </label>
                 </div>
               </div>
 
-              {/* WaAPI Configuration Box */}
-              <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-slate-200 space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                    WaAPI Instance Credentials
-                  </span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800">
-                    Instance #{gatewaySettings.waapiInstanceId || '102791'}
-                  </span>
-                </div>
+              {/* 🟢 Green-API Configuration Box */}
+              {gatewaySettings.provider === 'GREEN_API' && (
+                <div className="p-4 rounded-2xl bg-emerald-50/40 border border-emerald-200 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-emerald-950 text-xs flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                      Green-API Developer Instance (100% Free)
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-200/80 text-emerald-900">
+                      Instance #{gatewaySettings.greenApiInstanceId || '710722716896'}
+                    </span>
+                  </div>
 
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">WaAPI API Token (Bearer Token) *</label>
-                  <input
-                    type="text"
-                    value={gatewaySettings.waapiApiKey}
-                    onChange={(e) => setGatewaySettings(prev => ({ ...prev, waapiApiKey: e.target.value }))}
-                    placeholder="Paste WaAPI API Token (e.g. cMm1iOuY0d6xwpO...)"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E2E8F0] text-xs font-mono text-slate-900 focus:outline-none focus:border-emerald-600"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-slate-700 font-bold mb-1">Instance ID *</label>
+                    <label className="block text-slate-800 font-bold mb-1">apiTokenInstance (API Token) *</label>
                     <input
                       type="text"
-                      value={gatewaySettings.waapiInstanceId}
-                      onChange={(e) => setGatewaySettings(prev => ({ ...prev, waapiInstanceId: e.target.value }))}
-                      placeholder="102791"
+                      required
+                      value={gatewaySettings.greenApiToken}
+                      onChange={(e) => setGatewaySettings(prev => ({ ...prev, greenApiToken: e.target.value }))}
+                      placeholder="Paste your apiTokenInstance from Green-API console"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-emerald-300 text-xs font-mono text-slate-900 focus:outline-none focus:border-emerald-600"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-slate-800 font-bold mb-1">idInstance *</label>
+                      <input
+                        type="text"
+                        required
+                        value={gatewaySettings.greenApiInstanceId}
+                        onChange={(e) => setGatewaySettings(prev => ({ ...prev, greenApiInstanceId: e.target.value }))}
+                        placeholder="710722716896"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-emerald-300 text-xs font-mono text-slate-900 focus:outline-none focus:border-emerald-600"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-800 font-bold mb-1">apiUrl *</label>
+                      <input
+                        type="text"
+                        value={gatewaySettings.greenApiUrl}
+                        onChange={(e) => setGatewaySettings(prev => ({ ...prev, greenApiUrl: e.target.value }))}
+                        placeholder="https://7107.api.greenapi.com"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-emerald-300 text-xs font-mono text-slate-900 focus:outline-none focus:border-emerald-600"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* WaAPI Configuration Box */}
+              {gatewaySettings.provider === 'WAAPI' && (
+                <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-slate-200 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                      WaAPI Instance Credentials
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800">
+                      Instance #{gatewaySettings.waapiInstanceId || '102791'}
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">WaAPI API Token (Bearer Token) *</label>
+                    <input
+                      type="text"
+                      value={gatewaySettings.waapiApiKey}
+                      onChange={(e) => setGatewaySettings(prev => ({ ...prev, waapiApiKey: e.target.value }))}
+                      placeholder="Paste WaAPI API Token (e.g. cMm1iOuY0d6xwpO...)"
                       className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E2E8F0] text-xs font-mono text-slate-900 focus:outline-none focus:border-emerald-600"
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-slate-700 font-bold mb-1">Webhook URL (Copy to WaAPI)</label>
-                    <div className="flex gap-1.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-slate-700 font-bold mb-1">Instance ID *</label>
+                      <input
+                        type="text"
+                        value={gatewaySettings.waapiInstanceId}
+                        onChange={(e) => setGatewaySettings(prev => ({ ...prev, waapiInstanceId: e.target.value }))}
+                        placeholder="102791"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E2E8F0] text-xs font-mono text-slate-900 focus:outline-none focus:border-emerald-600"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-700 font-bold mb-1">Webhook URL</label>
                       <input
                         type="text"
                         readOnly
                         value="https://brk-esports.vercel.app/api/webhooks/whatsapp"
-                        className="flex-1 px-3 py-2 rounded-xl bg-slate-100 border border-slate-200 text-[11px] font-mono text-slate-700 select-all cursor-text"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-mono text-slate-600"
                       />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          navigator.clipboard.writeText('https://brk-esports.vercel.app/api/webhooks/whatsapp');
-                          showToast('Webhook URL copied to clipboard!', 'success');
-                        }}
-                        className="p-2.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 cursor-pointer shrink-0"
-                        title="Copy Webhook URL"
-                      >
-                        <Copy className="w-3.5 h-3.5" />
-                      </button>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Zavu Configuration Box */}
-              <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-slate-200 space-y-3">
-                <span className="font-bold text-slate-900 text-xs block">Zavu Cloud API Key (Optional / Fallback)</span>
-                <input
-                  type="text"
-                  value={gatewaySettings.zavuApiKey}
-                  onChange={(e) => setGatewaySettings(prev => ({ ...prev, zavuApiKey: e.target.value }))}
-                  placeholder="zv_live_..."
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E2E8F0] text-xs font-mono text-slate-900 focus:outline-none focus:border-emerald-600"
-                />
-              </div>
+              {gatewaySettings.provider === 'ZAVU' && (
+                <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-slate-200 space-y-3">
+                  <span className="font-bold text-slate-900 text-xs block">Zavu Cloud API Key</span>
+                  <input
+                    type="text"
+                    value={gatewaySettings.zavuApiKey}
+                    onChange={(e) => setGatewaySettings(prev => ({ ...prev, zavuApiKey: e.target.value }))}
+                    placeholder="zv_live_..."
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E2E8F0] text-xs font-mono text-slate-900 focus:outline-none focus:border-emerald-600"
+                  />
+                </div>
+              )}
 
               <button
                 type="submit"

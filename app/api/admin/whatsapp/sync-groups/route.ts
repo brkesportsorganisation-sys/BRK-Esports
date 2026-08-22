@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyAdminSession, requireAdminRole } from '@/lib/admin-auth';
-import { fetchWaapiChats, getWhatsAppTargetGroups, saveWhatsAppTargetGroups } from '@/lib/whatsapp';
+import { fetchWaapiChats, fetchGreenApiChats, getWhatsAppSettings, getWhatsAppTargetGroups, saveWhatsAppTargetGroups } from '@/lib/whatsapp';
 
 async function getSession() {
   const cookieStore = await cookies();
@@ -17,9 +17,23 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const { instanceId, apiKey } = body;
+    const settings = await getWhatsAppSettings();
+    const activeProvider = body.provider || settings.provider;
 
-    const res = await fetchWaapiChats(instanceId, apiKey);
+    let res: any;
+    if (activeProvider === 'GREEN_API') {
+      res = await fetchGreenApiChats(
+        body.apiUrl || settings.greenApiUrl,
+        body.instanceId || settings.greenApiInstanceId,
+        body.apiKey || settings.greenApiToken
+      );
+    } else {
+      res = await fetchWaapiChats(
+        body.instanceId || settings.waapiInstanceId,
+        body.apiKey || settings.waapiApiKey
+      );
+    }
+
     if (!res.success) {
       return NextResponse.json({
         success: false,

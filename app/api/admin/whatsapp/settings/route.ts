@@ -23,6 +23,10 @@ export async function GET() {
       success: true,
       settings: {
         provider: settings.provider,
+        greenApiUrl: settings.greenApiUrl || 'https://7107.api.greenapi.com',
+        greenApiInstanceId: settings.greenApiInstanceId || '710722716896',
+        greenApiToken: settings.greenApiToken ? `${settings.greenApiToken.slice(0, 8)}...${settings.greenApiToken.slice(-6)}` : '',
+        greenApiTokenFull: settings.greenApiToken,
         waapiApiKey: settings.waapiApiKey ? `${settings.waapiApiKey.slice(0, 8)}...${settings.waapiApiKey.slice(-6)}` : '',
         waapiApiKeyFull: settings.waapiApiKey,
         waapiInstanceId: settings.waapiInstanceId || '102791',
@@ -46,10 +50,29 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { waapiApiKey, waapiInstanceId, zavuApiKey, provider, isEnabled, defaultTemplate } = body;
+    const { 
+      greenApiUrl, 
+      greenApiInstanceId, 
+      greenApiToken, 
+      waapiApiKey, 
+      waapiInstanceId, 
+      zavuApiKey, 
+      provider, 
+      isEnabled, 
+      defaultTemplate 
+    } = body;
 
     const upserts = [];
 
+    if (greenApiUrl !== undefined) {
+      upserts.push({ id: 'setting_GREEN_API_URL', key: 'GREEN_API_URL', value: greenApiUrl.trim(), updatedAt: new Date().toISOString() });
+    }
+    if (greenApiInstanceId !== undefined) {
+      upserts.push({ id: 'setting_GREEN_API_INSTANCE_ID', key: 'GREEN_API_INSTANCE_ID', value: greenApiInstanceId.trim(), updatedAt: new Date().toISOString() });
+    }
+    if (greenApiToken !== undefined) {
+      upserts.push({ id: 'setting_GREEN_API_TOKEN', key: 'GREEN_API_TOKEN', value: greenApiToken.trim(), updatedAt: new Date().toISOString() });
+    }
     if (waapiApiKey !== undefined) {
       upserts.push({ id: 'setting_WAAPI_API_KEY', key: 'WAAPI_API_KEY', value: waapiApiKey.trim(), updatedAt: new Date().toISOString() });
     }
