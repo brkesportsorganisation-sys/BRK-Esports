@@ -174,7 +174,6 @@ export default function AdminWhatsAppPage() {
     const silent = options?.silent === true;
     if (!silent) setLoading(true);
     try {
-      // Trigger background cron check to execute any due schedules in real-time
       try {
         await fetch('/api/admin/whatsapp/cron', { method: 'POST', credentials: 'include' });
       } catch {}
@@ -226,7 +225,6 @@ export default function AdminWhatsAppPage() {
 
   useEffect(() => {
     loadData();
-    // Realtime background heartbeat and auto-polling every 10 seconds
     const timer = setInterval(() => {
       loadData({ silent: true });
     }, 10000);
@@ -240,7 +238,6 @@ export default function AdminWhatsAppPage() {
     setCustomRoomId(c.roomId || 'BRK-ROOM-01');
     setCustomRoomPass(c.roomPassword || '1234');
     
-    // Default message template for this player
     setDirectMessage(
       `🎮 আসসালামু আলাইকুম ${c.name} (${c.squadName || 'Squad Captain'})!\n\nআপনার "${c.tournamentTitle || 'Black Rock Tournament'}" টুর্নামেন্টের জরুরি নোটিশ:\n🔹 Room ID: ${c.roomId || '98765432'}\n🔹 Password: ${c.roomPassword || '1234'}\n\nসঠিক স্লটে দ্রুত জয়েন করুন! 🔥\nলিঙ্ক: https://brkesports.com`
     );
@@ -618,7 +615,6 @@ export default function AdminWhatsAppPage() {
     }
   };
 
-  // Filtered contacts
   const filteredContacts = contacts.filter((c) => {
     const q = searchContactQuery.toLowerCase();
     return (
@@ -631,173 +627,179 @@ export default function AdminWhatsAppPage() {
   });
 
   return (
-    <div className="min-h-screen text-slate-100 font-sans pb-16 space-y-5">
+    <div className="space-y-6 max-w-7xl mx-auto pb-16 font-sans">
       
       {/* Toast Notification */}
       {toast && (
-        <div style={{ position: 'fixed', top: '20px', right: '20px', zIndex: 99999, display: 'flex', alignItems: 'center', gap: '8px' }}
-          className={`px-4 py-3 rounded-2xl shadow-2xl text-xs font-bold border animate-in fade-in slide-in-from-top-4 duration-200 ${
-            toast.type === 'success' ? 'bg-emerald-600 border-emerald-400 text-white' : 'bg-red-600 border-red-400 text-white'
+        <div style={{ position: 'fixed', top: '24px', right: '24px', zIndex: 99999, display: 'flex', alignItems: 'center', gap: '8px' }}
+          className={`px-5 py-3 rounded-2xl shadow-xl text-xs font-bold ${
+            toast.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
           }`}>
-          {toast.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+          {toast.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
           <span>{toast.msg}</span>
         </div>
       )}
 
-      {/* 1. TOP BOT ACCOUNT & CONTROLS HEADER (Dark Cyber Card) */}
-      <div className="bg-[#111827] border border-[#1E293B] p-4 sm:p-6 rounded-[22px] shadow-xl space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className="relative shrink-0">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 p-0.5 shadow-lg shadow-emerald-500/20 flex items-center justify-center">
-                <div className="w-full h-full bg-[#0B0F19] rounded-[14px] flex items-center justify-center">
-                  <Bot className="w-6 h-6 sm:w-7 sm:h-7 text-emerald-400" />
-                </div>
-              </div>
-              <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-[#111827] animate-pulse" />
-            </div>
-
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-base sm:text-lg font-black text-white tracking-tight truncate">
-                  {zavuStatus?.activeSender?.name || 'Black Rock Esports WhatsApp'}
-                </h2>
-                {loading || zavuStatus === null ? (
-                  <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-800 text-slate-400 border border-slate-700 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse" />
-                    CONNECTING...
-                  </span>
-                ) : zavuStatus.connected !== false ? (
-                  <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    ONLINE & LIVE
-                  </span>
-                ) : (
-                  <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-red-500/20 text-red-300 border border-red-500/30 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
-                    DISCONNECTED
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-2 text-xs text-slate-400 font-mono mt-0.5 flex-wrap">
-                <span className="flex items-center gap-1 text-slate-300">
-                  <Smartphone className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <strong>{zavuStatus?.activeSender?.phoneNumber || '+880 1846-587311'}</strong>
-                </span>
-                <span className="text-slate-600 hidden sm:inline">•</span>
-                <span className="text-[11px] text-slate-400 hidden sm:inline">
-                  Sender: <code className="text-emerald-400">{zavuStatus?.activeSender?.id ? zavuStatus.activeSender.id.slice(0, 14) + '...' : 'Default'}</code>
-                </span>
+      {/* 1. TOP BOT HERO CARD (Clean Admin Card) */}
+      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-slate-700/80 p-5 sm:p-6 rounded-[24px] text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-5">
+        <div className="flex items-center gap-4">
+          <div className="relative shrink-0">
+            <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 p-0.5 shadow-lg shadow-emerald-500/20 flex items-center justify-center">
+              <div className="w-full h-full bg-slate-900 rounded-[14px] flex items-center justify-center">
+                <Bot className="w-7 h-7 text-emerald-400" />
               </div>
             </div>
+            <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-slate-900 animate-pulse" />
           </div>
 
-          {/* Quick Action Touch Buttons */}
-          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-            <button
-              onClick={() => loadData(false)}
-              className="p-2.5 rounded-xl bg-[#0B0F19] hover:bg-[#1E293B] border border-[#1E293B] text-slate-300 transition-all cursor-pointer flex items-center justify-center shrink-0 active:scale-95"
-              title="Refresh / Sync"
-            >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            </button>
-
-            <button
-              onClick={handleRunDueAutomations}
-              disabled={isProcessing}
-              className="flex-1 sm:flex-initial px-3.5 py-2.5 rounded-xl bg-[#162035] hover:bg-[#1E293B] text-amber-300 text-xs font-bold flex items-center justify-center gap-1.5 border border-amber-500/30 shadow-xs transition-all cursor-pointer disabled:opacity-50 active:scale-95"
-            >
-              {isProcessing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5 text-amber-400" />}
-              <span>Run Schedulers</span>
-            </button>
-
-            <button
-              onClick={() => setScheduleModalOpen(true)}
-              className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-500/20 transition-all cursor-pointer active:scale-95 whitespace-nowrap"
-            >
-              <PlusCircle className="w-3.5 h-3.5" />
-              <span>New Schedule</span>
-            </button>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-base sm:text-lg font-black text-white tracking-tight truncate">
+                {zavuStatus?.activeSender?.name || 'Black Rock Esports WhatsApp'}
+              </h2>
+              {loading || zavuStatus === null ? (
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-500/20 text-slate-400 border border-slate-500/30 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse" />
+                  CONNECTING...
+                </span>
+              ) : zavuStatus.connected !== false ? (
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  ONLINE & LIVE
+                </span>
+              ) : (
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-500/20 text-red-300 border border-red-500/30 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                  DISCONNECTED
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-3 text-xs text-slate-300 font-mono mt-1 flex-wrap">
+              <span className="flex items-center gap-1">
+                <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
+                <strong>{zavuStatus?.activeSender?.phoneNumber || '+880 1846-587311'}</strong>
+              </span>
+              <span className="text-slate-600 hidden sm:inline">•</span>
+              <span className="text-[11px] text-slate-400 hidden sm:inline">
+                Sender ID: <code className="text-emerald-400">{zavuStatus?.activeSender?.id ? zavuStatus.activeSender.id.slice(0, 14) + '...' : 'Live Connected'}</code>
+              </span>
+            </div>
           </div>
+        </div>
+
+        {/* Quick Action Touch Buttons */}
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <button
+            onClick={() => loadData(false)}
+            className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition-all cursor-pointer flex items-center justify-center shrink-0 active:scale-95"
+            title="Refresh"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+
+          <button
+            onClick={handleRunDueAutomations}
+            disabled={isProcessing}
+            className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 border border-slate-700 shadow-xs transition-all cursor-pointer disabled:opacity-50 active:scale-95"
+          >
+            {isProcessing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5 text-amber-400" />}
+            <span>Run Schedulers</span>
+          </button>
+
+          <button
+            onClick={() => setScheduleModalOpen(true)}
+            className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-600/30 transition-all cursor-pointer active:scale-95 whitespace-nowrap"
+          >
+            <PlusCircle className="w-4 h-4" />
+            <span>New Auto Schedule</span>
+          </button>
         </div>
       </div>
 
-      {/* 2. REALTIME HEARTBEAT & LIVE SYNC STATUS (Mobile-Optimized) */}
-      <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-2xl bg-[#0F172A] text-white shadow-sm border border-[#1E293B] text-xs">
+      {/* 2. REALTIME AUTOMATION BAR (Clean Light/Dark Badge) */}
+      <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-2xl bg-slate-900 text-white shadow-sm border border-slate-800 text-xs">
         <div className="flex items-center gap-2.5 min-w-0">
           <span className="relative flex h-2.5 w-2.5 shrink-0">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
           </span>
-          <span className="font-black text-emerald-400 tracking-wider text-[11px] truncate">
+          <span className="font-bold text-emerald-400 tracking-wider text-[11px] truncate">
             REALTIME AUTOMATION ACTIVE
           </span>
-          <span className="text-slate-500 text-[11px] hidden lg:inline font-mono">
-            • Auto-syncing every 10s • Zavu Live Gateway
+          <span className="text-slate-400 text-[11px] hidden md:inline font-mono">
+            • Auto-evaluating scheduled intervals every 10s • Zavu API Gateway
           </span>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
           {lastSyncTime && (
             <span className="text-[10px] sm:text-[11px] font-mono text-slate-400">
-              Synced: <strong className="text-slate-200">{lastSyncTime}</strong>
+              Synced: <strong className="text-white">{lastSyncTime}</strong>
             </span>
           )}
         </div>
       </div>
 
-      {/* 3. MOBILE-OPTIMIZED 2x2 STATS CARDS (Matching Vendor Aesthetic) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="p-4 sm:p-5 bg-[#111827] border border-emerald-500/20 rounded-[20px] shadow-sm space-y-1 hover:border-emerald-500/40 transition-all">
+      {/* 3. 4 KPI STATS CARDS (Matching Clean White Admin Theme) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="p-5 bg-white border border-[#E2E8F0]/80 rounded-[20px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">Verified Contacts</span>
-            <Users className="w-4 h-4 text-emerald-400" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Verified Contacts</span>
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <Users className="w-4 h-4" />
+            </div>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-emerald-400">{contacts.length}</div>
-          <p className="text-[10px] sm:text-[11px] text-slate-500 truncate">Captains & Players</p>
+          <div className="text-2xl font-black text-[#0F172A]">{contacts.length}</div>
+          <p className="text-[11px] text-slate-500 font-medium">Captains & Players</p>
         </div>
 
-        <div className="p-4 sm:p-5 bg-[#111827] border border-amber-500/20 rounded-[20px] shadow-sm space-y-1 hover:border-amber-500/40 transition-all">
+        <div className="p-5 bg-white border border-[#E2E8F0]/80 rounded-[20px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">Active Automations</span>
-            <Radio className="w-4 h-4 text-amber-400 animate-pulse" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Active Automations</span>
+            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+              <Radio className="w-4 h-4 animate-pulse" />
+            </div>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-amber-400">{stats.activeSchedules}</div>
-          <p className="text-[10px] sm:text-[11px] text-slate-500 truncate">Auto-running intervals</p>
+          <div className="text-2xl font-black text-[#0F172A]">{stats.activeSchedules}</div>
+          <p className="text-[11px] text-slate-500 font-medium">Auto-running intervals</p>
         </div>
 
-        <div className="p-4 sm:p-5 bg-[#111827] border border-purple-500/20 rounded-[20px] shadow-sm space-y-1 hover:border-purple-500/40 transition-all">
+        <div className="p-5 bg-white border border-[#E2E8F0]/80 rounded-[20px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">Connected Groups</span>
-            <MessageCircle className="w-4 h-4 text-purple-400" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Connected Groups</span>
+            <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+              <MessageCircle className="w-4 h-4" />
+            </div>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-purple-400">{stats.totalGroups}</div>
-          <p className="text-[10px] sm:text-[11px] text-slate-500 truncate">Tournaments & Scrims</p>
+          <div className="text-2xl font-black text-[#0F172A]">{stats.totalGroups}</div>
+          <p className="text-[11px] text-slate-500 font-medium">Tournaments & Scrims</p>
         </div>
 
-        <div className="p-4 sm:p-5 bg-[#111827] border border-cyan-500/20 rounded-[20px] shadow-sm space-y-1 hover:border-cyan-500/40 transition-all">
+        <div className="p-5 bg-white border border-[#E2E8F0]/80 rounded-[20px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Dispatched</span>
-            <Send className="w-4 h-4 text-cyan-400" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Dispatched Messages</span>
+            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+              <Send className="w-4 h-4" />
+            </div>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-cyan-400">{stats.totalExecutions}</div>
-          <p className="text-[10px] sm:text-[11px] text-slate-500 truncate">Delivered via API</p>
+          <div className="text-2xl font-black text-[#0F172A]">{stats.totalExecutions}</div>
+          <p className="text-[11px] text-slate-500 font-medium">Delivered via Zavu API</p>
         </div>
       </div>
 
-      {/* 4. HORIZONTAL SWIPEABLE NAVIGATION TABS (Touch Friendly) */}
-      <div className="flex items-center gap-2 border-b border-[#1E293B] pb-2 overflow-x-auto no-scrollbar">
+      {/* 4. NAVIGATION TABS (Horizontal Swipeable Container) */}
+      <div className="flex items-center gap-2 border-b border-[#E2E8F0] pb-2 overflow-x-auto no-scrollbar">
         <button
           type="button"
           onClick={() => setActiveTab('DIRECT_INBOX')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-[12px] text-xs font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
             activeTab === 'DIRECT_INBOX'
-              ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/20 border border-emerald-500/40'
-              : 'bg-[#111827] border border-[#1E293B] text-slate-400 hover:text-slate-200 hover:bg-[#162035]'
+              ? 'bg-emerald-600 text-white shadow-xs'
+              : 'bg-white border border-[#E2E8F0] text-slate-600 hover:text-slate-900 hover:bg-slate-50'
           }`}
         >
           <Smartphone className="w-4 h-4 shrink-0" />
-          <span>📱 Direct Inbox & DM ({contacts.length})</span>
+          <span>📱 Direct Player Inbox & DM ({contacts.length})</span>
         </button>
 
         <button
@@ -805,8 +807,8 @@ export default function AdminWhatsAppPage() {
           onClick={() => setActiveTab('SCHEDULES')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-[12px] text-xs font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
             activeTab === 'SCHEDULES'
-              ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/20 border border-emerald-500/40'
-              : 'bg-[#111827] border border-[#1E293B] text-slate-400 hover:text-slate-200 hover:bg-[#162035]'
+              ? 'bg-emerald-600 text-white shadow-xs'
+              : 'bg-white border border-[#E2E8F0] text-slate-600 hover:text-slate-900 hover:bg-slate-50'
           }`}
         >
           <Clock className="w-4 h-4 shrink-0" />
@@ -818,8 +820,8 @@ export default function AdminWhatsAppPage() {
           onClick={() => setActiveTab('BOT_AUTO_REPLY')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-[12px] text-xs font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
             activeTab === 'BOT_AUTO_REPLY'
-              ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/20 border border-emerald-500/40'
-              : 'bg-[#111827] border border-[#1E293B] text-slate-400 hover:text-slate-200 hover:bg-[#162035]'
+              ? 'bg-emerald-600 text-white shadow-xs'
+              : 'bg-white border border-[#E2E8F0] text-slate-600 hover:text-slate-900 hover:bg-slate-50'
           }`}
         >
           <Bot className="w-4 h-4 shrink-0" />
@@ -831,8 +833,8 @@ export default function AdminWhatsAppPage() {
           onClick={() => setActiveTab('INSTANT_BROADCAST')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-[12px] text-xs font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
             activeTab === 'INSTANT_BROADCAST'
-              ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/20 border border-emerald-500/40'
-              : 'bg-[#111827] border border-[#1E293B] text-slate-400 hover:text-slate-200 hover:bg-[#162035]'
+              ? 'bg-emerald-600 text-white shadow-xs'
+              : 'bg-white border border-[#E2E8F0] text-slate-600 hover:text-slate-900 hover:bg-slate-50'
           }`}
         >
           <Send className="w-4 h-4 shrink-0" />
@@ -844,8 +846,8 @@ export default function AdminWhatsAppPage() {
           onClick={() => setActiveTab('GROUPS')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-[12px] text-xs font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
             activeTab === 'GROUPS'
-              ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/20 border border-emerald-500/40'
-              : 'bg-[#111827] border border-[#1E293B] text-slate-400 hover:text-slate-200 hover:bg-[#162035]'
+              ? 'bg-emerald-600 text-white shadow-xs'
+              : 'bg-white border border-[#E2E8F0] text-slate-600 hover:text-slate-900 hover:bg-slate-50'
           }`}
         >
           <Users className="w-4 h-4 shrink-0" />
@@ -857,8 +859,8 @@ export default function AdminWhatsAppPage() {
           onClick={() => setActiveTab('LOGS')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-[12px] text-xs font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
             activeTab === 'LOGS'
-              ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/20 border border-emerald-500/40'
-              : 'bg-[#111827] border border-[#1E293B] text-slate-400 hover:text-slate-200 hover:bg-[#162035]'
+              ? 'bg-emerald-600 text-white shadow-xs'
+              : 'bg-white border border-[#E2E8F0] text-slate-600 hover:text-slate-900 hover:bg-slate-50'
           }`}
         >
           <Sparkles className="w-4 h-4 shrink-0" />
@@ -870,8 +872,8 @@ export default function AdminWhatsAppPage() {
           onClick={() => setActiveTab('SETTINGS')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-[12px] text-xs font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
             activeTab === 'SETTINGS'
-              ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/20 border border-emerald-500/40'
-              : 'bg-[#111827] border border-[#1E293B] text-slate-400 hover:text-slate-200 hover:bg-[#162035]'
+              ? 'bg-emerald-600 text-white shadow-xs'
+              : 'bg-white border border-[#E2E8F0] text-slate-600 hover:text-slate-900 hover:bg-slate-50'
           }`}
         >
           <Key className="w-4 h-4 shrink-0" />
@@ -886,17 +888,17 @@ export default function AdminWhatsAppPage() {
         <div className="space-y-4">
           
           {/* Sub Mode Toggle */}
-          <div className="flex items-center gap-2 p-1 bg-[#111827] border border-[#1E293B] rounded-2xl w-fit">
+          <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-2xl w-fit">
             <button
               type="button"
               onClick={() => setDmMode('CONTACTS')}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 dmMode === 'CONTACTS'
-                  ? 'bg-[#1E293B] text-white shadow-sm border border-slate-600'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
+                  : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
               <span>📋 Tournament Contacts ({contacts.length})</span>
             </button>
             <button
@@ -905,7 +907,7 @@ export default function AdminWhatsAppPage() {
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 dmMode === 'CUSTOM'
                   ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
+                  : 'text-slate-500 hover:text-slate-700'
               }`}
             >
               <Send className="w-3.5 h-3.5" />
@@ -918,12 +920,12 @@ export default function AdminWhatsAppPage() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
               
               {/* Mobile View Toggle (Visible only on small screens) */}
-              <div className="lg:hidden flex items-center justify-between p-1 bg-[#111827] border border-[#1E293B] rounded-xl">
+              <div className="lg:hidden flex items-center justify-between p-1 bg-slate-100 rounded-xl">
                 <button
                   type="button"
                   onClick={() => setMobileDmView('LIST')}
                   className={`flex-1 py-2 text-xs font-bold rounded-lg text-center transition-all ${
-                    mobileDmView === 'LIST' ? 'bg-[#1E293B] text-emerald-400' : 'text-slate-400'
+                    mobileDmView === 'LIST' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500'
                   }`}
                 >
                   👥 Contact List ({filteredContacts.length})
@@ -932,7 +934,7 @@ export default function AdminWhatsAppPage() {
                   type="button"
                   onClick={() => setMobileDmView('COMPOSE')}
                   className={`flex-1 py-2 text-xs font-bold rounded-lg text-center transition-all ${
-                    mobileDmView === 'COMPOSE' ? 'bg-emerald-600 text-white' : 'text-slate-400'
+                    mobileDmView === 'COMPOSE' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500'
                   }`}
                 >
                   💬 Compose Message
@@ -940,32 +942,32 @@ export default function AdminWhatsAppPage() {
               </div>
 
               {/* Left Column: Contacts List */}
-              <div className={`lg:col-span-5 bg-[#111827] border border-[#1E293B] rounded-[22px] p-4 sm:p-5 space-y-3 shadow-lg flex flex-col h-[520px] sm:h-[620px] ${
+              <div className={`lg:col-span-5 bg-white border border-[#E2E8F0]/80 rounded-[24px] p-5 space-y-3 shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col h-[520px] sm:h-[620px] ${
                 mobileDmView === 'COMPOSE' ? 'hidden lg:flex' : 'flex'
               }`}>
-                <div className="flex items-center justify-between border-b border-[#1E293B] pb-3">
-                  <h3 className="font-bold text-white text-sm">Squad Captains & Players</h3>
-                  <span className="text-[11px] font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                <div className="flex items-center justify-between border-b border-[#F1F5F9] pb-3">
+                  <h3 className="font-bold text-[#0F172A] text-sm">Squad Captains & Players</h3>
+                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                     {contacts.length} Ready
                   </span>
                 </div>
 
                 {/* Search Bar */}
                 <div className="relative">
-                  <Search className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                   <input
                     type="text"
                     value={searchContactQuery}
                     onChange={(e) => setSearchContactQuery(e.target.value)}
                     placeholder="Search player, squad, or phone..."
-                    className="w-full pl-9 pr-3 py-2 bg-[#0B0F19] border border-[#1E293B] rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                    className="w-full pl-9 pr-3 py-2 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-600 focus:bg-white"
                   />
                 </div>
 
                 {/* Contacts Scrollable List */}
                 <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
                   {filteredContacts.length === 0 ? (
-                    <div className="text-center py-12 text-slate-500 text-xs">No matching players found.</div>
+                    <div className="text-center py-12 text-slate-400 text-xs">No matching players found.</div>
                   ) : (
                     filteredContacts.map((c) => {
                       const isSel = selectedContact?.id === c.id;
@@ -974,36 +976,36 @@ export default function AdminWhatsAppPage() {
                           key={c.id}
                           onClick={() => {
                             selectContactHandler(c);
-                            setMobileDmView('COMPOSE'); // auto switch on mobile
+                            setMobileDmView('COMPOSE');
                           }}
                           className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2 ${
                             isSel
-                              ? 'bg-emerald-900/30 border-emerald-500/60 shadow-md'
-                              : 'bg-[#0B0F19] border-[#1E293B] hover:border-slate-700'
+                              ? 'bg-emerald-50 border-emerald-300 shadow-xs'
+                              : 'bg-[#F8FAFC] border-slate-200 hover:border-emerald-200 hover:bg-white'
                           }`}
                         >
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
-                              <span className="font-bold text-xs text-white truncate">{c.name}</span>
-                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-[#1E293B] text-slate-300 font-bold uppercase">
+                              <span className="font-bold text-xs text-slate-900 truncate">{c.name}</span>
+                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-slate-200 text-slate-700 font-bold uppercase">
                                 {c.role}
                               </span>
                             </div>
-                            <div className="text-[11px] text-slate-400 truncate mt-0.5">
-                              Squad: <strong className="text-slate-300">{c.squadName || 'Solo'}</strong>
+                            <div className="text-[11px] text-slate-500 truncate mt-0.5">
+                              Squad: <strong className="text-slate-800">{c.squadName || 'Solo'}</strong>
                             </div>
-                            <div className="text-[10px] font-mono text-emerald-400/90 truncate">
+                            <div className="text-[10px] font-mono text-emerald-700 truncate">
                               {c.phone || c.formattedPhone}
                             </div>
                           </div>
 
                           <div className="text-right shrink-0">
                             {c.roomId && (
-                              <span className="text-[9px] block text-cyan-400 font-mono font-bold bg-cyan-900/30 px-1.5 py-0.5 rounded border border-cyan-800">
+                              <span className="text-[9px] block text-blue-700 font-mono font-bold bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
                                 Room #{c.roomId}
                               </span>
                             )}
-                            <ChevronRight className={`w-4 h-4 mt-1 ml-auto ${isSel ? 'text-emerald-400' : 'text-slate-600'}`} />
+                            <ChevronRight className={`w-4 h-4 mt-1 ml-auto ${isSel ? 'text-emerald-600' : 'text-slate-400'}`} />
                           </div>
                         </div>
                       );
@@ -1013,20 +1015,20 @@ export default function AdminWhatsAppPage() {
               </div>
 
               {/* Right Column: Direct Message Composer */}
-              <div className={`lg:col-span-7 bg-[#111827] border border-[#1E293B] rounded-[22px] p-4 sm:p-6 space-y-4 shadow-lg flex flex-col justify-between ${
+              <div className={`lg:col-span-7 bg-white border border-[#E2E8F0]/80 rounded-[24px] p-5 sm:p-6 space-y-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col justify-between ${
                 mobileDmView === 'LIST' ? 'hidden lg:flex' : 'flex'
               }`}>
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between border-b border-[#1E293B] pb-3">
+                  <div className="flex items-center justify-between border-b border-[#F1F5F9] pb-3">
                     <div>
-                      <h3 className="font-bold text-white text-sm">Direct WhatsApp Messenger</h3>
-                      <p className="text-xs text-slate-400">
-                        Recipient: <strong className="text-emerald-400">{directName || 'Player'}</strong> ({directPhone || 'Select contact'})
+                      <h3 className="font-bold text-[#0F172A] text-sm">Direct WhatsApp Messenger</h3>
+                      <p className="text-xs text-slate-500">
+                        Recipient: <strong className="text-emerald-700">{directName || 'Player'}</strong> ({directPhone || 'Select contact'})
                       </p>
                     </div>
 
                     {selectedContact && (
-                      <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                         VERIFIED CAPTAIN
                       </span>
                     )}
@@ -1034,12 +1036,12 @@ export default function AdminWhatsAppPage() {
 
                   {/* 4 Quick Template Insert Buttons (2x2 grid on mobile) */}
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-400 mb-2">⚡ Quick 1-Tap Template Inserts:</label>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-2">⚡ Quick 1-Tap Template Inserts:</label>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                       <button
                         type="button"
                         onClick={() => applyDirectTemplate('ROOM_ID')}
-                        className="p-2 rounded-xl bg-[#0B0F19] hover:bg-[#162035] border border-[#1E293B] hover:border-emerald-500/40 text-emerald-300 font-bold text-left transition-all cursor-pointer"
+                        className="p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 font-bold text-left transition-all cursor-pointer"
                       >
                         <span className="block">🎮 Room ID & Pass</span>
                       </button>
@@ -1047,7 +1049,7 @@ export default function AdminWhatsAppPage() {
                       <button
                         type="button"
                         onClick={() => applyDirectTemplate('VERIFIED')}
-                        className="p-2 rounded-xl bg-[#0B0F19] hover:bg-[#162035] border border-[#1E293B] hover:border-blue-500/40 text-blue-300 font-bold text-left transition-all cursor-pointer"
+                        className="p-2 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-800 font-bold text-left transition-all cursor-pointer"
                       >
                         <span className="block">✅ Verified Slot</span>
                       </button>
@@ -1055,7 +1057,7 @@ export default function AdminWhatsAppPage() {
                       <button
                         type="button"
                         onClick={() => applyDirectTemplate('PAYMENT')}
-                        className="p-2 rounded-xl bg-[#0B0F19] hover:bg-[#162035] border border-[#1E293B] hover:border-amber-500/40 text-amber-300 font-bold text-left transition-all cursor-pointer"
+                        className="p-2 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 font-bold text-left transition-all cursor-pointer"
                       >
                         <span className="block">💰 Payment Notice</span>
                       </button>
@@ -1063,7 +1065,7 @@ export default function AdminWhatsAppPage() {
                       <button
                         type="button"
                         onClick={() => applyDirectTemplate('ANTI_CHEAT')}
-                        className="p-2 rounded-xl bg-[#0B0F19] hover:bg-[#162035] border border-[#1E293B] hover:border-purple-500/40 text-purple-300 font-bold text-left transition-all cursor-pointer"
+                        className="p-2 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-800 font-bold text-left transition-all cursor-pointer"
                       >
                         <span className="block">🛡️ Anti-Cheat</span>
                       </button>
@@ -1074,8 +1076,8 @@ export default function AdminWhatsAppPage() {
                   <form onSubmit={handleSendDirectMessage} className="space-y-3">
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
-                        <label className="block text-[11px] font-bold text-slate-300">Message Content *</label>
-                        <span className="text-[10px] text-slate-500 font-mono">{directMessage.length} characters</span>
+                        <label className="block text-[11px] font-bold text-slate-700">Message Content *</label>
+                        <span className="text-[10px] text-slate-400 font-mono">{directMessage.length} characters</span>
                       </div>
                       <textarea
                         rows={7}
@@ -1083,14 +1085,14 @@ export default function AdminWhatsAppPage() {
                         value={directMessage}
                         onChange={(e) => setDirectMessage(e.target.value)}
                         placeholder="Type WhatsApp message here..."
-                        className="w-full p-3.5 rounded-xl bg-[#0B0F19] border border-[#1E293B] text-xs font-sans text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 leading-relaxed font-medium"
+                        className="w-full p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-sans text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-600 focus:bg-white leading-relaxed font-medium"
                       />
                     </div>
 
                     <button
                       type="submit"
                       disabled={isSendingDirect || !directPhone || !directMessage.trim()}
-                      className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-40 active:scale-98"
+                      className="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-40 active:scale-98"
                     >
                       {isSendingDirect ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                       <span>{isSendingDirect ? 'Sending via Zavu...' : 'Send WhatsApp Message Now'}</span>
@@ -1104,59 +1106,59 @@ export default function AdminWhatsAppPage() {
           {/* ─────────── MODE 2: CUSTOM SINGLE NUMBER DM ─────────── */}
           {dmMode === 'CUSTOM' && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-              <div className="lg:col-span-7 bg-[#111827] border border-[#1E293B] rounded-[22px] p-5 space-y-4 shadow-lg">
-                <div className="border-b border-[#1E293B] pb-3">
-                  <h3 className="font-bold text-white text-sm">Send to Any Custom WhatsApp Number</h3>
-                  <p className="text-xs text-slate-400">Direct instant message to any player, sponsor, or organizer.</p>
+              <div className="lg:col-span-7 bg-white border border-[#E2E8F0]/80 rounded-[24px] p-6 space-y-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+                <div className="border-b border-[#F1F5F9] pb-3">
+                  <h3 className="font-bold text-[#0F172A] text-sm">Send to Any Custom WhatsApp Number</h3>
+                  <p className="text-xs text-slate-500">Direct instant message to any player, sponsor, or organizer.</p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-slate-300 font-bold mb-1 text-xs">WhatsApp Phone Number *</label>
+                    <label className="block text-slate-700 font-bold mb-1 text-xs">WhatsApp Phone Number *</label>
                     <input
                       type="text"
                       required
                       value={customDmPhone}
                       onChange={(e) => setCustomDmPhone(e.target.value)}
                       placeholder="+88017XXXXXXXX or 017XXXXXXXX"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#0B0F19] border border-[#1E293B] text-xs font-mono text-white focus:outline-none focus:border-emerald-500"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-mono text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-slate-300 font-bold mb-1 text-xs">Recipient Name (Optional)</label>
+                    <label className="block text-slate-700 font-bold mb-1 text-xs">Recipient Name (Optional)</label>
                     <input
                       type="text"
                       value={customDmName}
                       onChange={(e) => setCustomDmName(e.target.value)}
                       placeholder="e.g. Shakib (Team Alpha)"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#0B0F19] border border-[#1E293B] text-xs text-white focus:outline-none focus:border-emerald-500"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-xs text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white"
                     />
                   </div>
                 </div>
 
                 {/* Quick Templates */}
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 mb-1.5">⚡ 1-Tap Quick Templates:</label>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1.5">⚡ 1-Tap Quick Templates:</label>
                   <div className="flex flex-wrap gap-2 text-xs">
                     <button
                       type="button"
                       onClick={() => applyCustomTemplate('ROOM_ID')}
-                      className="px-3 py-1.5 rounded-lg bg-[#0B0F19] hover:bg-[#162035] border border-[#1E293B] text-emerald-300 font-bold"
+                      className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 font-bold"
                     >
                       🎮 Room ID & Pass
                     </button>
                     <button
                       type="button"
                       onClick={() => applyCustomTemplate('WELCOME')}
-                      className="px-3 py-1.5 rounded-lg bg-[#0B0F19] hover:bg-[#162035] border border-[#1E293B] text-blue-300 font-bold"
+                      className="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-800 font-bold"
                     >
                       👋 Welcome Greeting
                     </button>
                     <button
                       type="button"
                       onClick={() => applyCustomTemplate('PAYMENT')}
-                      className="px-3 py-1.5 rounded-lg bg-[#0B0F19] hover:bg-[#162035] border border-[#1E293B] text-amber-300 font-bold"
+                      className="px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 font-bold"
                     >
                       💰 Payment Reminder
                     </button>
@@ -1164,13 +1166,13 @@ export default function AdminWhatsAppPage() {
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 font-bold mb-1 text-xs">Message Content *</label>
+                  <label className="block text-slate-700 font-bold mb-1 text-xs">Message Content *</label>
                   <textarea
                     rows={6}
                     value={customDmMessage}
                     onChange={(e) => setCustomDmMessage(e.target.value)}
                     placeholder="Type custom message content..."
-                    className="w-full p-3.5 rounded-xl bg-[#0B0F19] border border-[#1E293B] text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-medium"
+                    className="w-full p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-600 focus:bg-white font-medium"
                   />
                 </div>
 
@@ -1178,7 +1180,7 @@ export default function AdminWhatsAppPage() {
                   type="button"
                   onClick={handleSendCustomDm}
                   disabled={isSendingCustomDm || !customDmPhone.trim() || !customDmMessage.trim()}
-                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white font-black text-xs shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 disabled:opacity-40 cursor-pointer"
+                  className="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 disabled:opacity-40 cursor-pointer"
                 >
                   {isSendingCustomDm ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   <span>{isSendingCustomDm ? 'Sending via Zavu...' : 'Send Message Now'}</span>
@@ -1186,19 +1188,19 @@ export default function AdminWhatsAppPage() {
               </div>
 
               {/* History Preview */}
-              <div className="lg:col-span-5 bg-[#111827] border border-[#1E293B] rounded-[22px] p-5 space-y-3 shadow-lg">
-                <h4 className="font-bold text-white text-xs uppercase tracking-wider">Recent Custom Dispatches</h4>
+              <div className="lg:col-span-5 bg-white border border-[#E2E8F0]/80 rounded-[24px] p-6 space-y-3 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+                <h4 className="font-bold text-[#0F172A] text-xs uppercase tracking-wider">Recent Custom Dispatches</h4>
                 {sendHistory.length === 0 ? (
-                  <div className="text-center py-12 text-slate-500 text-xs">No dispatches sent yet in this session.</div>
+                  <div className="text-center py-12 text-slate-400 text-xs">No dispatches sent yet in this session.</div>
                 ) : (
                   <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1 custom-scrollbar">
                     {sendHistory.map((h, idx) => (
-                      <div key={idx} className="p-3 rounded-xl bg-[#0B0F19] border border-[#1E293B] text-xs space-y-1">
+                      <div key={idx} className="p-3 rounded-xl bg-[#F8FAFC] border border-slate-200 text-xs space-y-1">
                         <div className="flex items-center justify-between">
-                          <span className="font-bold text-emerald-400">{h.name}</span>
-                          <span className="text-[10px] text-slate-500 font-mono">{h.at}</span>
+                          <span className="font-bold text-emerald-700">{h.name}</span>
+                          <span className="text-[10px] text-slate-400 font-mono">{h.at}</span>
                         </div>
-                        <p className="text-slate-300 line-clamp-2 text-[11px]">{h.msg}</p>
+                        <p className="text-slate-600 line-clamp-2 text-[11px]">{h.msg}</p>
                       </div>
                     ))}
                   </div>
@@ -1214,18 +1216,18 @@ export default function AdminWhatsAppPage() {
       {/* ======================================================== */}
       {activeTab === 'SCHEDULES' && (
         <div className="space-y-4">
-          <div className="bg-[#111827] border border-[#1E293B] rounded-[22px] p-4 sm:p-6 shadow-lg space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#1E293B] pb-4">
+          <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] p-5 sm:p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)] space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#F1F5F9] pb-4">
               <div>
-                <h2 className="text-base sm:text-lg font-bold text-white">Active WhatsApp Scheduled Automations</h2>
-                <p className="text-xs text-slate-400">
+                <h2 className="text-base sm:text-lg font-bold text-[#0F172A]">Active WhatsApp Scheduled Automations</h2>
+                <p className="text-xs text-slate-500">
                   Manage recurring intervals, repetition counts, and multi-message sequences.
                 </p>
               </div>
 
               <button
                 onClick={() => setScheduleModalOpen(true)}
-                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 cursor-pointer self-start sm:self-auto"
+                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 cursor-pointer self-start sm:self-auto"
               >
                 <PlusCircle className="w-3.5 h-3.5" />
                 <span>New Auto Schedule</span>
@@ -1236,9 +1238,9 @@ export default function AdminWhatsAppPage() {
               <div className="p-16 text-center text-slate-400 text-xs">Loading schedules...</div>
             ) : schedules.length === 0 ? (
               <div className="p-12 text-center space-y-3">
-                <Clock className="w-10 h-10 text-slate-600 mx-auto" />
-                <h3 className="font-bold text-white text-sm">No automated schedules configured yet</h3>
-                <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                <Clock className="w-10 h-10 text-slate-300 mx-auto" />
+                <h3 className="font-bold text-slate-700 text-sm">No automated schedules configured yet</h3>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto">
                   Create recurring message broadcasts for room IDs, tournament announcements, or group promotions.
                 </p>
               </div>
@@ -1249,33 +1251,33 @@ export default function AdminWhatsAppPage() {
                   {schedules.map((s) => (
                     <div
                       key={s.id}
-                      className="p-4 rounded-2xl bg-[#0B0F19] border border-[#1E293B] space-y-3 shadow-md"
+                      className="p-4 rounded-2xl bg-[#F8FAFC] border border-slate-200 space-y-3 shadow-xs"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <span className="px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-300 font-bold text-[9px] uppercase border border-purple-500/30">
+                          <span className="px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 font-bold text-[9px] uppercase border border-purple-200">
                             {s.targetType.replace('_', ' ')}
                           </span>
-                          <h4 className="font-bold text-white text-sm mt-1">{s.title}</h4>
-                          <span className="text-[11px] text-emerald-400 font-medium">{s.targetName || s.targetDestination}</span>
+                          <h4 className="font-bold text-slate-900 text-sm mt-1">{s.title}</h4>
+                          <span className="text-[11px] text-emerald-700 font-medium">{s.targetName || s.targetDestination}</span>
                         </div>
 
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
                           s.status === 'COMPLETED'
-                            ? 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                            ? 'bg-blue-50 text-blue-700 border-blue-200'
                             : s.status === 'ACTIVE'
-                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                            : 'bg-slate-800 text-slate-400 border-slate-700'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-slate-100 text-slate-600 border-slate-200'
                         }`}>
                           {s.status === 'COMPLETED' ? '✓ COMPLETED' : s.status === 'ACTIVE' ? '● ACTIVE' : '⏸ PAUSED'}
                         </span>
                       </div>
 
                       {/* Frequency & Progress */}
-                      <div className="p-2.5 rounded-xl bg-[#111827] border border-[#1E293B] text-xs space-y-1.5">
+                      <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-xs space-y-1.5">
                         <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-slate-400">Frequency:</span>
-                          <strong className="text-slate-200">
+                          <span className="text-slate-500">Frequency:</span>
+                          <strong className="text-slate-800">
                             {s.frequency === 'EVERY_5_MIN' ? 'Every 5 Mins' :
                              s.frequency === 'EVERY_10_MIN' ? 'Every 10 Mins' :
                              s.frequency === 'EVERY_15_MIN' ? 'Every 15 Mins' :
@@ -1289,14 +1291,14 @@ export default function AdminWhatsAppPage() {
                         </div>
 
                         <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-slate-400">Executions:</span>
-                          <span className="font-mono text-emerald-400 font-bold">
+                          <span className="text-slate-500">Executions:</span>
+                          <span className="font-mono text-emerald-700 font-bold">
                             {s.runCount || 0} {s.maxExecutions ? `/ ${s.maxExecutions} (${Math.max(0, s.maxExecutions - (s.runCount || 0))} left)` : '(Unlimited)'}
                           </span>
                         </div>
 
                         {s.nextRunAt && s.status === 'ACTIVE' && (
-                          <div className="text-[10px] font-mono text-cyan-400 pt-1 border-t border-slate-800">
+                          <div className="text-[10px] font-mono text-emerald-700 pt-1 border-t border-slate-100">
                             Next: {new Date(s.nextRunAt).toLocaleTimeString()} ({new Date(s.nextRunAt).toLocaleDateString()})
                           </div>
                         )}
@@ -1306,25 +1308,25 @@ export default function AdminWhatsAppPage() {
                       <div className="grid grid-cols-3 gap-2 pt-1">
                         <button
                           onClick={() => handleRunNow(s.id)}
-                          className="py-2 px-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 font-bold text-xs border border-emerald-500/30 flex items-center justify-center gap-1 active:scale-95"
+                          className="py-2 px-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs border border-emerald-200 flex items-center justify-center gap-1 active:scale-95"
                         >
-                          <Zap className="w-3.5 h-3.5 text-emerald-400" />
+                          <Zap className="w-3.5 h-3.5 text-emerald-600" />
                           <span>Run Now</span>
                         </button>
 
                         <button
                           onClick={() => handleToggleStatus(s.id)}
-                          className="py-2 px-2 rounded-xl bg-[#162035] hover:bg-[#1E293B] text-slate-300 font-bold text-xs border border-[#1E293B] flex items-center justify-center gap-1 active:scale-95"
+                          className="py-2 px-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs border border-slate-200 flex items-center justify-center gap-1 active:scale-95"
                         >
-                          {s.status === 'ACTIVE' ? <Pause className="w-3.5 h-3.5 text-amber-400" /> : <Play className="w-3.5 h-3.5 text-emerald-400" />}
+                          {s.status === 'ACTIVE' ? <Pause className="w-3.5 h-3.5 text-amber-600" /> : <Play className="w-3.5 h-3.5 text-emerald-600" />}
                           <span>{s.status === 'ACTIVE' ? 'Pause' : 'Resume'}</span>
                         </button>
 
                         <button
                           onClick={() => handleDeleteSchedule(s.id)}
-                          className="py-2 px-2 rounded-xl bg-red-900/20 hover:bg-red-900/40 text-red-300 font-bold text-xs border border-red-800/40 flex items-center justify-center gap-1 active:scale-95"
+                          className="py-2 px-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs border border-red-200 flex items-center justify-center gap-1 active:scale-95"
                         >
-                          <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                          <Trash2 className="w-3.5 h-3.5 text-red-600" />
                           <span>Delete</span>
                         </button>
                       </div>
@@ -1335,7 +1337,7 @@ export default function AdminWhatsAppPage() {
                 {/* ─────────── DESKTOP VIEW: TABLE (>= md) ─────────── */}
                 <div className="hidden md:block overflow-x-auto">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-[#0B0F19] border-b border-[#1E293B] text-slate-400 uppercase font-bold text-[10px]">
+                    <thead className="bg-[#F8FAFC] border-b border-[#E2E8F0] text-slate-500 uppercase font-bold text-[10px]">
                       <tr>
                         <th className="px-4 py-3">Schedule Title & Task</th>
                         <th className="px-4 py-3">Target Audience</th>
@@ -1345,26 +1347,26 @@ export default function AdminWhatsAppPage() {
                         <th className="px-4 py-3 text-right">Quick Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#1E293B]">
+                    <tbody className="divide-y divide-[#F1F5F9]">
                       {schedules.map((s) => (
-                        <tr key={s.id} className="hover:bg-[#162035]/60 transition-colors">
+                        <tr key={s.id} className="hover:bg-[#F8FAFC] transition-colors">
                           <td className="px-4 py-3.5">
-                            <div className="font-bold text-white text-sm">{s.title}</div>
+                            <div className="font-bold text-slate-900 text-sm">{s.title}</div>
                             {s.description && (
-                              <div className="text-[11px] text-slate-400 max-w-sm truncate">{s.description}</div>
+                              <div className="text-[11px] text-slate-500 max-w-sm truncate">{s.description}</div>
                             )}
-                            <div className="text-[10px] text-slate-500 font-mono mt-0.5">ID: {s.id}</div>
+                            <div className="text-[10px] text-slate-400 font-mono mt-0.5">ID: {s.id}</div>
                           </td>
 
                           <td className="px-4 py-3.5">
-                            <span className="px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-300 font-bold text-[10px] border border-purple-500/30 uppercase">
+                            <span className="px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 font-bold text-[10px] border border-purple-200 uppercase">
                               {s.targetType.replace('_', ' ')}
                             </span>
-                            <div className="font-semibold text-slate-200 mt-1">{s.targetName || s.targetDestination}</div>
+                            <div className="font-semibold text-slate-800 mt-1">{s.targetName || s.targetDestination}</div>
                           </td>
 
                           <td className="px-4 py-3.5">
-                            <span className="font-bold text-slate-100 block">
+                            <span className="font-bold text-slate-900 block">
                               {s.frequency === 'EVERY_5_MIN' ? 'Every 5 Minutes' :
                                s.frequency === 'EVERY_10_MIN' ? 'Every 10 Minutes' :
                                s.frequency === 'EVERY_15_MIN' ? 'Every 15 Minutes' :
@@ -1375,18 +1377,18 @@ export default function AdminWhatsAppPage() {
                                s.frequency === 'DAILY' ? `Daily at ${s.scheduledTime || '20:45'}` :
                                s.frequency === 'INTERVAL_MINUTES' ? `Every ${s.intervalMinutes || 60} mins` : 'One Time'}
                             </span>
-                            <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
-                              Sent: <strong className="text-emerald-400">{s.runCount || 0}</strong> {s.maxExecutions ? `/ ${s.maxExecutions} (${Math.max(0, s.maxExecutions - (s.runCount || 0))} left)` : '(Unlimited)'}
+                            <span className="text-[10px] text-slate-500 font-mono block mt-0.5">
+                              Sent: <strong className="text-slate-800">{s.runCount || 0}</strong> {s.maxExecutions ? `/ ${s.maxExecutions} (${Math.max(0, s.maxExecutions - (s.runCount || 0))} left)` : '(Unlimited)'}
                             </span>
                           </td>
 
                           <td className="px-4 py-3.5">
                             {s.nextRunAt && s.status === 'ACTIVE' ? (
-                              <div className="text-[11px] font-mono font-semibold text-cyan-400">
+                              <div className="text-[11px] font-mono font-semibold text-emerald-700">
                                 {new Date(s.nextRunAt).toLocaleDateString()} {new Date(s.nextRunAt).toLocaleTimeString()}
                               </div>
                             ) : (
-                              <span className="text-slate-500 text-[11px]">
+                              <span className="text-slate-400 text-[11px]">
                                 {s.status === 'COMPLETED' ? '✓ Completed' : 'Paused'}
                               </span>
                             )}
@@ -1395,10 +1397,10 @@ export default function AdminWhatsAppPage() {
                           <td className="px-4 py-3.5">
                             <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${
                               s.status === 'COMPLETED'
-                                ? 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                                ? 'bg-blue-50 text-blue-700 border-blue-200'
                                 : s.status === 'ACTIVE'
-                                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                                : 'bg-slate-800 text-slate-400 border-slate-700'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                : 'bg-slate-100 text-slate-600 border-slate-200'
                             }`}>
                               {s.status === 'COMPLETED' ? '✓ COMPLETED' : s.status === 'ACTIVE' ? '● ACTIVE' : '⏸ PAUSED'}
                             </span>
@@ -1407,22 +1409,22 @@ export default function AdminWhatsAppPage() {
                           <td className="px-4 py-3.5 text-right space-x-1.5 whitespace-nowrap">
                             <button
                               onClick={() => handleRunNow(s.id)}
-                              className="px-2.5 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-[11px] font-bold transition-all cursor-pointer"
+                              className="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[11px] font-bold transition-all cursor-pointer"
                             >
-                              <Zap className="w-3.5 h-3.5 inline mr-1 text-emerald-400" />
+                              <Zap className="w-3.5 h-3.5 inline mr-1 text-emerald-600" />
                               Run Now
                             </button>
 
                             <button
                               onClick={() => handleToggleStatus(s.id)}
-                              className="px-2.5 py-1.5 rounded-lg bg-[#162035] hover:bg-[#1E293B] text-slate-300 text-[11px] font-bold border border-[#1E293B] transition-all cursor-pointer"
+                              className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold border border-slate-200 transition-all cursor-pointer"
                             >
-                              {s.status === 'ACTIVE' ? <Pause className="w-3.5 h-3.5 inline text-amber-400" /> : <Play className="w-3.5 h-3.5 inline text-emerald-400" />}
+                              {s.status === 'ACTIVE' ? <Pause className="w-3.5 h-3.5 inline text-amber-600" /> : <Play className="w-3.5 h-3.5 inline text-emerald-600" />}
                             </button>
 
                             <button
                               onClick={() => handleDeleteSchedule(s.id)}
-                              className="p-1.5 text-slate-500 hover:text-red-400 transition-colors cursor-pointer"
+                              className="p-1.5 text-slate-400 hover:text-red-600 transition-colors cursor-pointer"
                             >
                               <Trash2 className="w-3.5 h-3.5 inline" />
                             </button>
@@ -1442,27 +1444,27 @@ export default function AdminWhatsAppPage() {
       {/* 7. TAB 3: BOT AUTO-RESPONDER                             */}
       {/* ======================================================== */}
       {activeTab === 'BOT_AUTO_REPLY' && (
-        <div className="bg-[#111827] border border-[#1E293B] rounded-[22px] p-4 sm:p-6 shadow-lg space-y-5">
-          <div className="border-b border-[#1E293B] pb-4">
-            <h2 className="text-base sm:text-lg font-bold text-white">WhatsApp Bot Auto-Responder</h2>
-            <p className="text-xs text-slate-400">
+        <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] p-5 sm:p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)] space-y-5">
+          <div className="border-b border-[#F1F5F9] pb-4">
+            <h2 className="text-base sm:text-lg font-bold text-[#0F172A]">WhatsApp Bot Auto-Responder</h2>
+            <p className="text-xs text-slate-500">
               Configure automatic instant replies when players text your WhatsApp number.
             </p>
           </div>
 
           <form onSubmit={handleSaveBotConfig} className="space-y-5 text-xs font-medium">
             {/* Welcome Greeting */}
-            <div className="p-4 rounded-2xl bg-[#0B0F19] border border-[#1E293B] space-y-3">
+            <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-slate-200 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-white text-xs">👋 Welcome Greeting Message</span>
+                <span className="font-bold text-slate-900 text-xs">👋 Welcome Greeting Message</span>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={botConfig.welcomeMessageEnabled}
                     onChange={(e) => setBotConfig(prev => ({ ...prev, welcomeMessageEnabled: e.target.checked }))}
-                    className="accent-emerald-500 w-4 h-4 rounded"
+                    className="accent-emerald-600 w-4 h-4 rounded"
                   />
-                  <span className="text-slate-300 text-xs font-bold">Enable Greeting</span>
+                  <span className="text-slate-700 text-xs font-bold">Enable Greeting</span>
                 </label>
               </div>
 
@@ -1470,14 +1472,14 @@ export default function AdminWhatsAppPage() {
                 rows={4}
                 value={botConfig.welcomeMessage}
                 onChange={(e) => setBotConfig(prev => ({ ...prev, welcomeMessage: e.target.value }))}
-                className="w-full p-3 rounded-xl bg-[#111827] border border-[#1E293B] text-slate-100 text-xs focus:outline-none focus:border-emerald-500"
+                className="w-full p-3 rounded-xl bg-white border border-slate-200 text-slate-900 text-xs focus:outline-none focus:border-emerald-600"
               />
             </div>
 
             {/* Keyword Trigger Rules */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-white text-xs">⚡ Keyword Triggers & Auto Replies:</span>
+                <span className="font-bold text-slate-900 text-xs">⚡ Keyword Triggers & Auto Replies:</span>
                 <button
                   type="button"
                   onClick={() => {
@@ -1489,7 +1491,7 @@ export default function AdminWhatsAppPage() {
                     };
                     setBotConfig(prev => ({ ...prev, rules: [...prev.rules, newRule] }));
                   }}
-                  className="px-3 py-1.5 rounded-xl bg-[#162035] hover:bg-[#1E293B] text-emerald-400 font-bold text-xs border border-emerald-500/30 flex items-center gap-1 cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-emerald-700 font-bold text-xs border border-slate-200 flex items-center gap-1 cursor-pointer"
                 >
                   <PlusCircle className="w-3.5 h-3.5" />
                   <span>Add Trigger Rule</span>
@@ -1498,10 +1500,10 @@ export default function AdminWhatsAppPage() {
 
               <div className="space-y-3">
                 {botConfig.rules.map((rule, idx) => (
-                  <div key={rule.id} className="p-3.5 sm:p-4 rounded-2xl bg-[#0B0F19] border border-[#1E293B] space-y-3">
+                  <div key={rule.id} className="p-3.5 sm:p-4 rounded-2xl bg-[#F8FAFC] border border-slate-200 space-y-3">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex-1">
-                        <label className="block text-[11px] font-bold text-slate-400 mb-1">
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">
                           Keywords (comma separated):
                         </label>
                         <input
@@ -1513,7 +1515,7 @@ export default function AdminWhatsAppPage() {
                             updated[idx].keywords = newKws;
                             setBotConfig(prev => ({ ...prev, rules: updated }));
                           }}
-                          className="w-full px-3 py-2 rounded-xl bg-[#111827] border border-[#1E293B] text-xs font-bold text-white focus:outline-none focus:border-emerald-500"
+                          className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
                         />
                       </div>
                       <button
@@ -1522,14 +1524,14 @@ export default function AdminWhatsAppPage() {
                           const updated = botConfig.rules.filter((_, i) => i !== idx);
                           setBotConfig(prev => ({ ...prev, rules: updated }));
                         }}
-                        className="p-2 text-slate-500 hover:text-red-400 cursor-pointer"
+                        className="p-2 text-slate-400 hover:text-red-600 cursor-pointer"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-400 mb-1">Auto Reply Text:</label>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">Auto Reply Text:</label>
                       <textarea
                         rows={3}
                         value={rule.replyText}
@@ -1538,7 +1540,7 @@ export default function AdminWhatsAppPage() {
                           updated[idx].replyText = e.target.value;
                           setBotConfig(prev => ({ ...prev, rules: updated }));
                         }}
-                        className="w-full p-3 rounded-xl bg-[#111827] border border-[#1E293B] text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
+                        className="w-full p-3 rounded-xl bg-white border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-emerald-600"
                       />
                     </div>
                   </div>
@@ -1549,7 +1551,7 @@ export default function AdminWhatsAppPage() {
             <button
               type="submit"
               disabled={isSavingBot}
-              className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 cursor-pointer"
+              className="w-full sm:w-auto px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 cursor-pointer"
             >
               {isSavingBot ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
               <span>{isSavingBot ? 'Saving...' : 'Save Bot Auto-Responder Config'}</span>
@@ -1563,19 +1565,19 @@ export default function AdminWhatsAppPage() {
       {/* ======================================================== */}
       {activeTab === 'INSTANT_BROADCAST' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          <div className="lg:col-span-7 bg-[#111827] border border-[#1E293B] rounded-[22px] p-5 space-y-4 shadow-lg">
-            <div className="border-b border-[#1E293B] pb-3">
-              <h2 className="text-base font-bold text-white">Instant WhatsApp Group Broadcast</h2>
-              <p className="text-xs text-slate-400">Broadcast emergency announcements or tournament updates right now.</p>
+          <div className="lg:col-span-7 bg-white border border-[#E2E8F0]/80 rounded-[24px] p-6 space-y-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+            <div className="border-b border-[#F1F5F9] pb-3">
+              <h2 className="text-base font-bold text-[#0F172A]">Instant WhatsApp Group Broadcast</h2>
+              <p className="text-xs text-slate-500">Broadcast emergency announcements or tournament updates right now.</p>
             </div>
 
             <form onSubmit={handleInstantBroadcast} className="space-y-4 text-xs font-medium">
               <div>
-                <label className="block text-slate-300 font-bold mb-1.5">Select Target Audience / Group *</label>
+                <label className="block text-slate-700 font-bold mb-1.5">Select Target Audience / Group *</label>
                 <select
                   value={broadcastTarget}
                   onChange={(e) => setBroadcastTarget(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#0B0F19] border border-[#1E293B] text-xs font-bold text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
                 >
                   <option value="ALL_REGISTERED">👥 All Verified Squad Captains ({contacts.length} players)</option>
                   {groups.map((g) => (
@@ -1587,21 +1589,21 @@ export default function AdminWhatsAppPage() {
               </div>
 
               <div>
-                <label className="block text-slate-300 font-bold mb-1.5">Broadcast Message Content *</label>
+                <label className="block text-slate-700 font-bold mb-1.5">Broadcast Message Content *</label>
                 <textarea
                   rows={8}
                   required
                   value={broadcastMessage}
                   onChange={(e) => setBroadcastMessage(e.target.value)}
                   placeholder="Type broadcast message..."
-                  className="w-full p-3.5 rounded-xl bg-[#0B0F19] border border-[#1E293B] text-xs text-slate-100 focus:outline-none focus:border-emerald-500 leading-relaxed font-medium"
+                  className="w-full p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-xs text-slate-900 focus:outline-none focus:border-emerald-600 leading-relaxed font-medium"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={isBroadcasting}
-                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white font-black text-xs shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40"
+                className="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40"
               >
                 {isBroadcasting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 <span>{isBroadcasting ? 'Broadcasting...' : 'Dispatch Broadcast Immediately'}</span>
@@ -1610,22 +1612,22 @@ export default function AdminWhatsAppPage() {
           </div>
 
           {/* Live Mobile Preview */}
-          <div className="lg:col-span-5 bg-[#0B0F19] border border-[#1E293B] rounded-[22px] p-5 flex flex-col justify-between shadow-inner">
+          <div className="lg:col-span-5 bg-[#ECE5DD] border border-[#D5CCC1] rounded-[24px] p-5 flex flex-col justify-between shadow-inner">
             <div className="space-y-3">
-              <div className="flex items-center gap-2 border-b border-[#1E293B] pb-3">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-xs font-bold text-slate-300">Live WhatsApp Preview</span>
+              <div className="flex items-center gap-2 border-b border-[#D5CCC1]/70 pb-3">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-xs font-bold text-slate-800">Live WhatsApp Preview</span>
               </div>
 
-              <div className="bg-[#111827] border border-[#1E293B] rounded-2xl rounded-tl-none p-4 shadow-sm text-xs text-slate-200 leading-relaxed whitespace-pre-wrap font-sans">
+              <div className="bg-white rounded-2xl rounded-tl-none p-4 shadow-sm text-xs text-slate-800 leading-relaxed whitespace-pre-wrap font-sans">
                 {broadcastMessage}
-                <div className="text-[10px] text-slate-500 text-right mt-2 font-mono">
+                <div className="text-[10px] text-slate-400 text-right mt-2 font-mono">
                   {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ✓✓
                 </div>
               </div>
             </div>
 
-            <div className="text-[11px] text-slate-500 text-center mt-4 font-mono">
+            <div className="text-[11px] text-slate-600 text-center mt-4 font-mono">
               🔒 End-to-end encrypted message delivery
             </div>
           </div>
@@ -1636,18 +1638,18 @@ export default function AdminWhatsAppPage() {
       {/* 9. TAB 5: GROUPS & AUDIENCES                             */}
       {/* ======================================================== */}
       {activeTab === 'GROUPS' && (
-        <div className="bg-[#111827] border border-[#1E293B] rounded-[22px] p-4 sm:p-6 shadow-lg space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#1E293B] pb-4">
+        <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] p-5 sm:p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)] space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#F1F5F9] pb-4">
             <div>
-              <h2 className="text-base sm:text-lg font-bold text-white">Connected WhatsApp Groups & Channels</h2>
-              <p className="text-xs text-slate-400">
+              <h2 className="text-base sm:text-lg font-bold text-[#0F172A]">Connected WhatsApp Groups & Channels</h2>
+              <p className="text-xs text-slate-500">
                 Target your tournament groups, VIP scrims communities, and phone numbers in schedules.
               </p>
             </div>
 
             <button
               onClick={() => setGroupModalOpen(true)}
-              className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 cursor-pointer self-start sm:self-auto"
+              className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 cursor-pointer self-start sm:self-auto"
             >
               <PlusCircle className="w-3.5 h-3.5" />
               <span>Add New Group</span>
@@ -1658,34 +1660,34 @@ export default function AdminWhatsAppPage() {
             {groups.map((grp) => (
               <div
                 key={grp.id}
-                className="p-4 rounded-2xl bg-[#0B0F19] border border-[#1E293B] space-y-3 shadow-md flex flex-col justify-between hover:border-slate-700 transition-all"
+                className="p-4 rounded-2xl bg-[#F8FAFC] border border-slate-200 space-y-3 shadow-2xs flex flex-col justify-between hover:border-emerald-300 transition-all"
               >
                 <div>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100/60 text-emerald-800 border border-emerald-200 uppercase">
                       {grp.category.replace('_', ' ')}
                     </span>
                     <button
                       onClick={() => handleDeleteGroup(grp.id)}
-                      className="text-slate-500 hover:text-red-400 p-1 cursor-pointer"
+                      className="text-slate-400 hover:text-red-600 p-1 cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
 
-                  <h3 className="font-bold text-white text-sm mt-2">{grp.name}</h3>
+                  <h3 className="font-bold text-slate-900 text-sm mt-2">{grp.name}</h3>
                   {grp.description && (
-                    <p className="text-xs text-slate-400 mt-1 line-clamp-2">{grp.description}</p>
+                    <p className="text-xs text-slate-500 mt-1 line-clamp-2">{grp.description}</p>
                   )}
                 </div>
 
-                <div className="pt-2 border-t border-[#1E293B] space-y-1">
-                  <div className="text-[10px] text-slate-400 font-mono truncate">
-                    Target: <strong className="text-emerald-400">{grp.identifier}</strong>
+                <div className="pt-2 border-t border-slate-200/60 space-y-1">
+                  <div className="text-[10px] text-slate-500 font-mono truncate">
+                    Target: <strong className="text-slate-800">{grp.identifier}</strong>
                   </div>
                   {grp.memberCount ? (
-                    <div className="text-[11px] text-slate-400 font-semibold flex items-center gap-1">
-                      <Users className="w-3 h-3 text-slate-500" />
+                    <div className="text-[11px] text-slate-600 font-semibold flex items-center gap-1">
+                      <Users className="w-3 h-3 text-slate-400" />
                       <span>~{grp.memberCount} Members</span>
                     </div>
                   ) : null}
@@ -1700,36 +1702,36 @@ export default function AdminWhatsAppPage() {
       {/* 10. TAB 6: DISPATCH HISTORY & LOGS                       */}
       {/* ======================================================== */}
       {activeTab === 'LOGS' && (
-        <div className="bg-[#111827] border border-[#1E293B] rounded-[22px] p-4 sm:p-6 shadow-lg space-y-4">
-          <div className="flex items-center justify-between border-b border-[#1E293B] pb-4">
+        <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] p-5 sm:p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)] space-y-4">
+          <div className="flex items-center justify-between border-b border-[#F1F5F9] pb-4">
             <div>
-              <h2 className="text-base sm:text-lg font-bold text-white">WhatsApp Dispatch Logs</h2>
-              <p className="text-xs text-slate-400">Live records of all automated schedules and player DMs.</p>
+              <h2 className="text-base sm:text-lg font-bold text-[#0F172A]">WhatsApp Dispatch Logs</h2>
+              <p className="text-xs text-slate-500">Live records of all automated schedules and player DMs.</p>
             </div>
             <button
               onClick={() => loadData(false)}
-              className="p-2 rounded-xl bg-[#0B0F19] border border-[#1E293B] text-slate-300 hover:bg-[#1E293B] cursor-pointer"
+              className="p-2 rounded-xl bg-[#F8FAFC] border border-slate-200 text-slate-600 hover:bg-slate-100 cursor-pointer"
             >
               <RefreshCw className="w-4 h-4" />
             </button>
           </div>
 
           {logs.length === 0 ? (
-            <div className="p-16 text-center text-slate-500 text-xs">No message logs recorded yet.</div>
+            <div className="p-16 text-center text-slate-400 text-xs">No message logs recorded yet.</div>
           ) : (
             <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1 custom-scrollbar">
               {logs.map((log) => (
-                <div key={log.id} className="p-3 rounded-xl bg-[#0B0F19] border border-[#1E293B] text-xs space-y-1">
+                <div key={log.id} className="p-3.5 rounded-xl bg-[#F8FAFC] border border-slate-200 text-xs space-y-1">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-bold text-white truncate">{log.targetName || log.targetDestination}</span>
+                    <span className="font-bold text-slate-900 truncate">{log.targetName || log.targetDestination}</span>
                     <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold shrink-0 ${
-                      log.status === 'SENT' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-red-500/20 text-red-300 border border-red-500/30'
+                      log.status === 'SENT' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'
                     }`}>
                       {log.status}
                     </span>
                   </div>
-                  <p className="text-slate-300 text-[11px]">{log.messageText}</p>
-                  <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono pt-1">
+                  <p className="text-slate-700 text-[11px]">{log.messageText}</p>
+                  <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono pt-1">
                     <span>{log.triggerType}</span>
                     <span>{new Date(log.sentAt).toLocaleString()}</span>
                   </div>
@@ -1744,28 +1746,28 @@ export default function AdminWhatsAppPage() {
       {/* 11. TAB 7: API CONFIG & TEST                             */}
       {/* ======================================================== */}
       {activeTab === 'SETTINGS' && (
-        <div className="bg-[#111827] border border-[#1E293B] rounded-[22px] p-5 sm:p-6 shadow-lg space-y-5 max-w-2xl">
-          <div className="border-b border-[#1E293B] pb-3">
-            <h2 className="text-base font-bold text-white">Zavu WhatsApp API Gateway Settings</h2>
-            <p className="text-xs text-slate-400">Connection details and live test messaging tool.</p>
+        <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] p-5 sm:p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)] space-y-5 max-w-2xl">
+          <div className="border-b border-[#F1F5F9] pb-3">
+            <h2 className="text-base font-bold text-[#0F172A]">Zavu WhatsApp API Gateway Settings</h2>
+            <p className="text-xs text-slate-500">Connection details and live test messaging tool.</p>
           </div>
 
           <div className="space-y-3 text-xs">
-            <div className="p-4 rounded-xl bg-[#0B0F19] border border-[#1E293B] space-y-2">
-              <span className="font-bold text-slate-300 block">Sender Account:</span>
-              <div className="font-mono text-emerald-400 font-bold">{zavuStatus?.activeSender?.phoneNumber || '+880 1846-587311'}</div>
-              <div className="text-[11px] text-slate-400">Gateway Status: {zavuStatus?.connected !== false ? '🟢 Connected' : '🔴 Offline'}</div>
+            <div className="p-4 rounded-xl bg-[#F8FAFC] border border-slate-200 space-y-2">
+              <span className="font-bold text-slate-700 block">Sender Account:</span>
+              <div className="font-mono text-emerald-700 font-bold">{zavuStatus?.activeSender?.phoneNumber || '+880 1846-587311'}</div>
+              <div className="text-[11px] text-slate-500">Gateway Status: {zavuStatus?.connected !== false ? '🟢 Connected' : '🔴 Offline'}</div>
             </div>
 
             <div className="space-y-2 pt-2">
-              <label className="block text-slate-300 font-bold">Send Live Test Message:</label>
+              <label className="block text-slate-700 font-bold">Send Live Test Message:</label>
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={testPhone}
                   onChange={(e) => setTestPhone(e.target.value)}
                   placeholder="+88017XXXXXXXX"
-                  className="flex-1 px-3.5 py-2.5 rounded-xl bg-[#0B0F19] border border-[#1E293B] text-xs font-mono text-white focus:outline-none focus:border-emerald-500"
+                  className="flex-1 px-3.5 py-2.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-mono text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white"
                 />
                 <button
                   type="button"
@@ -1790,7 +1792,7 @@ export default function AdminWhatsAppPage() {
                       setIsSendingTest(false);
                     }
                   }}
-                  className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shrink-0 cursor-pointer disabled:opacity-50"
+                  className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shrink-0 cursor-pointer disabled:opacity-50"
                 >
                   {isSendingTest ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send Test'}
                 </button>
@@ -1801,26 +1803,26 @@ export default function AdminWhatsAppPage() {
       )}
 
       {/* ======================================================== */}
-      {/* 👥 MODAL: CREATE AUTOMATED SCHEDULE (Mobile Bottom Sheet / Dialog) */}
+      {/* 👥 MODAL: CREATE AUTOMATED SCHEDULE                      */}
       {/* ======================================================== */}
       {scheduleModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-[#111827] border border-[#1E293B] rounded-3xl shadow-2xl max-w-xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
             
             {/* Modal Header */}
-            <div className="p-4 sm:p-5 border-b border-[#1E293B] flex items-center justify-between bg-[#0F172A] shrink-0">
+            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-emerald-50 to-teal-50 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/20 shrink-0">
                   <Clock className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-white text-sm sm:text-base">Create WhatsApp Auto-Schedule</h3>
-                  <p className="text-[11px] text-slate-400">Configure frequency, intervals, and message count limits</p>
+                  <h3 className="font-bold text-slate-900 text-sm sm:text-base">Create WhatsApp Auto-Schedule</h3>
+                  <p className="text-[11px] text-slate-500">Configure frequency, intervals, and message count limits</p>
                 </div>
               </div>
               <button
                 onClick={() => setScheduleModalOpen(false)}
-                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-white/80 cursor-pointer"
               >
                 ✕
               </button>
@@ -1829,21 +1831,21 @@ export default function AdminWhatsAppPage() {
             {/* Scrollable Form Body */}
             <form onSubmit={handleCreateSchedule} className="p-4 sm:p-6 space-y-4 text-xs font-medium overflow-y-auto flex-1 custom-scrollbar">
               <div>
-                <label className="block text-slate-300 font-bold mb-1">Schedule Name / Title *</label>
+                <label className="block text-slate-700 font-bold mb-1">Schedule Name / Title *</label>
                 <input
                   type="text"
                   required
                   value={formTitle}
                   onChange={(e) => setFormTitle(e.target.value)}
                   placeholder="e.g. Daily 9:00 PM Room ID Auto-Alert"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#0B0F19] border border-[#1E293B] text-xs font-semibold text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white"
                 />
               </div>
 
               {/* Target Audience */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-300 font-bold mb-1">Target Recipient Type *</label>
+                  <label className="block text-slate-700 font-bold mb-1">Target Recipient Type *</label>
                   <select
                     value={formTargetType}
                     onChange={(e) => {
@@ -1854,7 +1856,7 @@ export default function AdminWhatsAppPage() {
                         setFormTargetName('All Active Squad Captains');
                       }
                     }}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#0B0F19] border border-[#1E293B] text-xs font-bold text-white focus:outline-none focus:border-emerald-500"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
                   >
                     <option value="GROUP">💬 WhatsApp Group</option>
                     <option value="TOURNAMENT_CAPTAINS">👥 Verified Squad Captains</option>
@@ -1863,7 +1865,7 @@ export default function AdminWhatsAppPage() {
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 font-bold mb-1">Target Group / Phone *</label>
+                  <label className="block text-slate-700 font-bold mb-1">Target Group / Phone *</label>
                   {formTargetType === 'GROUP' ? (
                     <select
                       value={formTargetDestination}
@@ -1872,7 +1874,7 @@ export default function AdminWhatsAppPage() {
                         const sel = groups.find(g => g.identifier === e.target.value || g.id === e.target.value);
                         if (sel) setFormTargetName(sel.name);
                       }}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#0B0F19] border border-[#1E293B] text-xs font-bold text-white focus:outline-none focus:border-emerald-500"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
                     >
                       {groups.map((g) => (
                         <option key={g.id} value={g.identifier}>
@@ -1887,26 +1889,26 @@ export default function AdminWhatsAppPage() {
                       value={formTargetDestination}
                       onChange={(e) => setFormTargetDestination(e.target.value)}
                       placeholder={formTargetType === 'TOURNAMENT_CAPTAINS' ? 'ACTIVE_TOURNAMENTS' : '+88017XXXXXXXX'}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#0B0F19] border border-[#1E293B] text-xs text-white focus:outline-none focus:border-emerald-500 font-mono"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white font-mono"
                     />
                   )}
                 </div>
               </div>
 
               {/* Timing, Frequency & Execution Limits */}
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0B0F19] border border-[#1E293B] space-y-3">
-                <div className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
-                  <Clock className="w-4 h-4" />
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <Clock className="w-4 h-4 text-emerald-600" />
                   <span>Timing, Frequency & Limit (কতক্ষণ পর পর এবং কয়বার পাঠাবে):</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-slate-300 font-bold mb-1">Frequency (কতক্ষণ পর পর?) *</label>
+                    <label className="block text-slate-700 font-bold mb-1">Frequency (কতক্ষণ পর পর?) *</label>
                     <select
                       value={formFrequency}
                       onChange={(e) => setFormFrequency(e.target.value as WhatsAppFrequency)}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#111827] border border-[#1E293B] text-xs font-bold text-white focus:outline-none focus:border-emerald-500"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
                     >
                       <option value="EVERY_5_MIN">Every 5 Minutes (প্রতি ৫ মিনিট)</option>
                       <option value="EVERY_10_MIN">Every 10 Minutes (প্রতি ১০ মিনিট)</option>
@@ -1922,7 +1924,7 @@ export default function AdminWhatsAppPage() {
                   </div>
 
                   <div>
-                    <label className="block text-slate-300 font-bold mb-1">Message Count Limit (কয়টা মেসেজ দিবে?) *</label>
+                    <label className="block text-slate-700 font-bold mb-1">Message Count Limit (কয়টা মেসেজ দিবে?) *</label>
                     <select
                       value={['0', '1', '3', '5', '10', '20', '50'].includes(formMaxExecutions) ? formMaxExecutions : 'CUSTOM'}
                       onChange={(e) => {
@@ -1932,7 +1934,7 @@ export default function AdminWhatsAppPage() {
                           setFormMaxExecutions(e.target.value);
                         }
                       }}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#111827] border border-[#1E293B] text-xs font-bold text-white focus:outline-none focus:border-emerald-500"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
                     >
                       <option value="0">∞ Unlimited (বিরতিহীন চলবে)</option>
                       <option value="1">1 Time Only (১ বার পাঠাবে)</option>
@@ -1947,7 +1949,7 @@ export default function AdminWhatsAppPage() {
 
                   {!['0', '1', '3', '5', '10', '20', '50'].includes(formMaxExecutions) && (
                     <div>
-                      <label className="block text-slate-300 font-bold mb-1">Exact Send Count *</label>
+                      <label className="block text-slate-700 font-bold mb-1">Exact Send Count *</label>
                       <input
                         type="number"
                         min="1"
@@ -1955,26 +1957,26 @@ export default function AdminWhatsAppPage() {
                         value={formMaxExecutions}
                         onChange={(e) => setFormMaxExecutions(e.target.value)}
                         placeholder="e.g. 7"
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-[#111827] border border-[#1E293B] text-xs font-bold text-white focus:outline-none focus:border-emerald-500"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
                       />
                     </div>
                   )}
 
                   {formFrequency === 'DAILY' && (
                     <div>
-                      <label className="block text-slate-300 font-bold mb-1">Daily Run Time *</label>
+                      <label className="block text-slate-700 font-bold mb-1">Daily Run Time *</label>
                       <input
                         type="time"
                         value={formScheduledTime}
                         onChange={(e) => setFormScheduledTime(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-[#111827] border border-[#1E293B] text-xs font-bold text-white focus:outline-none focus:border-emerald-500"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
                       />
                     </div>
                   )}
 
                   {formFrequency === 'INTERVAL_MINUTES' && (
                     <div>
-                      <label className="block text-slate-300 font-bold mb-1">Repeat Every (Minutes) *</label>
+                      <label className="block text-slate-700 font-bold mb-1">Repeat Every (Minutes) *</label>
                       <input
                         type="number"
                         min="1"
@@ -1982,7 +1984,7 @@ export default function AdminWhatsAppPage() {
                         value={formIntervalMinutes}
                         onChange={(e) => setFormIntervalMinutes(e.target.value)}
                         placeholder="e.g. 45"
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-[#111827] border border-[#1E293B] text-xs font-bold text-white focus:outline-none focus:border-emerald-500"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
                       />
                     </div>
                   )}
@@ -1992,12 +1994,12 @@ export default function AdminWhatsAppPage() {
               {/* Message Content & Sequences */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="block text-slate-300 font-bold">WhatsApp Message Template Content *</label>
+                  <label className="block text-slate-700 font-bold">WhatsApp Message Template Content *</label>
                   <button
                     type="button"
                     onClick={() => setFormUseSequence(!formUseSequence)}
                     className={`px-2.5 py-1 rounded-lg text-[10px] font-bold cursor-pointer transition-all ${
-                      formUseSequence ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-400'
+                      formUseSequence ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
                     <span>🔄 {formUseSequence ? 'Rotation Mode Active' : 'Enable Rotating Messages'}</span>
@@ -2005,19 +2007,19 @@ export default function AdminWhatsAppPage() {
                 </div>
 
                 {formUseSequence ? (
-                  <div className="space-y-3 p-3 rounded-2xl bg-[#0B0F19] border border-indigo-500/30">
-                    <p className="text-[11px] text-indigo-300">
+                  <div className="space-y-3 p-3 rounded-2xl bg-indigo-50/50 border border-indigo-100">
+                    <p className="text-[11px] text-indigo-700 font-medium">
                       প্রতিটি ইন্টারভালে নিচের মেসেজগুলো একের পর এক চক্রাকারে পাঠানো হবে:
                     </p>
                     {formMessagesSequence.map((msg, idx) => (
                       <div key={idx} className="space-y-1">
-                        <div className="flex items-center justify-between text-[11px] text-slate-400 font-bold">
+                        <div className="flex items-center justify-between text-[11px] text-indigo-900 font-bold">
                           <span>Message #{idx + 1}</span>
                           {formMessagesSequence.length > 1 && (
                             <button
                               type="button"
                               onClick={() => setFormMessagesSequence(formMessagesSequence.filter((_, i) => i !== idx))}
-                              className="text-red-400 hover:underline"
+                              className="text-red-500 hover:underline"
                             >
                               Remove
                             </button>
@@ -2032,14 +2034,14 @@ export default function AdminWhatsAppPage() {
                             setFormMessagesSequence(copy);
                           }}
                           placeholder={`Message ${idx + 1} text...`}
-                          className="w-full p-2.5 rounded-xl bg-[#111827] border border-[#1E293B] text-xs text-white focus:outline-none focus:border-indigo-500"
+                          className="w-full p-2.5 rounded-xl bg-white border border-indigo-200 text-xs font-mono text-slate-900 focus:outline-none focus:border-indigo-600"
                         />
                       </div>
                     ))}
                     <button
                       type="button"
                       onClick={() => setFormMessagesSequence([...formMessagesSequence, ''])}
-                      className="px-3 py-1.5 rounded-xl bg-[#111827] border border-indigo-500/30 text-indigo-300 font-bold text-[11px]"
+                      className="px-3 py-1.5 rounded-xl bg-white border border-indigo-200 text-indigo-700 font-bold text-[11px] hover:bg-indigo-50 cursor-pointer"
                     >
                       + Add Next Sequence Message
                     </button>
@@ -2051,24 +2053,24 @@ export default function AdminWhatsAppPage() {
                     value={formMessageTemplate}
                     onChange={(e) => setFormMessageTemplate(e.target.value)}
                     placeholder="Enter template text with placeholders (e.g. {COUNT}, {MAX_COUNT}, {TIME}, {SITE_LINK})..."
-                    className="w-full p-3.5 rounded-xl bg-[#0B0F19] border border-[#1E293B] text-xs font-mono text-white focus:outline-none focus:border-emerald-500"
+                    className="w-full p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white"
                   />
                 )}
               </div>
 
               {/* Sticky Modal Action Footer */}
-              <div className="pt-3 border-t border-[#1E293B] flex items-center justify-end gap-2 shrink-0">
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => setScheduleModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isProcessing}
-                  className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/20 flex items-center gap-2 cursor-pointer"
+                  className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 flex items-center gap-2 cursor-pointer"
                 >
                   {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                   <span>Save & Activate</span>
@@ -2083,21 +2085,21 @@ export default function AdminWhatsAppPage() {
       {/* 👥 MODAL: ADD NEW WHATSAPP GROUP                         */}
       {/* ======================================================== */}
       {groupModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-[#111827] border border-[#1E293B] rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-4 sm:p-5 border-b border-[#1E293B] flex items-center justify-between bg-[#0F172A] shrink-0">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-emerald-50 to-teal-50 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/20">
                   <Users className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-white text-sm sm:text-base">Add New WhatsApp Group</h3>
-                  <p className="text-[11px] text-slate-400">Connect a group invite link or phone identifier</p>
+                  <h3 className="font-bold text-slate-900 text-sm sm:text-base">Add New WhatsApp Group</h3>
+                  <p className="text-[11px] text-slate-500">Connect a group invite link or phone identifier</p>
                 </div>
               </div>
               <button
                 onClick={() => setGroupModalOpen(false)}
-                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-white/80 cursor-pointer"
               >
                 ✕
               </button>
@@ -2105,24 +2107,24 @@ export default function AdminWhatsAppPage() {
 
             <form onSubmit={handleCreateGroup} className="p-4 sm:p-6 space-y-4 text-xs font-medium">
               <div>
-                <label className="block text-slate-300 font-bold mb-1">Group Title / Name *</label>
+                <label className="block text-slate-700 font-bold mb-1">Group Title / Name *</label>
                 <input
                   type="text"
                   required
                   value={groupName}
                   onChange={(e) => setGroupName(e.target.value)}
                   placeholder="e.g. Free Fire Daily Scrims Squad #1"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#0B0F19] border border-[#1E293B] text-xs font-semibold text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-300 font-bold mb-1">Group Category</label>
+                  <label className="block text-slate-700 font-bold mb-1">Group Category</label>
                   <select
                     value={groupCategory}
                     onChange={(e) => setGroupCategory(e.target.value as any)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#0B0F19] border border-[#1E293B] text-xs font-bold text-white focus:outline-none focus:border-emerald-500"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
                   >
                     <option value="TOURNAMENT_MAIN">Tournament Main</option>
                     <option value="SCRIMS_VIP">VIP Scrims</option>
@@ -2133,52 +2135,52 @@ export default function AdminWhatsAppPage() {
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 font-bold mb-1">Estimated Members</label>
+                  <label className="block text-slate-700 font-bold mb-1">Estimated Members</label>
                   <input
                     type="number"
                     value={groupMemberCount}
                     onChange={(e) => setGroupMemberCount(e.target.value)}
                     placeholder="250"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#0B0F19] border border-[#1E293B] text-xs text-white focus:outline-none focus:border-emerald-500"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-slate-300 font-bold mb-1">WhatsApp Group Invite Link / JID / Phone *</label>
+                <label className="block text-slate-700 font-bold mb-1">WhatsApp Group Invite Link / JID / Phone *</label>
                 <input
                   type="text"
                   required
                   value={groupIdentifier}
                   onChange={(e) => setGroupIdentifier(e.target.value)}
                   placeholder="https://chat.whatsapp.com/xxxxxxxxx or phone"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#0B0F19] border border-[#1E293B] text-xs font-mono font-bold text-emerald-400 focus:outline-none focus:border-emerald-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono font-bold text-emerald-700 focus:outline-none focus:border-emerald-600 focus:bg-white"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-300 font-bold mb-1">Description (Optional)</label>
+                <label className="block text-slate-700 font-bold mb-1">Description (Optional)</label>
                 <textarea
                   rows={2}
                   value={groupDescription}
                   onChange={(e) => setGroupDescription(e.target.value)}
                   placeholder="Purpose of this group..."
-                  className="w-full p-3 rounded-xl bg-[#0B0F19] border border-[#1E293B] text-xs text-white focus:outline-none focus:border-emerald-500 resize-none"
+                  className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white resize-none"
                 />
               </div>
 
-              <div className="pt-3 border-t border-[#1E293B] flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setGroupModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isProcessing}
-                  className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/20 flex items-center gap-2 cursor-pointer"
+                  className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 flex items-center gap-2 cursor-pointer"
                 >
                   {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                   <span>Save Group</span>
