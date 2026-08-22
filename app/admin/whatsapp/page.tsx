@@ -437,8 +437,13 @@ export default function AdminWhatsAppPage() {
   };
 
   const handleSyncGroups = async () => {
-    if (!gatewaySettings.waapiApiKey) {
-      showToast('Please paste your WaAPI API Token in the "⚙️ API Config" tab first.', 'error');
+    if (gatewaySettings.provider === 'GREEN_API' && !gatewaySettings.greenApiToken) {
+      showToast('Please paste your Green-API apiTokenInstance in "⚙️ API Config" tab first.', 'error');
+      setActiveTab('SETTINGS');
+      return;
+    }
+    if (gatewaySettings.provider === 'WAAPI' && !gatewaySettings.waapiApiKey) {
+      showToast('Please paste your WaAPI API Token in "⚙️ API Config" tab first.', 'error');
       setActiveTab('SETTINGS');
       return;
     }
@@ -449,8 +454,10 @@ export default function AdminWhatsAppPage() {
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          instanceId: gatewaySettings.waapiInstanceId || '102791',
-          apiKey: gatewaySettings.waapiApiKey,
+          provider: gatewaySettings.provider,
+          apiUrl: gatewaySettings.greenApiUrl,
+          instanceId: gatewaySettings.provider === 'GREEN_API' ? gatewaySettings.greenApiInstanceId : gatewaySettings.waapiInstanceId,
+          apiKey: gatewaySettings.provider === 'GREEN_API' ? gatewaySettings.greenApiToken : gatewaySettings.waapiApiKey,
         }),
       });
       const data = await res.json();
@@ -459,7 +466,7 @@ export default function AdminWhatsAppPage() {
         if (data.groups) setGroups(data.groups);
         await loadData({ silent: true });
       } else {
-        showToast(data.message || 'Failed to sync groups. Please check your WaAPI Token & Instance.', 'error');
+        showToast(data.message || 'Failed to sync groups. Please check your credentials.', 'error');
       }
     } catch (err: any) {
       showToast(err?.message || 'Sync failed.', 'error');
@@ -684,29 +691,55 @@ export default function AdminWhatsAppPage() {
       return;
     }
 
-    if (!confirm('Send this broadcast message to all selected WhatsApp targets immediately?')) return;
-
     setIsBroadcasting(true);
     try {
-      const res = await fetch('/api/admin/whatsapp/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'BROADCAST',
-          tournamentId: 'ACTIVE_TOURNAMENTS',
-          tournamentTitle: 'BlackRock Esports Notification',
-          roomId: 'INFO',
-          pass: 'INFO',
-          customMessage: broadcastMessage.trim(),
-        }),
-      });
+      if (broadcastTarget === 'ALL_REGISTERED') {
+        const res = await fetch('/api/admin/whatsapp/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'BROADCAST',
+            tournamentId: 'ACTIVE_TOURNAMENTS',
+            tournamentTitle: 'BlackRock Esports Notification',
+            roomId: 'INFO',
+            pass: 'INFO',
+            customMessage: broadcastMessage.trim(),
+          }),
+        });
 
-      const data = await res.json();
-      if (res.ok) {
-        showToast(data.message || 'Broadcast dispatched successfully!', 'success');
-        await loadData();
+        const data = await res.json();
+        if (res.ok && (data.success || data.sentCount > 0)) {
+          showToast(data.message || 'Broadcast dispatched to registered captains!', 'success');
+          setBroadcastMessage('');
+          await loadData();
+        } else {
+          showToast(data.message || 'No registered captains found to broadcast.', 'error');
+        }
       } else {
-        showToast(data.message || 'Failed to dispatch broadcast.', 'error');
+        // Direct broadcast to the specific WhatsApp Group or JID!
+        const targetGroup = groups.find(g => g.identifier === broadcastTarget || g.id === broadcastTarget);
+        const groupDisplayName = targetGroup?.name || 'WhatsApp Group';
+
+        const res = await fetch('/api/admin/whatsapp/direct-send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone: broadcastTarget,
+            recipientName: groupDisplayName,
+            message: broadcastMessage.trim(),
+            templateType: 'GROUP_BROADCAST',
+          }),
+          credentials: 'include',
+        });
+
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showToast(`✅ Broadcast delivered to "${groupDisplayName}"!`, 'success');
+          setBroadcastMessage('');
+          await loadData();
+        } else {
+          showToast(data.message || 'Failed to dispatch broadcast to group.', 'error');
+        }
       }
     } catch (err: any) {
       showToast(err?.message || 'Network error.', 'error');
@@ -1815,7 +1848,7 @@ export default function AdminWhatsAppPage() {
                     )}
                   </div>
 
-                  <div className="pt-2 border-t border-slate-200/60 space-y-1">
+                  <div className="pt-2 border-t border-slate-200/60 space-y-2">
                     <div className="text-[10px] text-slate-500 font-mono truncate">
                       Target: <strong className="text-slate-800">{grp.identifier}</strong>
                     </div>
@@ -1825,6 +1858,20 @@ export default function AdminWhatsAppPage() {
                         <span>~{grp.memberCount} Members</span>
                       </div>
                     ) : null}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBroadcastTarget(grp.identifier);
+                        setBroadcastMessage(`🎮 [${grp.name}] টুর্নামেন্ট আপডেট:\n\nরুম আইডি ও জরুরি নোটিশ প্রকাশ করা হয়েছে! সবাই দ্রুত প্রস্তুত থাকুন: https://brkesports.com`);
+                        setActiveTab('INSTANT_BROADCAST');
+                        showToast(`Selected "${grp.name}". Compose message to send now.`, 'success');
+                      }}
+                      className="w-full py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs border border-emerald-200 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-all mt-1"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Send Message to Group</span>
+                    </button>
                   </div>
                 </div>
               ))}
