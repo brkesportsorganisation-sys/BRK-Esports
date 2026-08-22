@@ -107,7 +107,7 @@ export default function AdminWhatsAppPage() {
     zavuApiKeyFull?: string;
     isEnabled: boolean;
   }>({
-    provider: 'WAAPI',
+    provider: 'ZAVU',
     waapiApiKey: '',
     waapiInstanceId: '102791',
     zavuApiKey: '',
@@ -426,6 +426,11 @@ export default function AdminWhatsAppPage() {
   };
 
   const handleSyncGroups = async () => {
+    if (!gatewaySettings.waapiApiKey) {
+      showToast('Please paste your WaAPI API Token in the "⚙️ API Config" tab first.', 'error');
+      setActiveTab('SETTINGS');
+      return;
+    }
     setIsSyncingGroups(true);
     try {
       const res = await fetch('/api/admin/whatsapp/sync-groups', {
