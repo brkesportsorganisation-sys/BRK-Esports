@@ -49,7 +49,7 @@ export default async function LivePage() {
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 flex flex-col font-sans selection:bg-red-600 selection:text-white">
       <Navbar />
 
-      <main className="flex-grow pt-8 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full space-y-8">
+      <main className="flex-grow pt-6 sm:pt-8 pb-6 sm:pb-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full space-y-6 sm:space-y-8">
         
         {/* Stream Broadcast Banner Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6">
