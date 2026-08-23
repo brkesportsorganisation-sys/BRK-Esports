@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { Award, Trophy, Users, Search, Flame, Shield, Loader2, Crown, ExternalLink } from 'lucide-react';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
-import { playerLeaderboard, teamLeaderboard } from '@/lib/mock-data';
 
 interface LeaderboardEntry {
   rank: number;
@@ -27,30 +26,29 @@ interface LeaderboardEntry {
 export default function LeaderboardPage() {
   const [activeTab, setActiveTab] = useState<'PLAYERS' | 'TEAMS'>('PLAYERS');
   const [searchQuery, setSearchQuery] = useState('');
-  const [players, setPlayers] = useState<LeaderboardEntry[]>(playerLeaderboard as any);
-  const [teams, setTeams] = useState<LeaderboardEntry[]>(teamLeaderboard as any);
+  const [players, setPlayers] = useState<LeaderboardEntry[]>([]);
+  const [teams, setTeams] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function loadLeaderboard() {
-      try {
-        const res = await fetch('/api/leaderboard');
-        if (res.ok) {
-          const data = await res.json();
-          if (data.players && data.players.length > 0) {
-            setPlayers(data.players);
-          }
-          if (data.teams && data.teams.length > 0) {
-            setTeams(data.teams);
-          }
-        }
-      } catch (err) {
-        console.warn('Using cached leaderboard data:', err);
-      } finally {
-        setLoading(false);
+  const loadLeaderboard = async () => {
+    try {
+      const res = await fetch('/api/leaderboard');
+      if (res.ok) {
+        const data = await res.json();
+        setPlayers(data.players || []);
+        setTeams(data.teams || []);
       }
+    } catch (err) {
+      console.warn('Leaderboard fetch notice:', err);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
     loadLeaderboard();
+    const interval = setInterval(loadLeaderboard, 6000);
+    return () => clearInterval(interval);
   }, []);
 
   const currentList = activeTab === 'PLAYERS' ? players : teams;
@@ -212,10 +210,22 @@ export default function LeaderboardPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
-              {filteredList.length === 0 ? (
+              {loading ? (
                 <tr>
-                  <td colSpan={5} className="py-10 text-center text-slate-500 text-xs font-medium">
-                    No leaderboard rankings found matching your search.
+                  <td colSpan={5} className="py-14 text-center text-slate-500 text-xs font-medium">
+                    <Loader2 className="w-6 h-6 text-brand-orange animate-spin mx-auto mb-2" />
+                    <div>Loading live rankings from database...</div>
+                  </td>
+                </tr>
+              ) : filteredList.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-14 text-center text-slate-500 text-xs font-medium">
+                    <Shield className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                    <div className="font-bold text-slate-700">
+                      {activeTab === 'PLAYERS'
+                        ? 'No player tournament rankings recorded yet in the database.'
+                        : 'No squads registered yet in the database. Create a squad from the Teams tab to participate!'}
+                    </div>
                   </td>
                 </tr>
               ) : (

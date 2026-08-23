@@ -1,125 +1,10 @@
 import { supabaseAdmin } from './supabase';
 import { Squad, SquadMember, SquadMemberType, InGameRole, SquadMemberStatus, User } from './types';
 
-// Default initial mock squads for fallback and seed
-export const INITIAL_SQUADS: Squad[] = [
-  {
-    id: 'squad_brk_prime',
-    name: 'BlackRock Prime',
-    tag: 'BRK',
-    logoUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=200',
-    bannerUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1200',
-    game: 'FREE_FIRE',
-    createdBy: 'usr_admin',
-    leaderId: 'usr_admin',
-    leaderName: 'BRK_Owner',
-    description: 'Official Tier-1 Competitive Squad of Black Rock Esports. Daily scrims & tournament champions.',
-    requireApprovalToJoin: true,
-    inviteToken: 'tok_brk_prime_8899',
-    matchesPlayed: 48,
-    matchesWon: 32,
-    totalKills: 384,
-    totalEarnings: 15400,
-    createdAt: new Date(Date.now() - 30 * 86400000).toISOString(),
-    updatedAt: new Date().toISOString(),
-    members: [
-      {
-        id: 'mem_1',
-        squadId: 'squad_brk_prime',
-        userId: 'usr_admin',
-        userName: 'BRK_Owner',
-        userAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=BRK_Owner',
-        accountNumber: 'BRE-100001',
-        freeFireUid: '1892837461',
-        memberType: 'PLAYER',
-        inGameRole: 'IGL',
-        isLeader: true,
-        joinedAt: new Date(Date.now() - 30 * 86400000).toISOString(),
-        status: 'ACTIVE',
-      },
-      {
-        id: 'mem_2',
-        squadId: 'squad_brk_prime',
-        userId: 'usr_player_tanvir',
-        userName: 'Tanvir_Sniper',
-        userAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Tanvir_Sniper',
-        accountNumber: 'BRE-100002',
-        freeFireUid: '2093847261',
-        memberType: 'PLAYER',
-        inGameRole: 'SNIPER',
-        isLeader: false,
-        joinedAt: new Date(Date.now() - 25 * 86400000).toISOString(),
-        status: 'ACTIVE',
-      },
-      {
-        id: 'mem_3',
-        squadId: 'squad_brk_prime',
-        userId: 'usr_player_rakib',
-        userName: 'Rakib_Rusher',
-        userAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Rakib_Rusher',
-        accountNumber: 'BRE-100003',
-        freeFireUid: '3984726152',
-        memberType: 'PLAYER',
-        inGameRole: 'RUSHER',
-        isLeader: false,
-        joinedAt: new Date(Date.now() - 20 * 86400000).toISOString(),
-        status: 'ACTIVE',
-      },
-      {
-        id: 'mem_4',
-        squadId: 'squad_brk_prime',
-        userId: 'usr_player_sakib',
-        userName: 'Sakib_Support',
-        userAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Sakib_Support',
-        accountNumber: 'BRE-100004',
-        freeFireUid: '4928173645',
-        memberType: 'PLAYER',
-        inGameRole: 'SUPPORT',
-        isLeader: false,
-        joinedAt: new Date(Date.now() - 15 * 86400000).toISOString(),
-        status: 'ACTIVE',
-      }
-    ],
-  },
-  {
-    id: 'squad_nova_esports',
-    name: 'Nova Assasins',
-    tag: 'NOVA',
-    logoUrl: 'https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?w=200',
-    bannerUrl: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=1200',
-    game: 'FREE_FIRE',
-    createdBy: 'usr_player_2',
-    leaderId: 'usr_player_2',
-    leaderName: 'Nova_Leader',
-    description: 'Aggressive rushers focused on custom room scrims and cash cups.',
-    requireApprovalToJoin: true,
-    inviteToken: 'tok_nova_7711',
-    matchesPlayed: 24,
-    matchesWon: 14,
-    totalKills: 198,
-    totalEarnings: 6800,
-    createdAt: new Date(Date.now() - 15 * 86400000).toISOString(),
-    updatedAt: new Date().toISOString(),
-    members: [
-      {
-        id: 'mem_nova_1',
-        squadId: 'squad_nova_esports',
-        userId: 'usr_player_2',
-        userName: 'Nova_Leader',
-        userAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Nova_Leader',
-        accountNumber: 'BRE-100005',
-        freeFireUid: '5928172635',
-        memberType: 'PLAYER',
-        inGameRole: 'IGL',
-        isLeader: true,
-        joinedAt: new Date(Date.now() - 15 * 86400000).toISOString(),
-        status: 'ACTIVE',
-      }
-    ]
-  }
-];
+// Initial squads store (empty by default - 100% real database driven)
+export const INITIAL_SQUADS: Squad[] = [];
 
-let inMemorySquads: Squad[] = [...INITIAL_SQUADS];
+let inMemorySquads: Squad[] = [];
 
 /**
  * Loads all squads from Supabase SiteSetting store or in-memory fallback.
@@ -134,13 +19,13 @@ export async function getSquads(): Promise<Squad[]> {
 
     if (data?.value) {
       const parsed = JSON.parse(data.value);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         inMemorySquads = parsed;
         return parsed;
       }
     }
   } catch (err) {
-    console.warn('[Squads DB] Supabase fallback to memory:', err);
+    console.warn('[Squads DB] Supabase fetch notice:', err);
   }
 
   return inMemorySquads;
