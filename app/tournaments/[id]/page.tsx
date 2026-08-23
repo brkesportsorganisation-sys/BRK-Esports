@@ -673,10 +673,10 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-6">
 
         {/* Tabs - Room ID & Password positioned on the LEFT as the primary tab */}
-        <div className="flex items-center space-x-3 border-b border-slate-200 overflow-x-auto pb-2">
+        <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-2">
           <button
             onClick={() => setActiveTab('ROOM')}
-            className={`px-6 py-3 rounded-2xl font-heading font-bold text-sm transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
+            className={`flex-1 sm:flex-initial px-4 sm:px-6 py-2.5 sm:py-3 rounded-2xl font-heading font-black text-xs sm:text-sm transition-all whitespace-nowrap cursor-pointer flex items-center justify-center gap-2 ${
               activeTab === 'ROOM'
                 ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-white bg-slate-100/80 border border-slate-200'
@@ -688,7 +688,7 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
 
           <button
             onClick={() => setActiveTab('DETAILS')}
-            className={`px-6 py-3 rounded-2xl font-heading font-bold text-sm transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
+            className={`flex-1 sm:flex-initial px-4 sm:px-6 py-2.5 sm:py-3 rounded-2xl font-heading font-black text-xs sm:text-sm transition-all whitespace-nowrap cursor-pointer flex items-center justify-center gap-2 ${
               activeTab === 'DETAILS'
                 ? 'bg-gradient-to-r from-brand-red to-brand-orange text-white shadow-neon-red'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-white bg-slate-100/80 border border-slate-200'

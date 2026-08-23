@@ -649,20 +649,20 @@ function ProfilePageContent() {
           </div>
         </div>
 
-        {/* Dashboard Tabs */}
-        <div className="flex items-center space-x-2 border-b border-slate-200 overflow-x-auto pb-1">
+        {/* Dashboard Tabs - Compact Responsive Multi-line */}
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 border-b border-slate-200 pb-2">
           {(['OVERVIEW', 'TOURNAMENTS', 'TEAMS', 'TRANSACTIONS', 'SUPPORT'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-5 py-2.5 rounded-xl font-heading font-bold text-sm transition-all flex items-center gap-2 cursor-pointer ${
+              className={`flex-1 sm:flex-initial px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-heading font-black text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
                 activeTab === tab
-                  ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-md'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-sm'
+                  : 'bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50'
               }`}
             >
-              {tab === 'SUPPORT' && <Headphones className="w-4 h-4" />}
-              <span>{tab === 'SUPPORT' ? 'ADMIN SUPPORT' : tab}</span>
+              {tab === 'SUPPORT' && <Headphones className="w-3.5 h-3.5" />}
+              <span>{tab === 'SUPPORT' ? 'SUPPORT' : tab}</span>
             </button>
           ))}
         </div>
@@ -671,25 +671,25 @@ function ProfilePageContent() {
         {activeTab === 'OVERVIEW' && (
           <div className="space-y-6">
             {/* Referral Booyah Pass - Prominently at the Top */}
-            <div id="referral-section" className="bg-white p-6 md:p-8 rounded-[2rem] border-2 border-red-100 shadow-md space-y-6 relative overflow-hidden">
+            <div id="referral-section" className="bg-white p-5 sm:p-7 md:p-8 rounded-[2rem] border-2 border-red-100 shadow-md space-y-5 relative overflow-hidden">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                  <h3 className="font-heading font-black text-2xl text-slate-900 flex items-center gap-2">
+                  <h3 className="font-heading font-black text-xl sm:text-2xl text-slate-900 flex items-center gap-2">
                     <Gift className="w-6 h-6 text-red-500" /> Referral Pass
                   </h3>
-                  <p className="text-sm text-slate-600 mt-1 mb-1">Invite friends using your Referral Code to unlock rewards!</p>
-                  <div className="text-xs text-red-600 font-bold flex items-center gap-1.5 bg-red-50 px-2.5 py-1 rounded-lg inline-flex">
+                  <p className="text-xs sm:text-sm text-slate-600 mt-1 mb-1">Invite friends using your Referral Code to unlock rewards!</p>
+                  <div className="text-[11px] sm:text-xs text-red-600 font-bold flex items-center gap-1.5 bg-red-50 px-2.5 py-1 rounded-lg inline-flex">
                     <Clock className="w-3.5 h-3.5" /> Note: This Referral Pass resets monthly. Ends in: {passTimeLeft}
                   </div>
                 </div>
-                <div className="bg-orange-50 border border-orange-200 px-4 py-2 rounded-xl text-center">
+                <div className="bg-orange-50 border border-orange-200 px-4 py-2 rounded-xl text-center self-start sm:self-auto">
                   <div className="text-[10px] text-orange-600 font-bold uppercase">Total Referrals</div>
                   <div className="font-heading font-black text-2xl text-orange-500">{user.totalReferrals || 0}</div>
                 </div>
               </div>
 
               {/* Referral Link Share Box */}
-              <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex flex-col sm:flex-row items-center gap-4">
+              <div className="bg-slate-50 border border-slate-200 p-3.5 sm:p-4 rounded-xl flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
                 <div className="flex-1 w-full relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <LinkIcon className="h-4 w-4 text-slate-400" />
@@ -698,7 +698,7 @@ function ProfilePageContent() {
                     type="text"
                     readOnly
                     value={typeof window !== 'undefined' ? `${window.location.origin}/register?ref=${user.referralCode}` : ''}
-                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-600 font-mono focus:outline-none"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs sm:text-sm text-slate-600 font-mono focus:outline-none"
                   />
                 </div>
                 <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -710,7 +710,7 @@ function ProfilePageContent() {
                         setTimeout(() => setCopiedLink(false), 2000);
                       }
                     }}
-                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-sm font-bold transition-colors cursor-pointer"
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs sm:text-sm font-bold transition-colors cursor-pointer"
                   >
                     {copiedLink ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />} 
                     {copiedLink ? 'Copied' : 'Copy Link'}
@@ -740,69 +740,87 @@ function ProfilePageContent() {
                 </div>
               </div>
 
-              {/* Pass Progress Line */}
-              <div className="relative pt-8 pb-4 overflow-x-auto">
-                <div className="min-w-[600px] relative px-4">
-                  <div className="absolute top-4 left-4 right-4 h-2 bg-slate-100 rounded-full z-0"></div>
-                  
-                  <div 
-                    className="absolute top-4 left-4 h-2 bg-gradient-to-r from-red-500 to-orange-500 rounded-full z-10 transition-all duration-1000 ease-out"
-                    style={{ 
-                      width: `${Math.min(100, ((user.totalReferrals || 0) / 300) * 100)}%` 
-                    }}
-                  ></div>
+              {/* Pass Progress Line & Milestones - Compact & Responsive (No Horizontal Scroll) */}
+              <div className="w-full space-y-3 pt-2">
+                {/* Visual Progress Bar */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px] font-bold text-slate-500">
+                    <span>Progress: {user.totalReferrals || 0} / 300 Invites</span>
+                    <span className="text-orange-600 font-mono">{Math.min(100, Math.round(((user.totalReferrals || 0) / 300) * 100))}%</span>
+                  </div>
+                  <div className="h-2.5 bg-slate-100 rounded-full w-full overflow-hidden p-0.5 border border-slate-200">
+                    <div 
+                      className="h-full bg-gradient-to-r from-red-500 to-orange-500 rounded-full transition-all duration-1000 ease-out"
+                      style={{ 
+                        width: `${Math.min(100, ((user.totalReferrals || 0) / 300) * 100)}%` 
+                      }}
+                    />
+                  </div>
+                </div>
 
-                  {/* Milestone Nodes */}
-                  <div className="relative z-20 flex justify-between items-start -mt-3">
-                    {referralMilestones.map((milestone) => {
-                      const isUnlocked = (user.totalReferrals || 0) >= milestone.required;
-                      const isClaimed = (user.claimedMilestones || []).includes(milestone.id);
-                      
-                      return (
-                        <div key={milestone.id} className="flex flex-col items-center group w-24">
-                          <div className={`w-10 h-10 rounded-full border-4 flex items-center justify-center transition-all ${
-                            isClaimed 
-                              ? 'bg-emerald-500 border-emerald-200 text-white shadow-lg shadow-emerald-500/30' 
-                              : isUnlocked 
-                                ? 'bg-gradient-to-br from-red-500 to-orange-500 border-orange-200 text-white shadow-lg shadow-orange-500/30 animate-pulse' 
-                                : 'bg-white border-slate-200 text-slate-400'
-                          }`}>
-                            {isClaimed ? <Check className="w-5 h-5" /> : isUnlocked ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-                          </div>
-                          
-                          <div className="mt-3 text-center">
-                            <div className="text-[10px] font-bold text-slate-600 uppercase">{milestone.required} Invites</div>
-                            <div className={`text-xs font-black mt-0.5 ${isUnlocked ? 'text-slate-900' : 'text-slate-600'}`}>
-                              {milestone.label}
-                            </div>
-                          </div>
-
-                          <div className="mt-3 h-8">
-                            {isUnlocked && !isClaimed ? (
-                              <button
-                                onClick={() => handleClaimMilestone(milestone.id, milestone.rewardType, milestone.rewardAmount)}
-                                disabled={claimingMilestoneId === milestone.id}
-                                className="px-3 py-1 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white text-[10px] font-bold uppercase rounded-lg shadow-sm transition-colors cursor-pointer flex items-center gap-1"
-                              >
-                                {claimingMilestoneId === milestone.id ? (
-                                  <>
-                                    <Loader2 className="w-3 h-3 animate-spin" />
-                                    <span>Claiming...</span>
-                                  </>
-                                ) : (
-                                  <span>Claim</span>
-                                )}
-                              </button>
-                            ) : isClaimed ? (
-                              <span className="px-3 py-1 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold uppercase rounded-lg">
-                                Claimed
-                              </span>
-                            ) : null}
+                {/* Milestone Nodes Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 pt-2">
+                  {referralMilestones.map((milestone) => {
+                    const isUnlocked = (user.totalReferrals || 0) >= milestone.required;
+                    const isClaimed = (user.claimedMilestones || []).includes(milestone.id);
+                    
+                    return (
+                      <div 
+                        key={milestone.id} 
+                        className={`p-3 rounded-2xl border transition-all flex flex-col items-center text-center justify-between space-y-2 ${
+                          isClaimed
+                            ? 'bg-emerald-50/70 border-emerald-200'
+                            : isUnlocked
+                            ? 'bg-gradient-to-b from-orange-50/90 to-amber-50/70 border-orange-300 shadow-xs ring-1 ring-orange-400/20'
+                            : 'bg-slate-50/90 border-slate-200'
+                        }`}
+                      >
+                        <div className={`w-9 h-9 rounded-xl border-2 flex items-center justify-center transition-all ${
+                          isClaimed 
+                            ? 'bg-emerald-500 border-emerald-200 text-white shadow-xs' 
+                            : isUnlocked 
+                              ? 'bg-gradient-to-br from-red-500 to-orange-500 border-orange-200 text-white shadow-xs animate-pulse' 
+                              : 'bg-white border-slate-200 text-slate-400'
+                        }`}>
+                          {isClaimed ? <Check className="w-4 h-4" /> : isUnlocked ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                        </div>
+                        
+                        <div>
+                          <div className="text-[10px] font-bold text-slate-500 uppercase">{milestone.required} Invites</div>
+                          <div className={`text-xs font-heading font-black mt-0.5 ${isUnlocked ? 'text-slate-900' : 'text-slate-600'}`}>
+                            {milestone.label}
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
+
+                        <div className="w-full">
+                          {isUnlocked && !isClaimed ? (
+                            <button
+                              onClick={() => handleClaimMilestone(milestone.id, milestone.rewardType, milestone.rewardAmount)}
+                              disabled={claimingMilestoneId === milestone.id}
+                              className="w-full py-1.5 bg-gradient-to-r from-red-500 to-orange-500 hover:brightness-110 text-white text-[10px] font-heading font-black uppercase rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1"
+                            >
+                              {claimingMilestoneId === milestone.id ? (
+                                <>
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                  <span>Claiming...</span>
+                                </>
+                              ) : (
+                                <span>Claim</span>
+                              )}
+                            </button>
+                          ) : isClaimed ? (
+                            <span className="inline-block w-full py-1 bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase rounded-xl">
+                              Claimed
+                            </span>
+                          ) : (
+                            <span className="inline-block w-full py-1 bg-slate-100 text-slate-400 text-[10px] font-bold uppercase rounded-xl">
+                              Locked
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
