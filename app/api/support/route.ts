@@ -5,15 +5,6 @@ import { SupportTicket, SupportMessage } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
-const DISCORD_INVITE_URL = 'https://discord.gg/blackrock-esports';
-
-const AUTOMATED_DISCORD_WELCOME_MESSAGE = `👋 আসসালামু আলাইকুম! Black Rock Esports হেল্পডেস্ক ও সাপোর্ট সেন্টারে স্বাগতম।
-
-📌 **জরুরি টুর্নামেন্ট সমস্যা, রুম আইডি মিসিং, ইনস্ট্যান্ট প্রাইজমানি ক্যাশআউট সাপোর্ট ও নোটিফিকেশনের জন্য আমাদের অফিসিয়াল Discord সার্ভারে যোগ দিন:**
-👉 **Discord Invite Link:** ${DISCORD_INVITE_URL}
-
-আমাদের একজন সাপোর্ট অ্যাডমিন আপনার মেসেজটি পেয়েছেন এবং খুব দ্রুত এখানেই উত্তর দেবেন। অনুগ্রহ করে আপনার ফ্রি ফায়ার UID বা সমস্যার বিবরণ লিখে রাখুন।`;
-
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -141,29 +132,6 @@ export async function POST(request: NextRequest) {
         });
       } catch (supaErr) {
         console.warn('[POST /api/support] Supabase sync notice:', supaErr);
-      }
-
-      // AUTO DISCORD WELCOME REPLY (If new conversation / first user message)
-      if (isFirstMessage) {
-        const sysMsg = db.addSupportMessage({
-          ticketId: ticket.id,
-          userId: 'system',
-          userName: 'Black Rock Support Bot',
-          senderRole: 'SYSTEM',
-          content: AUTOMATED_DISCORD_WELCOME_MESSAGE,
-        });
-
-        try {
-          await supabaseAdmin.from('SupportMessage').insert({
-            id: sysMsg.id,
-            ticketId: ticket.id,
-            userId: 'system',
-            userName: 'Black Rock Support Bot',
-            senderRole: 'SYSTEM',
-            content: AUTOMATED_DISCORD_WELCOME_MESSAGE,
-            createdAt: sysMsg.createdAt,
-          });
-        } catch {}
       }
 
       const allMessages = db.getSupportMessages(ticket.id);
