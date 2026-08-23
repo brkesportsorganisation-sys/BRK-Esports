@@ -308,11 +308,11 @@ export default function GamingShopPage() {
               )}
             </div>
 
-            {/* Currency Filter Switcher */}
-            <div className="flex items-center gap-1.5 p-1 bg-white border border-slate-200 rounded-2xl shadow-2xs self-start md:self-auto overflow-x-auto">
+            {/* Currency Filter Switcher (Wraps into multi-line if needed on mobile) */}
+            <div className="flex flex-wrap items-center gap-1.5 p-1 bg-white border border-slate-200 rounded-2xl shadow-2xs w-full sm:w-auto">
               <button
                 onClick={() => setCurrencyFilter('ALL')}
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`flex-1 sm:flex-none text-center px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   currencyFilter === 'ALL'
                     ? 'bg-slate-900 text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
@@ -322,7 +322,7 @@ export default function GamingShopPage() {
               </button>
               <button
                 onClick={() => setCurrencyFilter('COINS')}
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`flex-1 sm:flex-none justify-center px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                   currencyFilter === 'COINS'
                     ? 'bg-amber-500 text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
@@ -333,7 +333,7 @@ export default function GamingShopPage() {
               </button>
               <button
                 onClick={() => setCurrencyFilter('WALLET')}
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`flex-1 sm:flex-none justify-center px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                   currencyFilter === 'WALLET'
                     ? 'bg-emerald-600 text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
@@ -346,15 +346,15 @@ export default function GamingShopPage() {
 
           </div>
 
-          {/* Category Filter Pills */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          {/* Category Filter Pills (Multi-line Wrap: 2-3 lines without horizontal scrolling) */}
+          <div className="flex flex-wrap items-center gap-2 pt-1">
             {categories.map((cat) => {
               const Icon = cat.icon;
               return (
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.id)}
-                  className={`px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all border flex items-center gap-2 cursor-pointer ${
+                  className={`px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer ${
                     selectedCategory === cat.id
                       ? 'bg-gradient-to-r from-red-600 to-orange-500 text-white border-transparent shadow-md shadow-orange-500/20'
                       : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50'
