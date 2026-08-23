@@ -77,6 +77,28 @@ export default function SquadDetailsPage({ params }: { params: Promise<{ id: str
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [isDisbanding, setIsDisbanding] = useState(false);
 
+  // Player Profile & Tournament History Inspection State
+  const [inspectingPlayerId, setInspectingPlayerId] = useState<string | null>(null);
+  const [playerStatsData, setPlayerStatsData] = useState<{ player: any; matchHistory: any[] } | null>(null);
+  const [isLoadingPlayerStats, setIsLoadingPlayerStats] = useState(false);
+
+  const handleInspectPlayer = async (userId: string) => {
+    setInspectingPlayerId(userId);
+    setIsLoadingPlayerStats(true);
+    setPlayerStatsData(null);
+    try {
+      const res = await fetch(`/api/players/${userId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setPlayerStatsData(data);
+      }
+    } catch (err) {
+      console.warn('Failed to load player stats:', err);
+    } finally {
+      setIsLoadingPlayerStats(false);
+    }
+  };
+
   const loadSquad = async () => {
     setLoading(true);
     try {
@@ -634,6 +656,16 @@ export default function SquadDetailsPage({ params }: { params: Promise<{ id: str
                           <span>{new Date(member.joinedAt).toLocaleDateString()}</span>
                         </div>
                       </div>
+
+                      {/* View Player Profile & Career Placement History CTA */}
+                      <button
+                        type="button"
+                        onClick={() => handleInspectPlayer(member.userId)}
+                        className="w-full py-2 px-3 rounded-xl bg-slate-950 hover:bg-slate-800 text-amber-400 hover:text-amber-300 text-xs font-heading font-black flex items-center justify-center gap-1.5 border border-slate-800 hover:border-amber-400/40 transition-all cursor-pointer shadow-xs active:scale-98"
+                      >
+                        <Search className="w-3.5 h-3.5 text-amber-400" />
+                        <span>View Profile & Match History</span>
+                      </button>
                     </div>
 
                     {/* Member Controls (Leader / Manager permissions) */}
@@ -1159,6 +1191,150 @@ export default function SquadDetailsPage({ params }: { params: Promise<{ id: str
                 </button>
               </div>
             </form>
+
+          </div>
+        </div>
+      )}
+
+      {/* ════════════ MODAL 4: PLAYER PROFILE & TOURNAMENT HISTORY ════════════ */}
+      {inspectingPlayerId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fadeIn overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-800 rounded-[2.5rem] p-6 sm:p-8 max-w-2xl w-full space-y-6 shadow-2xl text-white my-8 max-h-[90vh] overflow-y-auto">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold">
+                  <Trophy className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-heading font-black text-lg sm:text-xl text-white">Player Esports Profile</h3>
+                  <p className="text-xs text-slate-400">Career stats, kills, wins & tournament position records</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setInspectingPlayerId(null);
+                  setPlayerStatsData(null);
+                }}
+                className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white font-bold cursor-pointer transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            {isLoadingPlayerStats ? (
+              <div className="py-20 text-center space-y-3">
+                <Loader2 className="w-8 h-8 text-amber-500 animate-spin mx-auto" />
+                <p className="text-xs text-slate-400 font-bold">Loading player career & tournament records...</p>
+              </div>
+            ) : playerStatsData?.player ? (
+              <div className="space-y-6">
+                
+                {/* Player Identity Card */}
+                <div className="bg-slate-950/80 border border-slate-800 rounded-3xl p-5 flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4">
+                  <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+                    <img
+                      src={playerStatsData.player.avatar}
+                      alt={playerStatsData.player.name}
+                      className="w-16 h-16 rounded-2xl object-cover border-2 border-amber-400/80 shadow-md bg-slate-900 shrink-0"
+                    />
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-center sm:justify-start gap-2">
+                        <h4 className="text-base sm:text-lg font-black text-white font-heading">
+                          {playerStatsData.player.inGameName || playerStatsData.player.name}
+                        </h4>
+                        <span className="px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/40 text-amber-400 text-[10px] font-black uppercase">
+                          {playerStatsData.player.role}
+                        </span>
+                      </div>
+                      <div className="text-xs text-slate-400 flex flex-wrap items-center justify-center sm:justify-start gap-3">
+                        <span>Account: <strong className="text-slate-200 font-mono">{playerStatsData.player.accountNumber}</strong></span>
+                        <span>FF UID: <strong className="text-emerald-400 font-mono">{playerStatsData.player.freeFireUid}</strong></span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-center sm:text-right shrink-0">
+                    <div className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Player Status</div>
+                    <div className="text-xs font-black text-amber-400 font-heading">ACTIVE ROSTER MEMBER</div>
+                  </div>
+                </div>
+
+                {/* Career 4-Stat Box */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 text-center space-y-0.5">
+                    <div className="text-[10px] font-bold text-slate-500 uppercase">Matches</div>
+                    <div className="text-lg font-black text-white font-heading">{playerStatsData.player.matchesPlayed}</div>
+                  </div>
+                  <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 text-center space-y-0.5">
+                    <div className="text-[10px] font-bold text-slate-500 uppercase">Total Kills</div>
+                    <div className="text-lg font-black text-red-400 font-heading">{playerStatsData.player.totalKills}</div>
+                  </div>
+                  <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 text-center space-y-0.5">
+                    <div className="text-[10px] font-bold text-slate-500 uppercase">Booyah Wins</div>
+                    <div className="text-lg font-black text-amber-400 font-heading">{playerStatsData.player.totalWins}</div>
+                  </div>
+                  <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 text-center space-y-0.5">
+                    <div className="text-[10px] font-bold text-slate-500 uppercase">Earnings</div>
+                    <div className="text-lg font-black text-emerald-400 font-heading">৳{playerStatsData.player.earnings}</div>
+                  </div>
+                </div>
+
+                {/* Tournament History & Placements Section */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <h4 className="text-xs sm:text-sm font-heading font-black text-white flex items-center gap-2">
+                      <Swords className="w-4 h-4 text-orange-400" />
+                      <span>Tournament Matches & Position History</span>
+                    </h4>
+                    <span className="text-[11px] text-slate-500 font-mono">
+                      {playerStatsData.matchHistory?.length || 0} Tournament(s)
+                    </span>
+                  </div>
+
+                  {playerStatsData.matchHistory && playerStatsData.matchHistory.length > 0 ? (
+                    <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                      {playerStatsData.matchHistory.map((m: any) => (
+                        <div
+                          key={m.id}
+                          className="p-3.5 rounded-2xl bg-slate-950/90 border border-slate-800 hover:border-slate-700 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
+                        >
+                          <div className="space-y-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="px-2 py-0.5 rounded-md bg-orange-500/20 text-orange-400 font-black text-[10px] uppercase font-mono">
+                                {m.gameMode}
+                              </span>
+                              <h5 className="font-bold text-xs text-white truncate">{m.tournamentTitle}</h5>
+                            </div>
+                            <div className="text-[11px] text-slate-400 flex items-center gap-3">
+                              <span>Map: {m.map}</span>
+                              <span>Prize Pool: <strong className="text-emerald-400">৳{m.prizePool}</strong></span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                            <span className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase shadow-2xs ${m.positionBadge}`}>
+                              {m.position}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-8 rounded-2xl bg-slate-950/60 border border-slate-800 text-center text-xs text-slate-500 space-y-1">
+                      <ShieldCheck className="w-6 h-6 text-slate-600 mx-auto" />
+                      <p>No tournament match placement records found yet.</p>
+                    </div>
+                  )}
+                </div>
+
+              </div>
+            ) : (
+              <div className="py-12 text-center text-xs text-slate-400">
+                Could not load player profile data.
+              </div>
+            )}
 
           </div>
         </div>

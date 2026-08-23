@@ -122,6 +122,10 @@ export default function SquadTeamsHubPage() {
       setErrorMessage('Please log in to create a squad.');
       return;
     }
+    if (mySquads.length >= 1) {
+      setErrorMessage('⚠️ আপনি ইতিমধ্যে একটি স্কোয়াডের সদস্য। একসাথে সর্বোচ্চ ১ টি স্কোয়াডেই থাকা যাবে।');
+      return;
+    }
 
     setIsCreating(true);
     setErrorMessage('');
@@ -225,13 +229,20 @@ export default function SquadTeamsHubPage() {
             </div>
 
             <div className="flex items-center gap-3 shrink-0 flex-wrap">
-              <button
-                onClick={() => setCreateModalOpen(true)}
-                className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 hover:brightness-110 active:scale-95 text-white font-heading font-black text-xs uppercase tracking-wider shadow-lg shadow-orange-500/30 flex items-center gap-2 cursor-pointer transition-all"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Create New Squad</span>
-              </button>
+              {mySquads.length >= 1 ? (
+                <div className="px-5 py-3.5 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-400 font-heading font-black text-xs uppercase flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-amber-400" />
+                  <span>1 / 1 Active Squad (Limit Reached)</span>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setCreateModalOpen(true)}
+                  className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 hover:brightness-110 active:scale-95 text-white font-heading font-black text-xs uppercase tracking-wider shadow-lg shadow-orange-500/30 flex items-center gap-2 cursor-pointer transition-all"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Create New Squad</span>
+                </button>
+              )}
             </div>
           </div>
         </div>

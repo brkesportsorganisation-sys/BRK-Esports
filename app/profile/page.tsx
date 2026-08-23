@@ -375,8 +375,8 @@ function ProfilePageContent() {
     e.preventDefault();
     if (!teamName.trim() || !teamTag.trim() || !user) return;
 
-    if (squads.length >= 1) {
-      alert('⚠️ Squad Limit: You are already an active member of a squad. You can only be in 1 active squad at a time. To create another squad, you must first leave or disband your current squad from its settings page.');
+    if (squads.length >= 1 || teams.length >= 1) {
+      alert('⚠️ Squad Limit: আপনি ইতিমধ্যে একটি স্কোয়াডের সদস্য। একসাথে সর্বোচ্চ ১ টি স্কোয়াডেই থাকা যাবে। নতুন স্কোয়াড তৈরি করতে পূর্বের স্কোয়াডটি ডিলিট বা লিভ করুন।');
       setIsTeamModalOpen(false);
       return;
     }
@@ -933,7 +933,7 @@ function ProfilePageContent() {
                 </p>
               </div>
 
-              {squads.length >= 1 ? (
+              {(squads.length > 0 || teams.length > 0) ? (
                 <div className="px-3.5 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold flex items-center gap-2 shadow-2xs self-start sm:self-auto">
                   <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0" />
                   <span>1 / 1 Active Squad (Limit Reached)</span>
@@ -950,7 +950,7 @@ function ProfilePageContent() {
             </div>
 
             {/* 1-Squad Rule Informational Alert */}
-            {squads.length >= 1 && (
+            {(squads.length > 0 || teams.length > 0) && (
               <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-2xl flex items-start gap-2.5 text-xs text-amber-900">
                 <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                 <span>
@@ -1086,23 +1086,32 @@ function ProfilePageContent() {
 
                 {/* 2. Fallback for legacy teams if any */}
                 {squads.length === 0 && teams.map((team) => (
-                  <div key={team.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4 hover:shadow-md transition-shadow">
+                  <Link
+                    key={team.id}
+                    href={`/squads/${team.id}`}
+                    className="bg-white p-6 rounded-3xl border border-slate-200 hover:border-amber-400 shadow-sm space-y-4 hover:shadow-xl transition-all duration-300 group cursor-pointer block"
+                  >
                     <div className="flex items-center space-x-4">
-                      <img src={team.logo || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=150'} alt={team.name} className="w-14 h-14 rounded-2xl object-cover border-2 border-orange-100 shadow-sm" />
-                      <div>
-                        <div className="font-heading font-bold text-lg text-slate-900 flex items-center gap-2">
+                      <img src={team.logo || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=150'} alt={team.name} className="w-14 h-14 rounded-2xl object-cover border-2 border-orange-100 shadow-sm bg-slate-950" />
+                      <div className="min-w-0">
+                        <div className="font-heading font-black text-lg text-slate-900 flex items-center gap-2 truncate">
                           <span>{team.name}</span>
                           <span className="text-xs px-2 py-0.5 rounded-lg bg-red-50 text-red-600 border border-red-100 font-mono font-bold">[{team.tag}]</span>
                         </div>
-                        <div className="text-xs text-slate-600 font-medium">Captain: {team.captainName}</div>
+                        <div className="text-xs text-slate-600 font-medium mt-0.5">Captain: <strong className="text-slate-900 font-bold">{team.captainName || user?.inGameName || user?.name || 'Captain'}</strong></div>
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between pt-4 border-t border-slate-100 text-xs">
                       <span className="text-slate-600 font-mono font-medium">Invite Code: <strong className="text-orange-600 font-bold">{team.inviteCode}</strong></span>
-                      <span className="text-cyan-700 font-bold bg-cyan-50 px-2 py-1 rounded-lg">{team.membersCount || 1} Roster Members</span>
+                      <span className="text-cyan-700 font-bold bg-cyan-50 px-2.5 py-1 rounded-lg border border-cyan-100">{team.membersCount || 1} Roster Members</span>
                     </div>
-                  </div>
+
+                    <div className="pt-2 flex items-center justify-end text-xs font-black font-heading text-amber-600 group-hover:text-amber-700">
+                      <span>View Full Squad & Roster</span>
+                      <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
+                    </div>
+                  </Link>
                 ))}
               </div>
             )}
