@@ -22,7 +22,12 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (convErr || !conversation) {
-      return NextResponse.json({ message: 'Conversation not found.' }, { status: 404 });
+      return NextResponse.json({
+        conversation: null,
+        messages: [],
+        contactInfo: { isUnlocked: false },
+        unlockFee: 20,
+      });
     }
 
     // Security check: only participants or admin can read messages

@@ -64,12 +64,19 @@ function MessagesInboxContent() {
   const [isUnlockModalOpen, setIsUnlockModalOpen] = useState(false);
   const [unlocking, setUnlocking] = useState(false);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const prevMsgCountRef = useRef<number>(0);
   const targetConvIdParam = searchParams.get('id');
   const targetSellerIdParam = searchParams.get('sellerId');
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollToBottom = (smooth = true) => {
+    const el = chatContainerRef.current;
+    if (el) {
+      el.scrollTo({
+        top: el.scrollHeight,
+        behavior: smooth ? 'smooth' : 'auto',
+      });
+    }
   };
 
   // Load User and Conversations
@@ -131,42 +138,48 @@ function MessagesInboxContent() {
   }, [targetSellerIdParam, targetConvIdParam]);
 
   // Load Messages when activeConvId changes
-  const loadMessages = async (convId: string, userId: string) => {
-    setLoadingMessages(true);
+  const loadMessages = async (convId: string, userId: string, isSilent = false) => {
+    if (!isSilent) {
+      setLoadingMessages(true);
+    }
     setFilterWarning(null);
     try {
       const res = await fetch(`/api/messages?conversationId=${convId}&userId=${userId}`, { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
-        setMessages(data.messages || []);
+        const msgList = data.messages || [];
+        setMessages(msgList);
         setActiveConvMeta(data.conversation);
         setContactInfo(data.contactInfo || { isUnlocked: false });
         if (data.unlockFee) setUnlockFee(data.unlockFee);
+
+        if (!isSilent || msgList.length > prevMsgCountRef.current) {
+          prevMsgCountRef.current = msgList.length;
+          setTimeout(() => scrollToBottom(!isSilent), 50);
+        }
       }
     } catch (err) {
       console.warn('Failed to load messages:', err);
     } finally {
-      setLoadingMessages(false);
-      setTimeout(scrollToBottom, 100);
+      if (!isSilent) {
+        setLoadingMessages(false);
+      }
     }
   };
 
   useEffect(() => {
     if (activeConvId && currentUser?.id) {
-      loadMessages(activeConvId, currentUser.id);
+      prevMsgCountRef.current = 0;
+      loadMessages(activeConvId, currentUser.id, false);
 
-      // Periodic polling for new messages every 6s
+      // Periodic silent polling for new messages every 5s without reloading spinner
       const interval = setInterval(() => {
-        loadMessages(activeConvId, currentUser.id);
-      }, 6000);
+        loadMessages(activeConvId, currentUser.id, true);
+      }, 5000);
 
       return () => clearInterval(interval);
     }
   }, [activeConvId, currentUser?.id]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
 
   // Send Message with Client & Server-side Security Filter
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -469,7 +482,7 @@ function MessagesInboxContent() {
               )}
 
               {/* Messages Thread Container */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3 min-h-[360px] max-h-[500px]">
                 {loadingMessages ? (
                   <div className="py-16 text-center text-slate-400">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto text-brand-orange" />
@@ -508,7 +521,6 @@ function MessagesInboxContent() {
                     );
                   })
                 )}
-                <div ref={messagesEndRef} />
               </div>
 
               {/* Message Input Box */}
