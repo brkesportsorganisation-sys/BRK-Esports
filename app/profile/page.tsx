@@ -1558,28 +1558,6 @@ function ProfilePageContent() {
                     <div className="text-[11px] text-slate-400">Ticket ID: <strong className="text-slate-200 font-mono">{supportTicket.id}</strong></div>
                   </div>
                 )}
-
-                {/* Quick Topic Chips */}
-                <div className="space-y-2 pt-2">
-                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Quick Assistance Topics</div>
-                  <div className="flex flex-col gap-2">
-                    {[
-                      '💰 ডিপোজিট / উইথড্র সংক্রান্ত হেল্প',
-                      '🔑 ফ্রি ফায়ার UID ভুল দেখাচ্ছে',
-                      '🕹️ টুর্নামেন্ট রুম আইডি পাওয়া যায়নি',
-                      '🏆 প্রাইজ মানি যুক্ত হয়নি'
-                    ].map((topic, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => setSupportInput(topic)}
-                        className="text-left px-3 py-2 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-xs text-slate-300 hover:text-white border border-slate-700/50 transition-colors cursor-pointer"
-                      >
-                        {topic}
-                      </button>
-                    ))}
-                  </div>
-                </div>
               </div>
 
               {/* Discord Link Card */}
