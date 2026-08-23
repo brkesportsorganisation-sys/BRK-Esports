@@ -649,22 +649,38 @@ function ProfilePageContent() {
           </div>
         </div>
 
-        {/* Dashboard Tabs - Compact Responsive Multi-line */}
-        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 border-b border-slate-200 pb-2">
-          {(['OVERVIEW', 'TOURNAMENTS', 'TEAMS', 'TRANSACTIONS', 'SUPPORT'] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`flex-1 sm:flex-initial px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-heading font-black text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
-                activeTab === tab
-                  ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-sm'
-                  : 'bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
-            >
-              {tab === 'SUPPORT' && <Headphones className="w-3.5 h-3.5" />}
-              <span>{tab === 'SUPPORT' ? 'SUPPORT' : tab}</span>
-            </button>
-          ))}
+        {/* Dashboard Tabs - Compact 5-Column Responsive Grid - Zero Scroll */}
+        <div className="bg-slate-100/90 p-1 sm:p-1.5 rounded-2xl sm:rounded-3xl border border-slate-200 w-full shadow-2xs">
+          <div className="grid grid-cols-5 gap-1 sm:gap-1.5 w-full">
+            {[
+              { id: 'OVERVIEW', label: 'Overview', shortLabel: 'Overview', icon: Trophy },
+              { id: 'TOURNAMENTS', label: 'Tournaments', shortLabel: 'Matches', icon: Gamepad2 },
+              { id: 'TEAMS', label: 'My Squad', shortLabel: 'Squad', icon: Users },
+              { id: 'TRANSACTIONS', label: 'Transactions', shortLabel: 'History', icon: CreditCard },
+              { id: 'SUPPORT', label: 'Help Desk', shortLabel: 'Support', icon: Headphones },
+            ].map((t) => {
+              const Icon = t.icon;
+              const isActive = activeTab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setActiveTab(t.id as any)}
+                  className={`py-2 sm:py-2.5 px-0.5 sm:px-2 rounded-xl sm:rounded-2xl font-heading font-black transition-all flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 cursor-pointer text-center select-none w-full min-w-0 ${
+                    isActive
+                      ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-xs'
+                      : 'bg-transparent text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                  }`}
+                >
+                  <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-500'}`} />
+                  <span className="text-[10px] sm:text-xs md:text-sm tracking-tight leading-tight truncate w-full text-center">
+                    <span className="hidden sm:inline">{t.label}</span>
+                    <span className="sm:hidden">{t.shortLabel}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Tab 1: Overview Stats */}
