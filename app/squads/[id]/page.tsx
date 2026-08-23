@@ -176,6 +176,8 @@ export default function SquadDetailsPage({ params }: { params: Promise<{ id: str
   const handleSendInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedPlayer || !currentUser) return;
+    const playerRole = (selectedPlayer as any)?.inGameRole || 'RUSHER';
+    const playerType = 'PLAYER';
 
     setIsInviting(true);
     try {
@@ -189,8 +191,8 @@ export default function SquadDetailsPage({ params }: { params: Promise<{ id: str
           targetUserAvatar: selectedPlayer.avatar,
           targetAccountNumber: selectedPlayer.accountNumber,
           targetFreeFireUid: selectedPlayer.freeFireUid,
-          memberType: inviteType,
-          inGameRole: inviteRole,
+          memberType: playerType,
+          inGameRole: playerRole,
           isJoinRequest: false,
         }),
       });
@@ -1002,35 +1004,6 @@ export default function SquadDetailsPage({ params }: { params: Promise<{ id: str
                     </button>
                   </div>
                 )}
-              </div>
-
-              {/* In-Game Role & Member Type Assignment */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-slate-300 font-bold uppercase block text-[11px]">Designation Type *</label>
-                  <select
-                    value={inviteType}
-                    onChange={(e) => setInviteType(e.target.value as SquadMemberType)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white font-bold focus:outline-none focus:border-amber-500"
-                  >
-                    <option value="PLAYER">🎮 Active Player</option>
-                    <option value="MANAGER">👔 Team Manager</option>
-                    <option value="COACH">🧠 Strategic Coach</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-slate-300 font-bold uppercase block text-[11px]">In-Game Role *</label>
-                  <select
-                    value={inviteRole}
-                    onChange={(e) => setInviteRole(e.target.value as InGameRole)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white font-bold focus:outline-none focus:border-amber-500"
-                  >
-                    {gameRoles.map((r: { role: InGameRole; label: string; icon: string }) => (
-                      <option key={r.role} value={r.role}>{r.label}</option>
-                    ))}
-                  </select>
-                </div>
               </div>
 
               <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-800">
