@@ -30,7 +30,10 @@ import {
   Check,
   Zap,
   Info,
-  DollarSign
+  DollarSign,
+  UserPlus,
+  Plus,
+  X
 } from 'lucide-react';
 
 function MessagesInboxContent() {
@@ -59,6 +62,13 @@ function MessagesInboxContent() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedContact, setCopiedContact] = useState(false);
+
+  // Search Player by BRK ID Modal State
+  const [isSearchPlayerModalOpen, setIsSearchPlayerModalOpen] = useState(false);
+  const [playerSearchQuery, setPlayerSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearchingPlayers, setIsSearchingPlayers] = useState(false);
+  const [startingChatUserId, setStartingChatUserId] = useState<string | null>(null);
 
   // Unlock Modal State
   const [isUnlockModalOpen, setIsUnlockModalOpen] = useState(false);
@@ -268,6 +278,60 @@ function MessagesInboxContent() {
     setTimeout(() => setCopiedContact(false), 2000);
   };
 
+  const handleSearchPlayers = async (query: string) => {
+    setPlayerSearchQuery(query);
+    const q = query.trim();
+    if (q.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    setIsSearchingPlayers(true);
+    try {
+      const res = await fetch(`/api/players/search?q=${encodeURIComponent(q)}&currentUserId=${currentUser?.id || ''}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSearchResults(data.players || []);
+      }
+    } catch (err) {
+      console.warn('Failed to search players:', err);
+    } finally {
+      setIsSearchingPlayers(false);
+    }
+  };
+
+  const handleStartChatWithPlayer = async (targetPlayer: any) => {
+    if (!currentUser) return;
+    setStartingChatUserId(targetPlayer.id);
+    try {
+      const res = await fetch('/api/messages/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          buyerId: currentUser.id,
+          sellerId: targetPlayer.id,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.conversation) {
+          setIsSearchPlayerModalOpen(false);
+          setPlayerSearchQuery('');
+          setSearchResults([]);
+          await fetchConversations(currentUser.id);
+          setActiveConvId(data.conversation.id);
+        }
+      } else {
+        const err = await res.json();
+        alert(err.message || 'Failed to start conversation.');
+      }
+    } catch {
+      alert('Network error starting conversation.');
+    } finally {
+      setStartingChatUserId(null);
+    }
+  };
+
   const activeConversation = conversations.find((c) => c.id === activeConvId);
   const otherUser = activeConversation?.otherUser;
 
@@ -296,25 +360,50 @@ function MessagesInboxContent() {
             {/* Header & Search */}
             <div className="p-4 border-b border-slate-100 space-y-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 font-heading font-black text-lg text-slate-900">
+                <div className="flex items-center gap-2 font-heading font-black text-base text-slate-900">
                   <MessageSquare className="w-5 h-5 text-brand-orange" />
                   <span>MESSAGES INBOX</span>
                 </div>
-                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
-                  {conversations.length}
-                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSearchPlayerModalOpen(true);
+                    setPlayerSearchQuery('');
+                    setSearchResults([]);
+                  }}
+                  className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-2xs hover:brightness-110 transition-all flex items-center gap-1 text-[11px] font-heading font-black cursor-pointer"
+                  title="Search Player by BRK ID"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>+ New Chat</span>
+                </button>
               </div>
 
               <div className="relative">
                 <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Search chats..."
+                  placeholder="Search chats or BRK ID..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-orange"
                 />
               </div>
+
+              {searchQuery.trim().length >= 2 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const q = searchQuery.trim();
+                    setIsSearchPlayerModalOpen(true);
+                    handleSearchPlayers(q);
+                  }}
+                  className="w-full py-1.5 px-2.5 rounded-xl bg-orange-50 hover:bg-orange-100 text-brand-orange text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer border border-orange-200"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>Search player by &quot;{searchQuery}&quot;</span>
+                </button>
+              )}
             </div>
 
             {/* List */}
@@ -608,6 +697,129 @@ function MessagesInboxContent() {
                 {unlocking ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>CONFIRM & UNLOCK (৳{unlockFee})</span>}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── FIND & START CHAT BY BRK ID MODAL ── */}
+      {isSearchPlayerModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full border border-slate-200 shadow-2xl space-y-5 animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-orange-50 text-brand-orange border border-orange-200 flex items-center justify-center">
+                  <UserPlus className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-heading font-black text-lg text-slate-900">
+                    Find Player by BRK ID
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium">
+                    Search any player by BRK ID (e.g. BRE-132083), IGN or UID to send a message request.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsSearchPlayerModalOpen(false)}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Search Input Box */}
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                autoFocus
+                placeholder="Enter BRK ID (e.g. BRE-132083), Player Name, or FF UID..."
+                value={playerSearchQuery}
+                onChange={(e) => handleSearchPlayers(e.target.value)}
+                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-orange focus:bg-white transition-all shadow-xs"
+              />
+              {isSearchingPlayers && (
+                <Loader2 className="w-4 h-4 text-brand-orange animate-spin absolute right-3.5 top-1/2 -translate-y-1/2" />
+              )}
+            </div>
+
+            {/* Results List */}
+            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+              {playerSearchQuery.trim().length < 2 ? (
+                <div className="p-8 text-center text-slate-400 text-xs font-medium space-y-1">
+                  <Search className="w-8 h-8 mx-auto text-slate-300" />
+                  <div>Type at least 2 letters or digits of the BRK ID to search.</div>
+                </div>
+              ) : isSearchingPlayers ? (
+                <div className="p-8 text-center text-slate-400 text-xs font-medium">
+                  Searching player database...
+                </div>
+              ) : searchResults.length === 0 ? (
+                <div className="p-8 text-center text-slate-500 text-xs font-medium space-y-1">
+                  <UserIcon className="w-8 h-8 mx-auto text-slate-300" />
+                  <div className="font-bold text-slate-700">No player found</div>
+                  <div>No player matched &quot;{playerSearchQuery}&quot;. Please verify the BRK ID.</div>
+                </div>
+              ) : (
+                searchResults.map((player) => (
+                  <div
+                    key={player.id}
+                    className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 hover:border-brand-orange/40 hover:bg-orange-50/40 transition-all flex items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <img
+                        src={player.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${player.name}`}
+                        alt={player.name}
+                        className="w-11 h-11 rounded-2xl object-cover border border-slate-200 bg-white shadow-2xs shrink-0"
+                      />
+                      <div className="min-w-0">
+                        <div className="font-heading font-black text-sm text-slate-900 truncate flex items-center gap-1.5">
+                          <span>{player.inGameName || player.name}</span>
+                        </div>
+                        <div className="text-[11px] font-mono text-blue-600 font-bold mt-0.5">
+                          {player.accountNumber}
+                        </div>
+                        {player.freeFireUid && (
+                          <div className="text-[10px] text-slate-400 font-mono truncate">
+                            UID: {player.freeFireUid}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={startingChatUserId === player.id || player.isCurrentUser}
+                      onClick={() => handleStartChatWithPlayer(player)}
+                      className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-heading font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs disabled:opacity-50 cursor-pointer shrink-0"
+                    >
+                      {startingChatUserId === player.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Send className="w-3.5 h-3.5 text-brand-orange" />
+                      )}
+                      <span>{player.isCurrentUser ? 'You' : 'Start Chat'}</span>
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Footer Close */}
+            <div className="flex justify-end pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setIsSearchPlayerModalOpen(false)}
+                className="px-5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+
           </div>
         </div>
       )}
