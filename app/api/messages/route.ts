@@ -35,8 +35,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
     }
 
-    // 2. Fetch messages in order
-    const { data: messages, error: msgErr } = await supabaseAdmin
+    // 2. Fetch messages in order (filter out any blocked violation attempts)
+    const { data: rawMessages, error: msgErr } = await supabaseAdmin
       .from('Message')
       .select('*')
       .eq('conversationId', conversationId)
@@ -45,6 +45,20 @@ export async function GET(request: NextRequest) {
     if (msgErr) {
       console.warn('[GET /api/messages] Supabase warning:', msgErr.message);
     }
+
+    // Cleanly filter out any blocked violation records so raw phone numbers never appear in chat
+    const messages = (rawMessages || []).filter(
+      (m: any) => !m.isFlagged && !m.content?.startsWith('[BLOCKED BY FILTER')
+    );
+
+    // Clean up old blocked violation attempts from database asynchronously
+    try {
+      await supabaseAdmin
+        .from('Message')
+        .delete()
+        .eq('conversationId', conversationId)
+        .or('isFlagged.eq.true,content.like.[BLOCKED BY FILTER%');
+    } catch {}
 
     // 3. Check Contact Unlock status
     const { data: unlock } = await supabaseAdmin
@@ -111,24 +125,12 @@ export async function POST(request: NextRequest) {
     const filterResult = validateChatMessage(trimmedContent);
 
     if (filterResult.isBlocked) {
-      // Record flagged violation attempt for admin moderation review
-      const flaggedId = `flag_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-      await supabaseAdmin.from('Message').insert([{
-        id: flaggedId,
-        conversationId,
-        senderId,
-        senderName: senderName || 'Player',
-        content: `[BLOCKED BY FILTER: ${filterResult.flagReason}] ${trimmedContent}`,
-        isFlagged: true,
-        flagReason: filterResult.flagReason,
-        createdAt: new Date().toISOString(),
-      }]);
-
+      // Reject and do NOT insert the blocked phone number or link into the chat table!
       return NextResponse.json({
         success: false,
         blocked: true,
         flagReason: filterResult.flagReason,
-        message: filterResult.warningMessage,
+        message: filterResult.warningMessage || 'Security Warning: Direct phone numbers and external links cannot be sent in chat.',
       }, { status: 422 });
     }
 
