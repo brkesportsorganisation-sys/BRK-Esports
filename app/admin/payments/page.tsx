@@ -280,15 +280,15 @@ export default function AdminPaymentsPage() {
 
                     <td className="py-4 px-5">
                       {p.status === 'PENDING' && (
-                        Number(p.amount) > 500 || p.notes?.includes('NOT Auto-Credited') ? (
+                        Number(p.amount) >= 500 || p.notes?.includes('NOT Auto-Credited') || p.notes?.includes('Manual Approval') ? (
                           <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-purple-50 text-purple-700 border border-purple-300 inline-flex items-center gap-1.5 shadow-2xs">
                             <span className="w-1.5 h-1.5 rounded-full bg-purple-600 animate-ping" />
-                            <span>Manual Review (&gt; ৳500 • Not Credited)</span>
+                            <span>Pending Approval (&gt;= ৳500 • Not Credited)</span>
                           </span>
                         ) : (
                           <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-amber-50 text-amber-700 border border-amber-300 inline-flex items-center gap-1.5 shadow-2xs">
                             <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
-                            <span>Auto-Credited (&lt;= ৳500 • Pending)</span>
+                            <span>Auto-Credited (&lt; ৳500 • Pending Review)</span>
                           </span>
                         )
                       )}
@@ -317,16 +317,16 @@ export default function AdminPaymentsPage() {
                             onClick={() => handleVerify(p.id, 'APPROVE')}
                             disabled={processingId === p.id}
                             className="px-3 py-1.5 rounded-[10px] bg-[#059669] hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all flex items-center space-x-1 disabled:opacity-50 cursor-pointer"
-                            title={Number(p.amount) > 500 ? "Approve deposit and credit balance to player's wallet" : "Confirm payment and keep balance"}
+                            title={Number(p.amount) >= 500 || p.notes?.includes('NOT Auto-Credited') || p.notes?.includes('Manual Approval') ? "Approve deposit and credit balance to player's wallet" : "Confirm payment and keep balance"}
                           >
                             <Check className="w-3.5 h-3.5" />
-                            <span>{Number(p.amount) > 500 || p.notes?.includes('NOT Auto-Credited') ? `Approve & Add ৳${p.amount}` : 'Confirm & Keep'}</span>
+                            <span>{Number(p.amount) >= 500 || p.notes?.includes('NOT Auto-Credited') || p.notes?.includes('Manual Approval') ? `Approve & Add ৳${p.amount}` : 'Confirm & Keep'}</span>
                           </button>
                           <button
                             onClick={() => setRejectModalPayment(p)}
                             disabled={processingId === p.id}
                             className="px-3 py-1.5 rounded-[10px] bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-bold text-xs transition-all flex items-center space-x-1 disabled:opacity-50 cursor-pointer"
-                            title={Number(p.amount) > 500 ? "Reject request without balance deduction" : "Reject fake deposit and deduct balance"}
+                            title={Number(p.amount) >= 500 || p.notes?.includes('NOT Auto-Credited') || p.notes?.includes('Manual Approval') ? "Reject request without balance deduction" : "Reject fake deposit and deduct balance"}
                           >
                             <X className="w-3.5 h-3.5" />
                             <span>{Number(p.amount) > 500 || p.notes?.includes('NOT Auto-Credited') ? 'Reject' : 'Reject & Minus'}</span>

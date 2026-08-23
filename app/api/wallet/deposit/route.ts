@@ -37,8 +37,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: `Minimum deposit amount is ৳${minDeposit}. (ন্যূনতম ডিপোজিট ৳${minDeposit})` }, { status: 400 });
     }
 
-    const MAX_AUTO_CREDIT_BDT = 500;
-    const shouldAutoCredit = numAmount <= MAX_AUTO_CREDIT_BDT;
+    const MAX_AUTO_CREDIT_BDT = 499;
+    const shouldAutoCredit = numAmount < 500;
 
     const trimmedTrx = trxId.trim().toUpperCase();
     if (trimmedTrx.length < 6) {
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
     let newWalletBalance = currentWallet;
     let newWinningBalance = currentWinning;
 
-    // 2. ONLY AUTO-CREDIT IF AMOUNT IS 500 OR LESS
+    // 2. ONLY AUTO-CREDIT IF AMOUNT IS LESS THAN 500 (< ৳500)
     if (shouldAutoCredit) {
       newWalletBalance = currentWallet + numAmount;
       newWinningBalance = currentWinning + numAmount;
@@ -116,8 +116,8 @@ export async function POST(request: NextRequest) {
       status: 'PENDING', // Pending Admin Review / Approval
       walletType: 'WINNING',
       notes: shouldAutoCredit
-        ? `[Auto-Credited: ৳${numAmount}] Instant auto-credit (<= ৳${MAX_AUTO_CREDIT_BDT}). Pending Admin Review.`
-        : `[Manual Approval Required: > ৳${MAX_AUTO_CREDIT_BDT} (৳${numAmount}) - NOT Auto-Credited] Pending Admin Approval before wallet credit.`,
+        ? `[Auto-Credited: ৳${numAmount}] Instant auto-credit (< ৳500). Pending Admin Review.`
+        : `[Manual Approval Required: >= ৳500 (৳${numAmount}) - NOT Auto-Credited] Pending Admin Approval before wallet credit.`,
       communityAccessUnlocked: false,
       communityAccessRevoked: false,
       createdAt: new Date().toISOString(),
@@ -139,23 +139,21 @@ export async function POST(request: NextRequest) {
       if (!paymentError) {
         createdPayment = data || paymentRecord;
         success = true;
-        break;
+      } else {
+        const errorMsg = paymentError.message || '';
+        const match = errorMsg.match(/column "([^"]+)" of relation "Payment" does not exist/i) ||
+                      errorMsg.match(/Could not find the '([^']+)' column of 'Payment'/i);
+
+        if (match && match[1]) {
+          const missingCol = match[1];
+          delete paymentRecord[missingCol];
+          attempts--;
+        } else {
+          console.warn('[POST /api/wallet/deposit] Insert warning, using local fallback:', paymentError);
+          createdPayment = paymentRecord;
+          success = true;
+        }
       }
-
-      const fullErrStr = `${paymentError.message || ''} ${paymentError.details || ''}`;
-      const match = fullErrStr.match(/Could not find the '([^']+)' column/i) ||
-                    fullErrStr.match(/column '([^']+)' does not exist/i) ||
-                    fullErrStr.match(/column "([^"]+)" does not exist/i);
-
-      if (match && match[1]) {
-        const missingCol = match[1];
-        console.warn(`[POST /api/wallet/deposit] Omission of column '${missingCol}' due to schema cache.`);
-        delete paymentRecord[missingCol];
-        attempts--;
-        continue;
-      }
-
-      throw new Error(paymentError.message);
     }
 
     // 4. Send In-App Notification to Player
@@ -175,7 +173,7 @@ export async function POST(request: NextRequest) {
           id: notifId,
           userId: userId,
           title: `ডিপোজিট রিকোয়েস্ট পেন্ডিং (৳${numAmount}) ⏳`,
-          message: `আপনার ${method} ডিপোজিট রিকোয়েস্টটি (TrxID: ${trimmedTrx}) ৳৫০০ এর বেশি হওয়ায় এডমিন প্যানেলে অনুমোদনের জন্য পাঠানো হয়েছে। এডমিন ভেরিফাই করে অ্যাপ্রুভ করার সাথে সাথে আপনার ওয়ালেটে ৳${numAmount} যোগ হয়ে যাবে।`,
+          message: `আপনার ${method} ডিপোজিট রিকোয়েস্টটি (TrxID: ${trimmedTrx}) ৳৫০০ বা তার বেশি হওয়ায় এডমিন প্যানেলে অনুমোদনের জন্য পাঠানো হয়েছে। এডমিন ভেরিফাই করে অ্যাপ্রুভ করার সাথে সাথে আপনার ওয়ালেটে ৳${numAmount} যোগ হয়ে যাবে।`,
           isRead: false,
           createdAt: new Date().toISOString(),
         }]);

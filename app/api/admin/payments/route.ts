@@ -60,7 +60,7 @@ export async function PATCH(request: NextRequest) {
 
     const depositAmount = Number(payment.amount || 0);
     const wasAutoCredited = payment.notes?.includes('[Auto-Credited') || 
-      (depositAmount <= 500 && !payment.notes?.includes('NOT Auto-Credited'));
+      (depositAmount < 500 && !payment.notes?.includes('NOT Auto-Credited') && !payment.notes?.includes('Manual Approval'));
 
     if (action === 'APPROVE') {
       // 1. If NOT auto-credited (e.g. > ৳500), credit the player's wallet now
