@@ -208,8 +208,9 @@ export default function AdminShell({ children }: AdminShellProps) {
       title: '🏆 TOURNAMENTS & MATCHES',
       links: [
         { href: '/admin/tournaments', label: 'All Tournaments', icon: Trophy, colorClass: 'text-pink-500', permission: 'manage_tournaments' },
+        { href: '/admin/rooms', label: 'Room ID & Pass (🔑)', icon: KeyRound, colorClass: 'text-emerald-500', permission: 'manage_tournaments' },
         { href: '/admin/registrations', label: 'Slot Registrations', icon: ClipboardList, colorClass: 'text-purple-500', badge: pendingCount, permission: 'manage_tournaments' },
-        { href: '/admin/matches', label: 'Match Results & Rooms', icon: Gamepad2, colorClass: 'text-amber-600', permission: 'enter_results' },
+        { href: '/admin/matches', label: 'Match Results & Scores', icon: Gamepad2, colorClass: 'text-amber-600', permission: 'enter_results' },
         { href: '/admin/arena', label: '1v1 Arena Duels (⚔️)', icon: Swords, colorClass: 'text-red-500', permission: 'manage_tournaments' },
         { href: '/admin/tournament-settings', label: 'Tournament Match Rules', icon: FileText, colorClass: 'text-pink-500', permission: 'manage_settings' },
       ]
