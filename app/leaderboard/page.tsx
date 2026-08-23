@@ -1,16 +1,34 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Award, Trophy, Users, Search, Flame, Shield, Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import { Award, Trophy, Users, Search, Flame, Shield, Loader2, Crown, ExternalLink } from 'lucide-react';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import { playerLeaderboard, teamLeaderboard } from '@/lib/mock-data';
 
+interface LeaderboardEntry {
+  rank: number;
+  id: string;
+  name: string;
+  tag?: string;
+  avatar?: string;
+  logo?: string;
+  ffUid?: string;
+  captainName?: string;
+  captainId?: string;
+  membersCount?: number;
+  game?: string;
+  kills: number;
+  wins: number;
+  earnings: number;
+}
+
 export default function LeaderboardPage() {
   const [activeTab, setActiveTab] = useState<'PLAYERS' | 'TEAMS'>('PLAYERS');
   const [searchQuery, setSearchQuery] = useState('');
-  const [players, setPlayers] = useState(playerLeaderboard);
-  const [teams, setTeams] = useState(teamLeaderboard);
+  const [players, setPlayers] = useState<LeaderboardEntry[]>(playerLeaderboard as any);
+  const [teams, setTeams] = useState<LeaderboardEntry[]>(teamLeaderboard as any);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -38,9 +56,10 @@ export default function LeaderboardPage() {
   const currentList = activeTab === 'PLAYERS' ? players : teams;
 
   const filteredList = currentList.filter(item =>
-    item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (item.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     (item.tag && item.tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (item.ffUid && item.ffUid.includes(searchQuery))
+    (item.ffUid && item.ffUid.includes(searchQuery)) ||
+    (item.captainName && item.captainName.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const top1 = filteredList[0];
@@ -57,13 +76,13 @@ export default function LeaderboardPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center space-y-2">
           <span className="text-xs font-bold text-amber-600 uppercase tracking-widest inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200">
             <Award className="w-4 h-4 text-amber-600" />
-            <span>Season 5 Championship Rankings</span>
+            <span>Official Esports Championship Rankings</span>
           </span>
           <h1 className="font-heading font-black text-3xl sm:text-5xl text-slate-900 tracking-tight">
             HALL OF CHAMPIONS
           </h1>
           <p className="text-slate-600 text-xs sm:text-sm mt-2 max-w-xl mx-auto leading-relaxed">
-            The most formidable Free Fire players and clans fighting for total dominance and maximum cash earnings.
+            The most formidable Free Fire players and clans fighting for total dominance and maximum prize earnings.
           </p>
         </div>
       </div>
@@ -75,7 +94,7 @@ export default function LeaderboardPage() {
           <div className="flex items-center space-x-2 bg-white p-1.5 rounded-2xl border border-slate-200 shadow-xs w-full sm:w-auto">
             <button
               onClick={() => setActiveTab('PLAYERS')}
-              className={`flex-1 sm:flex-initial px-5 py-2.5 rounded-xl font-heading font-bold text-xs sm:text-sm transition-all flex items-center justify-center space-x-2 ${
+              className={`flex-1 sm:flex-initial px-5 py-2.5 rounded-xl font-heading font-bold text-xs sm:text-sm transition-all flex items-center justify-center space-x-2 cursor-pointer ${
                 activeTab === 'PLAYERS'
                   ? 'bg-gradient-to-r from-brand-red to-brand-orange text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
@@ -86,7 +105,7 @@ export default function LeaderboardPage() {
             </button>
             <button
               onClick={() => setActiveTab('TEAMS')}
-              className={`flex-1 sm:flex-initial px-5 py-2.5 rounded-xl font-heading font-bold text-xs sm:text-sm transition-all flex items-center justify-center space-x-2 ${
+              className={`flex-1 sm:flex-initial px-5 py-2.5 rounded-xl font-heading font-bold text-xs sm:text-sm transition-all flex items-center justify-center space-x-2 cursor-pointer ${
                 activeTab === 'TEAMS'
                   ? 'bg-gradient-to-r from-brand-red to-brand-orange text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
@@ -102,7 +121,7 @@ export default function LeaderboardPage() {
             <Search className="w-4 h-4 text-slate-500 absolute left-4 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search player, tag, or FF UID..."
+              placeholder={activeTab === 'PLAYERS' ? "Search player, tag, or FF UID..." : "Search squad name, tag, or captain..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-white border border-slate-200 rounded-xl pl-11 pr-4 py-2.5 text-xs sm:text-sm text-slate-900 placeholder-slate-500 focus:outline-none focus:border-brand-orange shadow-xs transition-colors"
@@ -120,13 +139,18 @@ export default function LeaderboardPage() {
                 <div className="w-10 h-10 rounded-full bg-slate-200 text-slate-800 font-heading font-black text-lg flex items-center justify-center mx-auto mb-3 shadow-xs">
                   #2
                 </div>
-                {top2.avatar && (
-                  <img src={top2.avatar} alt={top2.name} className="w-16 h-16 rounded-2xl mx-auto mb-3 object-cover border-2 border-slate-300" />
+                {top2.avatar ? (
+                  <img src={top2.avatar} alt={top2.name} className="w-16 h-16 rounded-2xl mx-auto mb-3 object-cover border-2 border-slate-300 shadow-sm" />
+                ) : (
+                  <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center text-lg font-black mx-auto mb-3">
+                    {top2.name?.charAt(0)}
+                  </div>
                 )}
-                <h3 className="font-heading font-black text-lg text-slate-900">{top2.name}</h3>
+                <h3 className="font-heading font-black text-lg text-slate-900 truncate">{top2.name}</h3>
                 {top2.tag && <div className="text-xs text-brand-orange font-bold font-mono">[{top2.tag}]</div>}
-                <div className="text-xl font-heading font-extrabold text-orange-600 mt-2">৳ {top2.earnings.toLocaleString()}</div>
-                <div className="text-xs text-slate-600 font-medium mt-1">{top2.kills} Kills • {top2.wins} Wins</div>
+                {top2.captainName && <div className="text-[11px] text-slate-500 font-medium mt-0.5">Captain: <strong>{top2.captainName}</strong></div>}
+                <div className="text-xl font-heading font-extrabold text-orange-600 mt-2">৳ {(top2.earnings || 0).toLocaleString()}</div>
+                <div className="text-xs text-slate-600 font-medium mt-1">{top2.kills || 0} Kills • {top2.wins || 0} Wins</div>
               </div>
             )}
 
@@ -136,13 +160,18 @@ export default function LeaderboardPage() {
                 <div className="w-12 h-12 rounded-full bg-amber-400 text-slate-900 font-heading font-black text-xl flex items-center justify-center mx-auto mb-3 shadow-sm">
                   🥇 #1
                 </div>
-                {top1.avatar && (
-                  <img src={top1.avatar} alt={top1.name} className="w-20 h-20 rounded-2xl mx-auto mb-3 object-cover border-4 border-amber-400 shadow-sm" />
+                {top1.avatar ? (
+                  <img src={top1.avatar} alt={top1.name} className="w-20 h-20 rounded-2xl mx-auto mb-3 object-cover border-4 border-amber-400 shadow-md" />
+                ) : (
+                  <div className="w-20 h-20 rounded-2xl bg-amber-100 flex items-center justify-center text-xl font-black mx-auto mb-3">
+                    {top1.name?.charAt(0)}
+                  </div>
                 )}
-                <h3 className="font-heading font-black text-2xl text-slate-900">{top1.name}</h3>
+                <h3 className="font-heading font-black text-2xl text-slate-900 truncate">{top1.name}</h3>
                 {top1.tag && <div className="text-xs text-amber-600 font-bold font-mono">[{top1.tag}]</div>}
-                <div className="text-2xl font-heading font-black text-amber-600 mt-2">৳ {top1.earnings.toLocaleString()}</div>
-                <div className="text-xs text-slate-600 font-semibold mt-1">{top1.kills} Kills • {top1.wins} Booyahs</div>
+                {top1.captainName && <div className="text-xs text-slate-600 font-medium mt-0.5">Captain: <strong className="text-slate-900">{top1.captainName}</strong></div>}
+                <div className="text-2xl font-heading font-black text-amber-600 mt-2">৳ {(top1.earnings || 0).toLocaleString()}</div>
+                <div className="text-xs text-slate-600 font-semibold mt-1">{top1.kills || 0} Kills • {top1.wins || 0} Booyahs</div>
               </div>
             )}
 
@@ -152,13 +181,18 @@ export default function LeaderboardPage() {
                 <div className="w-10 h-10 rounded-full bg-amber-700 text-white font-heading font-black text-lg flex items-center justify-center mx-auto mb-3 shadow-xs">
                   #3
                 </div>
-                {top3.avatar && (
-                  <img src={top3.avatar} alt={top3.name} className="w-16 h-16 rounded-2xl mx-auto mb-3 object-cover border-2 border-amber-700/40" />
+                {top3.avatar ? (
+                  <img src={top3.avatar} alt={top3.name} className="w-16 h-16 rounded-2xl mx-auto mb-3 object-cover border-2 border-amber-700/40 shadow-sm" />
+                ) : (
+                  <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center text-lg font-black mx-auto mb-3">
+                    {top3.name?.charAt(0)}
+                  </div>
                 )}
-                <h3 className="font-heading font-black text-lg text-slate-900">{top3.name}</h3>
+                <h3 className="font-heading font-black text-lg text-slate-900 truncate">{top3.name}</h3>
                 {top3.tag && <div className="text-xs text-brand-orange font-bold font-mono">[{top3.tag}]</div>}
-                <div className="text-xl font-heading font-extrabold text-orange-600 mt-2">৳ {top3.earnings.toLocaleString()}</div>
-                <div className="text-xs text-slate-600 font-medium mt-1">{top3.kills} Kills • {top3.wins} Wins</div>
+                {top3.captainName && <div className="text-[11px] text-slate-500 font-medium mt-0.5">Captain: <strong>{top3.captainName}</strong></div>}
+                <div className="text-xl font-heading font-extrabold text-orange-600 mt-2">৳ {(top3.earnings || 0).toLocaleString()}</div>
+                <div className="text-xs text-slate-600 font-medium mt-1">{top3.kills || 0} Kills • {top3.wins || 0} Wins</div>
               </div>
             )}
 
@@ -172,53 +206,101 @@ export default function LeaderboardPage() {
               <thead className="bg-[#F8FAFC] border-b border-slate-200 text-xs uppercase font-bold text-slate-700">
                 <tr>
                   <th className="py-3.5 px-5 text-center">Rank</th>
-                  <th className="py-3.5 px-5">{activeTab === 'PLAYERS' ? 'Player Name' : 'Team Name'}</th>
-                  {activeTab === 'PLAYERS' && <th className="py-3.5 px-5">Free Fire UID</th>}
+                  <th className="py-3.5 px-5">{activeTab === 'PLAYERS' ? 'Player Name' : 'Squad / Clan Name'}</th>
+                  {activeTab === 'PLAYERS' ? (
+                    <th className="py-3.5 px-5">Free Fire UID</th>
+                  ) : (
+                    <th className="py-3.5 px-5">Captain & Members</th>
+                  )}
                   <th className="py-3.5 px-5 text-center">Total Kills</th>
                   <th className="py-3.5 px-5 text-center">Total Wins</th>
                   <th className="py-3.5 px-5 text-right">Total Earnings</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredList.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3.5 px-5 text-center font-heading font-extrabold text-base">
-                      <span className={`inline-flex items-center justify-center w-7 h-7 rounded-lg text-xs font-black ${
-                        item.rank === 1 ? 'bg-amber-100 text-amber-800' :
-                        item.rank === 2 ? 'bg-slate-200 text-slate-800' :
-                        item.rank === 3 ? 'bg-amber-50 text-amber-700' :
-                        'bg-slate-100 text-slate-700 font-bold'
-                      }`}>
-                        #{item.rank}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-5">
-                      <div className="flex items-center space-x-3">
-                        {item.avatar ? (
-                          <img src={item.avatar} alt={item.name} className="w-8 h-8 rounded-lg object-cover border border-slate-200" />
-                        ) : (
-                          <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs">
-                            {item.name.charAt(0)}
-                          </div>
-                        )}
-                        <div>
-                          <div className="font-bold text-slate-900 text-xs sm:text-sm flex items-center gap-1.5">
-                            <span>{item.name}</span>
-                            {item.tag && <span className="text-[10px] px-1.5 py-0.2 rounded bg-orange-50 text-brand-orange border border-orange-200 font-extrabold uppercase">[{item.tag}]</span>}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    {activeTab === 'PLAYERS' && (
-                      <td className="py-3.5 px-5 font-mono text-xs font-bold text-blue-600">{item.ffUid || 'N/A'}</td>
-                    )}
-                    <td className="py-3.5 px-5 text-center font-bold text-slate-800">{item.kills}</td>
-                    <td className="py-3.5 px-5 text-center font-bold text-emerald-600">{item.wins}</td>
-                    <td className="py-3.5 px-5 text-right font-heading font-black text-amber-600 text-sm sm:text-base">
-                      ৳ {item.earnings.toLocaleString()}
+                {filteredList.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-10 text-center text-slate-500 text-xs font-medium">
+                      No leaderboard rankings found matching your search.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredList.map((item) => (
+                    <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3.5 px-5 text-center font-heading font-extrabold text-base">
+                        <span className={`inline-flex items-center justify-center w-7 h-7 rounded-lg text-xs font-black ${
+                          item.rank === 1 ? 'bg-amber-100 text-amber-800' :
+                          item.rank === 2 ? 'bg-slate-200 text-slate-800' :
+                          item.rank === 3 ? 'bg-amber-50 text-amber-700' :
+                          'bg-slate-100 text-slate-700 font-bold'
+                        }`}>
+                          #{item.rank}
+                        </span>
+                      </td>
+                      
+                      {/* Name / Avatar Cell */}
+                      <td className="py-3.5 px-5">
+                        {activeTab === 'TEAMS' ? (
+                          <Link href={`/squads/${item.id}`} className="flex items-center space-x-3 group cursor-pointer">
+                            {item.avatar || item.logo ? (
+                              <img src={item.avatar || item.logo} alt={item.name} className="w-9 h-9 rounded-xl object-cover border border-slate-200 group-hover:border-amber-400 transition-colors" />
+                            ) : (
+                              <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs">
+                                {item.name?.charAt(0)}
+                              </div>
+                            )}
+                            <div>
+                              <div className="font-bold text-slate-900 text-xs sm:text-sm flex items-center gap-1.5 group-hover:text-amber-600 transition-colors">
+                                <span>{item.name}</span>
+                                {item.tag && <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200 font-mono font-black uppercase">[{item.tag}]</span>}
+                                <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 text-amber-500 transition-opacity" />
+                              </div>
+                              {item.game && <div className="text-[10px] text-slate-400 font-bold uppercase">{item.game}</div>}
+                            </div>
+                          </Link>
+                        ) : (
+                          <div className="flex items-center space-x-3">
+                            {item.avatar ? (
+                              <img src={item.avatar} alt={item.name} className="w-9 h-9 rounded-xl object-cover border border-slate-200" />
+                            ) : (
+                              <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs">
+                                {item.name?.charAt(0)}
+                              </div>
+                            )}
+                            <div>
+                              <div className="font-bold text-slate-900 text-xs sm:text-sm flex items-center gap-1.5">
+                                <span>{item.name}</span>
+                                {item.tag && <span className="text-[10px] px-1.5 py-0.2 rounded bg-orange-50 text-brand-orange border border-orange-200 font-extrabold uppercase">[{item.tag}]</span>}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Detail Column */}
+                      {activeTab === 'PLAYERS' ? (
+                        <td className="py-3.5 px-5 font-mono text-xs font-bold text-blue-600">{item.ffUid || 'N/A'}</td>
+                      ) : (
+                        <td className="py-3.5 px-5 text-xs text-slate-600">
+                          <div className="flex items-center gap-2">
+                            <span className="flex items-center gap-1 font-bold text-slate-800">
+                              <Crown className="w-3.5 h-3.5 text-amber-500" /> {item.captainName || 'Leader'}
+                            </span>
+                            <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-mono font-bold text-[10px]">
+                              {item.membersCount || 1} Players
+                            </span>
+                          </div>
+                        </td>
+                      )}
+
+                      <td className="py-3.5 px-5 text-center font-bold text-slate-800">{item.kills || 0}</td>
+                      <td className="py-3.5 px-5 text-center font-bold text-emerald-600">{item.wins || 0}</td>
+                      <td className="py-3.5 px-5 text-right font-heading font-black text-amber-600 text-sm sm:text-base">
+                        ৳ {(item.earnings || 0).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -230,3 +312,4 @@ export default function LeaderboardPage() {
     </div>
   );
 }
+
