@@ -25,6 +25,27 @@ import MobileBottomNav from '@/components/ui/MobileBottomNav';
 import { db } from '@/lib/db';
 import { LFGPost, LFGType, User } from '@/lib/types';
 
+// Auto-mask phone numbers, emails, and Free Fire UIDs to ****
+function maskSensitiveContacts(text: string): string {
+  if (!text) return '';
+  let sanitized = text;
+
+  // 1. Mask emails: user@domain.com
+  sanitized = sanitized.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi, '****');
+
+  // 2. Mask social / chat links (wa.me, fb.com, etc.)
+  sanitized = sanitized.replace(/(https?:\/\/)?(www\.)?(wa\.me|whatsapp\.com|facebook\.com|fb\.com|t\.me|telegram\.me)\/[^\s]+/gi, '****');
+
+  // 3. Mask Bangladeshi & International phone numbers
+  sanitized = sanitized.replace(/(\+?880\s?|0)1[3-9]([\s.-]?\d){8}/g, '****');
+
+  // 4. Mask Free Fire UIDs / 6-12 digit numbers
+  sanitized = sanitized.replace(/(uid\s*[:#-]?\s*)\d{6,12}/gi, '$1****');
+  sanitized = sanitized.replace(/\b\d{6,12}\b/g, '****');
+
+  return sanitized;
+}
+
 export default function LFGPage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<LFGType>('PLAYER_LOOKING_FOR_SQUAD');
@@ -39,7 +60,6 @@ export default function LFGPage() {
   const [gameMode, setGameMode] = useState('BR_SQUAD');
   const [roleNeeded, setRoleNeeded] = useState('RUSHER');
   const [squadName, setSquadName] = useState('');
-  const [contactWhatsApp, setContactWhatsApp] = useState('');
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -76,6 +96,8 @@ export default function LFGPage() {
 
     setSubmitting(true);
     try {
+      const sanitizedDesc = maskSensitiveContacts(description);
+
       const res = await fetch('/api/lfg', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -85,8 +107,7 @@ export default function LFGPage() {
           type: postType,
           gameMode,
           roleNeeded,
-          contactWhatsApp,
-          description,
+          description: sanitizedDesc,
           squadName: postType === 'SQUAD_LOOKING_FOR_PLAYER' ? squadName : undefined,
         }),
       });
@@ -94,7 +115,6 @@ export default function LFGPage() {
       if (res.ok) {
         setIsModalOpen(false);
         setDescription('');
-        setContactWhatsApp('');
         setSquadName('');
         await loadPosts();
         alert('Recruitment post published to Blackrock Arena!');
@@ -423,26 +443,26 @@ export default function LFGPage() {
               </div>
 
               <div>
-                <label className="font-bold text-slate-700 block mb-1">WhatsApp Contact Number (Optional)</label>
-                <input
-                  type="text"
-                  value={contactWhatsApp}
-                  onChange={(e) => setContactWhatsApp(e.target.value)}
-                  placeholder="017XXXXXXXX"
-                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 font-mono focus:outline-none focus:border-brand-orange"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">Requirements / Player Bio *</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-bold text-slate-700 block">Requirements / Player Bio *</label>
+                  <span className="text-[10px] text-amber-600 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                    🔒 Auto-Masking Active
+                  </span>
+                </div>
                 <textarea
                   rows={3}
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={(e) => {
+                    const masked = maskSensitiveContacts(e.target.value);
+                    setDescription(masked);
+                  }}
                   required
                   placeholder="e.g. KD 4+, Level 60+, Mic ON, Active in evening tournaments..."
-                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 focus:outline-none focus:border-brand-orange"
+                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 focus:outline-none focus:border-brand-orange leading-relaxed"
                 />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  💡 সুরক্ষার স্বার্থে কোনো ফোন নম্বর, ইমেইল বা UID দিলে তা স্বয়ংক্রিয়ভাবে **** হয়ে যাবে।
+                </p>
               </div>
 
               <div className="flex gap-2 pt-2">

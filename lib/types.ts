@@ -1020,3 +1020,43 @@ export const GAME_ROLES_MAP: Record<string, { role: InGameRole; label: string; i
     { role: 'IGL', label: '👑 Team Captain', icon: '👑' },
   ],
 };
+
+export interface ChampionPodiumItem {
+  id?: string;
+  rank: 1 | 2 | 3 | number;
+  userId?: string;
+  name: string;
+  inGameName: string;
+  freeFireUid: string;
+  avatar: string;
+  earnings: number;
+  totalWins: number;
+  totalKills: number;
+  headshotRate: string;
+  badge: string;
+  signatureWeapon: string;
+  seasonTitle?: string;
+}
+
+export interface HallOfFameSquad {
+  id: string;
+  squadName: string;
+  tag: string;
+  logo: string;
+  captainName: string;
+  totalWins: number;
+  totalEarnings: number;
+  titles: string;
+}
+
+export interface ChampionsConfig {
+  seasonTitle: string;
+  subtitle: string;
+  bannerNotice: string;
+  autoSyncLeaderboard: boolean;
+  topPodiums: ChampionPodiumItem[];
+  proAthletes: ChampionPodiumItem[];
+  legendarySquads: HallOfFameSquad[];
+  updatedAt: string;
+}
+
