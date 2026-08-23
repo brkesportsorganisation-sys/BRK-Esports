@@ -51,13 +51,9 @@ const COACHING_PILLS = [
 const DEFAULT_WELCOME_MESSAGE: Message = {
   id: 'welcome',
   role: 'assistant',
-  senderName: 'BlackRock Support',
-  content: "👋 আসসালামু আলাইকুম! Black Rock Esports অফিসিয়াল সাপোর্ট ও এআই ডেস্কে স্বাগতম।\n\n📌 টুর্নামেন্ট রুম আইডি, বিকাশ পেমেন্ট বা যেকোনো সমস্যার দ্রুত সমাধানের জন্য আমাদের অফিসিয়াল Discord সার্ভারে জয়েন করুন:\n👉 https://discord.gg/blackrock-esports\n\nআপনার যেকোনো সমস্যার কথা এখানেও লিখে বা মুখে বলে পাঠাতে পারেন। আমাদের এআই ও অ্যাডমিন টিম দ্রুত উত্তর দেবে।",
+  senderName: 'BlackRock AI',
+  content: "👋 আসসালামু আলাইকুম! BlackRock Esports অফিসিয়াল এআই হেল্পডেস্কে আপনাকে স্বাগতম।\n\nটুর্নামেন্ট জয়েন, রুম আইডি ও পাসওয়ার্ড, ওয়ালেট ডিপোজিট/উইথড্র বা ফ্রি ফায়ার গেমপ্লে সংক্রান্ত যেকোনো প্রশ্ন করুন। আমি আপনাকে তাৎক্ষণিক সাহায্য করতে প্রস্তুত!",
   timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-  suggestedAction: {
-    label: '👉 Join Official Discord Server',
-    link: 'https://discord.gg/blackrock-esports'
-  }
 };
 
 export default function AIAssistantWidget() {
@@ -528,27 +524,6 @@ export default function AIAssistantWidget() {
     setInput('');
     setIsLoading(true);
 
-    // If first message, add automated Discord greeting invite
-    if (!hasSentFirstMsg) {
-      setHasSentFirstMsg(true);
-      setTimeout(() => {
-        setMessages(prev => [
-          ...prev,
-          {
-            id: `system_${Date.now()}`,
-            role: 'system',
-            senderName: 'BlackRock Community Desk',
-            content: "📌 দ্রুততম লাইভ সাপোর্ট ও টুর্নামেন্ট আপডেটের জন্য আমাদের অফিসিয়াল Discord সার্ভারে যোগ দিন: https://discord.gg/blackrock-esports — আমাদের একজন অ্যাডমিন আপনার মেসেজটি পেয়েছেন এবং খুব দ্রুত উত্তর দেবেন।",
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            suggestedAction: {
-              label: '👉 Join Discord Community',
-              link: 'https://discord.gg/blackrock-esports'
-            }
-          }
-        ]);
-      }, 600);
-    }
-
     // 1. Sync to Support Desk (/api/support)
     const uid = currentUser ? currentUser.id : 'guest_user';
     const uName = currentUser ? (currentUser.inGameName || currentUser.name) : 'Guest Player';
@@ -606,15 +581,57 @@ export default function AIAssistantWidget() {
           suggestedAction: data.suggestedAction || undefined
         };
         setMessages(prev => [...prev, assistantMsg]);
+
+        // Check if AI expresses uncertainty, confusion, or inability to answer
+        const lowerReply = (data.reply || '').toLowerCase();
+        const isUncertainOrNeedsHuman = 
+          lowerReply.includes('নিশ্চিত নই') ||
+          lowerReply.includes('বলতে পারছি না') ||
+          lowerReply.includes('জানাতে পারছি না') ||
+          lowerReply.includes('সঠিক তথ্য নেই') ||
+          lowerReply.includes('অ্যাডমিনের সাথে যোগাযোগ') ||
+          lowerReply.includes('অ্যাডমিন সাপোর্ট') ||
+          lowerReply.includes('লাইভ সাপোর্ট') ||
+          lowerReply.includes('not sure') ||
+          lowerReply.includes('uncertain') ||
+          lowerReply.includes('cannot answer') ||
+          lowerReply.includes('contact support') ||
+          lowerReply.includes('contact admin') ||
+          Boolean(data.requiresAdminEscalation);
+
+        // ONLY show Discord Community Desk escalation if AI is uncertain or unable to answer
+        if (isUncertainOrNeedsHuman) {
+          setTimeout(() => {
+            setMessages(prev => [
+              ...prev,
+              {
+                id: `system_${Date.now()}`,
+                role: 'system',
+                senderName: 'BlackRock Community Desk',
+                content: "📌 এই বিষয়ে সরাসরি অ্যাডমিন সহায়তা ও দ্রুত সমাধানের জন্য আমাদের অফিসিয়াল Discord সার্ভারে যোগাযোগ করতে পারেন:",
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                suggestedAction: {
+                  label: '👉 Join Discord Support',
+                  link: 'https://discord.gg/blackrock-esports'
+                }
+              }
+            ]);
+          }, 500);
+        }
       } else {
+        // AI failed to respond - escalate to Discord support
         setMessages(prev => [
           ...prev,
           {
             id: `err_${Date.now()}`,
             role: 'assistant',
             senderName: 'BlackRock AI',
-            content: "দুঃখিত, সার্ভার রেসপন্স করতে সাময়িক সমস্যা হয়েছে। আপনি কি প্রশ্নটি আবার করবেন?",
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            content: "দুঃখিত, এই মুহূর্তে আমি বিষয়টি নিশ্চিত করতে পারছি না। সরাসরি অ্যাডমিনের সাথে যোগাযোগ করতে আমাদের ডিসকর্ড সাপোর্ট ব্যবহার করতে পারেন।",
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            suggestedAction: {
+              label: '👉 Join Discord Support',
+              link: 'https://discord.gg/blackrock-esports'
+            }
           }
         ]);
       }
@@ -625,8 +642,12 @@ export default function AIAssistantWidget() {
           id: `err_${Date.now()}`,
           role: 'assistant',
           senderName: 'BlackRock AI',
-          content: "সার্ভারে কানেক্ট করা যাচ্ছে না। অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করুন।",
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          content: "সার্ভারে সাময়িক সমস্যা হয়েছে। সরাসরি অ্যাডমিনদের সাথে কথা বলতে Discord সার্ভারে যোগাযোগ করুন।",
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          suggestedAction: {
+            label: '👉 Join Discord Support',
+            link: 'https://discord.gg/blackrock-esports'
+          }
         }
       ]);
     } finally {
