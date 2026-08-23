@@ -199,111 +199,119 @@ export default function LeaderboardPage() {
           </div>
         )}
 
-        {/* Detailed Leaderboard Table */}
-        <div className="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-[#F8FAFC] border-b border-slate-200 text-xs uppercase font-bold text-slate-700">
+        {/* Detailed Leaderboard Table - Ultra Compact & Responsive */}
+        <div className="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-xs">
+          <table className="w-full text-left text-xs sm:text-sm">
+            <thead className="bg-slate-50/90 border-b border-slate-200 text-[10px] sm:text-xs uppercase font-extrabold text-slate-600 tracking-wider">
+              <tr>
+                <th className="py-3 px-2 sm:px-4 text-center w-10 sm:w-16">Rank</th>
+                <th className="py-3 px-2 sm:px-4">{activeTab === 'PLAYERS' ? 'Player' : 'Squad / Clan'}</th>
+                <th className="py-3 px-1.5 sm:px-3 text-center w-12 sm:w-20">Kills</th>
+                <th className="py-3 px-1.5 sm:px-3 text-center w-12 sm:w-20">Wins</th>
+                <th className="py-3 px-2 sm:px-4 text-right w-20 sm:w-28">Prize</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 font-medium">
+              {filteredList.length === 0 ? (
                 <tr>
-                  <th className="py-3.5 px-5 text-center">Rank</th>
-                  <th className="py-3.5 px-5">{activeTab === 'PLAYERS' ? 'Player Name' : 'Squad / Clan Name'}</th>
-                  {activeTab === 'PLAYERS' ? (
-                    <th className="py-3.5 px-5">Free Fire UID</th>
-                  ) : (
-                    <th className="py-3.5 px-5">Captain & Members</th>
-                  )}
-                  <th className="py-3.5 px-5 text-center">Total Kills</th>
-                  <th className="py-3.5 px-5 text-center">Total Wins</th>
-                  <th className="py-3.5 px-5 text-right">Total Earnings</th>
+                  <td colSpan={5} className="py-10 text-center text-slate-500 text-xs font-medium">
+                    No leaderboard rankings found matching your search.
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredList.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="py-10 text-center text-slate-500 text-xs font-medium">
-                      No leaderboard rankings found matching your search.
+              ) : (
+                filteredList.map((item) => (
+                  <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                    
+                    {/* Rank Badge */}
+                    <td className="py-2.5 sm:py-3 px-2 sm:px-4 text-center font-heading font-black">
+                      <span className={`inline-flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-lg text-[10px] sm:text-xs font-black ${
+                        item.rank === 1 ? 'bg-amber-100 text-amber-900 border border-amber-300' :
+                        item.rank === 2 ? 'bg-slate-200 text-slate-800 border border-slate-300' :
+                        item.rank === 3 ? 'bg-orange-100 text-orange-900 border border-orange-200' :
+                        'bg-slate-100 text-slate-600 font-bold'
+                      }`}>
+                        #{item.rank}
+                      </span>
                     </td>
-                  </tr>
-                ) : (
-                  filteredList.map((item) => (
-                    <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-3.5 px-5 text-center font-heading font-extrabold text-base">
-                        <span className={`inline-flex items-center justify-center w-7 h-7 rounded-lg text-xs font-black ${
-                          item.rank === 1 ? 'bg-amber-100 text-amber-800' :
-                          item.rank === 2 ? 'bg-slate-200 text-slate-800' :
-                          item.rank === 3 ? 'bg-amber-50 text-amber-700' :
-                          'bg-slate-100 text-slate-700 font-bold'
-                        }`}>
-                          #{item.rank}
-                        </span>
-                      </td>
-                      
-                      {/* Name / Avatar Cell */}
-                      <td className="py-3.5 px-5">
-                        {activeTab === 'TEAMS' ? (
-                          <Link href={`/squads/${item.id}`} className="flex items-center space-x-3 group cursor-pointer">
-                            {item.avatar || item.logo ? (
-                              <img src={item.avatar || item.logo} alt={item.name} className="w-9 h-9 rounded-xl object-cover border border-slate-200 group-hover:border-amber-400 transition-colors" />
-                            ) : (
-                              <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs">
-                                {item.name?.charAt(0)}
+                    
+                    {/* Name / Avatar Cell */}
+                    <td className="py-2.5 sm:py-3 px-2 sm:px-4 min-w-0">
+                      {activeTab === 'TEAMS' ? (
+                        <Link href={`/squads/${item.id}`} className="flex items-center gap-2 sm:gap-3 group cursor-pointer min-w-0">
+                          {item.avatar || item.logo ? (
+                            <img
+                              src={item.avatar || item.logo}
+                              alt={item.name}
+                              className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl object-cover border border-slate-200 group-hover:border-amber-400 transition-colors shrink-0 bg-slate-900"
+                            />
+                          ) : (
+                            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs shrink-0">
+                              {item.name?.charAt(0)}
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <div className="font-bold text-slate-900 text-xs sm:text-sm flex items-center gap-1 sm:gap-1.5 group-hover:text-amber-600 transition-colors truncate">
+                              <span className="truncate">{item.name}</span>
+                              {item.tag && (
+                                <span className="text-[9px] sm:text-[10px] px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200 font-mono font-black uppercase shrink-0">
+                                  [{item.tag}]
+                                </span>
+                              )}
+                            </div>
+                            {item.captainName && (
+                              <div className="text-[10px] text-slate-500 font-medium truncate hidden sm:block">
+                                Cap: {item.captainName}
                               </div>
                             )}
-                            <div>
-                              <div className="font-bold text-slate-900 text-xs sm:text-sm flex items-center gap-1.5 group-hover:text-amber-600 transition-colors">
-                                <span>{item.name}</span>
-                                {item.tag && <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200 font-mono font-black uppercase">[{item.tag}]</span>}
-                                <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 text-amber-500 transition-opacity" />
-                              </div>
-                              {item.game && <div className="text-[10px] text-slate-400 font-bold uppercase">{item.game}</div>}
-                            </div>
-                          </Link>
-                        ) : (
-                          <div className="flex items-center space-x-3">
-                            {item.avatar ? (
-                              <img src={item.avatar} alt={item.name} className="w-9 h-9 rounded-xl object-cover border border-slate-200" />
-                            ) : (
-                              <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs">
-                                {item.name?.charAt(0)}
-                              </div>
-                            )}
-                            <div>
-                              <div className="font-bold text-slate-900 text-xs sm:text-sm flex items-center gap-1.5">
-                                <span>{item.name}</span>
-                                {item.tag && <span className="text-[10px] px-1.5 py-0.2 rounded bg-orange-50 text-brand-orange border border-orange-200 font-extrabold uppercase">[{item.tag}]</span>}
-                              </div>
-                            </div>
                           </div>
-                        )}
-                      </td>
-
-                      {/* Detail Column */}
-                      {activeTab === 'PLAYERS' ? (
-                        <td className="py-3.5 px-5 font-mono text-xs font-bold text-blue-600">{item.ffUid || 'N/A'}</td>
+                        </Link>
                       ) : (
-                        <td className="py-3.5 px-5 text-xs text-slate-600">
-                          <div className="flex items-center gap-2">
-                            <span className="flex items-center gap-1 font-bold text-slate-800">
-                              <Crown className="w-3.5 h-3.5 text-amber-500" /> {item.captainName || 'Leader'}
-                            </span>
-                            <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-mono font-bold text-[10px]">
-                              {item.membersCount || 1} Players
-                            </span>
+                        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                          {item.avatar ? (
+                            <img
+                              src={item.avatar}
+                              alt={item.name}
+                              className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl object-cover border border-slate-200 shrink-0 bg-slate-900"
+                            />
+                          ) : (
+                            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs shrink-0">
+                              {item.name?.charAt(0)}
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <div className="font-bold text-slate-900 text-xs sm:text-sm flex items-center gap-1 sm:gap-1.5 truncate">
+                              <span className="truncate">{item.name}</span>
+                              {item.tag && (
+                                <span className="text-[9px] sm:text-[10px] px-1.5 py-0.2 rounded bg-orange-50 text-brand-orange border border-orange-200 font-extrabold uppercase shrink-0">
+                                  [{item.tag}]
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        </td>
+                        </div>
                       )}
+                    </td>
 
-                      <td className="py-3.5 px-5 text-center font-bold text-slate-800">{item.kills || 0}</td>
-                      <td className="py-3.5 px-5 text-center font-bold text-emerald-600">{item.wins || 0}</td>
-                      <td className="py-3.5 px-5 text-right font-heading font-black text-amber-600 text-sm sm:text-base">
-                        ৳ {(item.earnings || 0).toLocaleString()}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                    {/* Total Kills */}
+                    <td className="py-2.5 sm:py-3 px-1.5 sm:px-3 text-center font-bold text-slate-700 text-xs sm:text-sm">
+                      {item.kills || 0}
+                    </td>
+
+                    {/* Total Wins */}
+                    <td className="py-2.5 sm:py-3 px-1.5 sm:px-3 text-center font-bold text-emerald-600 text-xs sm:text-sm">
+                      {item.wins || 0}
+                    </td>
+
+                    {/* Total Earnings / Prize */}
+                    <td className="py-2.5 sm:py-3 px-2 sm:px-4 text-right font-heading font-black text-amber-600 text-xs sm:text-sm whitespace-nowrap">
+                      ৳ {(item.earnings || 0).toLocaleString()}
+                    </td>
+
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
 
       </main>
