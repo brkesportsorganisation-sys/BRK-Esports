@@ -128,12 +128,12 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
         viewport={{ once: true }}
         className="bg-white rounded-3xl border border-slate-200/90 shadow-sm hover:shadow-xl hover:border-brand-orange/50 transition-all duration-300 flex flex-col justify-between overflow-hidden relative group"
       >
-        {/* Top Banner Image (Large banner like original design) */}
-        <div className="relative w-full h-44 sm:h-48 overflow-hidden bg-slate-900">
+        {/* Top Banner Image (Proportional 16:9 widescreen hero banner like homepage) */}
+        <div className="relative w-full aspect-[16/9] min-h-[195px] sm:min-h-[220px] md:min-h-[235px] overflow-hidden bg-slate-900">
           <img
             src={tournament.bannerImage || tournament.banner || tournament.thumbnailImage || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800'}
             alt={tournament.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent" />
 
