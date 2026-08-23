@@ -310,11 +310,43 @@ export default function AdminWhatsAppPage() {
     }
   };
 
+  function formatNextRun(nextRunAt?: string) {
+    if (!nextRunAt) return 'Not scheduled';
+    const target = new Date(nextRunAt).getTime();
+    const diffSec = Math.round((target - Date.now()) / 1000);
+
+    const timeStr = new Date(nextRunAt).toLocaleTimeString('en-US', {
+      timeZone: 'Asia/Dhaka',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true,
+    });
+
+    const dateStr = new Date(nextRunAt).toLocaleDateString('en-GB', {
+      timeZone: 'Asia/Dhaka',
+    });
+
+    if (diffSec <= 0) {
+      return `⚡ Due Now / Sending... (${timeStr})`;
+    } else if (diffSec < 60) {
+      return `${timeStr} (in ${diffSec}s)`;
+    } else if (diffSec < 3600) {
+      const mins = Math.floor(diffSec / 60);
+      const secs = diffSec % 60;
+      return `${timeStr} (in ${mins}m ${secs}s)`;
+    } else {
+      const hours = Math.floor(diffSec / 3600);
+      const mins = Math.floor((diffSec % 3600) / 60);
+      return `${dateStr} ${timeStr} (in ${hours}h ${mins}m)`;
+    }
+  }
+
   useEffect(() => {
     loadData();
     const timer = setInterval(() => {
       loadData({ silent: true });
-    }, 10000);
+    }, 4000);
     return () => clearInterval(timer);
   }, []);
 
@@ -1523,8 +1555,8 @@ export default function AdminWhatsAppPage() {
                         </div>
 
                         {s.nextRunAt && s.status === 'ACTIVE' && (
-                          <div className="text-[10px] font-mono text-emerald-700 pt-1 border-t border-slate-100">
-                            Next: {new Date(s.nextRunAt).toLocaleTimeString()} ({new Date(s.nextRunAt).toLocaleDateString()})
+                          <div className="text-[10px] font-mono text-emerald-700 pt-1 border-t border-slate-100 font-bold">
+                            Next: {formatNextRun(s.nextRunAt)}
                           </div>
                         )}
                       </div>
@@ -1611,8 +1643,8 @@ export default function AdminWhatsAppPage() {
 
                           <td className="px-4 py-3.5">
                             {s.nextRunAt && s.status === 'ACTIVE' ? (
-                              <div className="text-[11px] font-mono font-semibold text-emerald-700">
-                                {new Date(s.nextRunAt).toLocaleDateString()} {new Date(s.nextRunAt).toLocaleTimeString()}
+                              <div className="text-[11px] font-mono font-bold text-emerald-700">
+                                {formatNextRun(s.nextRunAt)}
                               </div>
                             ) : (
                               <span className="text-slate-400 text-[11px]">

@@ -1068,76 +1068,146 @@ export async function sendGroupWhatsappMessage({
 }
 
 /**
- * Calculates next run timestamp based on schedule interval and time preferences.
+ * Helper to get current Bangladesh (Asia/Dhaka, UTC+6) Date components accurately.
  */
-export function calculateNextRunTime(schedule: WhatsAppSchedule): string {
-  const now = new Date();
+export function getBangladeshNow() {
+  const nowUtc = new Date();
+  // BD time is fixed UTC + 6 hours (no daylight saving)
+  const bdTimeMs = nowUtc.getTime() + 6 * 60 * 60 * 1000;
+  const bdDateObj = new Date(bdTimeMs);
 
+  const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+
+  return {
+    nowUtc,
+    bdYear: bdDateObj.getUTCFullYear(),
+    bdMonth: bdDateObj.getUTCMonth(),
+    bdDate: bdDateObj.getUTCDate(),
+    bdHours: bdDateObj.getUTCHours(),
+    bdMinutes: bdDateObj.getUTCMinutes(),
+    bdSeconds: bdDateObj.getUTCSeconds(),
+    dayOfWeek: days[bdDateObj.getUTCDay()],
+  };
+}
+
+/**
+ * Calculates next run timestamp based on schedule interval and time preferences.
+ * Accurately aligns with Bangladesh Standard Time (BST: UTC+6).
+ */
+export function calculateNextRunTime(schedule: WhatsAppSchedule, options?: { fromTime?: Date; isInitial?: boolean }): string {
+  const now = options?.fromTime || new Date();
+  const nowMs = now.getTime();
+
+  // 1. One-Time Schedule
   if (schedule.frequency === 'ONCE') {
     if (schedule.scheduledDate) {
-      return new Date(schedule.scheduledDate).toISOString();
+      const raw = schedule.scheduledDate.trim();
+      // If user typed string like "2026-08-23T20:45" or "2026-08-23 20:45"
+      if (!raw.includes('Z') && !raw.includes('+')) {
+        const [dPart, tPart] = raw.replace(' ', 'T').split('T');
+        if (dPart) {
+          const [y, m, d] = dPart.split('-').map(Number);
+          const [h, min] = (tPart || '20:00').split(':').map(Number);
+          // Convert BD local time components (UTC+6) to UTC timestamp
+          const bdUtcMs = Date.UTC(y, (m || 1) - 1, d || 1, h || 0, min || 0, 0) - 6 * 60 * 60 * 1000;
+          return new Date(bdUtcMs).toISOString();
+        }
+      }
+      const parsed = new Date(raw);
+      if (!isNaN(parsed.getTime())) {
+        return parsed.toISOString();
+      }
     }
-    return new Date(now.getTime() + 60000).toISOString();
+    return new Date(nowMs + 60000).toISOString();
   }
 
-  if (schedule.frequency === 'EVERY_1_MIN') {
-    return new Date(now.getTime() + 1 * 60 * 1000).toISOString();
-  }
-
-  if (schedule.frequency === 'EVERY_2_MIN') {
-    return new Date(now.getTime() + 2 * 60 * 1000).toISOString();
-  }
-
-  if (schedule.frequency === 'EVERY_5_MIN') {
-    return new Date(now.getTime() + 5 * 60 * 1000).toISOString();
-  }
-
-  if (schedule.frequency === 'EVERY_10_MIN') {
-    return new Date(now.getTime() + 10 * 60 * 1000).toISOString();
-  }
-
-  if (schedule.frequency === 'EVERY_15_MIN') {
-    return new Date(now.getTime() + 15 * 60 * 1000).toISOString();
-  }
-
-  if (schedule.frequency === 'EVERY_30_MIN') {
-    return new Date(now.getTime() + 30 * 60 * 1000).toISOString();
-  }
-
-  if (schedule.frequency === 'EVERY_1_HOUR') {
-    return new Date(now.getTime() + 60 * 60 * 1000).toISOString();
-  }
-
-  if (schedule.frequency === 'EVERY_2_HOURS') {
-    return new Date(now.getTime() + 120 * 60 * 1000).toISOString();
-  }
-
-  if (schedule.frequency === 'EVERY_6_HOURS') {
-    return new Date(now.getTime() + 360 * 60 * 1000).toISOString();
-  }
-
-  if (schedule.frequency === 'EVERY_12_HOURS') {
-    return new Date(now.getTime() + 720 * 60 * 1000).toISOString();
-  }
-
-  if (schedule.frequency === 'INTERVAL_MINUTES') {
-    const mins = Math.max(1, schedule.intervalMinutes || 60);
-    return new Date(now.getTime() + mins * 60 * 1000).toISOString();
-  }
-
+  // 2. Daily Specific Time (e.g. 20:45 / 8:45 PM Bangladesh Time)
   if (schedule.frequency === 'DAILY') {
-    const [hours, minutes] = (schedule.scheduledTime || '20:00').split(':').map(Number);
-    const target = new Date();
-    target.setHours(hours || 20, minutes || 0, 0, 0);
+    const timeStr = schedule.scheduledTime || '20:00';
+    const [targetH, targetM] = timeStr.split(':').map(Number);
 
-    // If time has passed today, schedule for tomorrow
-    if (target.getTime() <= now.getTime()) {
-      target.setDate(target.getDate() + 1);
+    const { bdYear, bdMonth, bdDate, bdHours, bdMinutes } = getBangladeshNow();
+
+    // Construct target in Bangladesh Time
+    let targetBdDate = new Date(Date.UTC(bdYear, bdMonth, bdDate, targetH || 0, targetM || 0, 0, 0));
+    const currentBdDate = new Date(Date.UTC(bdYear, bdMonth, bdDate, bdHours, bdMinutes, 0, 0));
+
+    // If target time has already passed today in Bangladesh, schedule for tomorrow
+    if (targetBdDate.getTime() <= currentBdDate.getTime()) {
+      targetBdDate.setUTCDate(targetBdDate.getUTCDate() + 1);
     }
-    return target.toISOString();
+
+    // Convert Bangladesh target timestamp back to real UTC timestamp (-6 hours)
+    const nextUtcMs = targetBdDate.getTime() - 6 * 60 * 60 * 1000;
+    return new Date(nextUtcMs).toISOString();
   }
 
-  return new Date(now.getTime() + 3600000).toISOString();
+  // 3. Recurring Intervals (Every 1m, 2m, 5m, 10m, 15m, 30m, 1h, 2h, 6h, 12h, custom minutes)
+  let intervalMs = 60 * 1000;
+
+  switch (schedule.frequency) {
+    case 'EVERY_1_MIN':
+      intervalMs = 1 * 60 * 1000;
+      break;
+    case 'EVERY_2_MIN':
+      intervalMs = 2 * 60 * 1000;
+      break;
+    case 'EVERY_5_MIN':
+      intervalMs = 5 * 60 * 1000;
+      break;
+    case 'EVERY_10_MIN':
+      intervalMs = 10 * 60 * 1000;
+      break;
+    case 'EVERY_15_MIN':
+      intervalMs = 15 * 60 * 1000;
+      break;
+    case 'EVERY_30_MIN':
+      intervalMs = 30 * 60 * 1000;
+      break;
+    case 'EVERY_1_HOUR':
+      intervalMs = 60 * 60 * 1000;
+      break;
+    case 'EVERY_2_HOURS':
+      intervalMs = 120 * 60 * 1000;
+      break;
+    case 'EVERY_6_HOURS':
+      intervalMs = 360 * 60 * 1000;
+      break;
+    case 'EVERY_12_HOURS':
+      intervalMs = 720 * 60 * 1000;
+      break;
+    case 'INTERVAL_MINUTES':
+      intervalMs = Math.max(1, Number(schedule.intervalMinutes) || 60) * 60 * 1000;
+      break;
+    default:
+      intervalMs = 60 * 60 * 1000;
+  }
+
+  let nextTimeMs = nowMs + intervalMs;
+
+  // Active Hours Filtering (e.g. 09:00 - 23:00 BD time)
+  if (schedule.activeStartTime && schedule.activeEndTime) {
+    const [startH, startM] = schedule.activeStartTime.split(':').map(Number);
+    const [endH, endM] = schedule.activeEndTime.split(':').map(Number);
+
+    const nextBdMs = nextTimeMs + 6 * 60 * 60 * 1000;
+    const nextBdDate = new Date(nextBdMs);
+    const nextBdMinutesOfDay = nextBdDate.getUTCHours() * 60 + nextBdDate.getUTCMinutes();
+
+    const startMinutesOfDay = (startH || 0) * 60 + (startM || 0);
+    const endMinutesOfDay = (endH || 23) * 60 + (endM || 59);
+
+    if (nextBdMinutesOfDay < startMinutesOfDay || nextBdMinutesOfDay > endMinutesOfDay) {
+      const jumpBdDate = new Date(nextBdMs);
+      if (nextBdMinutesOfDay > endMinutesOfDay) {
+        jumpBdDate.setUTCDate(jumpBdDate.getUTCDate() + 1);
+      }
+      jumpBdDate.setUTCHours(startH || 9, startM || 0, 0, 0);
+      nextTimeMs = jumpBdDate.getTime() - 6 * 60 * 60 * 1000;
+    }
+  }
+
+  return new Date(nextTimeMs).toISOString();
 }
 
 /**

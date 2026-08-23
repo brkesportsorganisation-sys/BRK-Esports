@@ -8,7 +8,8 @@ import {
   saveWhatsAppTargetGroups,
   getWhatsAppLogs, 
   calculateNextRunTime, 
-  executeScheduledJob 
+  executeScheduledJob,
+  runAllDueWhatsAppSchedules
 } from '@/lib/whatsapp';
 import { WhatsAppSchedule } from '@/lib/types';
 
@@ -26,6 +27,11 @@ export async function GET() {
   }
 
   try {
+    // Run any due schedules
+    try {
+      await runAllDueWhatsAppSchedules();
+    } catch {}
+
     const [schedules, groups, logs] = await Promise.all([
       getWhatsAppSchedules(),
       getWhatsAppTargetGroups(),
@@ -123,13 +129,20 @@ export async function POST(req: NextRequest) {
       isActive: schedule.isActive !== false,
       status: schedule.isActive !== false ? 'ACTIVE' : 'PAUSED',
       runCount: 0,
-      nextRunAt: calculateNextRunTime(schedule),
+      nextRunAt: (schedule.frequency === 'DAILY' || schedule.frequency === 'ONCE')
+        ? calculateNextRunTime(schedule)
+        : new Date().toISOString(), // Immediate first run for intervals!
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
     schedules.unshift(newSchedule);
     await saveWhatsAppSchedules(schedules);
+
+    // Asynchronously trigger runner so immediate jobs fire instantly
+    setTimeout(() => {
+      runAllDueWhatsAppSchedules().catch((err) => console.warn('[Scheduler Auto-Run]', err));
+    }, 100);
 
     await logAdminAction(session?.sub || session?.email || 'admin', 'CREATE_WHATSAPP_SCHEDULE', `Created schedule: ${newSchedule.title} (Limit: ${maxExecutions || 'Unlimited'})`);
 
