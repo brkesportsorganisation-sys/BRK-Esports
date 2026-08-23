@@ -171,10 +171,24 @@ export default function AIAssistantWidget() {
   };
 
   // Helper: Start Fallback MediaRecorder Audio Recording & AI Transcription
-  const startMediaRecorderFallback = (stream: MediaStream) => {
+  const startMediaRecorderFallback = async () => {
     try {
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (micErr: any) {
+        console.warn('Microphone permission error:', micErr);
+        setIsListening(false);
+        setIsRecordingAudio(false);
+        setVoiceToast('⚠️ মাইক্রোফোন পারমিশন অন করুন (Please allow microphone access)');
+        setTimeout(() => setVoiceToast(null), 4000);
+        return;
+      }
+
       mediaStreamRef.current = stream;
-      const mimeType = (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported('audio/webm'))
+      const mimeType = (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported('audio/webm;codecs=opus'))
+        ? 'audio/webm;codecs=opus'
+        : (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported('audio/webm'))
         ? 'audio/webm'
         : (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported('audio/mp4'))
         ? 'audio/mp4'
@@ -192,14 +206,16 @@ export default function AIAssistantWidget() {
       recorder.onstart = () => {
         setIsRecordingAudio(true);
         setIsListening(true);
-        setVoiceToast('🎙️ রেকর্ড হচ্ছে... কথা শেষ হলে আবার চাপুন...');
+        setVoiceToast('🔴 রেকর্ড হচ্ছে... কথা শেষ হলে মাইকে আবার চাপুন');
       };
 
       recorder.onstop = async () => {
         setIsRecordingAudio(false);
         setIsListening(false);
         setVoiceToast('⚡ ভয়েস প্রসেসিং হচ্ছে...');
-        stream.getTracks().forEach((t) => t.stop());
+        try {
+          stream.getTracks().forEach((t) => t.stop());
+        } catch {}
 
         if (audioChunksRef.current.length === 0) {
           setVoiceToast(null);
@@ -222,25 +238,25 @@ export default function AIAssistantWidget() {
             setVoiceToast(null);
             setTimeout(() => {
               handleSendMessage(data.text);
-            }, 300);
+            }, 250);
           } else {
-            setVoiceToast('ভয়েস স্পষ্ট শোনা যায়নি। আবার বলুন বা লিখে পাঠান।');
-            setTimeout(() => setVoiceToast(null), 3000);
+            setVoiceToast('ভয়েস স্পষ্ট শোনা যায়নি। দয়া করে লিখে জানান বা আবার বলুন।');
+            setTimeout(() => setVoiceToast(null), 3500);
           }
-        } catch (err) {
-          setVoiceToast('ভয়েস প্রসেসিংয়ে সমস্যা হয়েছে।');
-          setTimeout(() => setVoiceToast(null), 3000);
+        } catch {
+          setVoiceToast('ভয়েস প্রসেসিংয়ে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
+          setTimeout(() => setVoiceToast(null), 3500);
         }
       };
 
       mediaRecorderRef.current = recorder;
-      recorder.start(250);
+      recorder.start(200);
     } catch (recErr) {
+      console.warn('Recorder start error:', recErr);
       setIsListening(false);
       setIsRecordingAudio(false);
-      stream.getTracks().forEach((t) => t.stop());
       setVoiceToast('ভয়েস রেকর্ড শুরু করা যায়নি।');
-      setTimeout(() => setVoiceToast(null), 3000);
+      setTimeout(() => setVoiceToast(null), 3500);
     }
   };
 
@@ -261,30 +277,18 @@ export default function AIAssistantWidget() {
         } catch {}
       }
       if (mediaStreamRef.current) {
-        mediaStreamRef.current.getTracks().forEach((t) => t.stop());
+        try {
+          mediaStreamRef.current.getTracks().forEach((t) => t.stop());
+        } catch {}
       }
       setIsListening(false);
       setIsRecordingAudio(false);
-      setVoiceToast(null);
-      return;
-    }
-
-    // 1. Explicitly request Microphone Permission first
-    let stream: MediaStream | null = null;
-    try {
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      }
-    } catch (permErr) {
-      console.warn('Microphone permission notice:', permErr);
-      setVoiceToast('⚠️ মাইক্রোফোন এক্সেস অন করুন (Please allow microphone access)');
-      setTimeout(() => setVoiceToast(null), 4000);
       return;
     }
 
     const SpeechRecognitionClass = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
-    // 2. Try Native Web Speech Recognition
+    // 1. Try Native Web Speech Recognition first (Chrome, Edge, Safari)
     if (SpeechRecognitionClass) {
       try {
         const recognition = new SpeechRecognitionClass();
@@ -293,7 +297,7 @@ export default function AIAssistantWidget() {
         recognition.lang = 'bn-BD';
         recognition.maxAlternatives = 1;
 
-        let autoSendTimer: any = null;
+        let capturedText = '';
 
         recognition.onstart = () => {
           setIsListening(true);
@@ -314,14 +318,14 @@ export default function AIAssistantWidget() {
 
           const currentText = finalTranscript || interimTranscript;
           if (currentText && currentText.trim()) {
-            setInput(currentText.trim());
+            capturedText = currentText.trim();
+            setInput(capturedText);
           }
 
           if (finalTranscript && finalTranscript.trim()) {
             setIsListening(false);
             setVoiceToast(null);
-            if (autoSendTimer) clearTimeout(autoSendTimer);
-            autoSendTimer = setTimeout(() => {
+            setTimeout(() => {
               handleSendMessage(finalTranscript.trim());
             }, 300);
           }
@@ -329,48 +333,35 @@ export default function AIAssistantWidget() {
 
         recognition.onerror = (event: any) => {
           console.warn('SpeechRecognition error:', event.error);
+          setIsListening(false);
+
           if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-            setIsListening(false);
-            setVoiceToast('⚠️ মাইক্রোফোন অনুমতি দিন (Microphone permission needed)');
-            setTimeout(() => setVoiceToast(null), 3500);
+            setVoiceToast('⚠️ ব্রাউজারে মাইক্রোফোন পারমিশন এলাও (Allow) করুন');
+            setTimeout(() => setVoiceToast(null), 4000);
             return;
           }
 
-          // Fallback to MediaRecorder if web speech fails on network or recognizer
-          if (stream) {
-            startMediaRecorderFallback(stream);
-          } else {
-            setIsListening(false);
-            setVoiceToast('ভয়েস শনাক্তকরণে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
-            setTimeout(() => setVoiceToast(null), 3500);
-          }
+          // If web speech had network/no-speech error, seamlessly activate MediaRecorder AI STT
+          startMediaRecorderFallback();
         };
 
         recognition.onend = () => {
           setIsListening(false);
-          if (stream) {
-            stream.getTracks().forEach((t) => t.stop());
-          }
           setTimeout(() => {
             setVoiceToast((prev) => (prev?.includes('🎙️') ? null : prev));
-          }, 1000);
+          }, 800);
         };
 
         recognitionRef.current = recognition;
         recognition.start();
         return;
       } catch (speechErr) {
-        console.warn('Speech recognition init error:', speechErr);
+        console.warn('Native speech recognition failed, fallback to MediaRecorder:', speechErr);
       }
     }
 
-    // 3. Fallback: MediaRecorder Audio Speech-to-Text
-    if (stream) {
-      startMediaRecorderFallback(stream);
-    } else {
-      setVoiceToast('ভয়েস ইনপুট সমর্থিত নয়। অনুগ্রহ করে টাইপ করুন।');
-      setTimeout(() => setVoiceToast(null), 4000);
-    }
+    // 2. Fallback to MediaRecorder & Gemini Multimodal STT
+    startMediaRecorderFallback();
   };
 
   // Robust Native Bangla Text-to-Speech (TTS)

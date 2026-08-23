@@ -40,12 +40,12 @@ export async function POST(req: NextRequest) {
         .eq('key', 'GEMINI_API_KEY')
         .maybeSingle();
 
-      if (setting?.value && setting.value.trim() && setting.value.startsWith('AIzaSy')) {
+      if (setting?.value && setting.value.trim().length > 10) {
         apiKey = setting.value.trim();
       }
     } catch {}
 
-    if (!apiKey || !apiKey.startsWith('AIzaSy')) {
+    if (!apiKey || apiKey.length < 10) {
       return NextResponse.json({
         success: false,
         message: 'Speech-to-text API key is not configured.'
