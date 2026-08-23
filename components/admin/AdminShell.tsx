@@ -340,24 +340,36 @@ export default function AdminShell({ children }: AdminShellProps) {
             if (visibleSectionLinks.length === 0) return null;
 
             return (
-              <div key={section.title} className="space-y-1">
-                {/* Accordion Section Title with Dropdown Chevron */}
+              <div key={section.title} className="pt-2.5 pb-0.5 space-y-1">
+                {/* Bold & High-Contrast Accordion Section Capsule Header */}
                 <button
                   type="button"
                   onClick={() => toggleSection(section.title)}
-                  className="w-full flex items-center justify-between text-[12px] font-bold text-[#475569] uppercase tracking-wider px-3.5 py-1.5 hover:text-slate-900 transition-colors"
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer select-none border ${
+                    isCollapsed
+                      ? 'bg-slate-100/80 hover:bg-slate-200/80 text-slate-700 border-slate-200/70 shadow-2xs'
+                      : 'bg-slate-100 text-slate-900 border-slate-200 shadow-2xs hover:bg-slate-200/60'
+                  }`}
                 >
-                  <span>{section.title}</span>
-                  {isCollapsed ? (
-                    <ChevronRight className="w-4 h-4 text-slate-500" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 text-slate-500" />
-                  )}
+                  <div className="flex items-center gap-2 truncate">
+                    <span className="w-1.5 h-3.5 rounded-full bg-blue-600 flex-shrink-0" />
+                    <span className="font-black text-slate-800 truncate">{section.title}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-white font-bold text-slate-500 border border-slate-200/80 shadow-2xs">
+                      {visibleSectionLinks.length}
+                    </span>
+                    {isCollapsed ? (
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
+                    ) : (
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-600" />
+                    )}
+                  </div>
                 </button>
 
-                {/* Sub-links */}
+                {/* Sub-links with clean tree indentation & visual grouping */}
                 {!isCollapsed && (
-                  <div className="space-y-1">
+                  <div className="space-y-0.5 pl-2 border-l-2 border-slate-200/70 ml-2.5 my-1">
                     {visibleSectionLinks.map((link) => {
                       const Icon = link.icon;
                       const active = pathname === link.href;
@@ -366,13 +378,13 @@ export default function AdminShell({ children }: AdminShellProps) {
                           key={link.label}
                           href={link.href}
                           onClick={() => setOpen(false)}
-                          className={`flex items-center gap-3.5 rounded-[12px] px-3.5 py-2.5 text-sm font-semibold transition-colors ${
+                          className={`flex items-center gap-3 rounded-[12px] px-3 py-2 text-sm font-semibold transition-colors ${
                             active
                               ? 'bg-blue-50 text-[#2563EB] font-bold shadow-xs'
                               : 'text-[#475569] hover:text-[#0F172A] hover:bg-slate-50'
                           }`}
                         >
-                          <Icon className={`w-5 h-5 flex-shrink-0 ${link.colorClass}`} />
+                          <Icon className={`w-4.5 h-4.5 flex-shrink-0 ${link.colorClass}`} />
                           <span className="flex-1 truncate">{link.label}</span>
                           {Boolean((link as any).badge && (link as any).badge > 0) && (
                             <span className="px-2 py-0.5 rounded-full bg-red-500 text-white text-[11px] font-bold shadow-xs">
