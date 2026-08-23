@@ -158,6 +158,32 @@ export async function POST(req: NextRequest) {
     squads.unshift(newSquad);
     await saveSquads(squads);
 
+    // Sync to Supabase Team & TeamMember tables for complete cross-compatibility
+    try {
+      await supabaseAdmin.from('Team').insert({
+        id: squadId,
+        name: cleanName,
+        tag: cleanTag,
+        logo: newSquad.logoUrl,
+        captainId: leaderId,
+        captainName: leaderName || 'Leader',
+        membersCount: 1,
+        wins: 0,
+        inviteCode: inviteToken,
+        createdAt: newSquad.createdAt,
+      });
+
+      await supabaseAdmin.from('TeamMember').insert({
+        id: initialLeaderMember.id,
+        teamId: squadId,
+        userId: leaderId,
+        role: 'CAPTAIN',
+        joinedAt: initialLeaderMember.joinedAt,
+      });
+    } catch (syncErr) {
+      console.warn('[POST /api/squads] Supabase Team table sync notice:', syncErr);
+    }
+
     return NextResponse.json({ 
       success: true, 
       message: `Squad "[${newSquad.tag}] ${newSquad.name}" created successfully!`,

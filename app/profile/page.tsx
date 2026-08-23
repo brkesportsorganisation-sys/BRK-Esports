@@ -42,7 +42,9 @@ import {
   ExternalLink,
   ShoppingBag,
   Diamond,
-  Package
+  Package,
+  Search,
+  X
 } from 'lucide-react';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
@@ -983,58 +985,122 @@ function ProfilePageContent() {
         {/* Tab 3: Squad & Team System */}
         {activeTab === 'TEAMS' && (
           <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            
+            {/* Header Controls */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-[2rem] border border-slate-200 shadow-xs">
               <div>
-                <h3 className="font-heading font-black text-xl text-slate-900 flex items-center gap-2">
-                  <ShieldCheck className="w-6 h-6 text-amber-500" />
-                  <span>My Esports Squads & Clans</span>
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full bg-orange-100 text-brand-orange font-black text-[10px] uppercase tracking-wider border border-orange-200">
+                    🛡️ Esports Roster Hub
+                  </span>
+                  <span className="text-xs font-bold text-slate-400">•</span>
+                  <span className="text-xs font-bold text-slate-500">Live Team Lineup</span>
+                </div>
+                <h3 className="font-heading font-black text-xl sm:text-2xl text-slate-900 flex items-center gap-2 mt-1">
+                  <ShieldCheck className="w-6 h-6 text-brand-orange" />
+                  <span>My Esports Squads &amp; Clans</span>
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-slate-500 mt-0.5 font-medium">
                   Your official competitive esports team and active registered tournament roster.
                 </p>
               </div>
 
-              {(squads.length > 0 || teams.length > 0) ? (
-                <div className="px-3.5 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold flex items-center gap-2 shadow-2xs self-start sm:self-auto">
-                  <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span>1 / 1 Active Squad (Limit Reached)</span>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setIsTeamModalOpen(true)}
-                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-500 via-orange-500 to-amber-500 text-white font-heading font-black text-xs uppercase tracking-wider shadow-md hover:shadow-lg transition-all flex items-center space-x-1.5 self-start sm:self-auto cursor-pointer active:scale-95"
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <Link
+                  href="/lfg"
+                  className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-heading font-bold text-xs transition-all flex items-center gap-1.5"
                 >
-                  <PlusCircle className="w-4 h-4" />
-                  <span>CREATE SQUAD</span>
-                </button>
-              )}
+                  <Search className="w-3.5 h-3.5" />
+                  <span>Find Players / LFG</span>
+                </Link>
+
+                {(squads.length > 0 || teams.length > 0) ? (
+                  <div className="px-3.5 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-1.5 shadow-2xs">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>1 / 1 Active Squad Active</span>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setIsTeamModalOpen(true)}
+                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-500 via-orange-500 to-amber-500 text-white font-heading font-black text-xs uppercase tracking-wider shadow-md hover:shadow-lg transition-all flex items-center space-x-1.5 cursor-pointer active:scale-95"
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    <span>CREATE SQUAD NOW</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* 1-Squad Rule Informational Alert */}
             {(squads.length > 0 || teams.length > 0) && (
-              <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-2xl flex items-start gap-2.5 text-xs text-amber-900">
-                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <div className="p-4 bg-gradient-to-r from-amber-50 to-orange-50/50 border border-amber-200 rounded-2xl flex items-start gap-3 text-xs text-amber-900 shadow-2xs">
+                <Shield className="w-4 h-4 text-brand-orange shrink-0 mt-0.5" />
                 <span>
-                  <strong>1-Squad Limit:</strong> আপনি বর্তমানে ১ টি একটিভ স্কোয়াডে রয়েছেন। অন্য কোনো নতুন টিম তৈরি করতে বা অন্য স্কোয়াডে যেতে চাইলে বর্তমান স্কোয়াডের <strong>Settings</strong> অপশন থেকে ডিসব্যান্ড বা লিভ করতে হবে।
+                  <strong>1-Squad Fair Play Rule:</strong> আপনি বর্তমানে ১ টি সক্রিয় স্কোয়াডের সদস্য। টুর্নামেন্ট রেজিস্ট্রেশন বা রোস্টার পরিবর্তন করতে নিচে আপনার স্কোয়াডে ক্লিক করে <strong>Manage Squad</strong> এ যান।
                 </span>
               </div>
             )}
 
+            {/* Empty State Hero */}
             {squads.length === 0 && teams.length === 0 ? (
-              <div className="bg-white p-10 rounded-3xl border border-slate-200 text-center space-y-3 max-w-md mx-auto shadow-2xs">
-                <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto">
-                  <Users className="w-7 h-7" />
+              <div className="bg-gradient-to-b from-white via-orange-50/20 to-red-50/25 p-8 sm:p-12 rounded-[2.5rem] border-2 border-orange-200/80 text-center space-y-6 shadow-sm relative overflow-hidden">
+                <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-amber-500 via-orange-500 to-red-500 text-white flex items-center justify-center mx-auto shadow-xl shadow-orange-500/25 border-4 border-white">
+                  <ShieldCheck className="w-10 h-10" />
                 </div>
-                <h4 className="font-heading font-black text-lg text-slate-900">No Active Squad Yet</h4>
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  একটি নিজস্ব স্কোয়াড তৈরি করে লিডার হোন অথবা ইনভাইট লিঙ্কের মাধ্যমে অন্য স্কোয়াডে যুক্ত হয়ে টুর্নামেন্টে অংশ নিন।
-                </p>
-                <button
-                  onClick={() => setIsTeamModalOpen(true)}
-                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-heading font-black text-xs uppercase shadow-md cursor-pointer"
-                >
-                  Create Your Squad Now
-                </button>
+                
+                <div className="max-w-xl mx-auto space-y-2">
+                  <span className="px-3 py-1 rounded-full bg-orange-100 text-brand-orange font-mono font-black text-xs uppercase tracking-wider inline-block">
+                    Free Fire Championship Squad
+                  </span>
+                  <h4 className="font-heading font-black text-2xl sm:text-3xl text-slate-900 tracking-tight">
+                    No Active Squad Yet
+                  </h4>
+                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
+                    একটি নিজস্ব স্কোয়াড তৈরি করে লিডার হোন অথবা ইনভাইট লিঙ্কের মাধ্যমে অন্য স্কোয়াডে যুক্ত হয়ে টুর্নামেন্টে অংশ নিন।
+                  </p>
+                </div>
+
+                {/* 3 Feature Pillars */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 max-w-3xl mx-auto text-left">
+                  <div className="p-4 rounded-2xl bg-white border border-orange-100 shadow-2xs space-y-1">
+                    <div className="w-8 h-8 rounded-xl bg-orange-50 text-brand-orange flex items-center justify-center font-black text-sm">
+                      👑
+                    </div>
+                    <div className="font-heading font-black text-xs text-slate-900">Custom Tag &amp; Logo</div>
+                    <div className="text-[11px] text-slate-500">Create your unique clan identity e.g. [BRK] BlackRock.</div>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-white border border-orange-100 shadow-2xs space-y-1">
+                    <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-black text-sm">
+                      👥
+                    </div>
+                    <div className="font-heading font-black text-xs text-slate-900">4-Player Lineup</div>
+                    <div className="text-[11px] text-slate-500">Invite teammates with Rusher, Sniper, Supporter roles.</div>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-white border border-orange-100 shadow-2xs space-y-1">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-black text-sm">
+                      ⚡
+                    </div>
+                    <div className="font-heading font-black text-xs text-slate-900">1-Click Tournament</div>
+                    <div className="text-[11px] text-slate-500">Register in BR and CS tournaments instantly as a full team.</div>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+                  <button
+                    onClick={() => setIsTeamModalOpen(true)}
+                    className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-gradient-to-r from-red-500 via-orange-500 to-amber-500 text-white font-heading font-black text-sm uppercase tracking-wider shadow-lg shadow-orange-500/25 hover:brightness-110 transition-all cursor-pointer"
+                  >
+                    🔥 Create Your Squad Now
+                  </button>
+                  <Link
+                    href="/lfg"
+                    className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-white border border-slate-200 text-slate-700 font-heading font-bold text-xs uppercase hover:bg-slate-50 transition-all"
+                  >
+                    🔍 Join a Squad via LFG
+                  </Link>
+                </div>
               </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1050,12 +1116,12 @@ function ProfilePageContent() {
                       className="bg-white rounded-3xl border border-slate-200 hover:border-amber-400 overflow-hidden shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between group cursor-pointer"
                     >
                       {/* Top Header Card with Banner Background */}
-                      <div className="relative h-28 w-full overflow-hidden bg-slate-950">
+                      <div className="relative h-32 w-full overflow-hidden bg-slate-950">
                         {sq.bannerUrl && (
                           <img
                             src={sq.bannerUrl}
                             alt={sq.name}
-                            className="w-full h-full object-cover opacity-40 group-hover:scale-105 transition-transform duration-700"
+                            className="w-full h-full object-cover opacity-50 group-hover:scale-105 transition-transform duration-700"
                           />
                         )}
                         <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
@@ -1072,23 +1138,23 @@ function ProfilePageContent() {
                         </div>
 
                         {/* Logo & Name Overlap */}
-                        <div className="absolute bottom-2.5 left-3.5 right-3.5 flex items-end gap-3 z-10">
+                        <div className="absolute bottom-3 left-4 right-4 flex items-end gap-3 z-10">
                           <img
                             src={sq.logoUrl}
                             alt={sq.name}
-                            className="w-12 h-12 rounded-2xl object-cover border-2 border-amber-400 shadow-md bg-slate-950 shrink-0"
+                            className="w-14 h-14 rounded-2xl object-cover border-2 border-amber-400 shadow-md bg-slate-950 shrink-0"
                           />
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
-                              <span className="px-1.5 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/40 text-amber-300 font-mono text-[10px] font-black">
+                              <span className="px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/40 text-amber-300 font-mono text-[10px] font-black">
                                 [{sq.tag}]
                               </span>
-                              <h4 className="text-base font-black font-heading text-white truncate drop-shadow-md">
+                              <h4 className="text-base sm:text-lg font-black font-heading text-white truncate drop-shadow-md">
                                 {sq.name}
                               </h4>
                             </div>
-                            <div className="text-[11px] text-slate-300 flex items-center gap-1.5 mt-0.5">
-                              <Crown className="w-3 h-3 text-amber-400 shrink-0" />
+                            <div className="text-[11px] text-slate-300 flex items-center gap-1.5 mt-0.5 font-medium">
+                              <Crown className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                               <span>Captain: <strong className="text-white font-bold">{sq.leaderName}</strong></span>
                             </div>
                           </div>
@@ -1096,32 +1162,32 @@ function ProfilePageContent() {
                       </div>
 
                       {/* Content: Active Roster Members Preview */}
-                      <div className="p-5 space-y-3.5 flex-1 flex flex-col justify-between bg-white">
-                        <div className="space-y-2">
+                      <div className="p-5 space-y-4 flex-1 flex flex-col justify-between bg-white">
+                        <div className="space-y-2.5">
                           <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                             <span>Active Roster Players:</span>
-                            <span className="text-amber-600 font-mono">{activeMembers.length} / 6 Active</span>
+                            <span className="text-brand-orange font-mono">{activeMembers.length} / 6 Active</span>
                           </div>
 
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             {activeMembers.map((m) => (
-                              <div key={m.id} className="bg-slate-50 border border-slate-200/80 rounded-xl p-2 flex items-center justify-between gap-2">
+                              <div key={m.id} className="bg-slate-50 border border-slate-200/80 rounded-xl p-2.5 flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-2 min-w-0">
                                   <img
                                     src={m.userAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${m.userName}`}
                                     alt={m.userName}
-                                    className="w-7 h-7 rounded-lg object-cover bg-white border border-slate-200 shrink-0"
+                                    className="w-8 h-8 rounded-lg object-cover bg-white border border-slate-200 shrink-0"
                                   />
                                   <div className="min-w-0">
                                     <div className="text-xs font-bold text-slate-900 truncate flex items-center gap-1">
                                       <span>{m.userName}</span>
                                       {m.isLeader && <span title="Leader">👑</span>}
                                     </div>
-                                    <div className="text-[9px] text-slate-500 font-mono truncate">{m.accountNumber || m.freeFireUid}</div>
+                                    <div className="text-[9px] text-slate-500 font-mono truncate">{m.freeFireUid ? `UID: ${m.freeFireUid}` : m.accountNumber}</div>
                                   </div>
                                 </div>
 
-                                <span className="px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-black uppercase shrink-0">
+                                <span className="px-2 py-0.5 rounded-md bg-orange-50 text-brand-orange border border-orange-200 text-[9px] font-black uppercase shrink-0">
                                   {m.inGameRole || 'PLAYER'}
                                 </span>
                               </div>
@@ -1130,13 +1196,13 @@ function ProfilePageContent() {
                         </div>
 
                         {/* Card Footer Action */}
-                        <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                        <div className="pt-3.5 border-t border-slate-100 flex items-center justify-between gap-2">
                           <div className="text-[11px] text-slate-500 font-mono">
                             Wins: <strong className="text-emerald-600 font-bold">{sq.matchesWon || 0}</strong> • Matches: <strong>{sq.matchesPlayed || 0}</strong>
                           </div>
 
-                          <div className="inline-flex items-center gap-1 text-xs font-heading font-black text-amber-600 group-hover:text-amber-700 transition-colors">
-                            <span>View Full Squad & Roster</span>
+                          <div className="inline-flex items-center gap-1.5 text-xs font-heading font-black text-brand-orange group-hover:text-red-600 transition-colors">
+                            <span>Manage Roster &amp; Invites</span>
                             <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                           </div>
                         </div>
@@ -1169,7 +1235,7 @@ function ProfilePageContent() {
                     </div>
 
                     <div className="pt-2 flex items-center justify-end text-xs font-black font-heading text-amber-600 group-hover:text-amber-700">
-                      <span>View Full Squad & Roster</span>
+                      <span>View Full Squad &amp; Roster</span>
                       <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
                     </div>
                   </Link>
@@ -1834,55 +1900,95 @@ function ProfilePageContent() {
         </div>
       )}
 
-      {/* Create Team Modal */}
+      {/* Create Team / Squad Modal */}
       {isTeamModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full border border-slate-200 shadow-2xl space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="font-heading font-black text-2xl text-slate-900">CREATE CLAN</h3>
-              <button onClick={() => setIsTeamModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-sm font-bold">✕</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full border border-slate-200 shadow-2xl space-y-5 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 via-orange-500 to-red-500 text-white flex items-center justify-center shadow-md shadow-orange-500/20">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-heading font-black text-xl text-slate-900">CREATE ESPORTS SQUAD</h3>
+                  <p className="text-[11px] text-slate-500 font-medium">Official tournament roster registration</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsTeamModalOpen(false)}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Live Squad Badge Preview */}
+            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-white flex items-center gap-3.5 shadow-md">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center font-black text-lg border-2 border-white/20 shrink-0">
+                {teamTag.trim() ? teamTag.trim().substring(0, 2).toUpperCase() : '⚡'}
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-300 font-mono text-[10px] font-black border border-amber-500/30">
+                    [{teamTag.trim().toUpperCase() || 'TAG'}]
+                  </span>
+                  <h4 className="text-sm font-black font-heading text-white truncate">
+                    {teamName.trim() || 'Your Squad Name'}
+                  </h4>
+                </div>
+                <div className="text-[10px] text-slate-400 mt-0.5">
+                  Captain: <strong className="text-white">{user?.inGameName || user?.name || 'Leader'}</strong> • Free Fire Roster
+                </div>
+              </div>
             </div>
             
-            <form onSubmit={handleCreateTeam} className="space-y-4 text-sm">
+            <form onSubmit={handleCreateTeam} className="space-y-4 text-xs font-medium">
               <div>
-                <label className="font-bold text-xs uppercase text-slate-700 block mb-1">Clan Name *</label>
+                <label className="font-bold text-xs uppercase text-slate-700 block mb-1">Squad / Clan Name *</label>
                 <input
                   type="text"
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
                   required
-                  placeholder="e.g. Blackrock Elite"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-orange-400 font-semibold"
+                  placeholder="e.g. BlackRock Esports"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-900 font-bold focus:outline-none focus:border-brand-orange focus:bg-white"
                 />
               </div>
 
               <div>
-                <label className="font-bold text-xs uppercase text-slate-700 block mb-1">Clan Tag (3-5 Letters) *</label>
+                <label className="font-bold text-xs uppercase text-slate-700 block mb-1">
+                  Clan Tag (2 to 6 Characters) *
+                </label>
                 <input
                   type="text"
+                  maxLength={6}
                   value={teamTag}
-                  onChange={(e) => setTeamTag(e.target.value)}
+                  onChange={(e) => setTeamTag(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
                   required
-                  placeholder="e.g. BRE"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 font-mono uppercase focus:outline-none focus:border-orange-400 font-bold"
+                  placeholder="e.g. BRK, OCR, NV"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-900 font-mono uppercase font-black focus:outline-none focus:border-brand-orange focus:bg-white"
                 />
+                <span className="text-[10px] text-slate-400 mt-1 block">
+                  Tag will appear in tournament brackets as <strong>[{teamTag || 'TAG'}]</strong>.
+                </span>
               </div>
 
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setIsTeamModalOpen(false)}
-                  className="flex-1 py-3 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold text-xs transition-colors"
+                  className="flex-1 py-3 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold text-xs transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isCreatingTeam}
-                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-red-500 to-orange-500 text-white font-bold text-xs shadow-md hover:brightness-110 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-red-500 via-orange-500 to-amber-500 text-white font-bold text-xs shadow-md hover:brightness-110 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
                 >
                   {isCreatingTeam ? <Loader2 className="w-4 h-4 animate-spin" /> : <PlusCircle className="w-4 h-4" />}
-                  <span>{isCreatingTeam ? 'Creating...' : 'Create Clan'}</span>
+                  <span>{isCreatingTeam ? 'Registering Squad...' : 'Create Official Squad'}</span>
                 </button>
               </div>
             </form>

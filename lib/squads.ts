@@ -206,11 +206,41 @@ export async function getSquadByInviteToken(token: string): Promise<Squad | null
 export async function getUserSquads(userId: string): Promise<Squad[]> {
   if (!userId) return [];
   const squads = await getSquads();
-  return squads.filter(s => 
+  const found = squads.filter(s => 
     !s.isDisbanded && 
     Array.isArray(s.members) && 
     s.members.some(m => m.userId === userId && m.status === 'ACTIVE')
   );
+
+  if (found.length > 0) return found;
+
+  // Query Supabase `Team` and `TeamMember` tables directly if not cached
+  try {
+    const { data: legacyCaptainTeams } = await supabaseAdmin
+      .from('Team')
+      .select('id')
+      .eq('captainId', userId);
+
+    const { data: legacyMemberships } = await supabaseAdmin
+      .from('TeamMember')
+      .select('teamId')
+      .eq('userId', userId);
+
+    const allTeamIds = new Set<string>();
+    (legacyCaptainTeams || []).forEach(t => allTeamIds.add(t.id));
+    (legacyMemberships || []).forEach(m => allTeamIds.add(m.teamId));
+
+    for (const teamId of allTeamIds) {
+      const imported = await getSquadById(teamId);
+      if (imported && !found.some(s => s.id === imported.id)) {
+        found.push(imported);
+      }
+    }
+  } catch (err) {
+    console.warn('[getUserSquads] Supabase direct query notice:', err);
+  }
+
+  return found;
 }
 
 /**
