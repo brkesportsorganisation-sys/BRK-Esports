@@ -34,12 +34,17 @@ import {
   MessageSquare,
   Headphones,
   Send,
-  RefreshCw
+  RefreshCw,
+  Crown,
+  ArrowRight,
+  Zap,
+  Shield,
+  ExternalLink
 } from 'lucide-react';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import { db } from '@/lib/db';
-import { User, Tournament, Team, Payment, SupportTicket, SupportMessage } from '@/lib/types';
+import { User, Tournament, Team, Squad, Payment, SupportTicket, SupportMessage } from '@/lib/types';
 
 const AVATAR_PRESETS = [
   'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=200&auto=format&fit=crop&q=80', // Cyber Samurai
@@ -91,6 +96,7 @@ function ProfilePageContent() {
   const [teamTag, setTeamTag] = useState('');
   const [isCreatingTeam, setIsCreatingTeam] = useState(false);
 
+  const [squads, setSquads] = useState<Squad[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
@@ -171,8 +177,9 @@ function ProfilePageContent() {
 
   const refreshProfileFromDb = async (userId: string) => {
     try {
-      const [uRes, tRes, pRes, tourRes, sRes] = await Promise.all([
+      const [uRes, sqRes, tRes, pRes, tourRes, sRes] = await Promise.all([
         fetch(`/api/auth/me?id=${userId}`, { cache: 'no-store' }),
+        fetch(`/api/squads?userId=${userId}`, { cache: 'no-store' }),
         fetch(`/api/teams?userId=${userId}`, { cache: 'no-store' }),
         fetch(`/api/wallet/history?userId=${userId}`, { cache: 'no-store' }),
         fetch(`/api/tournaments`, { cache: 'no-store' }),
@@ -189,6 +196,11 @@ function ProfilePageContent() {
           setAvatar(uData.user.avatar || '');
           db.setCurrentUser(uData.user);
         }
+      }
+
+      if (sqRes.ok) {
+        const sqData = await sqRes.json();
+        if (sqData.squads) setSquads(sqData.squads);
       }
 
       if (tRes.ok) {
@@ -362,39 +374,46 @@ function ProfilePageContent() {
   const handleCreateTeam = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!teamName.trim() || !teamTag.trim() || !user) return;
+
+    if (squads.length >= 1) {
+      alert('⚠️ Squad Limit: You are already an active member of a squad. You can only be in 1 active squad at a time. To create another squad, you must first leave or disband your current squad from its settings page.');
+      setIsTeamModalOpen(false);
+      return;
+    }
+
     setIsCreatingTeam(true);
 
     try {
-      const res = await fetch('/api/teams', {
+      const res = await fetch('/api/squads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: teamName.trim(),
           tag: teamTag.trim().toUpperCase(),
-          captainId: user.id,
-          captainName: user.inGameName || user.name,
+          game: 'FREE_FIRE',
+          leaderId: user.id,
+          leaderName: user.inGameName || user.name,
+          leaderAccountNumber: user.accountNumber,
+          leaderUid: user.freeFireUid,
         }),
       });
 
+      const data = await res.json();
       if (res.ok) {
-        const data = await res.json();
-        setTeams([data.team, ...teams]);
+        setSquads([data.squad, ...squads]);
         setIsTeamModalOpen(false);
         setTeamName('');
         setTeamTag('');
+        alert(`Squad "[${data.squad.tag}] ${data.squad.name}" created successfully!`);
         return;
+      } else {
+        alert(data.message || 'Failed to create squad.');
       }
     } catch (err) {
-      console.warn('Team create API error:', err);
+      console.warn('Squad create API error:', err);
     } finally {
       setIsCreatingTeam(false);
     }
-
-    db.createTeam(teamName, teamTag);
-    setTeams([...db.getTeams()]);
-    setIsTeamModalOpen(false);
-    setTeamName('');
-    setTeamTag('');
   };
 
   const handleClaimMilestone = async (milestoneId: number, rewardType: 'COIN' | 'WALLET', rewardAmount: number) => {
@@ -869,24 +888,170 @@ function ProfilePageContent() {
         {/* Tab 3: Squad & Team System */}
         {activeTab === 'TEAMS' && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="font-heading font-bold text-xl text-slate-900">My Gaming Clans</h3>
-              <button
-                onClick={() => setIsTeamModalOpen(true)}
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-red-500 to-orange-500 text-white font-heading font-bold text-xs shadow-md hover:shadow-lg transition-all flex items-center space-x-1.5"
-              >
-                <PlusCircle className="w-4 h-4" />
-                <span>CREATE CLAN</span>
-              </button>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="font-heading font-black text-xl text-slate-900 flex items-center gap-2">
+                  <ShieldCheck className="w-6 h-6 text-amber-500" />
+                  <span>My Esports Squads & Clans</span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Your official competitive esports team and active registered tournament roster.
+                </p>
+              </div>
+
+              {squads.length >= 1 ? (
+                <div className="px-3.5 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold flex items-center gap-2 shadow-2xs self-start sm:self-auto">
+                  <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>1 / 1 Active Squad (Limit Reached)</span>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setIsTeamModalOpen(true)}
+                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-500 via-orange-500 to-amber-500 text-white font-heading font-black text-xs uppercase tracking-wider shadow-md hover:shadow-lg transition-all flex items-center space-x-1.5 self-start sm:self-auto cursor-pointer active:scale-95"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  <span>CREATE SQUAD</span>
+                </button>
+              )}
             </div>
 
-            {teams.length === 0 ? (
-              <div className="bg-white p-8 rounded-3xl border border-slate-200 text-center text-slate-600 text-sm font-medium">
-                You have not created or joined any clans yet.
+            {/* 1-Squad Rule Informational Alert */}
+            {squads.length >= 1 && (
+              <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-2xl flex items-start gap-2.5 text-xs text-amber-900">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <span>
+                  <strong>1-Squad Limit:</strong> আপনি বর্তমানে ১ টি একটিভ স্কোয়াডে রয়েছেন। অন্য কোনো নতুন টিম তৈরি করতে বা অন্য স্কোয়াডে যেতে চাইলে বর্তমান স্কোয়াডের <strong>Settings</strong> অপশন থেকে ডিসব্যান্ড বা লিভ করতে হবে।
+                </span>
+              </div>
+            )}
+
+            {squads.length === 0 && teams.length === 0 ? (
+              <div className="bg-white p-10 rounded-3xl border border-slate-200 text-center space-y-3 max-w-md mx-auto shadow-2xs">
+                <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto">
+                  <Users className="w-7 h-7" />
+                </div>
+                <h4 className="font-heading font-black text-lg text-slate-900">No Active Squad Yet</h4>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  একটি নিজস্ব স্কোয়াড তৈরি করে লিডার হোন অথবা ইনভাইট লিঙ্কের মাধ্যমে অন্য স্কোয়াডে যুক্ত হয়ে টুর্নামেন্টে অংশ নিন।
+                </p>
+                <button
+                  onClick={() => setIsTeamModalOpen(true)}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-heading font-black text-xs uppercase shadow-md cursor-pointer"
+                >
+                  Create Your Squad Now
+                </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {teams.map((team) => (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* 1. New Rich Squad Cards */}
+                {squads.map((sq) => {
+                  const activeMembers = (sq.members || []).filter(m => m.status === 'ACTIVE');
+                  const isLeader = sq.leaderId === user?.id || sq.members?.some(m => m.userId === user?.id && m.isLeader);
+
+                  return (
+                    <Link
+                      key={sq.id}
+                      href={`/squads/${sq.id}`}
+                      className="bg-white rounded-3xl border border-slate-200 hover:border-amber-400 overflow-hidden shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between group cursor-pointer"
+                    >
+                      {/* Top Header Card with Banner Background */}
+                      <div className="relative h-28 w-full overflow-hidden bg-slate-950">
+                        {sq.bannerUrl && (
+                          <img
+                            src={sq.bannerUrl}
+                            alt={sq.name}
+                            className="w-full h-full object-cover opacity-40 group-hover:scale-105 transition-transform duration-700"
+                          />
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
+
+                        <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
+                          <span className="px-2.5 py-0.5 rounded-full bg-black/60 backdrop-blur-md border border-slate-700 text-amber-400 text-[10px] font-black uppercase">
+                            🎮 {sq.game}
+                          </span>
+                          {isLeader && (
+                            <span className="px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 text-[10px] font-black uppercase shadow-xs">
+                              👑 LEADER
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Logo & Name Overlap */}
+                        <div className="absolute bottom-2.5 left-3.5 right-3.5 flex items-end gap-3 z-10">
+                          <img
+                            src={sq.logoUrl}
+                            alt={sq.name}
+                            className="w-12 h-12 rounded-2xl object-cover border-2 border-amber-400 shadow-md bg-slate-950 shrink-0"
+                          />
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="px-1.5 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/40 text-amber-300 font-mono text-[10px] font-black">
+                                [{sq.tag}]
+                              </span>
+                              <h4 className="text-base font-black font-heading text-white truncate drop-shadow-md">
+                                {sq.name}
+                              </h4>
+                            </div>
+                            <div className="text-[11px] text-slate-300 flex items-center gap-1.5 mt-0.5">
+                              <Crown className="w-3 h-3 text-amber-400 shrink-0" />
+                              <span>Captain: <strong className="text-white font-bold">{sq.leaderName}</strong></span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Content: Active Roster Members Preview */}
+                      <div className="p-5 space-y-3.5 flex-1 flex flex-col justify-between bg-white">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                            <span>Active Roster Players:</span>
+                            <span className="text-amber-600 font-mono">{activeMembers.length} / 6 Active</span>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {activeMembers.map((m) => (
+                              <div key={m.id} className="bg-slate-50 border border-slate-200/80 rounded-xl p-2 flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <img
+                                    src={m.userAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${m.userName}`}
+                                    alt={m.userName}
+                                    className="w-7 h-7 rounded-lg object-cover bg-white border border-slate-200 shrink-0"
+                                  />
+                                  <div className="min-w-0">
+                                    <div className="text-xs font-bold text-slate-900 truncate flex items-center gap-1">
+                                      <span>{m.userName}</span>
+                                      {m.isLeader && <span title="Leader">👑</span>}
+                                    </div>
+                                    <div className="text-[9px] text-slate-500 font-mono truncate">{m.accountNumber || m.freeFireUid}</div>
+                                  </div>
+                                </div>
+
+                                <span className="px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-black uppercase shrink-0">
+                                  {m.inGameRole || 'PLAYER'}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Card Footer Action */}
+                        <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                          <div className="text-[11px] text-slate-500 font-mono">
+                            Wins: <strong className="text-emerald-600 font-bold">{sq.matchesWon || 0}</strong> • Matches: <strong>{sq.matchesPlayed || 0}</strong>
+                          </div>
+
+                          <div className="inline-flex items-center gap-1 text-xs font-heading font-black text-amber-600 group-hover:text-amber-700 transition-colors">
+                            <span>View Full Squad & Roster</span>
+                            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+
+                {/* 2. Fallback for legacy teams if any */}
+                {squads.length === 0 && teams.map((team) => (
                   <div key={team.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4 hover:shadow-md transition-shadow">
                     <div className="flex items-center space-x-4">
                       <img src={team.logo || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=150'} alt={team.name} className="w-14 h-14 rounded-2xl object-cover border-2 border-orange-100 shadow-sm" />
