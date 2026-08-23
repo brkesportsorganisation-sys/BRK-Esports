@@ -1,6 +1,6 @@
 /**
- * Blackrock Esports - Chat Security & Content Filter Engine
- * Server-side link and phone number detection to prevent off-platform bypass and scams.
+ * Blackrock Esports - Chat Security, Profanity & Content Filter Engine
+ * Server-side link, phone number, and abuse/profanity detection to keep chat safe and respectful.
  */
 
 // Convert Bengali numeric characters to standard English digits
@@ -16,7 +16,8 @@ export interface ChatFilterResult {
   isBlocked: boolean;
   hasLink: boolean;
   hasPhone: boolean;
-  flagReason: 'BLOCKED_LINK' | 'BLOCKED_PHONE' | null;
+  hasProfanity: boolean;
+  flagReason: 'BLOCKED_LINK' | 'BLOCKED_PHONE' | 'BLOCKED_PROFANITY' | null;
   warningMessage: string | null;
 }
 
@@ -26,6 +27,7 @@ export function validateChatMessage(rawContent: string): ChatFilterResult {
       isBlocked: false,
       hasLink: false,
       hasPhone: false,
+      hasProfanity: false,
       flagReason: null,
       warningMessage: null,
     };
@@ -33,8 +35,69 @@ export function validateChatMessage(rawContent: string): ChatFilterResult {
 
   const content = rawContent.trim();
   const normalizedText = normalizeBengaliDigits(content);
+  const lowerText = normalizedText.toLowerCase();
 
-  // 1. LINK FILTER REGEX PATTERNS
+  // 🛡️ 1. PROFANITY & ABUSIVE LANGUAGE FILTER (English, Banglish & Bengali)
+  // Clean text with symbol substitution for obfuscation detection (e.g. f*ck, b!tch, m.c)
+  const deobfuscated = lowerText
+    .replace(/[@]/g, 'a')
+    .replace(/[$]/g, 's')
+    .replace(/[!|]/g, 'i')
+    .replace(/[0]/g, 'o')
+    .replace(/[*_#^~\-.\s+]/g, '');
+
+  const profanityKeywordsRegex = [
+    // English vulgarities & slurs
+    /\b(fuck|fucking|fucker|fuk|fck|motherfucker|mf)\b/i,
+    /\b(bitch|bitches|bitchy|btch)\b/i,
+    /\b(asshole|assholes|dickhead|dick|pussy|whore|slut|cunt|bastard|nigger|nigga)\b/i,
+    /\b(blowjob|handjob|cock|retard|faggot)\b/i,
+    
+    // Banglish vulgar insults & slang
+    /\b(bhenchod|madarchod|madarchud|maderchod|mc|bc|gandu|gand|marani|khanki|khankir|magi|magir|magirput|magirchele)\b/i,
+    /\b(choda|chuda|chodis|chudis|chudbo|chudina|chodbo|bessha|besha|besharput|chodar)\b/i,
+    /\b(bal|baal|bokachoda|bokachuda|podmarani|pod|harami|haramirput|suorerbaccha|shoytan)\b/i,
+    /\b(kuttarbaccha|kuttarput|suor|shukor|nodi|khankirpula|torkhane|tormaye|chodani)\b/i,
+
+    // Bengali Unicode slurs & offensive curses
+    /(মাদারচোদ|ভোসড়িপাপ্পু|খানকি|খানকির|মাগী|মাগীর|চুদা|চোদা|চুদিস|চুদবো|বোকাচোদা|গাঁড়|গাঁড়মারা|গাঁড়মারানি)/,
+    /(বাল|বেশ্যা|বেশ্যার|হারামি|হারামজাদা|কুত্তা|কুত্তারবাচ্চা|শুয়োর|শুয়োরেরবাচ্চা|শুওর)/,
+  ];
+
+  // Check direct words
+  for (const regex of profanityKeywordsRegex) {
+    if (regex.test(lowerText) || regex.test(deobfuscated)) {
+      return {
+        isBlocked: true,
+        hasLink: false,
+        hasPhone: false,
+        hasProfanity: true,
+        flagReason: 'BLOCKED_PROFANITY',
+        warningMessage: 'অশালীন, অপমানজনক বা গালিগালাজপূর্ণ ভাষা ব্যবহার করা সম্পূর্ণ নিষিদ্ধ। BlackRock Esports-এ সম্মানজনক ভাষায় কথা বলুন।',
+      };
+    }
+  }
+
+  // Check spaced out obfuscation e.g. "f u c k", "b a a l", "m a d a r c h o d"
+  const collapsedWords = [
+    'fuck', 'bitch', 'asshole', 'bastard', 'motherfucker',
+    'madarchod', 'bhenchod', 'khanki', 'magi', 'bokachoda',
+    'gandu', 'chuda', 'choda', 'harami', 'suorerbaccha'
+  ];
+  for (const word of collapsedWords) {
+    if (deobfuscated.includes(word)) {
+      return {
+        isBlocked: true,
+        hasLink: false,
+        hasPhone: false,
+        hasProfanity: true,
+        flagReason: 'BLOCKED_PROFANITY',
+        warningMessage: 'অশালীন, অপমানজনক বা গালিগালাজপূর্ণ ভাষা ব্যবহার করা সম্পূর্ণ নিষিদ্ধ। BlackRock Esports-এ সম্মানজনক ভাষায় কথা বলুন।',
+      };
+    }
+  }
+
+  // 🛡️ 2. LINK FILTER REGEX PATTERNS
   const linkPatterns = [
     // Standard protocols: http://, https://, ftp://
     /https?:\/\/[^\s]+/i,
@@ -57,13 +120,14 @@ export function validateChatMessage(rawContent: string): ChatFilterResult {
         isBlocked: true,
         hasLink: true,
         hasPhone: false,
+        hasProfanity: false,
         flagReason: 'BLOCKED_LINK',
-        warningMessage: 'External links, website URLs, and domain names are strictly forbidden in chat for security. Please do not share links.',
+        warningMessage: 'নিরাপত্তার স্বার্থে চ্যাটে কোনো বাহ্যিক লিংক বা ওয়েবসাইট URL পাঠানো সম্পূর্ণ নিষিদ্ধ।',
       };
     }
   }
 
-  // 2. PHONE / WHATSAPP NUMBER FILTER REGEX PATTERNS
+  // 🛡️ 3. PHONE / WHATSAPP NUMBER FILTER REGEX PATTERNS
   // Remove all spaces, dashes, dots, parentheses, and brackets between digits to detect spaced/formatted numbers
   const digitsOnly = normalizedText.replace(/[\s\-\.\(\)\+\/]/g, '');
 
@@ -86,8 +150,9 @@ export function validateChatMessage(rawContent: string): ChatFilterResult {
       isBlocked: true,
       hasLink: false,
       hasPhone: true,
+      hasProfanity: false,
       flagReason: 'BLOCKED_PHONE',
-      warningMessage: 'Direct phone numbers and WhatsApp numbers are hidden in free chat. Use the "Unlock Seller Contact" button to view verified contact details.',
+      warningMessage: 'সরাসরি চ্যাটে ফোন নম্বর বা WhatsApp নম্বর আদান-প্রদান সুরক্ষিত রয়েছে। নম্বর দেখতে "Unlock WhatsApp" বাটন ব্যবহার করুন।',
     };
   }
 
@@ -97,8 +162,9 @@ export function validateChatMessage(rawContent: string): ChatFilterResult {
         isBlocked: true,
         hasLink: false,
         hasPhone: true,
+        hasProfanity: false,
         flagReason: 'BLOCKED_PHONE',
-        warningMessage: 'Direct phone numbers and WhatsApp numbers are hidden in free chat. Use the "Unlock Seller Contact" button to view verified contact details.',
+        warningMessage: 'সরাসরি চ্যাটে ফোন নম্বর বা WhatsApp নম্বর আদান-প্রদান সুরক্ষিত রয়েছে। নম্বর দেখতে "Unlock WhatsApp" বাটন ব্যবহার করুন।',
       };
     }
   }
@@ -107,6 +173,7 @@ export function validateChatMessage(rawContent: string): ChatFilterResult {
     isBlocked: false,
     hasLink: false,
     hasPhone: false,
+    hasProfanity: false,
     flagReason: null,
     warningMessage: null,
   };

@@ -46,6 +46,7 @@ import {
   Swords,
   Headphones,
   MessageSquare,
+  MessageCircle,
   Crown
 } from 'lucide-react';
 
@@ -236,6 +237,7 @@ export default function AdminShell({ children }: AdminShellProps) {
     {
       title: '💬 WHATSAPP & AUTOMATION',
       links: [
+        { href: '/admin/conversations', label: 'User Inbox & Chat Monitor (💬)', icon: MessageCircle, colorClass: 'text-sky-500', permission: 'moderate_messages' },
         { href: '/admin/whatsapp', label: 'WhatsApp Bot & Schedules', icon: MessageSquare, colorClass: 'text-emerald-500', permission: 'send_notifications' },
         { href: '/admin/support', label: 'Live Support Chat Desk', icon: Headphones, colorClass: 'text-blue-500', permission: 'moderate_messages' },
         { href: '/admin/notifications', label: 'Broadcast Alerts & Notices', icon: Bell, colorClass: 'text-pink-400', permission: 'send_notifications' },
