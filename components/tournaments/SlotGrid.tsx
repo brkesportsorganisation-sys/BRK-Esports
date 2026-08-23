@@ -276,11 +276,6 @@ export default function SlotGrid({
                   <h4 className="text-xs font-black text-slate-900 truncate leading-tight">
                     {participant.squadName}
                   </h4>
-                  {participant.iglName && (
-                    <span className="text-[10px] text-slate-500 block truncate font-medium">
-                      IGL: <strong className="text-slate-700">{participant.iglName}</strong>
-                    </span>
-                  )}
                 </div>
 
                 {/* Team Members List (Compact 2-col or single-line bullets) */}

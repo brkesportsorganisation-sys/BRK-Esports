@@ -339,11 +339,6 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
                                 <div className="font-bold text-white text-xs truncate">
                                   {participant.squadName || (participant as any).name || 'Registered Squad'}
                                 </div>
-                                {participant.iglName && (
-                                  <div className="text-[10px] text-slate-300 truncate font-normal">
-                                    IGL: <strong className="text-white">{participant.iglName}</strong>
-                                  </div>
-                                )}
                               </div>
                             ) : (
                               <div className="text-slate-400 text-[11px] font-semibold">
