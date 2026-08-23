@@ -198,11 +198,11 @@ export default function GamingShopPage() {
 
   const categories = [
     { id: 'ALL', label: 'All Items', icon: Package },
-    { id: 'DIAMONDS', label: '💎 FF Diamonds', icon: Diamond },
-    { id: 'PASSES', label: '👑 Passes & Memberships', icon: Crown },
-    { id: 'SKINS', label: '🎁 Skins & Redeem Codes', icon: Gift },
-    { id: 'TICKETS', label: '🎟️ Match Passes', icon: Ticket },
-    { id: 'CRATES', label: '📦 Mystery Crates', icon: Sparkles },
+    { id: 'DIAMONDS', label: 'FF Diamonds', icon: Diamond },
+    { id: 'PASSES', label: 'Memberships', icon: Crown },
+    { id: 'SKINS', label: 'Skins & Codes', icon: Gift },
+    { id: 'TICKETS', label: 'Match Passes', icon: Ticket },
+    { id: 'CRATES', label: 'Mystery Crates', icon: Sparkles },
   ];
 
   return (
@@ -346,22 +346,23 @@ export default function GamingShopPage() {
 
           </div>
 
-          {/* Category Filter Pills (Multi-line Wrap: 2-3 lines without horizontal scrolling) */}
-          <div className="flex flex-wrap items-center gap-2 pt-1">
+          {/* Category Filter Grid (Clean aligned 2-3 rows layout) */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 pt-1">
             {categories.map((cat) => {
               const Icon = cat.icon;
+              const isSelected = selectedCategory === cat.id;
               return (
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.id)}
-                  className={`px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer ${
-                    selectedCategory === cat.id
-                      ? 'bg-gradient-to-r from-red-600 to-orange-500 text-white border-transparent shadow-md shadow-orange-500/20'
+                  className={`px-2.5 sm:px-3 py-2.5 rounded-2xl text-xs font-heading font-black transition-all border flex items-center justify-center gap-1.5 cursor-pointer text-center w-full shadow-2xs ${
+                    isSelected
+                      ? 'bg-gradient-to-r from-red-600 to-orange-500 text-white border-transparent shadow-md shadow-orange-500/20 scale-[1.02]'
                       : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50'
                   }`}
                 >
-                  <Icon className="w-3.5 h-3.5" />
-                  <span>{cat.label}</span>
+                  <Icon className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-white' : 'text-brand-orange'}`} />
+                  <span className="truncate">{cat.label}</span>
                 </button>
               );
             })}
