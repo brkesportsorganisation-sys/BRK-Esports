@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
       userId: leaderId,
       userName: leaderName || 'Leader',
       userAvatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${leaderName || leaderId}`,
-      accountNumber: leaderAccountNumber || `BRE-${leaderId.substring(0, 6).toUpperCase()}`,
+      accountNumber: leaderAccountNumber || `EZBD-${leaderId.substring(0, 6).toUpperCase()}`,
       freeFireUid: leaderUid || '',
       memberType: 'PLAYER',
       inGameRole: 'IGL', // Default leader role

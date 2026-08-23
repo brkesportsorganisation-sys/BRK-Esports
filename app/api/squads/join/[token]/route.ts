@@ -94,7 +94,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       userId,
       userName: userName || 'Player',
       userAvatar: userAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${userName || userId}`,
-      accountNumber: accountNumber || `BRE-${userId.substring(0, 6).toUpperCase()}`,
+      accountNumber: accountNumber || `EZBD-${userId.substring(0, 6).toUpperCase()}`,
       freeFireUid: freeFireUid || '',
       memberType: 'PLAYER',
       inGameRole: preferredRole,

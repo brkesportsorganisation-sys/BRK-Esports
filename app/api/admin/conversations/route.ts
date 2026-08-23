@@ -90,12 +90,12 @@ export async function GET(request: NextRequest) {
       const buyer = usersMap[conv.buyerId] || {
         id: conv.buyerId,
         name: conv.buyerName || 'Buyer',
-        accountNumber: `BRE-${conv.buyerId?.substring(0, 6)?.toUpperCase() || 'MEMBER'}`,
+        accountNumber: `EZBD-${conv.buyerId?.substring(0, 6)?.toUpperCase() || 'MEMBER'}`,
       };
       const seller = usersMap[conv.sellerId] || {
         id: conv.sellerId,
         name: conv.sellerName || 'Seller',
-        accountNumber: `BRE-${conv.sellerId?.substring(0, 6)?.toUpperCase() || 'MEMBER'}`,
+        accountNumber: `EZBD-${conv.sellerId?.substring(0, 6)?.toUpperCase() || 'MEMBER'}`,
       };
 
       return {

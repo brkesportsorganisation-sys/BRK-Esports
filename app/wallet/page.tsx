@@ -295,7 +295,7 @@ export default function WalletPage() {
             </div>
             <div>
               <div className="text-[11px] text-slate-500 font-semibold">Player Account Number</div>
-              <div className="font-mono font-black text-slate-900 text-sm">{user?.accountNumber || 'BRK-PLAYER'}</div>
+              <div className="font-mono font-black text-slate-900 text-sm">{user?.accountNumber || 'EZBD-PLAYER'}</div>
             </div>
           </div>
 

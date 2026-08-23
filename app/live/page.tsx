@@ -7,8 +7,8 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Live Tournament Broadcast | BRK Esports',
-  description: 'Watch live Free Fire tournaments and championship matches on Black Rock Esports.',
+  title: 'Live Tournament Broadcast | ESPORTS ZONE BD',
+  description: 'Watch live Free Fire tournaments and championship matches on ESPORTS ZONE BD.',
 };
 
 export const revalidate = 5; // revalidate every 5 seconds for live stream updates

@@ -30,7 +30,7 @@ export async function parseScoreboardWithAI(
       const cleanBase64 = imageBase64OrUrl.replace(/^data:image\/\w+;base64,/, '');
 
       const promptText = `
-You are an expert Free Fire Esports Tournament Referee and Vision OCR system for "Black Rock Esports".
+You are an expert Free Fire Esports Tournament Referee and Vision OCR system for "ESPORTS ZONE BD".
 Analyze this post-match scoreboard screenshot from Garena Free Fire.
 
 Tournament: "${tournamentContext.title}"

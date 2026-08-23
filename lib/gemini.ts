@@ -23,10 +23,10 @@ export interface AIResponseWithActions {
   suggestedCategory?: string;
 }
 
-const ADVANCED_BLACKROCK_SYSTEM_INSTRUCTION = `You are the Official Website Customer Support & AI Help Desk Assistant for BlackRock Esports (BRK Esports) — Bangladesh's premier automated competitive tournament platform.
+const ADVANCED_EZBD_SYSTEM_INSTRUCTION = `You are the Official Website Customer Support & AI Help Desk Assistant for ESPORTS ZONE BD (EZBD) — Bangladesh's premier automated competitive tournament platform.
 
 ROLE & PERSONA:
-- You are a polite, helpful, and professional official customer support assistant for the BlackRock Esports website.
+- You are a polite, helpful, and professional official customer support assistant for the ESPORTS ZONE BD website.
 - You are NOT a gaming coach or gameplay instructor. Do not offer gameplay coaching, headshot tricks, or sensitivity setups.
 - Your primary responsibility is helping users with website features: Tournament booking, Slot reservation, Custom Room ID & Password access, Wallet deposit & withdrawal (bKash/Nagad/Rocket), Diamond Shop orders, LFG squad recruitment, and Account questions.
 - If a user sends a greeting (e.g. "Hi", "Hello", "কেমন আছেন", "আসসালামু আলাইকুম", "Hello bai") or engages in formal/polite conversation, respond warmly, respectfully, and professionally in standard polite Bengali (or English if the user asks in English).
@@ -37,7 +37,7 @@ COMMUNICATION GUIDELINES:
 3. Clean Format: Use clear Bengali punctuation (দাঁড়ি '।', কমা ',') and clean text suitable for Text-to-Speech (TTS).`;
 
 /**
- * Intelligent Multi-Topic NLP Fallback Engine for BlackRock Platform Queries
+ * Intelligent Multi-Topic NLP Fallback Engine for ESPORTS ZONE BD Platform Queries
  */
 export function getSmartFallback(prompt: string, liveContext?: string): string {
   const p = prompt.toLowerCase().trim();
@@ -48,7 +48,7 @@ export function getSmartFallback(prompt: string, liveContext?: string): string {
     p === 'assalamu alaikum' || p.includes('কেমন আছেন') || p.includes('kemon achen') || 
     p.includes('hlw') || p.includes('help') || p.includes('সাহায্য')
   ) {
-    return `👋 **আসসালামু আলাইকুম! BlackRock Esports অফিসিয়াল সাপোর্ট ডেস্কে স্বাগতম।**
+    return `👋 **আসসালামু আলাইকুম! ESPORTS ZONE BD অফিসিয়াল সাপোর্ট ডেস্কে স্বাগতম।**
 
 আমি আপনাকে ওয়েবসাইট সংক্রান্ত যেকোনো বিষয়ে সাহায্য করতে পারি, যেমন:
 - 🏆 টুর্নামেন্ট বুকিং ও স্লট কনফার্মেশন
@@ -206,7 +206,7 @@ export function getSmartFallback(prompt: string, liveContext?: string): string {
     p.includes('নিয়ম') || 
     p.includes('rule')
   ) {
-    return `🛡️ **BlackRock Esports সিকিউরিটি ও নিয়মাবলী:**
+    return `🛡️ **ESPORTS ZONE BD সিকিউরিটি ও নিয়মাবলী:**
 
 - কোনো প্রকার হ্যাক, কনফিগ, মড APK, অটো হেডশট স্ক্রিপ্ট বা প্যানেল ব্যবহার সম্পূর্ণ নিষিদ্ধ।
 - ইন-গেম সার্ভার ও AI অ্যান্টি-চিট প্রতি সেকেন্ডে ম্যাচ মনিটর করে।
@@ -222,14 +222,14 @@ export function getSmartFallback(prompt: string, liveContext?: string): string {
     p.includes('setting') || 
     p.includes('coach')
   ) {
-    return `👋 আমি BlackRock Esports-এর অফিসিয়াল ওয়েবসাইট সাপোর্ট অ্যাসিস্ট্যান্ট। আমি মূলত টুর্নামেন্ট স্লট বুকিং, রুম আইডি, ওয়ালেট লেনদেন এবং অ্যাকাউন্ট সম্পর্কিত সহায়তার জন্য প্রস্তুত।
+    return `👋 আমি ESPORTS ZONE BD-এর অফিসিয়াল ওয়েবসাইট সাপোর্ট অ্যাসিস্ট্যান্ট। আমি মূলত টুর্নামেন্ট স্লট বুকিং, রুম আইডি, ওয়ালেট লেনদেন এবং অ্যাকাউন্ট সম্পর্কিত সহায়তার জন্য প্রস্তুত।
 
 টুর্নামেন্ট, ম্যাচ রুলস বা উইথড্রয়াল সংক্রান্ত যেকোনো তথ্যের জন্য আমাকে নির্দ্বিধায় জিজ্ঞাসা করতে পারেন! 🏆`;
   }
 
   // Live contextual fallback
   if (liveContext) {
-    return `👋 BlackRock Esports অফিসিয়াল সাপোর্ট ডেস্কে স্বাগতম!
+    return `👋 ESPORTS ZONE BD অফিসিয়াল সাপোর্ট ডেস্কে স্বাগতম!
 
 বর্তমানে প্ল্যাটফর্মে চলমান টুর্নামেন্ট এবং সেবা সমূহ:
 ${liveContext}
@@ -237,7 +237,7 @@ ${liveContext}
 আপনার টুর্নামেন্ট বুকিং, রুম আইডি বা ওয়ালেট সংক্রান্ত যেকোনো প্রশ্ন আমাকে করতে পারেন।`;
   }
 
-  return `👋 **BlackRock Esports অফিসিয়াল সাপোর্ট ডেস্কে স্বাগতম!**
+  return `👋 **ESPORTS ZONE BD অফিসিয়াল সাপোর্ট ডেস্কে স্বাগতম!**
 
 আমি আপনাকে টুর্নামেন্ট স্লট বুকিং, কাস্টম রুম আইডি ও পাসওয়ার্ড সংগ্রহ, বিকাশ/নগদ ওয়ালেট লেনদেন এবং অ্যাকাউন্ট সংক্রান্ত যেকোনো বিষয়ে সাহায্য করতে পারি। আপনার সমস্যা বা প্রশ্নটি বিস্তারিত লিখুন!`;
 }
@@ -264,7 +264,7 @@ export async function askGemini(
   const contents: any[] = [];
 
   // Add system instruction as premier context
-  let systemText = options.systemInstruction || ADVANCED_BLACKROCK_SYSTEM_INSTRUCTION;
+  let systemText = options.systemInstruction || ADVANCED_EZBD_SYSTEM_INSTRUCTION;
   if (options.liveContext) {
     systemText += `\n\n${options.liveContext}`;
   }

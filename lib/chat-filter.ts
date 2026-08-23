@@ -73,7 +73,7 @@ export function validateChatMessage(rawContent: string): ChatFilterResult {
         hasPhone: false,
         hasProfanity: true,
         flagReason: 'BLOCKED_PROFANITY',
-        warningMessage: 'অশালীন, অপমানজনক বা গালিগালাজপূর্ণ ভাষা ব্যবহার করা সম্পূর্ণ নিষিদ্ধ। BlackRock Esports-এ সম্মানজনক ভাষায় কথা বলুন।',
+        warningMessage: 'অশালীন, অপমানজনক বা গালিগালাজপূর্ণ ভাষা ব্যবহার করা সম্পূর্ণ নিষিদ্ধ। ESPORTS ZONE BD-এ সম্মানজনক ভাষায় কথা বলুন।',
       };
     }
   }
@@ -92,7 +92,7 @@ export function validateChatMessage(rawContent: string): ChatFilterResult {
         hasPhone: false,
         hasProfanity: true,
         flagReason: 'BLOCKED_PROFANITY',
-        warningMessage: 'অশালীন, অপমানজনক বা গালিগালাজপূর্ণ ভাষা ব্যবহার করা সম্পূর্ণ নিষিদ্ধ। BlackRock Esports-এ সম্মানজনক ভাষায় কথা বলুন।',
+        warningMessage: 'অশালীন, অপমানজনক বা গালিগালাজপূর্ণ ভাষা ব্যবহার করা সম্পূর্ণ নিষিদ্ধ। ESPORTS ZONE BD-এ সম্মানজনক ভাষায় কথা বলুন।',
       };
     }
   }

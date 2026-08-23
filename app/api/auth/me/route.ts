@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
       claimedMilestones: Array.isArray(rest.claimedMilestones) ? rest.claimedMilestones : [],
       currentStreak,
       lastStreakClaimDate,
-      accountNumber: rest.accountNumber || `BRK-${(rest.id || '').replace(/[^a-zA-Z0-9]/g, '').slice(-6).toUpperCase() || Math.floor(100000 + Math.random() * 900000)}`,
+      accountNumber: rest.accountNumber || `EZBD-${(rest.id || '').replace(/[^a-zA-Z0-9]/g, '').slice(-6).toUpperCase() || Math.floor(100000 + Math.random() * 900000)}`,
     };
     return NextResponse.json({ user: sanitizedUser });
   } catch (error: any) {

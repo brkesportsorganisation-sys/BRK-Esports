@@ -50,9 +50,9 @@ export async function getEmailSettings(): Promise<EmailSettings> {
       provider,
       apiKey: map.RESEND_API_KEY || process.env.RESEND_API_KEY || DEFAULT_RESEND_KEY,
       isEnabled: map.WELCOME_EMAIL_ENABLED !== 'false',
-      fromEmail: map.WELCOME_EMAIL_FROM || map.SMTP_FROM || process.env.SMTP_FROM || 'BlackRock Esports <onboarding@resend.dev>',
-      subject: map.WELCOME_EMAIL_SUBJECT || '🔥 Welcome to Black Rock Esports - Player ID: {PLAYER_ID}',
-      bodyTemplate: map.WELCOME_EMAIL_BODY || `Welcome to Black Rock Esports, {NAME}!
+      fromEmail: map.WELCOME_EMAIL_FROM || map.SMTP_FROM || process.env.SMTP_FROM || 'ESPORTS ZONE BD <onboarding@resend.dev>',
+      subject: map.WELCOME_EMAIL_SUBJECT || '🔥 Welcome to ESPORTS ZONE BD - Player ID: {PLAYER_ID}',
+      bodyTemplate: map.WELCOME_EMAIL_BODY || `Welcome to ESPORTS ZONE BD, {NAME}!
 
 Your official Player Unique ID is {PLAYER_ID}.
 You are now ready to compete in daily Free Fire squad, duo, and solo championship tournaments with automated Booyah payouts.
@@ -69,9 +69,9 @@ Login to your account and book your slot today!`,
       provider: 'RESEND',
       apiKey: process.env.RESEND_API_KEY || DEFAULT_RESEND_KEY,
       isEnabled: true,
-      fromEmail: 'BlackRock Esports <onboarding@resend.dev>',
-      subject: '🔥 Welcome to Black Rock Esports - Player ID: {PLAYER_ID}',
-      bodyTemplate: `Welcome to Black Rock Esports, {NAME}!\n\nYour official Player Unique ID is {PLAYER_ID}.\nGet ready to dominate the arena!`,
+      fromEmail: 'ESPORTS ZONE BD <onboarding@resend.dev>',
+      subject: '🔥 Welcome to ESPORTS ZONE BD - Player ID: {PLAYER_ID}',
+      bodyTemplate: `Welcome to ESPORTS ZONE BD, {NAME}!\n\nYour official Player Unique ID is {PLAYER_ID}.\nGet ready to dominate the arena!`,
     };
   }
 }
@@ -101,7 +101,7 @@ async function dispatchEmail(params: {
         },
       });
 
-      const senderDisplayName = (settings.fromEmail || 'Black Rock Esports').replace(/<.*>/, '').trim() || 'Black Rock Esports';
+      const senderDisplayName = (settings.fromEmail || 'ESPORTS ZONE BD').replace(/<.*>/, '').trim() || 'ESPORTS ZONE BD';
       const formattedSmtpFrom = `"${senderDisplayName}" <${settings.smtpUser}>`;
 
       const info = await transporter.sendMail({
@@ -173,7 +173,7 @@ export function generateWelcomeHtml(params: {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome to Black Rock Esports</title>
+  <title>Welcome to ESPORTS ZONE BD</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
   <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f1f5f9; padding: 30px 10px;">
@@ -185,7 +185,7 @@ export function generateWelcomeHtml(params: {
           <tr>
             <td style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); padding: 36px 30px; text-align: center; border-bottom: 3px solid #ff4655;">
               <h1 style="margin: 0; color: #ffffff; font-size: 26px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase;">
-                BLACKROCK <span style="color: #ff4655;">ESPORTS</span>
+                ESPORTS ZONE <span style="color: #ff4655;">BD</span>
               </h1>
               <p style="margin: 6px 0 0; color: #94a3b8; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 2px;">
                 Free Fire Championship Platform
@@ -240,7 +240,7 @@ export function generateWelcomeHtml(params: {
 
               <!-- Call to Action Button -->
               <div style="text-align: center; margin: 30px 0 10px;">
-                <a href="https://brkesports.vercel.app/tournaments" style="display: inline-block; background: linear-gradient(135deg, #ff4655 0%, #ff7300 100%); color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 800; padding: 14px 34px; border-radius: 12px; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 4px 15px rgba(255, 70, 85, 0.35);">
+                <a href="https://esportszonebd.online/tournaments" style="display: inline-block; background: linear-gradient(135deg, #ff4655 0%, #ff7300 100%); color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 800; padding: 14px 34px; border-radius: 12px; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 4px 15px rgba(255, 70, 85, 0.35);">
                   Browse Live Tournaments
                 </a>
               </div>
@@ -255,7 +255,7 @@ export function generateWelcomeHtml(params: {
                 Need assistance? Contact our 24/7 WhatsApp Helpline or reply to this email.
               </p>
               <p style="margin: 0; color: #94a3b8; font-size: 11px;">
-                &copy; ${new Date().getFullYear()} Black Rock Esports Organisation. All rights reserved.
+                &copy; ${new Date().getFullYear()} ESPORTS ZONE BD Organisation. All rights reserved.
               </p>
             </td>
           </tr>
@@ -282,7 +282,7 @@ export function generatePasswordResetOtpHtml(params: {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Password Reset OTP - Black Rock Esports</title>
+  <title>Password Reset OTP - ESPORTS ZONE BD</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
   <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f1f5f9; padding: 30px 10px;">
@@ -294,7 +294,7 @@ export function generatePasswordResetOtpHtml(params: {
           <tr>
             <td style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); padding: 32px 30px; text-align: center; border-bottom: 3px solid #ff4655;">
               <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase;">
-                BLACKROCK <span style="color: #ff4655;">ESPORTS</span>
+                ESPORTS ZONE <span style="color: #ff4655;">BD</span>
               </h1>
               <p style="margin: 6px 0 0; color: #94a3b8; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px;">
                 Account Security & Password Recovery
@@ -311,7 +311,7 @@ export function generatePasswordResetOtpHtml(params: {
 
               <p style="color: #475569; font-size: 14px; line-height: 1.6; margin: 0 0 20px;">
                 Hello <strong>${name || 'Player'}</strong>,<br/>
-                We received a request to reset your Black Rock Esports account password. Use the 6-digit verification code below to complete the reset process:
+                We received a request to reset your ESPORTS ZONE BD account password. Use the 6-digit verification code below to complete the reset process:
               </p>
 
               <!-- OTP Code Display Card -->
@@ -333,7 +333,7 @@ export function generatePasswordResetOtpHtml(params: {
                   🛡️ Security Guidelines:
                 </div>
                 <ul style="margin: 0; padding-left: 18px; color: #64748b; font-size: 12px; line-height: 1.5;">
-                  <li>Never share this code with anyone, including Black Rock tournament moderators.</li>
+                  <li>Never share this code with anyone, including ESPORTS ZONE tournament moderators.</li>
                   <li>If you did not request this password reset, please change your password immediately.</li>
                 </ul>
               </div>
@@ -348,7 +348,7 @@ export function generatePasswordResetOtpHtml(params: {
                 Need help? Reach out on our Discord or WhatsApp support.
               </p>
               <p style="margin: 0; color: #94a3b8; font-size: 10px;">
-                &copy; ${new Date().getFullYear()} Black Rock Esports. All rights reserved.
+                &copy; ${new Date().getFullYear()} ESPORTS ZONE BD. All rights reserved.
               </p>
             </td>
           </tr>
@@ -417,7 +417,7 @@ export async function sendPasswordResetOtpEmail(params: {
 
     const result = await dispatchEmail({
       to: params.email,
-      subject: `🔐 Your Password Reset Code: ${params.otp} - Black Rock Esports`,
+      subject: `🔐 Your Password Reset Code: ${params.otp} - ESPORTS ZONE BD`,
       html,
     });
 
@@ -441,19 +441,19 @@ export async function sendTestEmail(params: {
     const from = params.fromEmail || emailSettings.fromEmail;
     const subject = (params.subject || emailSettings.subject)
       .replace(/{NAME}/g, 'Admin Tester')
-      .replace(/{PLAYER_ID}/g, 'BRK-777888');
+      .replace(/{PLAYER_ID}/g, 'EZBD-777888');
 
     const bodyText = (params.bodyTemplate || emailSettings.bodyTemplate)
       .replace(/{NAME}/g, 'Admin Tester')
-      .replace(/{PLAYER_ID}/g, 'BRK-777888')
+      .replace(/{PLAYER_ID}/g, 'EZBD-777888')
       .replace(/{EMAIL}/g, params.toEmail);
 
     const html = generateWelcomeHtml({
       name: 'Admin Tester',
-      accountNumber: 'BRK-777888',
+      accountNumber: 'EZBD-777888',
       email: params.toEmail,
       freeFireUid: '2172143722',
-      inGameName: 'BRK_Official',
+      inGameName: 'EZBD_Official',
       bodyText: bodyText,
     });
 

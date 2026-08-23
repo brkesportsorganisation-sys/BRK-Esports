@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
           userId: u.id,
           userName: u.name || 'Player',
           userEmail: u.email || 'N/A',
-          accountNumber: u.accountNumber || 'BRE-USER',
+          accountNumber: u.accountNumber || 'EZBD-USER',
           action: 'SIGNUP',
           details: `New player registered account (${u.email})`,
           createdAt: u.createdAt

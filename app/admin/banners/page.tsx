@@ -381,7 +381,7 @@ export default function AdminBannersPage() {
                 />
                 <div className="mb-0.5">
                   <div className="text-white font-heading font-black text-lg drop-shadow-sm leading-tight">OCR-FALCON</div>
-                  <div className="text-slate-300 text-[11px] font-mono">App ID: BRK-582910 • Win Rate: 72%</div>
+                  <div className="text-slate-300 text-[11px] font-mono">App ID: EZBD-582910 • Win Rate: 72%</div>
                 </div>
               </div>
               <div className="hidden sm:block text-right mb-0.5">

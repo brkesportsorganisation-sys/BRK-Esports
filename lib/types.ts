@@ -28,7 +28,7 @@ export interface User {
   password?: string;
   avatar: string;
   role: Role;
-  accountNumber?: string; // e.g. BRE-891024 (Bank-style public app ID)
+  accountNumber?: string; // e.g. EZBD-891024 (Bank-style public app ID)
   freeFireUid: string;
   inGameName: string;
   inGameRole?: string; // e.g. RUSHER, NADER, SUPPORTER, SNIPER, FLANKER, IGL, COACH, ANALYST
@@ -618,7 +618,7 @@ export const DEFAULT_SHOP_PRODUCTS: ShopProduct[] = [
   {
     id: 'tkt_vip_pass',
     name: 'VIP Tournament Match Entry Pass',
-    description: 'Free entry pass for any BRK Daily Squad or Duo paid tournament match.',
+    description: 'Free entry pass for any EZBD Daily Squad or Duo paid tournament match.',
     category: 'TICKETS',
     currencyType: 'BOTH',
     priceBdt: 100,
@@ -631,7 +631,7 @@ export const DEFAULT_SHOP_PRODUCTS: ShopProduct[] = [
   },
   {
     id: 'crate_mystery_box',
-    name: 'BRK Esports Mystery Crate',
+    name: 'EZBD Esports Mystery Crate',
     description: 'Open to win up to 520 Diamonds, 1000 Coins, or Free VIP Passes!',
     category: 'CRATES',
     currencyType: 'COINS',

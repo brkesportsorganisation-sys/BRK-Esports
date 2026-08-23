@@ -82,7 +82,7 @@ export default function PushNotificationPrompt() {
           registration.active.postMessage({
             type: 'SHOW_NOTIFICATION',
             payload: {
-              title: '🔥 BRK Esports নোটিফিকেশন চালু হয়েছে!',
+              title: '🔥 ESPORTS ZONE BD নোটিফিকেশন চালু হয়েছে!',
               message: '🎉 স্বাগতম! এখন থেকে সকল টুর্নামেন্টের কাস্টম রুম পাসওয়ার্ড ও প্রাইজমানি আপডেট সরাসরি আপনার ফোনে পাবেন।',
               icon: '/favicon.ico',
               imageUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800',
@@ -91,7 +91,7 @@ export default function PushNotificationPrompt() {
           });
         } else {
           // Fallback native notification
-          new Notification('🔥 BRK Esports নোটিফিকেশন চালু হয়েছে!', {
+          new Notification('🔥 ESPORTS ZONE BD নোটিফিকেশন চালু হয়েছে!', {
             body: '🎉 স্বাগতম! এখন থেকে সকল টুর্নামেন্টের কাস্টম রুম পাসওয়ার্ড ও প্রাইজমানি আপডেট সরাসরি আপনার ফোনে পাবেন।',
             icon: '/favicon.ico',
           });

@@ -326,9 +326,9 @@ export default function AdminConversationsMonitorPage() {
                       </div>
 
                       <div className="flex items-center gap-1.5 text-[10px] font-mono text-blue-600 font-bold mb-1">
-                        <span>{conv.buyer?.accountNumber || 'BRE-USER'}</span>
+                        <span>{conv.buyer?.accountNumber || 'EZBD-USER'}</span>
                         <span className="text-slate-300">•</span>
-                        <span>{conv.seller?.accountNumber || 'BRE-USER'}</span>
+                        <span>{conv.seller?.accountNumber || 'EZBD-USER'}</span>
                       </div>
 
                       <p className="text-[11px] text-slate-500 truncate font-medium">
@@ -362,7 +362,7 @@ export default function AdminConversationsMonitorPage() {
                           )}
                         </div>
                         <div className="text-[10px] font-mono text-blue-600 font-bold">
-                          {activeThread.buyer?.accountNumber || 'BRE-MEMBER'}
+                          {activeThread.buyer?.accountNumber || 'EZBD-MEMBER'}
                         </div>
                       </div>
                       <button
@@ -390,7 +390,7 @@ export default function AdminConversationsMonitorPage() {
                           )}
                         </div>
                         <div className="text-[10px] font-mono text-blue-600 font-bold">
-                          {activeThread.seller?.accountNumber || 'BRE-MEMBER'}
+                          {activeThread.seller?.accountNumber || 'EZBD-MEMBER'}
                         </div>
                       </div>
                       <button

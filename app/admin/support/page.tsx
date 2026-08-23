@@ -29,11 +29,11 @@ import {
 import { SupportTicket, SupportMessage } from '@/lib/types';
 
 const CANNED_REPLIES = [
-  '👋 আসসালামু আলাইকুম! Black Rock Esports সাপোর্ট থেকে অ্যাডমিন বলছি। আপনাকে কীভাবে সহায়তা করতে পারি?',
+  '👋 আসসালামু আলাইকুম! ESPORTS ZONE BD সাপোর্ট থেকে অ্যাডমিন বলছি। আপনাকে কীভাবে সহায়তা করতে পারি?',
   '🔑 আপনার টুর্নামেন্টের নাম এবং ফ্রি ফায়ার UID টি লিখে পাঠান, দ্রুত চেক করে দিচ্ছি।',
   '💰 বিকাশ/নগদ ডিপোজিট বা উইথড্রোর ট্রানজেকশন আইডি (TrxID) নাম্বারটি দিন।',
   '✅ আপনার সমস্যার সমাধান করে দেওয়া হয়েছে। আর কোনো বিষয়ে সহায়তার প্রয়োজন আছে কি?',
-  '📌 যেকোনো জরুরি নোটিফিকেশন পেতে আমাদের অফিশিয়াল Discord সার্ভারে যোগ দিন: https://discord.gg/blackrock-esports'
+  '📌 যেকোনো জরুরি নোটিফিকেশন পেতে আমাদের অফিশিয়াল Discord সার্ভারে যোগ দিন: https://discord.gg/esportszonebd'
 ];
 
 export default function AdminSupportPage() {

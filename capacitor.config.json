@@ -1,6 +1,6 @@
 {
-  "appId": "com.brkesports.app",
-  "appName": "Black Rock Esports",
+  "appId": "com.esportszonebd.app",
+  "appName": "ESPORTS ZONE BD",
   "webDir": "public",
   "bundledWebRuntime": false,
   "server": {

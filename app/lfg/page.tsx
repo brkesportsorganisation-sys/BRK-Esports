@@ -249,7 +249,7 @@ export default function LFGPage() {
               <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search player, clan, BRE-ID..."
+                placeholder="Search player, clan, EZBD-ID..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-xs sm:text-sm text-slate-900 placeholder-slate-500 focus:outline-none focus:border-brand-orange shadow-xs"
@@ -301,7 +301,7 @@ export default function LFGPage() {
                           )}
                         </div>
                         <div className="text-[11px] font-mono text-blue-600 font-bold">
-                          {post.accountNumber || 'BRE-001928'}
+                          {post.accountNumber || 'EZBD-001928'}
                         </div>
                       </div>
                     </div>
@@ -400,7 +400,7 @@ export default function LFGPage() {
                     )}
                   </h3>
                   <div className="text-[11px] font-mono text-blue-600 font-bold">
-                    ID: {selectedPostDetails.accountNumber || 'BRE-MEMBER'}
+                    ID: {selectedPostDetails.accountNumber || 'EZBD-MEMBER'}
                   </div>
                 </div>
               </div>

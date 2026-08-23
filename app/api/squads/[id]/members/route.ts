@@ -82,7 +82,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       userId: targetUserId,
       userName: targetUserName || 'Player',
       userAvatar: targetUserAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${targetUserName || targetUserId}`,
-      accountNumber: targetAccountNumber || `BRE-${targetUserId.substring(0, 6).toUpperCase()}`,
+      accountNumber: targetAccountNumber || `EZBD-${targetUserId.substring(0, 6).toUpperCase()}`,
       freeFireUid: targetFreeFireUid || '',
       memberType: memberType as SquadMemberType,
       inGameRole: inGameRole as InGameRole,

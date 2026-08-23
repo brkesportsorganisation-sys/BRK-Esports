@@ -150,7 +150,7 @@ export default function UserActivityLogsPage() {
                     <td className="p-4 text-xs">
                       <div className="font-bold text-slate-900">{log.userName}</div>
                       <div className="text-[11px] text-slate-500 font-mono mt-0.5">
-                        {log.userEmail || log.accountNumber || 'BRE-PLAYER'}
+                        {log.userEmail || log.accountNumber || 'EZBD-PLAYER'}
                       </div>
                     </td>
                     <td className="p-4">

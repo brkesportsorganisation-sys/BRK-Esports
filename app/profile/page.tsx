@@ -571,7 +571,7 @@ function ProfilePageContent() {
             <div className="absolute top-4 left-4 sm:top-6 sm:left-6 flex items-center gap-2">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-[11px] font-black uppercase tracking-wider border border-white/20 shadow-sm">
                 <Flame className="w-3.5 h-3.5 text-brand-orange animate-pulse" />
-                <span>BRK ESPORTS PASSPORT</span>
+                <span>ESPORTS ZONE BD PASSPORT</span>
               </span>
             </div>
 
@@ -620,7 +620,7 @@ function ProfilePageContent() {
                   <div className="text-xs text-slate-600 font-mono flex flex-wrap items-center gap-2 justify-center sm:justify-start">
                     <span>Full Name: <strong className="text-slate-900 font-semibold">{user.name}</strong></span>
                     <span className="text-slate-300">•</span>
-                    <span>App ID: <strong className="text-orange-600 font-bold">{user.accountNumber || 'BRK-PLAYER'}</strong></span>
+                    <span>App ID: <strong className="text-orange-600 font-bold">{user.accountNumber || 'EZBD-PLAYER'}</strong></span>
                     <span className="text-slate-300">•</span>
                     <span className="inline-flex items-center gap-1">
                       Role: 
@@ -797,7 +797,7 @@ function ProfilePageContent() {
                   <button
                     onClick={() => {
                       if (typeof window !== 'undefined') {
-                        window.open(`https://wa.me/?text=Join me on BRK Esports and compete in tournaments! ${window.location.origin}/register?ref=${user.referralCode}`, '_blank');
+                        window.open(`https://wa.me/?text=Join me on ESPORTS ZONE BD and compete in tournaments! ${window.location.origin}/register?ref=${user.referralCode}`, '_blank');
                       }
                     }}
                     className="flex items-center justify-center w-10 h-10 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors cursor-pointer"
@@ -1067,7 +1067,7 @@ function ProfilePageContent() {
                       👑
                     </div>
                     <div className="font-heading font-black text-xs text-slate-900">Custom Tag &amp; Logo</div>
-                    <div className="text-[11px] text-slate-500">Create your unique clan identity e.g. [BRK] BlackRock.</div>
+                    <div className="text-[11px] text-slate-500">Create your unique clan identity e.g. [EZBD] ESPORTS ZONE BD.</div>
                   </div>
 
                   <div className="p-4 rounded-2xl bg-white border border-orange-100 shadow-2xs space-y-1">
@@ -1329,7 +1329,7 @@ function ProfilePageContent() {
                       <div className="space-y-1">
                         <div className="font-heading font-black text-base text-slate-900">No shop purchases yet</div>
                         <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                          You have not placed any Free Fire diamond top-ups or shop orders yet. Browse the shop to purchase items with Wallet Taka or BRK Coins!
+                          You have not placed any Free Fire diamond top-ups or shop orders yet. Browse the shop to purchase items with Wallet Taka or EZBD Coins!
                         </p>
                       </div>
                       <Link
@@ -1929,7 +1929,7 @@ function ProfilePageContent() {
                   value={teamTag}
                   onChange={(e) => setTeamTag(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
                   required
-                  placeholder="e.g. BRK, OCR, NV"
+                  placeholder="e.g. EZBD, OCR, NV"
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-900 font-mono uppercase font-black focus:outline-none focus:border-brand-orange focus:bg-white"
                 />
                 <span className="text-[10px] text-slate-400 mt-1 block">

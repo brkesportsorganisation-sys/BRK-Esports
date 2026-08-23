@@ -62,9 +62,9 @@ export async function GET(request: NextRequest) {
         sellerId: c.sellerId,
         otherUser: {
           id: otherId,
-          name: otherUser?.name || (c.buyerId === userId ? c.sellerName : c.buyerName) || 'BlackRock Player',
+          name: otherUser?.name || (c.buyerId === userId ? c.sellerName : c.buyerName) || 'EZBD Player',
           avatar: otherUser?.avatar || '',
-          accountNumber: otherUser?.accountNumber || `BRK-${otherId.slice(-6).toUpperCase()}`,
+          accountNumber: otherUser?.accountNumber || `EZBD-${otherId.slice(-6).toUpperCase()}`,
           role: otherUser?.role || 'USER',
           inGameName: otherUser?.inGameName || '',
         },

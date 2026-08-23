@@ -163,7 +163,7 @@ function parseBanglishScheduleLocally(userChat: string): AIChatScheduleResult {
   if (text.includes('website') || text.includes('web site') || text.includes('live') || text.includes('ওয়েবসাইট') || text.includes('লাইভ')) {
     category = 'SYSTEM';
     categoryLabel = 'ANNOUNCEMENT (ওয়েবসাইট লাইভ)';
-    draftTitle = '🌐 Black Rock Esports Website is NOW LIVE!';
+    draftTitle = '🌐 ESPORTS ZONE BD Website is NOW LIVE!';
     draftMessage = '🚀 আমাদের নতুন অফিসিয়াল ওয়েবসাইট এখন পুরোপুরি লাইভ! ফ্রি ফায়ার টুর্নামেন্ট স্লট বুকিং, ইনস্ট্যান্ট বিকাশ/নগদ ক্যাশআউট, ওয়ালেট রিচার্জ এবং ডেইলি রিওয়ার্ড জিততে এখনই ভিজিট করুন।';
     actionLink = '/';
   } else if (text.includes('room') || text.includes('pass') || text.includes('রুম') || text.includes('পাসওয়ার্ড')) {
@@ -303,7 +303,7 @@ export async function parseConversationalSchedule(
   const currentIso = now.toISOString();
 
   if (geminiKey && geminiKey !== 'your_gemini_api_key_here') {
-    const systemPrompt = `You are an elite AI Campaign Manager & Push Notification Scheduler for "Black Rock Esports" (Free Fire tournament platform in Bangladesh).
+    const systemPrompt = `You are an elite AI Campaign Manager & Push Notification Scheduler for "ESPORTS ZONE BD" (Free Fire tournament platform in Bangladesh).
 The admin speaks in Bengali, Banglish (Bengali in English letters, e.g. "dupur 1 ta theke sondha 6 ta porjonto joto gula massage pathano jay 10 min por por"), or English.
 
 Current Server Time: ${currentIso} (Timezone: ${currentTimeZone}, Dhaka Time: ${now.toLocaleTimeString('en-US', { timeZone: 'Asia/Dhaka' })})
@@ -337,7 +337,7 @@ Rules for understanding Banglish & Bengali:
     "endTime": "ISO timestamp for end time today",
     "maxRuns": 15,
     "actionLink": "/",
-    "sampleDraftTitle": "🌐 Black Rock Esports Website is NOW LIVE!",
+    "sampleDraftTitle": "🌐 ESPORTS ZONE BD Website is NOW LIVE!",
     "sampleDraftMessage": "🚀 আমাদের নতুন ক্রাফটেড অফিশিয়াল ওয়েবসাইট এখন পুরোপুরি লাইভ! ফ্রি ফায়ার টুর্নামেন্ট স্লট বুকিং, ইনস্ট্যান্ট বিকাশ/নগদ ক্যাশআউট, ওয়ালেট রিচার্জ এবং ডেইলি রিওয়ার্ড জিততে এখনই ভিজিট করুন।"
   }
 }`;

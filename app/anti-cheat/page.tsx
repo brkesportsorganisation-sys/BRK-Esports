@@ -28,7 +28,7 @@ export default function AntiCheatPage() {
                 <Ban className="w-5 h-5 text-brand-red" /> Zero Tolerance for Cheating
               </h2>
               <p>
-                Black Rock Tournaments maintains a strict zero-tolerance policy against hacking, scripting, memory editing, radar tools, wallhacks, auto-aim, and emulator manipulation.
+                ESPORTS ZONE BD maintains a strict zero-tolerance policy against hacking, scripting, memory editing, radar tools, wallhacks, auto-aim, and emulator manipulation.
               </p>
             </section>
 
@@ -46,7 +46,7 @@ export default function AntiCheatPage() {
                 <AlertTriangle className="w-5 h-5 text-amber-500" /> Penalties & Consequences
               </h2>
               <p>
-                Any player or team found violating fair play guidelines will face immediate match forfeiture, total prize cancellation, wallet forfeiture, and a permanent hardware/account ban from all Black Rock sanctioned events.
+                Any player or team found violating fair play guidelines will face immediate match forfeiture, total prize cancellation, wallet forfeiture, and a permanent hardware/account ban from all ESPORTS ZONE BD sanctioned events.
               </p>
             </section>
           </div>

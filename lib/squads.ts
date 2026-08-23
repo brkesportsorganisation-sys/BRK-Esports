@@ -101,7 +101,7 @@ export async function importLegacyTeamAsSquad(teamId: string): Promise<Squad | n
             userId: tm.userId || leaderUser?.id,
             userName: u.inGameName || u.name || leaderUser?.name || 'Player',
             userAvatar: u.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${u.name || tm.id}`,
-            accountNumber: u.accountNumber || `BRE-${(tm.userId || '').substring(0, 6).toUpperCase()}`,
+            accountNumber: u.accountNumber || `EZBD-${(tm.userId || '').substring(0, 6).toUpperCase()}`,
             freeFireUid: u.freeFireUid || '',
             memberType: 'PLAYER',
             inGameRole: isLeader ? 'IGL' : 'RUSHER',
@@ -117,7 +117,7 @@ export async function importLegacyTeamAsSquad(teamId: string): Promise<Squad | n
             userId: legacyTeam.captainId,
             userName: leaderUser?.inGameName || leaderUser?.name || 'Captain',
             userAvatar: leaderUser?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${leaderUser?.name || 'Leader'}`,
-            accountNumber: leaderUser?.accountNumber || `BRE-${legacyTeam.captainId.substring(0, 6).toUpperCase()}`,
+            accountNumber: leaderUser?.accountNumber || `EZBD-${legacyTeam.captainId.substring(0, 6).toUpperCase()}`,
             freeFireUid: leaderUser?.freeFireUid || '',
             memberType: 'PLAYER',
             inGameRole: 'IGL',
@@ -263,7 +263,7 @@ export async function getUserPendingInvites(userId: string): Promise<{ squad: Sq
 }
 
 /**
- * Searches users safely by Username, Account Number (BRE-XXXXXX), or Free Fire UID.
+ * Searches users safely by Username, Account Number (EZBD-XXXXXX), or Free Fire UID.
  */
 export async function searchPlayers(query: string, currentUserId?: string): Promise<{
   id: string;
@@ -289,7 +289,7 @@ export async function searchPlayers(query: string, currentUserId?: string): Prom
         id: u.id,
         name: u.name || 'Player',
         avatar: u.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${u.name || u.id}`,
-        accountNumber: u.accountNumber || `BRE-${u.id.substring(0, 6).toUpperCase()}`,
+        accountNumber: u.accountNumber || `EZBD-${u.id.substring(0, 6).toUpperCase()}`,
         freeFireUid: u.freeFireUid || '',
         inGameName: u.inGameName || u.name || 'Player',
         isCurrentUser: u.id === currentUserId,

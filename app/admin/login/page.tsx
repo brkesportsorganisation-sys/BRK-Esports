@@ -75,7 +75,7 @@ export default function AdminLoginPage() {
         <div className="bg-[#0b2948] pt-8 pb-6 px-6 flex flex-col items-center justify-center text-center">
           <Shield className="h-6 w-6 text-white mb-3" />
           <h1 className="text-xl font-bold text-white mb-1 tracking-wide">Admin Panel</h1>
-          <p className="text-sm font-medium text-slate-300 mb-2">Black Rock</p>
+          <p className="text-sm font-medium text-slate-300 mb-2">ESPORTS ZONE BD</p>
           <p className="text-[10px] text-[#4ea0da]">Secure Administration Access</p>
         </div>
 

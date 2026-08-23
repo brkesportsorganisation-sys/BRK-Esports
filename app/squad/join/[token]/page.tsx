@@ -86,7 +86,7 @@ export default function SquadJoinLandingPage({ params }: { params: Promise<{ tok
           userId: currentUser.id,
           userName: currentUser.name,
           userAvatar: currentUser.avatar,
-          accountNumber: currentUser.accountNumber || `BRE-${currentUser.id.substring(0, 6).toUpperCase()}`,
+          accountNumber: currentUser.accountNumber || `EZBD-${currentUser.id.substring(0, 6).toUpperCase()}`,
           freeFireUid: freeFireUid.trim() || currentUser.freeFireUid || '',
           preferredRole,
         }),
@@ -211,7 +211,7 @@ export default function SquadJoinLandingPage({ params }: { params: Promise<{ tok
 
               {!currentUser ? (
                 <div className="p-6 bg-slate-950 rounded-2xl border border-slate-800 text-center space-y-3">
-                  <p className="text-xs text-slate-300">You need to log in to your Black Rock Esports account to join this squad.</p>
+                  <p className="text-xs text-slate-300">You need to log in to your ESPORTS ZONE BD account to join this squad.</p>
                   <Link
                     href={`/login?redirect=/squad/join/${token}`}
                     className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-xs uppercase rounded-xl inline-block shadow-md"

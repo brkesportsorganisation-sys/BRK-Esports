@@ -424,8 +424,8 @@ export const initialBanners: import('./types').Banner[] = [
   {
     id: 'ban_shop_main',
     title: 'Gaming Shop & Diamond Center',
-    subtitle: 'আপনার অর্জিত BRK Coins (🪙) অথবা Wallet Taka (৳) দিয়ে ইনস্ট্যান্ট ফ্রি ফায়ার ডায়মন্ড, উইকলি মেম্বারশিপ, স্কিন রিডিম ভাউচার ও ম্যাচ পাস কিনুন!',
-    badge: 'BRK ESPORTS OFFICIAL REWARDS & COIN SHOP',
+    subtitle: 'আপনার অর্জিত EZBD Coins (🪙) অথবা Wallet Taka (৳) দিয়ে ইনস্ট্যান্ট ফ্রি ফায়ার ডায়মন্ড, উইকলি মেম্বারশিপ, স্কিন রিডিম ভাউচার ও ম্যাচ পাস কিনুন!',
+    badge: 'ESPORTS ZONE BD OFFICIAL REWARDS & COIN SHOP',
     imageUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1600&auto=format&fit=crop&q=80',
     linkUrl: '/shop',
     buttonText: 'VISIT GAMING SHOP',

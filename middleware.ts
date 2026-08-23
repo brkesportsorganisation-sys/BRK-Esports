@@ -17,7 +17,7 @@ export function middleware(request: NextRequest) {
     return new NextResponse(
       JSON.stringify({ 
         error: 'Forbidden', 
-        message: 'Request blocked by Black Rock Web Application Firewall (WAF).',
+        message: 'Request blocked by ESPORTS ZONE BD Web Application Firewall (WAF).',
         code: 'WAF_ATTACK_DETECTED'
       }),
       { 

@@ -134,7 +134,7 @@ export async function GET(request: NextRequest) {
 
       return {
         ...cleanUser,
-        accountNumber: cleanUser.accountNumber || `BRK-${(cleanUser.id || '').replace(/[^a-zA-Z0-9]/g, '').slice(-6).toUpperCase() || Math.floor(100000 + Math.random() * 900000)}`,
+        accountNumber: cleanUser.accountNumber || `EZBD-${(cleanUser.id || '').replace(/[^a-zA-Z0-9]/g, '').slice(-6).toUpperCase() || Math.floor(100000 + Math.random() * 900000)}`,
         promoBalance: Number(cleanUser.promoBalance) || 0,
         winningBalance: Number(cleanUser.winningBalance) || 0,
         walletBalance: Number(cleanUser.walletBalance) || 0,

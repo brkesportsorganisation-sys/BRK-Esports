@@ -143,7 +143,7 @@ export default function SquadTeamsHubPage() {
           description: formDescription.trim(),
           leaderId: currentUser.id,
           leaderName: currentUser.name,
-          leaderAccountNumber: currentUser.accountNumber || `BRE-${currentUser.id.substring(0, 6).toUpperCase()}`,
+          leaderAccountNumber: currentUser.accountNumber || `EZBD-${currentUser.id.substring(0, 6).toUpperCase()}`,
           leaderUid: currentUser.freeFireUid || '',
         }),
       });
@@ -218,7 +218,7 @@ export default function SquadTeamsHubPage() {
             <div className="space-y-3 max-w-2xl">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-400 text-xs font-black uppercase tracking-wider">
                 <Shield className="w-4 h-4 text-amber-400" />
-                <span>BRK ESPORTS IN-APP SQUAD & CLAN SYSTEM</span>
+                <span>ESPORTS ZONE BD IN-APP SQUAD & CLAN SYSTEM</span>
               </div>
               <h1 className="text-3xl sm:text-4xl md:text-5xl font-black font-heading tracking-tight text-white leading-tight">
                 Build Your Dream <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-500 to-red-500">Esports Squad</span>
@@ -621,7 +621,7 @@ export default function SquadTeamsHubPage() {
                     type="text"
                     required
                     maxLength={6}
-                    placeholder="e.g. BRK"
+                    placeholder="e.g. EZBD"
                     value={formTag}
                     onChange={(e) => setFormTag(e.target.value.toUpperCase())}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-amber-400 font-mono font-black uppercase focus:outline-none focus:border-amber-500"

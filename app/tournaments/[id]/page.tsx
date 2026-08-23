@@ -1026,7 +1026,7 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                             }`}
                           >
                             <Coins className="w-5 h-5 text-amber-500" />
-                            <div className="font-bold text-xs uppercase">BRK Coins (🪙)</div>
+                            <div className="font-bold text-xs uppercase">EZBD Coins (🪙)</div>
                             <div className="text-[11px] font-bold text-amber-700">Fee: {requiredCoins.toLocaleString()} 🪙</div>
                             <div className="text-[10px] text-slate-500">Your Bal: {coinBalance.toLocaleString()} 🪙</div>
                           </button>

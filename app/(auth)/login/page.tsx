@@ -164,7 +164,7 @@ export default function LoginPage() {
               </div>
             </div>
             <h2 className="font-heading font-black text-3xl text-slate-900 tracking-wide">PLAYER LOGIN</h2>
-            <p className="text-xs text-slate-600 font-medium">Welcome back to Black Rock Championship Arena</p>
+            <p className="text-xs text-slate-600 font-medium">Welcome back to ESPORTS ZONE BD Arena</p>
           </div>
 
           {errorMsg && (

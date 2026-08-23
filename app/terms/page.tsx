@@ -26,7 +26,7 @@ export default function TermsPage() {
             <section className="space-y-2">
               <h2 className="font-heading font-bold text-lg text-slate-900">1. Acceptance of Terms</h2>
               <p>
-                By accessing or using Black Rock Tournaments ("Platform"), you agree to comply with and be bound by these Terms of Service. If you do not agree to these terms, please do not use our services.
+                By accessing or using ESPORTS ZONE BD ("Platform"), you agree to comply with and be bound by these Terms of Service. If you do not agree to these terms, please do not use our services.
               </p>
             </section>
 

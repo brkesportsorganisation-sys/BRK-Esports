@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
       id: postId,
       userId,
       authorName: user?.name || authorName,
-      accountNumber: user?.accountNumber || `BRE-${Math.floor(100000 + Math.random() * 900000)}`,
+      accountNumber: user?.accountNumber || `EZBD-${Math.floor(100000 + Math.random() * 900000)}`,
       avatar: user?.avatar || 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150',
       type,
       gameMode,

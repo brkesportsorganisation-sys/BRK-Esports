@@ -100,7 +100,7 @@ export async function GET(
         inGameName: user.inGameName || user.name,
         freeFireUid: user.freeFireUid || 'Not Linked',
         avatar: user.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.name || user.id}`,
-        accountNumber: user.accountNumber || `BRE-${user.id.substring(0, 6).toUpperCase()}`,
+        accountNumber: user.accountNumber || `EZBD-${user.id.substring(0, 6).toUpperCase()}`,
         role: user.role || 'USER',
         totalKills: Number(user.totalKills) || 0,
         totalWins: Number(user.totalWins) || 0,

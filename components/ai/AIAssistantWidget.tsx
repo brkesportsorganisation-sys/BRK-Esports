@@ -51,8 +51,8 @@ const SUPPORT_PILLS = [
 const DEFAULT_WELCOME_MESSAGE: Message = {
   id: 'welcome',
   role: 'assistant',
-  senderName: 'BlackRock AI',
-  content: "👋 আসসালামু আলাইকুম! BlackRock Esports অফিসিয়াল এআই হেল্পডেস্কে আপনাকে স্বাগতম।\n\nটুর্নামেন্ট জয়েন, রুম আইডি ও পাসওয়ার্ড, ওয়ালেট ডিপোজিট/উইথড্র বা ফ্রি ফায়ার গেমপ্লে সংক্রান্ত যেকোনো প্রশ্ন করুন। আমি আপনাকে তাৎক্ষণিক সাহায্য করতে প্রস্তুত!",
+  senderName: 'EZBD AI',
+  content: "👋 আসসালামু আলাইকুম! ESPORTS ZONE BD অফিসিয়াল এআই হেল্পডেস্কে আপনাকে স্বাগতম।\n\nটুর্নামেন্ট জয়েন, রুম আইডি ও পাসওয়ার্ড, ওয়ালেট ডিপোজিট/উইথড্র বা ফ্রি ফায়ার টুর্নামেন্ট সংক্রান্ত যেকোনো প্রশ্ন করুন। আমি আপনাকে তাৎক্ষণিক সাহায্য করতে প্রস্তুত!",
   timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
 };
 
@@ -391,8 +391,9 @@ export default function AIAssistantWidget() {
       .replace(/\bNagad\b/gi, 'নগদ')
       .replace(/\bRocket\b/gi, 'রকেট')
       .replace(/\bFree Fire\b/gi, 'ফ্রি ফায়ার')
-      .replace(/\bBRK Esports\b/gi, 'বি আর কে স্পোর্টস')
-      .replace(/\bBRK\b/gi, 'বি আর কে')
+      .replace(/\bESPORTS ZONE BD\b/gi, 'ইস্পোর্টস জোন বিডি')
+      .replace(/\bEZBD\b/gi, 'ই জেড বি ডি')
+      .replace(/\bBRK\b/gi, 'ই জেড বি ডি')
       .replace(/\bWallet\b/gi, 'ওয়ালেট')
       .replace(/\bTournament\b/gi, 'টুর্নামেন্ট')
       .replace(/\bTournaments\b/gi, 'টুর্নামেন্ট')
@@ -566,7 +567,7 @@ export default function AIAssistantWidget() {
         const assistantMsg: Message = {
           id: `ai_${Date.now()}`,
           role: 'assistant',
-          senderName: 'BlackRock AI',
+          senderName: 'EZBD AI',
           content: data.reply,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           suggestedAction: data.suggestedAction || undefined
@@ -598,12 +599,12 @@ export default function AIAssistantWidget() {
               {
                 id: `system_${Date.now()}`,
                 role: 'system',
-                senderName: 'BlackRock Community Desk',
+                senderName: 'ESPORTS ZONE Community Desk',
                 content: "📌 এই বিষয়ে সরাসরি অ্যাডমিন সহায়তা ও দ্রুত সমাধানের জন্য আমাদের অফিসিয়াল Discord সার্ভারে যোগাযোগ করতে পারেন:",
                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 suggestedAction: {
                   label: '👉 Join Discord Support',
-                  link: 'https://discord.gg/blackrock-esports'
+                  link: 'https://discord.gg/esportszonebd'
                 }
               }
             ]);
@@ -616,12 +617,12 @@ export default function AIAssistantWidget() {
           {
             id: `err_${Date.now()}`,
             role: 'assistant',
-            senderName: 'BlackRock AI',
+            senderName: 'EZBD AI',
             content: "দুঃখিত, এই মুহূর্তে আমি বিষয়টি নিশ্চিত করতে পারছি না। সরাসরি অ্যাডমিনের সাথে যোগাযোগ করতে আমাদের ডিসকর্ড সাপোর্ট ব্যবহার করতে পারেন।",
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             suggestedAction: {
               label: '👉 Join Discord Support',
-              link: 'https://discord.gg/blackrock-esports'
+              link: 'https://discord.gg/esportszonebd'
             }
           }
         ]);
@@ -632,12 +633,12 @@ export default function AIAssistantWidget() {
         {
           id: `err_${Date.now()}`,
           role: 'assistant',
-          senderName: 'BlackRock AI',
+          senderName: 'EZBD AI',
           content: "সার্ভারে সাময়িক সমস্যা হয়েছে। সরাসরি অ্যাডমিনদের সাথে কথা বলতে Discord সার্ভারে যোগাযোগ করুন।",
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           suggestedAction: {
             label: '👉 Join Discord Support',
-            link: 'https://discord.gg/blackrock-esports'
+            link: 'https://discord.gg/esportszonebd'
           }
         }
       ]);
@@ -704,7 +705,7 @@ export default function AIAssistantWidget() {
                     <h3 className="font-bold text-sm leading-tight text-white">AI Support</h3>
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                   </div>
-                  <p className="text-[11px] text-blue-100 font-normal leading-tight mt-0.5">BlackRock AI • Bangla & English</p>
+                  <p className="text-[11px] text-blue-100 font-normal leading-tight mt-0.5">EZBD AI • Bangla & English</p>
                 </div>
               </div>
 
@@ -751,7 +752,7 @@ export default function AIAssistantWidget() {
                 </div>
                 <div className="flex items-center gap-1.5">
                   <a
-                    href="https://discord.gg/blackrock-esports"
+                    href="https://discord.gg/esportszonebd"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1"
@@ -760,7 +761,7 @@ export default function AIAssistantWidget() {
                     <ExternalLink className="w-3 h-3" />
                   </a>
                   <a
-                    href="https://wa.me/8801700000000?text=Hello%20BlackRock%20Support"
+                    href="https://wa.me/8801700000000?text=Hello%20EZBD%20Support"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1"
@@ -838,7 +839,7 @@ export default function AIAssistantWidget() {
                       {/* Name / Role Badge */}
                       <div className="flex items-center gap-1.5 px-1">
                         <span className={`text-[11px] font-bold ${isAdmin ? 'text-emerald-700' : 'text-slate-600'}`}>
-                          {msg.senderName || (isAdmin ? 'Admin Support' : 'BlackRock AI')}
+                          {msg.senderName || (isAdmin ? 'Admin Support' : 'EZBD AI')}
                         </span>
                         <span className="text-[10px] text-slate-400 font-mono">
                           {msg.timestamp}

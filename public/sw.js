@@ -1,5 +1,5 @@
-// Black Rock Esports Service Worker for Offline & Rich Push Notifications
-const CACHE_NAME = 'brk-esports-cache-v2';
+// ESPORTS ZONE BD Service Worker for Offline & Rich Push Notifications
+const CACHE_NAME = 'ezbd-esports-cache-v2';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -14,7 +14,7 @@ self.addEventListener('push', (event) => {
   if (event.data) {
     try {
       const data = event.data.json();
-      const title = data.title || 'BRK Esports — Tournament Alert 🔥';
+      const title = data.title || 'ESPORTS ZONE BD — Tournament Alert 🔥';
       const options = {
         body: data.body || data.message || 'New tournament or custom room update available!',
         icon: data.icon || '/icon-192.png',

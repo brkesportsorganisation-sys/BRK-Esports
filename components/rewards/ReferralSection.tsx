@@ -189,7 +189,7 @@ export default function ReferralSection() {
             {siteSettings.ref_banner_title || 'REFERRAL REWARDS CRUSADE'}
           </h2>
           <p className="text-xs sm:text-sm text-slate-600 max-w-xl">
-            {siteSettings.ref_banner_desc || 'Invite friends to Black Rock Arena. Rewards credit to your Promo Wallet to join tournaments for free!'}
+            {siteSettings.ref_banner_desc || 'Invite friends to ESPORTS ZONE BD Arena. Rewards credit to your Promo Wallet to join tournaments for free!'}
           </p>
         </div>
 
@@ -253,7 +253,7 @@ export default function ReferralSection() {
               type="button"
               onClick={() => {
                 if (referralUrl) {
-                  window.open(`https://wa.me/?text=Join me on BRK Esports and compete in tournaments! ${referralUrl}`, '_blank');
+                  window.open(`https://wa.me/?text=Join me on ESPORTS ZONE BD and compete in tournaments! ${referralUrl}`, '_blank');
                 }
               }}
               className="flex items-center justify-center w-8 h-8 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-colors shadow-xs cursor-pointer"

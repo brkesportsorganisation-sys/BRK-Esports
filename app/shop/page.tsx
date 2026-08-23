@@ -231,7 +231,7 @@ export default function GamingShopPage() {
             <div className="space-y-3 max-w-2xl">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-500/20 border border-orange-500/40 text-orange-400 text-xs font-black uppercase tracking-wider shadow-sm backdrop-blur-md">
                 <Sparkles className="w-4 h-4 animate-pulse text-amber-400" />
-                <span>{shopBanner?.badge || 'BRK ESPORTS OFFICIAL REWARDS & COIN SHOP'}</span>
+                <span>{shopBanner?.badge || 'ESPORTS ZONE BD OFFICIAL REWARDS & COIN SHOP'}</span>
               </div>
               <h1 className="text-3xl sm:text-4xl md:text-5xl font-black font-heading tracking-tight text-white leading-tight drop-shadow-md">
                 {shopBanner?.title ? (
@@ -242,7 +242,7 @@ export default function GamingShopPage() {
               </h1>
               <p className="text-xs sm:text-sm text-slate-300 leading-relaxed drop-shadow-sm">
                 {shopBanner?.subtitle || (
-                  <>আপনার অর্জিত <strong className="text-amber-400">BRK Coins (🪙)</strong> অথবা <strong className="text-emerald-400">Wallet Taka (৳)</strong> দিয়ে ইনস্ট্যান্ট ফ্রি ফায়ার ডায়মন্ড, উইকলি মেম্বারশিপ, স্কিন রিডিম ভাউচার ও ম্যাচ পাস কিনুন!</>
+                  <>আপনার অর্জিত <strong className="text-amber-400">EZBD Coins (🪙)</strong> অথবা <strong className="text-emerald-400">Wallet Taka (৳)</strong> দিয়ে ইনস্ট্যান্ট ফ্রি ফায়ার ডায়মন্ড, উইকলি মেম্বারশিপ, স্কিন রিডিম ভাউচার ও ম্যাচ পাস কিনুন!</>
                 )}
               </p>
             </div>
@@ -636,7 +636,7 @@ export default function GamingShopPage() {
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-[10px] font-bold uppercase text-amber-700 flex items-center gap-1">
                             <Coins className="w-3.5 h-3.5" />
-                            <span>BRK Coins</span>
+                            <span>EZBD Coins</span>
                           </span>
                           {paymentMethod === 'COINS' && <Check className="w-4 h-4 text-amber-600" />}
                         </div>

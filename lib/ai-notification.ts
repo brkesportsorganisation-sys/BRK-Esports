@@ -25,13 +25,13 @@ const FALLBACK_TEMPLATES: Record<string, { titles: string[]; messages: string[];
   GENERAL: {
     titles: [
       '🔥 Arena Alert: New Free Fire Challenges Live!',
-      '⚡ BRK Esports: Daily Action Awaits You!',
+      '⚡ ESPORTS ZONE BD: Daily Action Awaits You!',
       '🎮 Step into the Battleground, Soldier!'
     ],
     messages: [
       'Top players are grinding right now. Join the action, hone your skills, and dominate the leaderboard today!',
       'New matches and tournaments are open for registration. Claim your squad slot before time runs out!',
-      'Earn points, secure Booyahs, and climb the ranks on Black Rock Esports. Check out the latest events now!'
+      'Earn points, secure Booyahs, and climb the ranks on ESPORTS ZONE BD. Check out the latest events now!'
     ],
     action: '/tournaments'
   },
@@ -118,7 +118,7 @@ export async function generateAINotification(input: AINotificationPromptInput): 
 
   if (geminiKey && geminiKey !== 'your_gemini_api_key_here') {
     const promptText = `
-You are the official AI Esports Notification Bot for "Black Rock Esports" (a premium Free Fire tournament platform in Bangladesh).
+You are the official AI Esports Notification Bot for "ESPORTS ZONE BD" (a premium Free Fire tournament platform in Bangladesh).
 Generate an energetic, high-converting, gamer-friendly mobile push notification.
 
 Context:
@@ -193,7 +193,7 @@ Return ONLY a valid JSON object with this exact structure (no markdown fences, n
     title = `🏆 ${input.tournamentTitle}: Registration Open!`;
     message = `Prize Pool: ৳${input.prizePool || 0} BDT. Secure your squad slot now before registration closes!`;
   } else if (input.prompt) {
-    title = `🔥 Black Rock Alert: ${input.prompt.slice(0, 30)}...`;
+    title = `🔥 EZBD Alert: ${input.prompt.slice(0, 30)}...`;
     message = `${input.prompt} Check platform for details!`;
   }
 

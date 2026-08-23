@@ -68,7 +68,7 @@ export default function VendorLoginPage() {
             <Store className="h-5 w-5" />
           </div>
           <h1 className="text-xl font-bold text-white mb-1 tracking-wide">Vendor Panel</h1>
-          <p className="text-sm font-medium text-violet-200/80 mb-2">Black Rock</p>
+          <p className="text-sm font-medium text-violet-200/80 mb-2">ESPORTS ZONE BD</p>
           <p className="text-[10px] text-violet-400 font-medium">Secure Vendor Access</p>
         </div>
 

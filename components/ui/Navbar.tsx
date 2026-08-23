@@ -292,7 +292,7 @@ export default function Navbar() {
             </div>
             <div className="whitespace-nowrap">
               <div className="font-heading font-black text-lg sm:text-2xl tracking-wider text-slate-900 leading-none">
-                BLACKROCK <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-red to-brand-orange">ESPORTS</span>
+                ESPORTS ZONE <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-red to-brand-orange">BD</span>
               </div>
               <div className="hidden sm:block text-[9px] sm:text-[10px] text-slate-600 font-semibold uppercase tracking-widest mt-1">
                 Free Fire Championship Hub
@@ -593,7 +593,7 @@ export default function Navbar() {
                         <div className="p-3 border-b border-slate-100 bg-slate-50/60 rounded-xl mb-1">
                           <div className="font-bold text-sm text-slate-900">{currentUser.name}</div>
                           <div className="text-[11px] font-mono font-bold text-brand-orange mt-0.5">
-                            ID: {currentUser.accountNumber || 'BRE-MEMBER'}
+                            ID: {currentUser.accountNumber || 'EZBD-MEMBER'}
                           </div>
                           <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-200/60">
                             <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200 flex items-center gap-1">
@@ -772,7 +772,7 @@ export default function Navbar() {
                         {currentUser.inGameName || currentUser.name}
                       </div>
                       <div className="text-[10px] text-slate-500 font-mono">
-                        ID: {currentUser.accountNumber || 'BRE-MEMBER'}
+                        ID: {currentUser.accountNumber || 'EZBD-MEMBER'}
                       </div>
                     </div>
                   </div>

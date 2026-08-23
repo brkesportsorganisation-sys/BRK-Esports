@@ -62,14 +62,14 @@ export const translations = {
     no_tournaments_found: 'No tournaments found in this category right now.',
 
     // AI Tools & Features
-    ai_assistant_title: 'BRK AI Assistant',
+    ai_assistant_title: 'EZBD AI Assistant',
     ai_assistant_subtitle: 'Powered by Google Gemini 2.5',
     ai_ign_generator: 'AI Gamer Name Generator',
     ai_ign_generator_desc: 'Generate pro Free Fire stylish names & symbols in 1 click',
     ai_tactical_coach: 'AI Tactical Strategy Coach',
     ai_tactical_coach_desc: 'Get customized weapon loadouts & character skill combos',
     ai_translate_button: 'Translate to Bangla',
-    ai_ask_placeholder: 'Ask BRK AI in English or বাংলা...',
+    ai_ask_placeholder: 'Ask EZBD AI in English or বাংলা...',
     ai_coach_button: '🧠 AI Strategy Coach',
     ai_ign_button: '✨ AI Stylish Name',
 
@@ -169,14 +169,14 @@ export const translations = {
     no_tournaments_found: 'এই ক্যাটাগরিতে বর্তমানে কোনো টুর্নামেন্ট নেই।',
 
     // AI Tools & Features
-    ai_assistant_title: 'বিআরকে এআই অ্যাসিস্ট্যান্ট',
+    ai_assistant_title: 'ইজেডবিডি এআই অ্যাসিস্ট্যান্ট',
     ai_assistant_subtitle: 'পাওয়ার্ড বাই গুগল জেমিনি ২.৫',
     ai_ign_generator: 'এআই স্টাইলিশ গেমার নেম জেনারেটর',
     ai_ign_generator_desc: '১-ক্লিকে ফ্রি ফায়ার স্টাইলিশ প্রো নাম এবং সিম্বল তৈরি করুন',
     ai_tactical_coach: 'এআই ট্যাকটিক্যাল স্ট্র্যাটেজি কোচ',
     ai_tactical_coach_desc: 'ম্যাপ ও রোল অনুযায়ী সেরা গান কম্বো এবং ক্যারেক্টার স্কিল সাজেশন পান',
     ai_translate_button: 'ইংরেজিতে অনুবাদ করুন',
-    ai_ask_placeholder: 'BRK AI-কে যেকোনো প্রশ্ন করুন...',
+    ai_ask_placeholder: 'EZBD AI-কে যেকোনো প্রশ্ন করুন...',
     ai_coach_button: '🧠 এআই স্ট্র্যাটেজি কোচ',
     ai_ign_button: '✨ এআই স্টাইলিশ নেম',
 

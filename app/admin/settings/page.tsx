@@ -78,7 +78,7 @@ export default function AdminSettingsPage() {
   // Referral Rewards Crusade Banner
   const [refBannerBadge, setRefBannerBadge] = useState('MONTHLY EVENT • RESETS 1ST OF EVERY MONTH');
   const [refBannerTitle, setRefBannerTitle] = useState('REFERRAL REWARDS CRUSADE');
-  const [refBannerDesc, setRefBannerDesc] = useState('Invite friends to Black Rock Arena. Rewards credit to your Promo Wallet to join tournaments for free!');
+  const [refBannerDesc, setRefBannerDesc] = useState('Invite friends to ESPORTS ZONE BD Arena. Rewards credit to your Promo Wallet to join tournaments for free!');
   const [refResetDate, setRefResetDate] = useState('');
   const [refBtn1Text, setRefBtn1Text] = useState('GET REFERRAL LINK');
   const [refBtn1Link, setRefBtn1Link] = useState('/profile');
@@ -101,18 +101,18 @@ export default function AdminSettingsPage() {
   // 2. YouTube Live Stream & Video Upload CMS
   const [youtubeLiveUrl, setYoutubeLiveUrl] = useState('');
   const [youtubeLiveIsActive, setYoutubeLiveIsActive] = useState(false);
-  const [youtubeLiveTitle, setYoutubeLiveTitle] = useState('BRK Esports Free Fire Championship - Live Match');
+  const [youtubeLiveTitle, setYoutubeLiveTitle] = useState('ESPORTS ZONE BD Free Fire Championship - Live Match');
   const [youtubeLiveDesc, setYoutubeLiveDesc] = useState('Watch Bangladesh top Free Fire squads battle live for Booyah glory! Like & Subscribe.');
-  const [youtubeChannelUrl, setYoutubeChannelUrl] = useState('https://youtube.com/@BRKEsports');
+  const [youtubeChannelUrl, setYoutubeChannelUrl] = useState('https://youtube.com/@ESPORTSZONEBD');
   const [notifyProcessing, setNotifyProcessing] = useState(false);
   const [notifySuccessMsg, setNotifySuccessMsg] = useState('');
 
   // 3. Welcome Email (Resend) CMS
   const [welcomeEmailEnabled, setWelcomeEmailEnabled] = useState(true);
   const [resendApiKey, setResendApiKey] = useState('');
-  const [welcomeEmailFrom, setWelcomeEmailFrom] = useState('BlackRock Esports <onboarding@resend.dev>');
-  const [welcomeEmailSubject, setWelcomeEmailSubject] = useState('🔥 Welcome to Black Rock Esports - Player ID: {PLAYER_ID}');
-  const [welcomeEmailBody, setWelcomeEmailBody] = useState(`Welcome to Black Rock Esports, {NAME}!
+  const [welcomeEmailFrom, setWelcomeEmailFrom] = useState('ESPORTS ZONE BD <onboarding@resend.dev>');
+  const [welcomeEmailSubject, setWelcomeEmailSubject] = useState('🔥 Welcome to ESPORTS ZONE BD - Player ID: {PLAYER_ID}');
+  const [welcomeEmailBody, setWelcomeEmailBody] = useState(`Welcome to ESPORTS ZONE BD, {NAME}!
 
 Your official Player Unique ID is {PLAYER_ID}.
 You are now ready to compete in daily Free Fire squad, duo, and solo championship tournaments with automated Booyah payouts.
@@ -797,7 +797,7 @@ Login to your account and book your slot today!`);
                       rows={2}
                       value={refBannerDesc}
                       onChange={(e) => setRefBannerDesc(e.target.value)}
-                      placeholder="Invite friends to Black Rock Arena. Rewards credit to your Promo Wallet to join tournaments for free!"
+                      placeholder="Invite friends to ESPORTS ZONE BD Arena. Rewards credit to your Promo Wallet to join tournaments for free!"
                       className="w-full px-3.5 py-2 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] text-xs text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
                     />
                   </div>
@@ -1219,7 +1219,7 @@ Login to your account and book your slot today!`);
                       type="text"
                       value={welcomeEmailSubject}
                       onChange={(e) => setWelcomeEmailSubject(e.target.value)}
-                      placeholder="🔥 Welcome to Black Rock Esports - Player ID: {PLAYER_ID}"
+                      placeholder="🔥 Welcome to ESPORTS ZONE BD - Player ID: {PLAYER_ID}"
                       className="w-full px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] font-bold text-xs text-[#0F172A] focus:outline-none focus:border-indigo-600"
                       required
                     />

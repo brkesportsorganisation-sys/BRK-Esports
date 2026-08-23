@@ -821,7 +821,7 @@ export default function AdminNotificationsPage() {
                   <div className="flex items-center justify-between text-[11px] text-slate-400 border-b border-slate-800/60 pb-2">
                     <div className="flex items-center gap-1.5 font-bold text-orange-400">
                       <Flame className="w-3.5 h-3.5" />
-                      BLACK ROCK ESPORTS
+                      ESPORTS ZONE BD
                     </div>
                     <span>Just now</span>
                   </div>

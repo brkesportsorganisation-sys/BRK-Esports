@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     // 2. Register new user via Google
     const userId = `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const referralCode = `REF_${Math.floor(1000 + Math.random() * 9000)}`;
-    const accountNumber = `BRK-${Math.floor(100000 + Math.random() * 900000)}`;
+    const accountNumber = `EZBD-${Math.floor(100000 + Math.random() * 900000)}`;
 
     const userPayload: Record<string, any> = {
       id: userId,

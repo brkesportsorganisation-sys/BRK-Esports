@@ -10,7 +10,7 @@ export default function FAQPage() {
 
   const faqs = [
     {
-      q: 'How do I join a Free Fire tournament on Black Rock?',
+      q: 'How do I join a Free Fire tournament on ESPORTS ZONE BD?',
       a: 'Create an account, ensure your Free Fire UID is registered on your profile, deposit entry fees into your wallet via bKash or Nagad, and select any upcoming tournament on the Tournaments page to book your slot.',
     },
     {

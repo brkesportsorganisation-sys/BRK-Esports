@@ -287,15 +287,15 @@ export default function HomePage() {
               <div className="space-y-1.5">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-xs font-black uppercase tracking-wider">
                   <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
-                  <span>BRK OFFICIAL GAMING SHOP</span>
+                  <span>EZBD OFFICIAL GAMING SHOP</span>
                 </div>
                 <h2 className="text-2xl sm:text-3xl font-black font-heading text-slate-900 tracking-tight">
                   {isBangla ? 'ফ্রি ফায়ার ডায়মন্ড ও গেমিং রিওয়ার্ডস শপ' : 'Free Fire Diamonds & Coin Rewards Hub'}
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-600 max-w-xl leading-relaxed">
                   {isBangla
-                    ? 'আপনার অর্জিত BRK Coins (🪙) অথবা ওয়ালেট ক্যাশ (৳) দিয়ে ইনস্ট্যান্ট ডায়মন্ড, উইকলি মেম্বারশিপ ও স্কিন রিওয়ার্ডস কিনুন।'
-                    : 'Use your tournament winnings or BRK Coins to buy official Free Fire Diamonds, Weekly Passes, and Exclusive items with instant UID delivery!'}
+                    ? 'আপনার অর্জিত EZBD Coins (🪙) অথবা ওয়ালেট ক্যাশ (৳) দিয়ে ইনস্ট্যান্ট ডায়মন্ড, উইকলি মেম্বারশিপ ও স্কিন রিওয়ার্ডস কিনুন।'
+                    : 'Use your tournament winnings or EZBD Coins to buy official Free Fire Diamonds, Weekly Passes, and Exclusive items with instant UID delivery!'}
                 </p>
               </div>
 
@@ -330,7 +330,7 @@ export default function HomePage() {
                 <div className="space-y-2 max-w-xl">
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-400 text-[10px] sm:text-xs font-black uppercase tracking-wider backdrop-blur-md">
                     <Sparkles className="w-3.5 h-3.5 animate-pulse text-amber-400" />
-                    <span>{shopBanner?.badge || 'BRK ESPORTS OFFICIAL REWARDS & COIN SHOP'}</span>
+                    <span>{shopBanner?.badge || 'ESPORTS ZONE BD OFFICIAL REWARDS & COIN SHOP'}</span>
                   </div>
                   <h3 className="text-xl sm:text-3xl md:text-4xl font-black font-heading tracking-tight text-white group-hover:text-amber-400 transition-colors drop-shadow-md">
                     {shopBanner?.title || 'Gaming Shop & Diamond Center'}
@@ -338,8 +338,8 @@ export default function HomePage() {
                   <p className="text-xs sm:text-sm text-slate-300 line-clamp-2 leading-relaxed drop-shadow-sm">
                     {shopBanner?.subtitle || (
                       isBangla
-                        ? 'আপনার অর্জিত BRK Coins (🪙) অথবা ওয়ালেট ক্যাশ (৳) দিয়ে ইনস্ট্যান্ট ডায়মন্ড, উইকলি মেম্বারশিপ ও স্কিন রিওয়ার্ডস কিনুন!'
-                        : 'Use your tournament winnings or BRK Coins to buy official Free Fire Diamonds, Weekly Passes, and Exclusive items!'
+                        ? 'আপনার অর্জিত EZBD Coins (🪙) অথবা ওয়ালেট ক্যাশ (৳) দিয়ে ইনস্ট্যান্ট ডায়মন্ড, উইকলি মেম্বারশিপ ও স্কিন রিওয়ার্ডস কিনুন!'
+                        : 'Use your tournament winnings or EZBD Coins to buy official Free Fire Diamonds, Weekly Passes, and Exclusive items!'
                     )}
                   </p>
                 </div>

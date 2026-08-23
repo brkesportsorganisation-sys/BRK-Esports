@@ -156,7 +156,7 @@ export default function VendorShell({ children }: { children: React.ReactNode })
             </div>
             <div>
               <div className="font-heading font-black text-lg text-white leading-none flex items-center gap-1.5">
-                <span>BLACKROCK</span>
+                <span>ESPORTS ZONE BD</span>
                 <span className="text-[9px] px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-300 font-mono font-bold border border-violet-500/30">VENDOR</span>
               </div>
               <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">HOST PORTAL</div>

@@ -325,7 +325,7 @@ export default function CommunityPage() {
                                   )}
                                 </div>
                                 <div className="text-[10px] font-mono text-slate-400 font-semibold">
-                                  {post.accountNumber || 'BRE-MEMBER'}
+                                  {post.accountNumber || 'EZBD-MEMBER'}
                                 </div>
                               </div>
                             </div>

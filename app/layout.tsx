@@ -7,7 +7,7 @@ import PushNotificationPrompt from "@/components/notifications/PushNotificationP
 import { LanguageProvider } from "@/lib/language-context";
 
 export const metadata: Metadata = {
-  title: "Black Rock Tournaments | Free Fire Esports Platform",
+  title: "ESPORTS ZONE BD | Free Fire Esports Platform",
   description: "Join daily Free Fire BR Squad, Duo & CS 4v4 tournaments. Win instant cash payouts via bKash & Nagad.",
   manifest: "/manifest.json",
 };

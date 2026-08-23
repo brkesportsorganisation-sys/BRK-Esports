@@ -372,7 +372,7 @@ function MessagesInboxContent() {
                     setSearchResults([]);
                   }}
                   className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-2xs hover:brightness-110 transition-all flex items-center gap-1 text-[11px] font-heading font-black cursor-pointer"
-                  title="Search Player by BRK ID"
+                  title="Search Player by EZBD ID"
                 >
                   <UserPlus className="w-3.5 h-3.5" />
                   <span>+ New Chat</span>
@@ -383,7 +383,7 @@ function MessagesInboxContent() {
                 <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Search chats or BRK ID..."
+                  placeholder="Search chats or EZBD ID..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-orange"
@@ -487,7 +487,7 @@ function MessagesInboxContent() {
                     <div className="flex items-center gap-1.5">
                       <span className="font-bold text-sm text-slate-900">{otherUser?.name || 'Seller'}</span>
                       <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
-                        {otherUser?.accountNumber || 'BRK-MEMBER'}
+                        {otherUser?.accountNumber || 'EZBD-MEMBER'}
                       </span>
                     </div>
                     <div className="text-[11px] text-slate-500 font-medium">
@@ -714,10 +714,10 @@ function MessagesInboxContent() {
                 </div>
                 <div>
                   <h3 className="font-heading font-black text-lg text-slate-900">
-                    Find Player by BRK ID
+                    Find Player by EZBD ID
                   </h3>
                   <p className="text-xs text-slate-500 font-medium">
-                    Search any player by BRK ID (e.g. BRE-132083), IGN or UID to send a message request.
+                    Search any player by EZBD ID (e.g. EZBD-132083), IGN or UID to send a message request.
                   </p>
                 </div>
               </div>
@@ -737,7 +737,7 @@ function MessagesInboxContent() {
               <input
                 type="text"
                 autoFocus
-                placeholder="Enter BRK ID (e.g. BRE-132083), Player Name, or FF UID..."
+                placeholder="Enter EZBD ID (e.g. EZBD-132083), Player Name, or FF UID..."
                 value={playerSearchQuery}
                 onChange={(e) => handleSearchPlayers(e.target.value)}
                 className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-orange focus:bg-white transition-all shadow-xs"

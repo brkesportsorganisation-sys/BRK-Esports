@@ -131,13 +131,13 @@ export default function AdminWhatsAppPage() {
   }>({
     autoReplyEnabled: true,
     welcomeMessageEnabled: true,
-    welcomeMessage: `🎮 স্বাগতম Black Rock Esports-এ! 🎮\n\nআমরা প্রতিদিন নিয়মিত Free Fire টুর্নামেন্ট ও কাস্টম ম্যাচ আয়োজন করি।\n\n🔹 টুর্নামেন্টে যোগ দিতে ভিজিট করুন: https://brkesports.com/tournaments\n🔹 রুম ও আইডি সহায়তার জন্য 'room' লিখে পাঠান।\n🔹 ডিপোজিট ও পেমেন্ট সহায়তার জন্য 'bkash' লিখে পাঠান।`,
-    defaultFallbackReply: `ধন্যবাদ মেসেজ দেওয়ার জন্য! আমাদের অ্যাডমিন টিম দ্রুত আপনার সাথে যোগাযোগ করবে।\nটুর্নামেন্ট ডিটেইলস জানতে ভিজিট করুন: https://brkesports.com`,
+    welcomeMessage: `🎮 স্বাগতম ESPORTS ZONE BD-এ! 🎮\n\nআমরা প্রতিদিন নিয়মিত Free Fire টুর্নামেন্ট ও কাস্টম ম্যাচ আয়োজন করি।\n\n🔹 টুর্নামেন্টে যোগ দিতে ভিজিট করুন: https://esportszonebd.online/tournaments\n🔹 রুম ও আইডি সহায়তার জন্য 'room' লিখে পাঠান।\n🔹 ডিপোজিট ও পেমেন্ট সহায়তার জন্য 'bkash' লিখে পাঠান।`,
+    defaultFallbackReply: `ধন্যবাদ মেসেজ দেওয়ার জন্য! আমাদের অ্যাডমিন টিম দ্রুত আপনার সাথে যোগাযোগ করবে।\nটুর্নামেন্ট ডিটেইলস জানতে ভিজিট করুন: https://esportszonebd.online`,
     rules: [
       {
         id: 'rule_room',
         keywords: ['room', 'id', 'pass', 'password', 'রুম', 'পাসওয়ার্ড'],
-        replyText: `🎮 Room ID & Pass নোটিশ:\n\nআপনার টুর্নামেন্ট শুরু হওয়ার ঠিক ১৫ মিনিট আগে আপনার WhatsApp নম্বরে এবং আমাদের ওয়েবসাইটে Room ID ও Password রিলিজ করা হবে!\n\nসঠিক স্লটে জয়েন করতে brkesports.com-এ নজর রাখুন।`,
+        replyText: `🎮 Room ID & Pass নোটিশ:\n\nআপনার টুর্নামেন্ট শুরু হওয়ার ঠিক ১৫ মিনিট আগে আপনার WhatsApp নম্বরে এবং আমাদের ওয়েবসাইটে Room ID ও Password রিলিজ করা হবে!\n\nসঠিক স্লটে জয়েন করতে esportszonebd.online-এ নজর রাখুন।`,
         isActive: true,
       },
       {
@@ -354,18 +354,18 @@ export default function AdminWhatsAppPage() {
     setSelectedContact(c);
     setDirectPhone(c.phone || c.formattedPhone);
     setDirectName(c.name || c.squadName || 'Player');
-    setCustomRoomId(c.roomId || 'BRK-ROOM-01');
+    setCustomRoomId(c.roomId || 'EZBD-ROOM-01');
     setCustomRoomPass(c.roomPassword || '1234');
     
     setDirectMessage(
-      `🎮 আসসালামু আলাইকুম ${c.name} (${c.squadName || 'Squad Captain'})!\n\nআপনার "${c.tournamentTitle || 'Black Rock Tournament'}" টুর্নামেন্টের জরুরি নোটিশ:\n🔹 Room ID: ${c.roomId || '98765432'}\n🔹 Password: ${c.roomPassword || '1234'}\n\nসঠিক স্লটে দ্রুত জয়েন করুন! 🔥\nলিঙ্ক: https://brkesports.com`
+      `🎮 আসসালামু আলাইকুম ${c.name} (${c.squadName || 'Squad Captain'})!\n\nআপনার "${c.tournamentTitle || 'EZBD Tournament'}" টুর্নামেন্টের জরুরি নোটিশ:\n🔹 Room ID: ${c.roomId || '98765432'}\n🔹 Password: ${c.roomPassword || '1234'}\n\nসঠিক স্লটে দ্রুত জয়েন করুন! 🔥\nলিঙ্ক: https://esportszonebd.online`
     );
   };
 
   const applyDirectTemplate = (templateType: 'ROOM_ID' | 'VERIFIED' | 'PAYMENT' | 'ANTI_CHEAT') => {
     const name = directName || 'Player';
     const squad = selectedContact?.squadName || 'Squad';
-    const tour = selectedContact?.tournamentTitle || 'Black Rock Tournament';
+    const tour = selectedContact?.tournamentTitle || 'EZBD Tournament';
     const rId = customRoomId || selectedContact?.roomId || '98765432';
     const rPass = customRoomPass || selectedContact?.roomPassword || '1234';
 
@@ -910,7 +910,7 @@ export default function AdminWhatsAppPage() {
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-base sm:text-lg font-black text-white tracking-tight truncate">
-                {zavuStatus?.activeSender?.name || 'Black Rock Esports WhatsApp'}
+                {zavuStatus?.activeSender?.name || 'ESPORTS ZONE BD WhatsApp'}
               </h2>
               {loading || zavuStatus === null ? (
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-500/20 text-slate-400 border border-slate-500/30 flex items-center gap-1">

@@ -285,7 +285,7 @@ export default function AdminShell({ children }: AdminShellProps) {
               </div>
               <div className="whitespace-nowrap">
                 <div className="font-heading font-black text-xl text-slate-900 leading-none flex items-center gap-1.5">
-                  <span>BLACKROCK</span>
+                  <span>ESPORTS ZONE BD</span>
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-brand-red/10 text-brand-red font-mono font-bold">PRO</span>
                 </div>
                 <div className="text-[11px] text-slate-600 font-bold uppercase tracking-wider mt-1">ADMIN DASHBOARD</div>

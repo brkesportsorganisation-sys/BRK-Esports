@@ -340,7 +340,7 @@ export default function AdminChatModerationPage() {
                     <span>{selectedUserModal.inGameName || selectedUserModal.name}</span>
                   </h3>
                   <div className="text-xs font-mono text-blue-600 font-bold">
-                    {selectedUserModal.accountNumber || `BRE-${selectedUserModal.id?.substring(0, 6)?.toUpperCase() || 'MEMBER'}`}
+                    {selectedUserModal.accountNumber || `EZBD-${selectedUserModal.id?.substring(0, 6)?.toUpperCase() || 'MEMBER'}`}
                   </div>
                 </div>
               </div>

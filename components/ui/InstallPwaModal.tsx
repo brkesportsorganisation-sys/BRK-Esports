@@ -55,7 +55,7 @@ export default function InstallPwaModal() {
           </div>
           <div>
             <h4 className="font-black text-sm text-white flex items-center gap-1.5">
-              Install BRK Esports App
+              Install ESPORTS ZONE BD App
             </h4>
             <p className="text-[11px] text-slate-300 leading-tight mt-0.5">
               Install our high-speed mobile app for instant match alerts & fast deposits!

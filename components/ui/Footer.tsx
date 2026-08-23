@@ -25,7 +25,7 @@ export default function Footer() {
                 </div>
               </div>
               <span className="font-heading font-extrabold text-2xl tracking-wider text-slate-900">
-                BLACK ROCK <span className="text-brand-orange">TOURNAMENTS</span>
+                ESPORTS ZONE <span className="text-brand-orange">BD</span>
               </span>
             </Link>
             <p className="text-slate-600 text-sm leading-relaxed max-w-sm">
@@ -94,7 +94,7 @@ export default function Footer() {
         {/* Bottom Banner */}
         <div className="pt-10 mt-10 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-600 text-center md:text-left">
           <div>
-            © {new Date().getFullYear()} Black Rock Tournaments. {t('footer_copyright', 'All rights reserved. Not affiliated with Garena Free Fire.')}
+            © {new Date().getFullYear()} ESPORTS ZONE BD. {t('footer_copyright', 'All rights reserved. Not affiliated with Garena Free Fire.')}
           </div>
           <div className="flex items-center space-x-6">
             <span className="hover:text-slate-900 cursor-pointer transition-colors flex items-center gap-1">

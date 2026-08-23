@@ -621,7 +621,7 @@ export default function SquadDetailsPage({ params }: { params: Promise<{ id: str
                               {isMemberLeader && <span title="Squad Leader">👑</span>}
                             </div>
                             <div className="text-[11px] text-slate-400 font-mono mt-0.5">
-                              Account: <strong className="text-slate-300">{member.accountNumber || 'BRE-XXXXXX'}</strong>
+                              Account: <strong className="text-slate-300">{member.accountNumber || 'EZBD-XXXXXX'}</strong>
                             </div>
                           </div>
                         </div>
@@ -939,7 +939,7 @@ export default function SquadDetailsPage({ params }: { params: Promise<{ id: str
               {/* Search Player by Username or Account Number */}
               <div className="space-y-2">
                 <label className="text-slate-300 font-bold uppercase block text-[11px]">
-                  Search Player by Username / Account No (`BRE-XXXXXX`) / UID *
+                  Search Player by Username / Account No (`EZBD-XXXXXX`) / UID *
                 </label>
                 <div className="relative">
                   <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -1075,7 +1075,7 @@ export default function SquadDetailsPage({ params }: { params: Promise<{ id: str
 
             <div className="space-y-2">
               <a
-                href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`🎮 Join my Free Fire Squad [${squad.tag}] ${squad.name} on Black Rock Esports!\n\nLink: ${shareableJoinUrl}`)}`}
+                href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`🎮 Join my Free Fire Squad [${squad.tag}] ${squad.name} on ESPORTS ZONE BD!\n\nLink: ${shareableJoinUrl}`)}`}
                 target="_blank"
                 rel="noreferrer"
                 className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20"
