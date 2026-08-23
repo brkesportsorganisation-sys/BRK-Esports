@@ -39,12 +39,48 @@ import {
   ArrowRight,
   Zap,
   Shield,
-  ExternalLink
+  ExternalLink,
+  ShoppingBag,
+  Diamond,
+  Package
 } from 'lucide-react';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import { db } from '@/lib/db';
 import { User, Tournament, Team, Squad, Payment, SupportTicket, SupportMessage } from '@/lib/types';
+
+const parseShopOrderDetails = (notes?: string) => {
+  if (!notes) return null;
+  const isShop = notes.toLowerCase().includes('shop order') || notes.toLowerCase().includes('diamond order');
+  if (!isShop) return null;
+
+  const itemMatch = notes.match(/\[(Shop Order|Diamond Order)\]\s*([^|]+)/i);
+  const itemName = itemMatch && itemMatch[2] ? itemMatch[2].trim() : 'Gaming Shop Item';
+
+  const catMatch = notes.match(/Category:\s*([^|]+)/i);
+  const category = catMatch && catMatch[1] ? catMatch[1].trim() : 'FREE_FIRE';
+
+  const uidMatch = notes.match(/UID:\s*([^|]+)/i);
+  const targetUid = uidMatch && uidMatch[1] ? uidMatch[1].trim() : null;
+
+  const ignMatch = notes.match(/IGN:\s*([^|]+)/i);
+  const targetIgn = ignMatch && ignMatch[1] ? ignMatch[1].trim() : null;
+
+  const voucherMatch = notes.match(/Voucher:\s*([^|]+)/i) || notes.match(/Code:\s*([^|]+)/i);
+  const voucherCode = voucherMatch && voucherMatch[1] ? voucherMatch[1].trim() : null;
+
+  const deliveryMatch = notes.match(/Delivery:\s*([^|]+)/i);
+  const deliveryType = deliveryMatch && deliveryMatch[1] ? deliveryMatch[1].trim() : 'In-Game Top-Up';
+
+  return {
+    itemName,
+    category,
+    targetUid,
+    targetIgn,
+    voucherCode,
+    deliveryType,
+  };
+};
 
 const AVATAR_PRESETS = [
   'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=200&auto=format&fit=crop&q=80', // Cyber Samurai
@@ -111,6 +147,7 @@ function ProfilePageContent() {
   const [squads, setSquads] = useState<Squad[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [transactionFilter, setTransactionFilter] = useState<'ALL' | 'SHOP_ORDERS' | 'WALLET'>('ALL');
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
@@ -680,7 +717,7 @@ function ProfilePageContent() {
               { id: 'OVERVIEW', label: 'Overview', shortLabel: 'Overview', icon: Trophy },
               { id: 'TOURNAMENTS', label: 'Tournaments', shortLabel: 'Matches', icon: Gamepad2 },
               { id: 'TEAMS', label: 'My Squad', shortLabel: 'Squad', icon: Users },
-              { id: 'TRANSACTIONS', label: 'Transactions', shortLabel: 'History', icon: CreditCard },
+              { id: 'TRANSACTIONS', label: 'Shop & Orders', shortLabel: 'Orders', icon: ShoppingBag },
               { id: 'SUPPORT', label: 'Help Desk', shortLabel: 'Support', icon: Headphones },
             ].map((t) => {
               const Icon = t.icon;
@@ -1142,51 +1179,281 @@ function ProfilePageContent() {
           </div>
         )}
 
-        {/* Tab 4: Transactions */}
-        {activeTab === 'TRANSACTIONS' && (
-          <div className="bg-white rounded-[2rem] overflow-hidden border border-slate-200 shadow-sm">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm whitespace-nowrap">
-                <thead className="bg-slate-50 text-xs font-bold uppercase text-slate-700 border-b border-slate-200">
-                  <tr>
-                    <th className="p-4 pl-6">TrxID</th>
-                    <th className="p-4">Method</th>
-                    <th className="p-4">Amount</th>
-                    <th className="p-4">Status</th>
-                    <th className="p-4 pr-6">Date</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {payments.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="p-8 text-center text-slate-600 text-sm font-medium">
-                        No transactions recorded yet.
-                      </td>
-                    </tr>
+        {/* Tab 4: Shop Orders & Transactions */}
+        {activeTab === 'TRANSACTIONS' && (() => {
+          const shopOrders = payments.filter(p => parseShopOrderDetails(p.notes) !== null);
+          const walletTransactions = payments.filter(p => parseShopOrderDetails(p.notes) === null);
+
+          return (
+            <div className="space-y-6">
+              {/* Header & Sub-Tab Filter Pills */}
+              <div className="bg-white p-4 sm:p-5 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div>
+                  <h3 className="font-heading font-black text-lg sm:text-xl text-slate-900 flex items-center gap-2">
+                    <ShoppingBag className="w-5 h-5 text-orange-500" />
+                    <span>Purchases, Orders & Transactions</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Track your Free Fire diamond top-ups, membership passes, order delivery status and wallet deposits.
+                  </p>
+                </div>
+
+                {/* Segmented Filter Pills */}
+                <div className="flex items-center gap-1 bg-slate-100 p-1.5 rounded-2xl w-full sm:w-auto overflow-x-auto">
+                  <button
+                    type="button"
+                    onClick={() => setTransactionFilter('ALL')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                      transactionFilter === 'ALL'
+                        ? 'bg-white text-slate-900 shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    All Activity ({payments.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTransactionFilter('SHOP_ORDERS')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                      transactionFilter === 'SHOP_ORDERS'
+                        ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <Diamond className="w-3.5 h-3.5" />
+                    <span>Shop Orders ({shopOrders.length})</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTransactionFilter('WALLET')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                      transactionFilter === 'WALLET'
+                        ? 'bg-white text-slate-900 shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <CreditCard className="w-3.5 h-3.5" />
+                    <span>Wallet ({walletTransactions.length})</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 1. Shop Orders Section (when SHOP_ORDERS or ALL is active) */}
+              {(transactionFilter === 'SHOP_ORDERS' || transactionFilter === 'ALL') && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between px-1">
+                    <h4 className="font-heading font-black text-xs sm:text-sm text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                      <Diamond className="w-4 h-4 text-cyan-500" />
+                      <span>Gaming Shop Orders & Purchases ({shopOrders.length})</span>
+                    </h4>
+                    <Link
+                      href="/shop"
+                      className="text-xs font-bold text-orange-600 hover:underline flex items-center gap-1"
+                    >
+                      <span>Visit Shop</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </Link>
+                  </div>
+
+                  {shopOrders.length === 0 ? (
+                    <div className="bg-white rounded-3xl p-8 border border-slate-200 text-center space-y-3">
+                      <div className="w-14 h-14 rounded-2xl bg-orange-50 text-orange-500 border border-orange-200 flex items-center justify-center mx-auto">
+                        <ShoppingBag className="w-7 h-7" />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="font-heading font-black text-base text-slate-900">No shop purchases yet</div>
+                        <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                          You have not placed any Free Fire diamond top-ups or shop orders yet. Browse the shop to purchase items with Wallet Taka or BRK Coins!
+                        </p>
+                      </div>
+                      <Link
+                        href="/shop"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-red-500 to-orange-500 text-white text-xs font-bold shadow-sm hover:opacity-95"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                        <span>Browse Gaming Shop</span>
+                      </Link>
+                    </div>
                   ) : (
-                    payments.map((p) => (
-                      <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="p-4 pl-6 font-mono text-xs text-cyan-600 font-bold">{p.trxId}</td>
-                        <td className="p-4 font-bold text-slate-900">{p.method}</td>
-                        <td className="p-4 font-bold text-orange-500">৳ {p.amount}</td>
-                        <td className="p-4">
-                          <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${
-                            p.status === 'VERIFIED' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' :
-                            p.status === 'PENDING' ? 'bg-amber-50 text-amber-600 border border-amber-200' :
-                            'bg-red-50 text-red-600 border border-red-200'
-                          }`}>
-                            {p.status}
-                          </span>
-                        </td>
-                        <td className="p-4 pr-6 text-xs text-slate-600 font-medium">{new Date(p.createdAt).toLocaleDateString()}</td>
-                      </tr>
-                    ))
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {shopOrders.map((p) => {
+                        const details = parseShopOrderDetails(p.notes);
+                        const isVerified = p.status === 'VERIFIED';
+                        const isPending = p.status === 'PENDING';
+                        const isRejected = p.status === 'REJECTED';
+
+                        return (
+                          <div
+                            key={p.id}
+                            className="bg-white rounded-3xl border border-slate-200 hover:border-orange-300 p-5 space-y-4 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+                          >
+                            <div className="space-y-3">
+                              {/* Card Top: Item & Status Badge */}
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-500/15 via-blue-500/10 to-transparent border border-cyan-200 text-cyan-600 flex items-center justify-center font-bold shrink-0 shadow-2xs">
+                                    <Diamond className="w-6 h-6 text-cyan-500" />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <h4 className="font-heading font-black text-slate-900 text-sm sm:text-base truncate">
+                                      {details?.itemName || 'Gaming Item'}
+                                    </h4>
+                                    <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5 font-mono">
+                                      <span>Trx: <strong className="text-slate-700">{p.trxId}</strong></span>
+                                      <span>•</span>
+                                      <span>{new Date(p.createdAt).toLocaleDateString()}</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <span className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shrink-0 ${
+                                  isVerified
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs'
+                                    : isPending
+                                    ? 'bg-amber-50 text-amber-700 border border-amber-200 animate-pulse'
+                                    : 'bg-rose-50 text-rose-700 border border-rose-200'
+                                }`}>
+                                  {isVerified ? (
+                                    <>
+                                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                      <span>Delivered</span>
+                                    </>
+                                  ) : isPending ? (
+                                    <>
+                                      <Clock className="w-3.5 h-3.5 text-amber-600" />
+                                      <span>Pending</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
+                                      <span>Cancelled</span>
+                                    </>
+                                  )}
+                                </span>
+                              </div>
+
+                              {/* Player Info & Price Box */}
+                              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 space-y-2 text-xs">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-slate-500 font-medium">Target Free Fire UID:</span>
+                                  <span className="font-mono font-bold text-slate-900 bg-white px-2 py-0.5 rounded-lg border border-slate-200">
+                                    {details?.targetUid || user?.freeFireUid || 'N/A'}
+                                  </span>
+                                </div>
+                                {details?.targetIgn && (
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-slate-500 font-medium">Player IGN:</span>
+                                    <span className="font-bold text-slate-900">{details.targetIgn}</span>
+                                  </div>
+                                )}
+                                <div className="flex items-center justify-between pt-1 border-t border-slate-200/60">
+                                  <span className="text-slate-500 font-medium">Total Paid:</span>
+                                  <span className="font-heading font-black text-orange-600 flex items-center gap-1 text-sm">
+                                    {p.method === 'COINS' ? <Coins className="w-3.5 h-3.5 text-amber-500" /> : '৳'}
+                                    {p.amount} {p.method === 'COINS' ? 'Coins' : ''}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Status Notes & Voucher Box */}
+                              {isPending && (
+                                <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-2xl text-[11px] text-amber-900 flex items-start gap-2">
+                                  <Clock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                                  <div>
+                                    <strong>Delivery Pending (প্রসেসিং হচ্ছে):</strong> আপনার অর্ডারটি সফলভাবে জমা হয়েছে। অ্যাডমিন ভেরিফাই করে অল্প সময়ের মধ্যেই আপনার ফ্রি ফায়ার UID-তে টপ-আপ প্রদান করবেন।
+                                  </div>
+                                </div>
+                              )}
+
+                              {isVerified && (
+                                <div className="p-3 bg-emerald-50/80 border border-emerald-200 rounded-2xl text-[11px] text-emerald-900 flex items-start gap-2">
+                                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                                  <div className="space-y-1">
+                                    <div>
+                                      <strong>Confirmed & Delivered (ডেলিভার সম্পন্ন):</strong> আপনার আইটেমটি সফলভাবে ডেলিভারি সম্পন্ন হয়েছে!
+                                    </div>
+                                    {details?.voucherCode && (
+                                      <div className="mt-1 font-mono font-bold text-emerald-900 bg-white px-2.5 py-1 rounded-xl border border-emerald-300 inline-flex items-center gap-1.5 shadow-2xs">
+                                        <span>Redeem Voucher:</span>
+                                        <span className="text-orange-600 select-all">{details.voucherCode}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
+                              {isRejected && (
+                                <div className="p-3 bg-rose-50/80 border border-rose-200 rounded-2xl text-[11px] text-rose-900 flex items-start gap-2">
+                                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                                  <div>
+                                    <strong>Order Cancelled & Refunded (বাতিল ও রিফান্ডেড):</strong> অর্ডারটি বাতিল করা হয়েছে এবং সম্পূর্ণ {p.amount} {p.method === 'COINS' ? 'কয়েন' : 'টাকা'} আপনার একাউন্ট ব্যালেন্সে রিফান্ড করা হয়েছে।
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   )}
-                </tbody>
-              </table>
+                </div>
+              )}
+
+              {/* 2. Wallet Transactions Section (when WALLET or ALL is active) */}
+              {(transactionFilter === 'WALLET' || transactionFilter === 'ALL') && (
+                <div className="space-y-3">
+                  <h4 className="font-heading font-black text-xs sm:text-sm text-slate-700 uppercase tracking-wider flex items-center gap-2 px-1">
+                    <CreditCard className="w-4 h-4 text-emerald-500" />
+                    <span>Wallet Deposits, Withdrawals & Payouts ({walletTransactions.length})</span>
+                  </h4>
+
+                  <div className="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-sm">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-sm whitespace-nowrap">
+                        <thead className="bg-slate-50 text-xs font-bold uppercase text-slate-700 border-b border-slate-200">
+                          <tr>
+                            <th className="p-4 pl-6">TrxID</th>
+                            <th className="p-4">Method</th>
+                            <th className="p-4">Amount</th>
+                            <th className="p-4">Status</th>
+                            <th className="p-4 pr-6">Date</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {walletTransactions.length === 0 ? (
+                            <tr>
+                              <td colSpan={5} className="p-8 text-center text-slate-600 text-sm font-medium">
+                                No wallet transactions recorded yet.
+                              </td>
+                            </tr>
+                          ) : (
+                            walletTransactions.map((p) => (
+                              <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
+                                <td className="p-4 pl-6 font-mono text-xs text-cyan-600 font-bold">{p.trxId}</td>
+                                <td className="p-4 font-bold text-slate-900">{p.method}</td>
+                                <td className="p-4 font-bold text-orange-500">৳ {p.amount}</td>
+                                <td className="p-4">
+                                  <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${
+                                    p.status === 'VERIFIED' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' :
+                                    p.status === 'PENDING' ? 'bg-amber-50 text-amber-600 border border-amber-200' :
+                                    'bg-red-50 text-red-600 border border-red-200'
+                                  }`}>
+                                    {p.status}
+                                  </span>
+                                </td>
+                                <td className="p-4 pr-6 text-xs text-slate-600 font-medium">{new Date(p.createdAt).toLocaleDateString()}</td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Tab 5: Admin Support Chat */}
         {activeTab === 'SUPPORT' && (
