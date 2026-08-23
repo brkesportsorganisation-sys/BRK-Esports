@@ -153,6 +153,11 @@ export default function AIAssistantWidget() {
     }
   }, [messages, isOpen, isLoading]);
 
+  const [isRecordingAudio, setIsRecordingAudio] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+
   // Stop any active audio/speech
   const stopAllSpeech = () => {
     if (audioRef.current) {
@@ -169,91 +174,206 @@ export default function AIAssistantWidget() {
     setIsSpeechLoading(false);
   };
 
-  // Web Speech API for Bangla Voice Input (Speech-to-Text)
-  const toggleVoiceInput = () => {
+  // Helper: Start Fallback MediaRecorder Audio Recording & AI Transcription
+  const startMediaRecorderFallback = (stream: MediaStream) => {
+    try {
+      mediaStreamRef.current = stream;
+      const mimeType = (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported('audio/webm'))
+        ? 'audio/webm'
+        : (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported('audio/mp4'))
+        ? 'audio/mp4'
+        : '';
+
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      audioChunksRef.current = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          audioChunksRef.current.push(e.data);
+        }
+      };
+
+      recorder.onstart = () => {
+        setIsRecordingAudio(true);
+        setIsListening(true);
+        setVoiceToast('🎙️ রেকর্ড হচ্ছে... কথা শেষ হলে আবার চাপুন...');
+      };
+
+      recorder.onstop = async () => {
+        setIsRecordingAudio(false);
+        setIsListening(false);
+        setVoiceToast('⚡ ভয়েস প্রসেসিং হচ্ছে...');
+        stream.getTracks().forEach((t) => t.stop());
+
+        if (audioChunksRef.current.length === 0) {
+          setVoiceToast(null);
+          return;
+        }
+
+        const audioBlob = new Blob(audioChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+        const formData = new FormData();
+        formData.append('audio', audioBlob, 'voice.webm');
+        formData.append('mimeType', recorder.mimeType || 'audio/webm');
+
+        try {
+          const res = await fetch('/api/ai/stt', {
+            method: 'POST',
+            body: formData,
+          });
+          const data = await res.json();
+          if (data.success && data.text) {
+            setInput(data.text);
+            setVoiceToast(null);
+            setTimeout(() => {
+              handleSendMessage(data.text);
+            }, 300);
+          } else {
+            setVoiceToast('ভয়েস স্পষ্ট শোনা যায়নি। আবার বলুন বা লিখে পাঠান।');
+            setTimeout(() => setVoiceToast(null), 3000);
+          }
+        } catch (err) {
+          setVoiceToast('ভয়েস প্রসেসিংয়ে সমস্যা হয়েছে।');
+          setTimeout(() => setVoiceToast(null), 3000);
+        }
+      };
+
+      mediaRecorderRef.current = recorder;
+      recorder.start(250);
+    } catch (recErr) {
+      setIsListening(false);
+      setIsRecordingAudio(false);
+      stream.getTracks().forEach((t) => t.stop());
+      setVoiceToast('ভয়েস রেকর্ড শুরু করা যায়নি।');
+      setTimeout(() => setVoiceToast(null), 3000);
+    }
+  };
+
+  // Robust Voice Input (Speech-to-Text) with Auto Permission & Fallbacks
+  const toggleVoiceInput = async () => {
     if (typeof window === 'undefined') return;
 
-    const SpeechRecognitionClass = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    
-    if (!SpeechRecognitionClass) {
-      setVoiceToast('ভয়েস ইনপুটের জন্য Google Chrome, Edge অথবা Safari ব্রাউজার ব্যবহার করুন।');
-      setTimeout(() => setVoiceToast(null), 4000);
-      return;
-    }
-
-    if (isListening) {
+    // If currently listening/recording, stop it
+    if (isListening || isRecordingAudio) {
       if (recognitionRef.current) {
         try {
           recognitionRef.current.stop();
         } catch {}
       }
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+        try {
+          mediaRecorderRef.current.stop();
+        } catch {}
+      }
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach((t) => t.stop());
+      }
       setIsListening(false);
+      setIsRecordingAudio(false);
+      setVoiceToast(null);
       return;
     }
 
+    // 1. Explicitly request Microphone Permission first
+    let stream: MediaStream | null = null;
     try {
-      const recognition = new SpeechRecognitionClass();
-      recognition.continuous = false;
-      recognition.interimResults = true;
-      recognition.lang = 'bn-BD';
-      recognition.maxAlternatives = 1;
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      }
+    } catch (permErr) {
+      console.warn('Microphone permission notice:', permErr);
+      setVoiceToast('⚠️ মাইক্রোফোন এক্সেস অন করুন (Please allow microphone access)');
+      setTimeout(() => setVoiceToast(null), 4000);
+      return;
+    }
 
-      recognition.onstart = () => {
-        setIsListening(true);
-        setVoiceToast('🎙️ শুনছি... এখন বাংলায় কথা বলুন...');
-      };
+    const SpeechRecognitionClass = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
-      recognition.onresult = (event: any) => {
-        let interimTranscript = '';
-        let finalTranscript = '';
+    // 2. Try Native Web Speech Recognition
+    if (SpeechRecognitionClass) {
+      try {
+        const recognition = new SpeechRecognitionClass();
+        recognition.continuous = false;
+        recognition.interimResults = true;
+        recognition.lang = 'bn-BD';
+        recognition.maxAlternatives = 1;
 
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          if (event.results[i].isFinal) {
-            finalTranscript += event.results[i][0].transcript;
-          } else {
-            interimTranscript += event.results[i][0].transcript;
+        let autoSendTimer: any = null;
+
+        recognition.onstart = () => {
+          setIsListening(true);
+          setVoiceToast('🎙️ শুনছি... এখন বাংলায় কথা বলুন...');
+        };
+
+        recognition.onresult = (event: any) => {
+          let interimTranscript = '';
+          let finalTranscript = '';
+
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+              finalTranscript += event.results[i][0].transcript;
+            } else {
+              interimTranscript += event.results[i][0].transcript;
+            }
           }
-        }
 
-        const currentText = finalTranscript || interimTranscript;
-        if (currentText) {
-          setInput(currentText);
-        }
+          const currentText = finalTranscript || interimTranscript;
+          if (currentText && currentText.trim()) {
+            setInput(currentText.trim());
+          }
 
-        if (finalTranscript) {
+          if (finalTranscript && finalTranscript.trim()) {
+            setIsListening(false);
+            setVoiceToast(null);
+            if (autoSendTimer) clearTimeout(autoSendTimer);
+            autoSendTimer = setTimeout(() => {
+              handleSendMessage(finalTranscript.trim());
+            }, 300);
+          }
+        };
+
+        recognition.onerror = (event: any) => {
+          console.warn('SpeechRecognition error:', event.error);
+          if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+            setIsListening(false);
+            setVoiceToast('⚠️ মাইক্রোফোন অনুমতি দিন (Microphone permission needed)');
+            setTimeout(() => setVoiceToast(null), 3500);
+            return;
+          }
+
+          // Fallback to MediaRecorder if web speech fails on network or recognizer
+          if (stream) {
+            startMediaRecorderFallback(stream);
+          } else {
+            setIsListening(false);
+            setVoiceToast('ভয়েস শনাক্তকরণে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
+            setTimeout(() => setVoiceToast(null), 3500);
+          }
+        };
+
+        recognition.onend = () => {
           setIsListening(false);
-          setVoiceToast(null);
+          if (stream) {
+            stream.getTracks().forEach((t) => t.stop());
+          }
           setTimeout(() => {
-            handleSendMessage(finalTranscript);
-          }, 350);
-        }
-      };
+            setVoiceToast((prev) => (prev?.includes('🎙️') ? null : prev));
+          }, 1000);
+        };
 
-      recognition.onerror = (event: any) => {
-        setIsListening(false);
-        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-          setVoiceToast('⚠️ মাইক্রোফোন ব্যবহারের অনুমতি দিন (Microphone permission needed)');
-        } else if (event.error === 'no-speech') {
-          setVoiceToast('কোনো কথা শোনা যায়নি। আবার চেষ্টা করুন।');
-        } else {
-          setVoiceToast('ভয়েস শনাক্তকরণে সমস্যা হয়েছে। আবার ট্রাই করুন।');
-        }
-        setTimeout(() => setVoiceToast(null), 3500);
-      };
+        recognitionRef.current = recognition;
+        recognition.start();
+        return;
+      } catch (speechErr) {
+        console.warn('Speech recognition init error:', speechErr);
+      }
+    }
 
-      recognition.onend = () => {
-        setIsListening(false);
-        setTimeout(() => {
-          setVoiceToast(prev => prev?.includes('🎙️') ? null : prev);
-        }, 1000);
-      };
-
-      recognitionRef.current = recognition;
-      recognition.start();
-    } catch (err: any) {
-      setIsListening(false);
-      setVoiceToast('ভয়েস ইনপুট চালু করা যায়নি। অনুগ্রহ করে টাইপ করুন।');
-      setTimeout(() => setVoiceToast(null), 3500);
+    // 3. Fallback: MediaRecorder Audio Speech-to-Text
+    if (stream) {
+      startMediaRecorderFallback(stream);
+    } else {
+      setVoiceToast('ভয়েস ইনপুট সমর্থিত নয়। অনুগ্রহ করে টাইপ করুন।');
+      setTimeout(() => setVoiceToast(null), 4000);
     }
   };
 
