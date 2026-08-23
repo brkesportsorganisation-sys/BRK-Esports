@@ -1623,21 +1623,6 @@ function ProfilePageContent() {
                   supportMessages.map((msg) => {
                     const isUser = msg.senderRole === 'USER';
                     const isAdmin = msg.senderRole === 'ADMIN';
-                    const isSystem = msg.senderRole === 'SYSTEM';
-
-                    if (isSystem) {
-                      return (
-                        <div key={msg.id} className="flex justify-center my-3">
-                          <div className="max-w-lg bg-indigo-50 border border-indigo-200 text-indigo-900 text-xs p-4 rounded-2xl shadow-2xs space-y-1">
-                            <div className="font-bold flex items-center gap-1.5 text-indigo-700">
-                              <Sparkles className="w-4 h-4 text-indigo-500" />
-                              <span>{msg.userName || 'Black Rock Support Bot'}</span>
-                            </div>
-                            <div className="whitespace-pre-wrap leading-relaxed">{msg.content}</div>
-                          </div>
-                        </div>
-                      );
-                    }
 
                     return (
                       <div

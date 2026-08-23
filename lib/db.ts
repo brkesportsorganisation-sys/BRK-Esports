@@ -691,6 +691,28 @@ class LocalDatabase {
     return newMsg;
   }
 
+  getAllSupportMessages(): SupportMessage[] {
+    return [...this.supportMessages];
+  }
+
+  purgeSupportMessages(olderThanIsoDate: string): number {
+    const cutoffTime = new Date(olderThanIsoDate).getTime();
+    const initialCount = this.supportMessages.length;
+    this.supportMessages = this.supportMessages.filter(m => new Date(m.createdAt).getTime() >= cutoffTime);
+    const deletedCount = initialCount - this.supportMessages.length;
+    if (deletedCount > 0) {
+      this.save();
+    }
+    return deletedCount;
+  }
+
+  purgeAllSupportMessages(): number {
+    const count = this.supportMessages.length;
+    this.supportMessages = [];
+    this.save();
+    return count;
+  }
+
   resolveSupportTicket(id: string): boolean {
     const ticket = this.getSupportTicketById(id);
     if (!ticket) return false;

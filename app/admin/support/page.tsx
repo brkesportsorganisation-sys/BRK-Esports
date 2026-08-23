@@ -16,16 +16,24 @@ import {
   Phone,
   Mail,
   Sparkles,
-  Bot
+  Download,
+  Trash2,
+  Database,
+  Archive,
+  Check,
+  X,
+  FileText,
+  ShieldAlert,
+  Crown
 } from 'lucide-react';
 import { SupportTicket, SupportMessage } from '@/lib/types';
 
 const CANNED_REPLIES = [
-  '👋 আসসালামু আলাইকুম! আমি সাপোর্ট অ্যাডমিন। আপনার কি সমস্যা হচ্ছে বলুন?',
-  '📌 দ্রুততম লাইভ সহায়তার জন্য আমাদের Discord সার্ভারে যোগ দিন: https://discord.gg/blackrock-esports',
-  '🔑 আপনার টুর্নামেন্টের নাম এবং ফ্রি ফায়ার UID দিন, চেক করে দিচ্ছি।',
-  '💰 বিকাশ/নগদ ডিপোজিট বা উইথড্রোর ট্রানজেকশন আইডি (TrxID) দিন।',
-  '✅ আপনার সমস্যার সমাধান করে দেওয়া হয়েছে। ধন্যবাদ Black Rock Esports এর সাথে থাকার জন্য!'
+  '👋 আসসালামু আলাইকুম! Black Rock Esports সাপোর্ট থেকে অ্যাডমিন বলছি। আপনাকে কীভাবে সহায়তা করতে পারি?',
+  '🔑 আপনার টুর্নামেন্টের নাম এবং ফ্রি ফায়ার UID টি লিখে পাঠান, দ্রুত চেক করে দিচ্ছি।',
+  '💰 বিকাশ/নগদ ডিপোজিট বা উইথড্রোর ট্রানজেকশন আইডি (TrxID) নাম্বারটি দিন।',
+  '✅ আপনার সমস্যার সমাধান করে দেওয়া হয়েছে। আর কোনো বিষয়ে সহায়তার প্রয়োজন আছে কি?',
+  '📌 যেকোনো জরুরি নোটিফিকেশন পেতে আমাদের অফিশিয়াল Discord সার্ভারে যোগ দিন: https://discord.gg/blackrock-esports'
 ];
 
 export default function AdminSupportPage() {
@@ -38,6 +46,18 @@ export default function AdminSupportPage() {
   const [sendingReply, setSendingReply] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'ALL' | 'OPEN' | 'RESOLVED'>('ALL');
+
+  // Backup & Archive Modal State
+  const [backupModalOpen, setBackupModalOpen] = useState(false);
+  const [backupStats, setBackupStats] = useState<{
+    totalConversations: number;
+    totalMessages: number;
+    activeMessagesCount: number;
+    archivedMessagesCount: number;
+  } | null>(null);
+  const [loadingBackupStats, setLoadingBackupStats] = useState(false);
+  const [isPurging, setIsPurging] = useState(false);
+  const [purgeSuccessMsg, setPurgeSuccessMsg] = useState('');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -85,9 +105,65 @@ export default function AdminSupportPage() {
     }
   };
 
+  const fetchBackupStats = async () => {
+    setLoadingBackupStats(true);
+    try {
+      const res = await fetch('/api/admin/support/backup');
+      if (res.ok) {
+        const data = await res.json();
+        setBackupStats(data.stats || null);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch backup stats:', err);
+    } finally {
+      setLoadingBackupStats(false);
+    }
+  };
+
+  const handleOpenBackupModal = () => {
+    setBackupModalOpen(true);
+    setPurgeSuccessMsg('');
+    fetchBackupStats();
+  };
+
+  const handleDownloadBackup = (scope: 'archived' | 'all') => {
+    window.open(`/api/admin/support/backup?download=true&scope=${scope}`, '_blank');
+  };
+
+  const handlePurgeArchived = async () => {
+    const confirmed = window.confirm(
+      '⚠️ Are you sure you want to permanently delete all archived messages older than 30 days from the database?\n\nPlease make sure you have downloaded a backup first if you need to keep records.'
+    );
+    if (!confirmed) return;
+
+    setIsPurging(true);
+    setPurgeSuccessMsg('');
+    try {
+      const res = await fetch('/api/admin/support/backup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'PURGE_ARCHIVED' }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setPurgeSuccessMsg(`✅ ${data.message} (${data.deletedCount} messages deleted).`);
+        fetchBackupStats();
+        fetchTickets();
+        if (activeTicket) fetchMessages(activeTicket.id);
+      } else {
+        alert(data.error || 'Failed to purge archived messages.');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Network error purging archived messages.');
+    } finally {
+      setIsPurging(false);
+    }
+  };
+
   useEffect(() => {
     fetchTickets();
-    const interval = setInterval(fetchTickets, 6000);
+    const interval = setInterval(fetchTickets, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -104,7 +180,7 @@ export default function AdminSupportPage() {
           }
         })
         .catch(() => {});
-    }, 4000);
+    }, 3000);
     return () => clearInterval(interval);
   }, [activeTicket?.id, messages.length]);
 
@@ -117,7 +193,10 @@ export default function AdminSupportPage() {
     if (e) e.preventDefault();
     if (!activeTicket || !replyText.trim() || sendingReply) return;
 
+    const textToSend = replyText.trim();
+    setReplyText('');
     setSendingReply(true);
+
     try {
       const res = await fetch('/api/support', {
         method: 'POST',
@@ -126,14 +205,13 @@ export default function AdminSupportPage() {
           action: 'SEND_ADMIN_REPLY',
           ticketId: activeTicket.id,
           adminName: 'Admin Support',
-          content: replyText.trim(),
+          content: textToSend,
         }),
       });
 
       if (res.ok) {
         const data = await res.json();
         setMessages(data.messages || []);
-        setReplyText('');
         scrollToBottom();
         fetchTickets();
       }
@@ -175,41 +253,66 @@ export default function AdminSupportPage() {
   });
 
   return (
-    <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
       
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-6 rounded-3xl text-white shadow-xl border border-slate-700">
+      {/* Header with WhatsApp / Messenger Style & Backup Button */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-5 sm:p-6 rounded-[2rem] text-white shadow-xl border border-slate-700">
         <div className="space-y-1">
           <div className="flex items-center gap-2.5">
-            <span className="p-2 rounded-xl bg-orange-500/20 text-orange-400 border border-orange-500/30">
-              <Headphones className="w-5 h-5" />
+            <span className="p-2.5 rounded-2xl bg-orange-500/20 text-orange-400 border border-orange-500/30 shadow-inner">
+              <Headphones className="w-5 h-5 text-brand-orange" />
             </span>
-            <h1 className="text-2xl font-black font-heading tracking-wide">
-              Live Support & User Inquiries Desk
-            </h1>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-black font-heading tracking-wide flex items-center gap-2">
+                <span>Support Live Messenger</span>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold border border-emerald-500/30">
+                  1-to-1 DMs Active
+                </span>
+              </h1>
+              <p className="text-xs text-slate-300">
+                Single unified chat thread per user account • 30-day live retention policy.
+              </p>
+            </div>
           </div>
-          <p className="text-xs text-slate-300">
-            Real-time player support chat with automated Discord invitations & instant admin replies.
-          </p>
         </div>
 
-        <button
-          onClick={fetchTickets}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-600 transition-colors cursor-pointer"
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-          <span>Refresh Inbox</span>
-        </button>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <button
+            onClick={handleOpenBackupModal}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-heading font-black shadow-md hover:brightness-110 transition-all cursor-pointer"
+          >
+            <Archive className="w-4 h-4" />
+            <span>Chat Backups &amp; 30-Day Archive</span>
+          </button>
+
+          <button
+            onClick={fetchTickets}
+            className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-600 transition-colors cursor-pointer"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Refresh</span>
+          </button>
+        </div>
       </div>
 
-      {/* Main Inbox Grid */}
+      {/* Main Inbox Grid (WhatsApp Web / Messenger Layout) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[720px]">
         
-        {/* Left Column: Tickets List (4 cols) */}
+        {/* Left Column: WhatsApp-style User Threads (4 cols) */}
         <div className="lg:col-span-4 bg-white rounded-3xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
           
           {/* Filter & Search Header */}
-          <div className="p-4 border-b border-slate-100 space-y-3">
+          <div className="p-4 border-b border-slate-100 space-y-3 bg-slate-50/50">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black font-heading text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                <MessageSquare className="w-4 h-4 text-brand-orange" />
+                <span>Conversations ({tickets.length})</span>
+              </span>
+              <span className="text-[10px] text-slate-500 font-mono font-bold bg-white px-2 py-0.5 rounded-lg border border-slate-200">
+                30D Live
+              </span>
+            </div>
+
             <div className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
@@ -217,7 +320,7 @@ export default function AdminSupportPage() {
                 placeholder="Search by name, phone or message..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:border-brand-orange"
+                className="w-full bg-white border border-slate-200 rounded-xl pl-9 pr-4 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:border-brand-orange"
               />
             </div>
 
@@ -229,7 +332,7 @@ export default function AdminSupportPage() {
                   className={`flex-1 py-1.5 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
                     filterStatus === st
                       ? 'bg-slate-900 text-white shadow-xs'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/70'
                   }`}
                 >
                   {st}
@@ -238,59 +341,65 @@ export default function AdminSupportPage() {
             </div>
           </div>
 
-          {/* Tickets List */}
+          {/* User Conversations List */}
           <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
             {loadingTickets ? (
               <div className="p-8 text-center text-xs text-slate-400 font-bold space-y-2">
                 <RefreshCw className="w-5 h-5 animate-spin mx-auto text-brand-orange" />
-                <span>Loading tickets...</span>
+                <span>Loading conversations...</span>
               </div>
             ) : filteredTickets.length === 0 ? (
               <div className="p-8 text-center text-xs text-slate-500 font-bold space-y-2">
                 <MessageSquare className="w-8 h-8 mx-auto text-slate-300" />
-                <span>No support tickets found.</span>
+                <span>No conversations found.</span>
               </div>
             ) : (
-              filteredTickets.map((ticket) => {
-                const isSelected = activeTicket?.id === ticket.id;
+              filteredTickets.map((t) => {
+                const isSelected = activeTicket?.id === t.id;
                 return (
                   <button
-                    key={ticket.id}
-                    onClick={() => handleSelectTicket(ticket)}
-                    className={`w-full text-left p-4 transition-all cursor-pointer flex items-start gap-3 relative ${
-                      isSelected ? 'bg-orange-50/80 border-l-4 border-brand-orange' : 'hover:bg-slate-50'
+                    key={t.id}
+                    onClick={() => handleSelectTicket(t)}
+                    className={`w-full p-4 text-left transition-all flex items-start gap-3 cursor-pointer select-none ${
+                      isSelected
+                        ? 'bg-orange-50/70 border-l-4 border-brand-orange'
+                        : 'hover:bg-slate-50 bg-white'
                     }`}
                   >
-                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-red/20 to-brand-orange/20 text-brand-orange flex items-center justify-center font-bold text-sm flex-shrink-0">
-                      {ticket.userName.charAt(0).toUpperCase()}
+                    <div className="relative shrink-0">
+                      <img
+                        src={`https://api.dicebear.com/7.x/bottts/svg?seed=${t.userName || t.userId}`}
+                        alt={t.userName}
+                        className="w-11 h-11 rounded-2xl object-cover border border-slate-200 bg-white shadow-2xs"
+                      />
+                      {t.status === 'OPEN' && (
+                        <span className="w-3 h-3 rounded-full bg-emerald-500 border-2 border-white absolute -bottom-0.5 -right-0.5 shadow-xs" />
+                      )}
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-1 mb-1">
-                        <span className="font-heading font-black text-xs text-slate-900 truncate">
-                          {ticket.userName}
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="font-heading font-black text-xs sm:text-sm text-slate-900 truncate">
+                          {t.userName || 'Player'}
                         </span>
-                        <span className="text-[10px] text-slate-400 font-mono flex-shrink-0">
-                          {new Date(ticket.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        <span className="text-[10px] text-slate-400 shrink-0 font-mono">
+                          {new Date(t.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
 
-                      <p className="text-xs text-slate-600 truncate font-medium">
-                        {ticket.lastMessage}
-                      </p>
+                      <div className="text-[11px] text-slate-500 truncate mt-0.5 font-medium">
+                        {t.lastMessage || 'No messages yet'}
+                      </div>
 
-                      <div className="flex items-center gap-2 mt-1.5">
-                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
-                          ticket.status === 'OPEN' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
-                        }`}>
-                          {ticket.status}
+                      <div className="flex items-center justify-between gap-2 mt-1.5">
+                        <span className="text-[10px] text-slate-400 font-mono truncate">
+                          {t.userPhone ? `📞 ${t.userPhone}` : `UID: ${t.userId.substring(0, 8)}`}
                         </span>
-
-                        {ticket.unreadCountAdmin > 0 && (
-                          <span className="px-1.5 py-0.2 rounded-full bg-brand-red text-white text-[9px] font-black animate-pulse">
-                            {ticket.unreadCountAdmin} New
-                          </span>
-                        )}
+                        <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider ${
+                          t.status === 'RESOLVED' ? 'bg-slate-100 text-slate-600' : 'bg-orange-100 text-orange-700'
+                        }`}>
+                          {t.status}
+                        </span>
                       </div>
                     </div>
                   </button>
@@ -298,107 +407,114 @@ export default function AdminSupportPage() {
               })
             )}
           </div>
-
         </div>
 
-        {/* Right Column: Active Conversation (8 cols) */}
+        {/* Right Column: Messenger Chat Thread View (8 cols) */}
         <div className="lg:col-span-8 bg-white rounded-3xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
-          
           {activeTicket ? (
             <>
-              {/* Chat Header */}
-              <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-black">
-                    {activeTicket.userName.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <h3 className="font-heading font-black text-sm text-slate-900 flex items-center gap-2">
+              {/* Chat Thread Header */}
+              <div className="p-4 sm:p-5 bg-white border-b border-slate-200 flex items-center justify-between shadow-2xs gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <img
+                    src={`https://api.dicebear.com/7.x/bottts/svg?seed=${activeTicket.userName || activeTicket.userId}`}
+                    alt={activeTicket.userName}
+                    className="w-10 h-10 rounded-2xl object-cover border border-slate-200 bg-white shadow-2xs shrink-0"
+                  />
+                  <div className="min-w-0">
+                    <h4 className="font-heading font-black text-slate-900 text-base truncate flex items-center gap-2">
                       <span>{activeTicket.userName}</span>
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
-                        activeTicket.status === 'OPEN' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'
-                      }`}>
-                        {activeTicket.status}
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-mono font-bold border border-emerald-200">
+                        Live User
                       </span>
-                    </h3>
-                    <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-0.5">
-                      {activeTicket.userPhone && (
-                        <span className="flex items-center gap-1 font-mono">
-                          <Phone className="w-3 h-3 text-slate-400" />
-                          {activeTicket.userPhone}
-                        </span>
-                      )}
-                      {activeTicket.userEmail && (
-                        <span className="flex items-center gap-1">
-                          <Mail className="w-3 h-3 text-slate-400" />
-                          {activeTicket.userEmail}
-                        </span>
-                      )}
+                    </h4>
+                    <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5 font-mono truncate">
+                      {activeTicket.userPhone && <span>📞 {activeTicket.userPhone}</span>}
+                      {activeTicket.userEmail && <span>• ✉️ {activeTicket.userEmail}</span>}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
+                  {activeTicket.userPhone && (
+                    <a
+                      href={`https://wa.me/${activeTicket.userPhone.replace(/[^0-9]/g, '')}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs transition-colors flex items-center gap-1.5 shadow-2xs"
+                    >
+                      <Phone className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">WhatsApp</span>
+                    </a>
+                  )}
+
                   <button
                     onClick={handleResolveTicket}
-                    className="px-3 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
+                    className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
                   >
-                    {activeTicket.status === 'OPEN' ? 'Mark Resolved' : 'Reopen Ticket'}
+                    {activeTicket.status === 'RESOLVED' ? 'Re-open' : 'Mark Resolved'}
                   </button>
                 </div>
               </div>
 
-              {/* Message Stream */}
-              <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-slate-50/50">
+              {/* Chat Messages Body */}
+              <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4 bg-slate-50/60">
+                <div className="text-center">
+                  <span className="px-3 py-1 rounded-full bg-slate-200/70 text-slate-600 text-[10px] font-mono font-bold uppercase tracking-wider">
+                    30-Day Auto Retention Active • Secure Encrypted Chat
+                  </span>
+                </div>
+
                 {loadingMessages ? (
-                  <div className="p-8 text-center text-xs text-slate-400 font-bold space-y-2">
-                    <RefreshCw className="w-5 h-5 animate-spin mx-auto text-brand-orange" />
-                    <span>Loading conversation...</span>
+                  <div className="p-12 text-center text-xs text-slate-400 font-bold space-y-2">
+                    <RefreshCw className="w-6 h-6 animate-spin mx-auto text-brand-orange" />
+                    <span>Loading chat messages...</span>
+                  </div>
+                ) : messages.length === 0 ? (
+                  <div className="p-12 text-center text-xs text-slate-500 font-bold space-y-2">
+                    <MessageSquare className="w-10 h-10 mx-auto text-slate-300" />
+                    <span>No messages yet in this user conversation.</span>
                   </div>
                 ) : (
                   messages.map((msg) => {
                     const isAdmin = msg.senderRole === 'ADMIN';
-                    const isSystem = msg.senderRole === 'SYSTEM';
-
-                    if (isSystem) {
-                      return (
-                        <div key={msg.id} className="mx-auto max-w-lg p-4 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-950 text-xs space-y-2 shadow-xs">
-                          <div className="flex items-center gap-1.5 font-bold text-indigo-700">
-                            <Bot className="w-4 h-4" />
-                            <span>Automated System Notification (Discord Invite)</span>
-                          </div>
-                          <p className="whitespace-pre-wrap leading-relaxed font-sans">
-                            {msg.content}
-                          </p>
-                          <div className="text-[10px] text-indigo-400 font-mono text-right">
-                            {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </div>
-                        </div>
-                      );
-                    }
 
                     return (
                       <div
                         key={msg.id}
-                        className={`flex flex-col ${isAdmin ? 'items-end' : 'items-start'}`}
+                        className={`flex gap-2.5 max-w-[85%] sm:max-w-[75%] ${
+                          isAdmin ? 'ml-auto flex-row-reverse' : 'mr-auto'
+                        }`}
                       >
-                        <div className="flex items-center gap-1.5 mb-1 px-1">
-                          <span className="text-[10px] font-bold text-slate-500">
-                            {isAdmin ? '🛡️ Admin Support' : msg.userName}
-                          </span>
-                          <span className="text-[9px] text-slate-400 font-mono">
-                            {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
+                        {!isAdmin && (
+                          <img
+                            src={`https://api.dicebear.com/7.x/bottts/svg?seed=${msg.userName || activeTicket.userName}`}
+                            alt={msg.userName}
+                            className="w-7 h-7 rounded-lg object-cover bg-white border border-slate-200 shrink-0 mt-1"
+                          />
+                        )}
 
-                        <div
-                          className={`max-w-[75%] p-3.5 rounded-2xl text-xs leading-relaxed whitespace-pre-wrap shadow-xs ${
+                        <div className="space-y-1">
+                          <div className={`p-3.5 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-2xs ${
                             isAdmin
-                              ? 'bg-slate-900 text-white rounded-tr-xs'
-                              : 'bg-white border border-slate-200 text-slate-900 rounded-tl-xs'
-                          }`}
-                        >
-                          {msg.content}
+                              ? 'bg-gradient-to-r from-red-500 via-orange-500 to-amber-500 text-white rounded-tr-none font-medium'
+                              : 'bg-white border border-slate-200 text-slate-900 rounded-tl-none font-medium'
+                          }`}>
+                            {isAdmin && (
+                              <div className="text-[10px] font-black text-amber-100 flex items-center gap-1 mb-1 font-heading uppercase">
+                                <Crown className="w-3 h-3 text-amber-200" />
+                                <span>Support Admin</span>
+                              </div>
+                            )}
+                            <p className="whitespace-pre-wrap">{msg.content}</p>
+                          </div>
+
+                          <div className={`text-[9px] text-slate-400 font-mono px-1 flex items-center gap-1 ${
+                            isAdmin ? 'justify-end' : 'justify-start'
+                          }`}>
+                            <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            {isAdmin && <Check className="w-3 h-3 text-emerald-500" />}
+                          </div>
                         </div>
                       </div>
                     );
@@ -407,56 +523,207 @@ export default function AdminSupportPage() {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Quick Canned Responses */}
-              <div className="px-4 py-2 bg-slate-100/70 border-t border-slate-200 overflow-x-auto flex items-center gap-1.5">
-                <span className="text-[10px] font-black uppercase text-slate-500 flex-shrink-0">
-                  Quick Reply:
+              {/* Quick Canned Response Dropdown */}
+              <div className="px-4 py-2 bg-slate-100/70 border-t border-slate-200 flex items-center gap-2 overflow-x-auto">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider shrink-0">
+                  ⚡ Quick Replies:
                 </span>
                 {CANNED_REPLIES.map((canned, idx) => (
                   <button
                     key={idx}
+                    type="button"
                     onClick={() => setReplyText(canned)}
-                    className="text-[11px] font-medium px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 hover:border-brand-orange hover:text-brand-orange whitespace-nowrap transition-colors cursor-pointer"
+                    className="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-200 text-slate-700 text-[11px] font-medium border border-slate-200/80 transition-colors whitespace-nowrap cursor-pointer shrink-0 truncate max-w-[200px]"
+                    title={canned}
                   >
-                    {canned.slice(0, 30)}...
+                    {canned}
                   </button>
                 ))}
               </div>
 
-              {/* Admin Reply Box */}
-              <form onSubmit={handleSendReply} className="p-4 bg-white border-t border-slate-200 flex items-center gap-2">
+              {/* Chat Input Box */}
+              <form onSubmit={handleSendReply} className="p-4 bg-white border-t border-slate-200 flex items-center gap-3">
                 <input
                   type="text"
-                  placeholder="Type your reply to user..."
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
-                  className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-900 focus:outline-none focus:border-brand-orange focus:bg-white"
+                  placeholder="Type your official reply to this player..."
+                  className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-brand-orange focus:bg-white"
                 />
                 <button
                   type="submit"
                   disabled={!replyText.trim() || sendingReply}
-                  className="px-5 py-3 rounded-2xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-black text-xs shadow-md hover:brightness-110 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  className="px-5 py-3 rounded-2xl bg-gradient-to-r from-red-500 via-orange-500 to-amber-500 text-white font-heading font-black text-xs uppercase shadow-md hover:brightness-110 transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer shrink-0"
                 >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>SEND</span>
+                  {sendingReply ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  <span>Send</span>
                 </button>
               </form>
             </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-3 text-slate-400">
-              <Headphones className="w-12 h-12 text-slate-300" />
-              <div className="font-heading font-bold text-slate-700 text-base">
-                Select a Support Ticket
-              </div>
-              <p className="text-xs text-slate-500 max-w-sm">
-                Choose an inquiry from the left to start live chatting with the user.
+              <MessageSquare className="w-12 h-12 text-slate-300" />
+              <div className="font-heading font-black text-lg text-slate-700">No Conversation Selected</div>
+              <p className="text-xs max-w-sm">
+                Select a user conversation from the left panel to begin live messaging.
               </p>
             </div>
           )}
-
         </div>
-
       </div>
+
+      {/* Backup & 30-Day Archive Management Modal */}
+      {backupModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-2xl w-full border border-slate-200 shadow-2xl space-y-6 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-md shadow-orange-500/20">
+                  <Archive className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-heading font-black text-xl text-slate-900">
+                    Chat Backups &amp; 30-Day Archive Manager
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium">
+                    Download chat backups and permanently purge archived messages to free database storage.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBackupModalOpen(false)}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Retention Policy Banner */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 flex items-start gap-3 text-xs text-amber-900">
+              <Clock className="w-5 h-5 text-brand-orange shrink-0 mt-0.5" />
+              <div>
+                <strong>30-Day Auto Retention Policy:</strong> চ্যাট মেসেজগুলো ৩০ দিন পর্যন্ত লাইভ চ্যাট বক্সে অ্যাক্টিভ থাকে। ৩০ দিন পার হয়ে যাওয়া মেসেজগুলো স্বয়ংক্রিয়ভাবে ব্যাকআপ আর্কাইভে চলে যায়। আপনি নিচে থেকে ব্যাকআপ ফাইল ডাউনলোড করে ডেটাবেজ থেকে পুরোনো মেসেজগুলো পারমানেন্ট ডিলিট করতে পারবেন।
+              </div>
+            </div>
+
+            {/* Live Stats Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-1">
+                <div className="text-[10px] font-bold text-slate-500 uppercase">Active (≤30D)</div>
+                <div className="text-xl font-black text-emerald-600 font-mono">
+                  {loadingBackupStats ? '...' : backupStats?.activeMessagesCount || 0}
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-1">
+                <div className="text-[10px] font-bold text-slate-500 uppercase">Archived (30+ Days)</div>
+                <div className="text-xl font-black text-orange-600 font-mono">
+                  {loadingBackupStats ? '...' : backupStats?.archivedMessagesCount || 0}
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-1">
+                <div className="text-[10px] font-bold text-slate-500 uppercase">Total Messages</div>
+                <div className="text-xl font-black text-slate-900 font-mono">
+                  {loadingBackupStats ? '...' : backupStats?.totalMessages || 0}
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-1">
+                <div className="text-[10px] font-bold text-slate-500 uppercase">User Threads</div>
+                <div className="text-xl font-black text-indigo-600 font-mono">
+                  {loadingBackupStats ? '...' : backupStats?.totalConversations || 0}
+                </div>
+              </div>
+            </div>
+
+            {purgeSuccessMsg && (
+              <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{purgeSuccessMsg}</span>
+              </div>
+            )}
+
+            {/* Step 1: Download Backups */}
+            <div className="p-5 rounded-2xl bg-white border border-slate-200 space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="font-heading font-black text-sm text-slate-900 flex items-center gap-2">
+                  <Download className="w-4 h-4 text-brand-orange" />
+                  <span>Step 1: Download Chat Backup Files (.JSON)</span>
+                </h4>
+              </div>
+              <p className="text-xs text-slate-500">
+                ডিলিট করার পূর্বে প্রয়োজনীয় ব্যাকআপ ফাইল ডাউনলোড করে আপনার কম্পিউটারে সংরক্ষণ করুন:
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => handleDownloadBackup('archived')}
+                  className="p-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer border border-slate-200"
+                >
+                  <Download className="w-4 h-4 text-orange-600" />
+                  <span>Download Archived (30+ Days)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleDownloadBackup('all')}
+                  className="p-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer border border-slate-200"
+                >
+                  <Download className="w-4 h-4 text-indigo-600" />
+                  <span>Download Full Chat History</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Step 2: Delete / Purge from Database */}
+            <div className="p-5 rounded-2xl bg-red-50/50 border border-red-200 space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="font-heading font-black text-sm text-red-900 flex items-center gap-2">
+                  <Trash2 className="w-4 h-4 text-red-600" />
+                  <span>Step 2: Permanent Purge from Database</span>
+                </h4>
+              </div>
+              <p className="text-xs text-red-700">
+                ব্যাকআপ ডাউনলোড করা শেষ হলে নিচের বাটনে ক্লিক করে ডেটাবেজ থেকে ৩০ দিনের পুরোনো মেসেজগুলো পারমানেন্ট ডিলিট করতে পারবেন:
+              </p>
+
+              <button
+                type="button"
+                disabled={isPurging || (backupStats?.archivedMessagesCount === 0)}
+                onClick={handlePurgeArchived}
+                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-heading font-black text-xs uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+              >
+                {isPurging ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4" />
+                )}
+                <span>
+                  {isPurging
+                    ? 'Purging Database Messages...'
+                    : `Permanently Delete ${backupStats?.archivedMessagesCount || 0} Archived Messages from Database`}
+                </span>
+              </button>
+            </div>
+
+            {/* Footer Close */}
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setBackupModalOpen(false)}
+                className="px-6 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
+              >
+                Close Manager
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

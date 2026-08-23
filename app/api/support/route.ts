@@ -5,6 +5,8 @@ import { SupportTicket, SupportMessage } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -12,7 +14,9 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId');
     const adminAll = searchParams.get('adminAll') === 'true';
 
-    // 1. Admin fetching all tickets
+    const cutoffTime = Date.now() - THIRTY_DAYS_MS;
+
+    // 1. Admin fetching all tickets (WhatsApp / Messenger DM list)
     if (adminAll) {
       // Try Supabase first
       const { data: supaTickets } = await supabaseAdmin
@@ -20,12 +24,20 @@ export async function GET(request: NextRequest) {
         .select('*')
         .order('updatedAt', { ascending: false });
 
-      if (supaTickets && supaTickets.length > 0) {
-        return NextResponse.json({ tickets: supaTickets });
-      }
+      let tickets: SupportTicket[] = (supaTickets && supaTickets.length > 0)
+        ? supaTickets
+        : db.getSupportTickets();
 
-      // Local DB fallback
-      return NextResponse.json({ tickets: db.getSupportTickets() });
+      // Deduplicate by userId to ensure strict 1-to-1 thread per user account
+      const uniqueUserMap = new Map<string, SupportTicket>();
+      for (const t of tickets) {
+        if (!uniqueUserMap.has(t.userId)) {
+          uniqueUserMap.set(t.userId, t);
+        }
+      }
+      const uniqueTickets = Array.from(uniqueUserMap.values());
+
+      return NextResponse.json({ tickets: uniqueTickets });
     }
 
     // 2. Fetching specific ticket or user's ticket
@@ -59,18 +71,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ticket: null, messages: [] });
     }
 
-    // Fetch messages
+    // Fetch messages from Supabase or Local DB
     const { data: supaMsgs } = await supabaseAdmin
       .from('SupportMessage')
       .select('*')
       .eq('ticketId', targetTicketId)
       .order('createdAt', { ascending: true });
 
-    const messages = supaMsgs && supaMsgs.length > 0 ? supaMsgs : db.getSupportMessages(targetTicketId);
+    const rawMessages = supaMsgs && supaMsgs.length > 0 ? supaMsgs : db.getSupportMessages(targetTicketId);
+
+    // 30-Day Auto Retention: Only return active messages from the last 30 days
+    const activeMessages = (rawMessages || []).filter(m => new Date(m.createdAt).getTime() >= cutoffTime);
 
     return NextResponse.json({
       ticket: targetTicket,
-      messages: messages || [],
+      messages: activeMessages,
     });
   } catch (error: any) {
     console.error('[GET /api/support] Error:', error);
