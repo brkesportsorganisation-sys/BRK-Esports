@@ -1,22 +1,19 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Trophy, 
   Users, 
   Gamepad2, 
   Clock, 
-  ShieldCheck, 
   Lock, 
-  Unlock, 
   CheckCircle2, 
   Copy, 
   Check, 
-  Volume2, 
-  VolumeX,
-  Flame,
   Sparkles,
-  Radio
+  Filter,
+  Shield,
+  CircleDot
 } from 'lucide-react';
 
 interface ParticipantItem {
@@ -57,8 +54,8 @@ export default function SlotGrid({
 }: SlotGridProps) {
   const [copiedRoom, setCopiedRoom] = useState(false);
   const [copiedPass, setCopiedPass] = useState(false);
-  const [soundMuted, setSoundMuted] = useState(false);
   const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number } | null>(null);
+  const [filterMode, setFilterMode] = useState<'ALL' | 'CONFIRMED' | 'OPEN'>('ALL');
 
   // Countdown timer to match start / Room ID release
   useEffect(() => {
@@ -94,125 +91,177 @@ export default function SlotGrid({
     }
   };
 
-  // Generate 12 slots mapping
-  const totalSlots = Math.min(12, maxTeams || 12);
-  const slots = Array.from({ length: totalSlots }, (_, i) => {
-    const slotNum = i + 1;
-    const participant = participants[i];
-    return {
-      slotNumber: slotNum,
-      participant: participant || null,
-    };
-  });
+  // Generate slots mapping
+  const totalSlots = Math.min(48, maxTeams || 12);
+  const allSlots = useMemo(() => {
+    return Array.from({ length: totalSlots }, (_, i) => {
+      const slotNum = i + 1;
+      const participant = participants[i];
+      return {
+        slotNumber: slotNum,
+        participant: participant || null,
+      };
+    });
+  }, [totalSlots, participants]);
+
+  const confirmedCount = participants.length;
+  const openCount = Math.max(0, totalSlots - confirmedCount);
+
+  const displayedSlots = useMemo(() => {
+    if (filterMode === 'CONFIRMED') {
+      return allSlots.filter((s) => !!s.participant);
+    }
+    if (filterMode === 'OPEN') {
+      return allSlots.filter((s) => !s.participant);
+    }
+    return allSlots;
+  }, [allSlots, filterMode]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3.5">
       
-      {/* Room ID & Match Timer Status Banner */}
-      <div className="p-6 bg-gradient-to-br from-white via-red-50/25 to-orange-50/35 border-2 border-red-200/90 rounded-3xl shadow-sm space-y-4 text-slate-900">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/90 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-3 rounded-2xl bg-orange-50 text-brand-orange border border-orange-200">
-              <Gamepad2 className="w-6 h-6" />
+      {/* Compact Room ID & Match Timer Banner */}
+      <div className="p-3.5 sm:p-4 bg-gradient-to-br from-white via-orange-50/20 to-red-50/30 border border-orange-200/90 rounded-2xl shadow-2xs space-y-3 text-slate-900">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-xl bg-orange-100 text-brand-orange">
+              <Gamepad2 className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                Custom Match Room Table (12-Slot Grid)
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold">
-                  LIVE SLOTS
+              <h3 className="text-xs sm:text-sm font-black text-slate-900 flex items-center gap-1.5">
+                <span>Match Room Slots</span>
+                <span className="text-[9px] px-1.5 py-0.2 rounded-md bg-emerald-100 border border-emerald-200 text-emerald-800 font-extrabold">
+                  {confirmedCount}/{totalSlots} Filled
                 </span>
               </h3>
-              <p className="text-xs text-slate-600">
-                Join your assigned slot number in Free Fire custom room on time.
-              </p>
             </div>
           </div>
 
           {/* Live Countdown */}
           {timeLeft && (
-            <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-2xl border border-slate-200 shadow-2xs">
-              <Clock className="w-4 h-4 text-brand-orange animate-spin" />
-              <div className="text-xs">
-                <span className="text-slate-500 block text-[9px] uppercase font-bold">Match Countdown</span>
-                <span className="text-slate-900 font-mono font-black text-sm">
-                  {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}
-                </span>
-              </div>
+            <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-xl border border-slate-200 shadow-2xs">
+              <Clock className="w-3.5 h-3.5 text-brand-orange animate-spin" />
+              <span className="text-slate-900 font-mono font-black text-xs">
+                {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}
+              </span>
             </div>
           )}
         </div>
 
         {/* Room ID / Pass Display or Lock Status */}
         {roomId && isUserRegistered ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1 animate-fadeIn">
-            <div className="p-4 bg-white border border-red-200/90 shadow-2xs rounded-2xl flex items-center justify-between">
+          <div className="grid grid-cols-2 gap-2 pt-0.5">
+            <div className="p-2.5 bg-white border border-orange-200 rounded-xl flex items-center justify-between">
               <div>
-                <span className="text-[10px] uppercase font-bold text-slate-500 block">Custom Room ID</span>
-                <span className="text-lg font-mono font-black text-brand-orange tracking-wider">{roomId}</span>
+                <span className="text-[9px] uppercase font-bold text-slate-400 block">Room ID</span>
+                <span className="text-xs sm:text-sm font-mono font-black text-brand-orange tracking-wider">{roomId}</span>
               </div>
               <button
                 onClick={() => handleCopy(roomId, 'ROOM')}
-                className="px-3 py-2 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-brand-orange rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                className="p-1.5 bg-orange-50 hover:bg-orange-100 text-brand-orange rounded-lg text-xs font-bold transition-all cursor-pointer"
+                title="Copy Room ID"
               >
-                {copiedRoom ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-                {copiedRoom ? 'Copied' : 'Copy'}
+                {copiedRoom ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
               </button>
             </div>
 
-            <div className="p-4 bg-white border border-red-200/90 shadow-2xs rounded-2xl flex items-center justify-between">
+            <div className="p-2.5 bg-white border border-slate-200 rounded-xl flex items-center justify-between">
               <div>
-                <span className="text-[10px] uppercase font-bold text-slate-500 block">Room Password</span>
-                <span className="text-lg font-mono font-black text-slate-900 tracking-wider">{roomPassword || 'None'}</span>
+                <span className="text-[9px] uppercase font-bold text-slate-400 block">Password</span>
+                <span className="text-xs sm:text-sm font-mono font-black text-slate-900 tracking-wider">{roomPassword || 'None'}</span>
               </div>
               {roomPassword && (
                 <button
                   onClick={() => handleCopy(roomPassword, 'PASS')}
-                  className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                  className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                  title="Copy Password"
                 >
-                  {copiedPass ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-                  {copiedPass ? 'Copied' : 'Copy'}
+                  {copiedPass ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                 </button>
               )}
             </div>
           </div>
         ) : (
-          <div className="p-4 bg-white/90 border border-slate-200 rounded-2xl flex items-center justify-between text-xs text-slate-600">
-            <div className="flex items-center gap-2">
-              <Lock className="w-4 h-4 text-amber-600 shrink-0" />
-              <span>Room ID & Password will unlock <strong className="text-slate-900">10-15 minutes before match start</strong> for registered players.</span>
+          <div className="p-2.5 bg-white/90 border border-slate-200/80 rounded-xl flex items-center justify-between text-[11px] text-slate-600 gap-2">
+            <div className="flex items-center gap-1.5">
+              <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+              <span>Room ID &amp; Password unlocks <strong>15 mins before match</strong> for registered players.</span>
             </div>
             {!isUserRegistered && (
-              <span className="text-[10px] font-bold text-brand-orange bg-orange-50 px-2.5 py-1 rounded-lg border border-orange-200 shrink-0">
-                Register Slot to View
+              <span className="text-[9px] font-extrabold text-brand-orange bg-orange-50 px-2 py-0.5 rounded-md border border-orange-200 shrink-0 whitespace-nowrap">
+                Register Slot
               </span>
             )}
           </div>
         )}
       </div>
 
-      {/* 12-Slot Visual Battle Royale Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {slots.map(({ slotNumber, participant }) => (
+      {/* Filter Tabs Header */}
+      <div className="flex items-center justify-between gap-2 px-1">
+        <div className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-xl border border-slate-200/80 text-[11px] font-bold">
+          <button
+            onClick={() => setFilterMode('ALL')}
+            className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+              filterMode === 'ALL'
+                ? 'bg-white text-slate-900 shadow-2xs font-black'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            All ({totalSlots})
+          </button>
+          <button
+            onClick={() => setFilterMode('CONFIRMED')}
+            className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1 ${
+              filterMode === 'CONFIRMED'
+                ? 'bg-emerald-600 text-white shadow-2xs font-black'
+                : 'text-emerald-700 hover:text-emerald-800'
+            }`}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+            <span>Filled ({confirmedCount})</span>
+          </button>
+          <button
+            onClick={() => setFilterMode('OPEN')}
+            className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+              filterMode === 'OPEN'
+                ? 'bg-white text-slate-900 shadow-2xs font-black'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            Open ({openCount})
+          </button>
+        </div>
+
+        <span className="text-[10px] text-slate-400 font-semibold hidden sm:inline-block">
+          Click slot for info
+        </span>
+      </div>
+
+      {/* Compact Responsive Slot Grid (2 columns on mobile, 3-4 on larger screens) */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-2.5">
+        {displayedSlots.map(({ slotNumber, participant }) => (
           <div
             key={slotNumber}
-            className={`p-4 rounded-2xl border transition-all space-y-3 ${
+            className={`rounded-xl border transition-all text-left flex flex-col justify-between overflow-hidden ${
               participant
-                ? 'bg-white border-2 border-brand-orange/40 shadow-md shadow-orange-500/5'
-                : 'bg-white/60 border-slate-300 border-dashed opacity-75'
+                ? 'bg-white border-orange-300 shadow-2xs p-2.5 sm:p-3 hover:border-orange-400'
+                : 'bg-slate-50/70 border-slate-200/90 border-dashed hover:bg-slate-100/70 p-2 sm:p-2.5 min-h-[64px]'
             }`}
           >
             {/* Slot Header */}
-            <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-              <span className="px-2.5 py-0.5 rounded-lg bg-orange-50 border border-orange-200 text-brand-orange font-mono font-black text-xs">
+            <div className="flex items-center justify-between gap-1 pb-1.5 border-b border-slate-100">
+              <span className={`px-1.5 py-0.5 rounded-md font-mono font-black text-[10px] ${
+                participant ? 'bg-orange-100 text-brand-orange' : 'bg-slate-200/80 text-slate-500'
+              }`}>
                 SLOT #{slotNumber}
               </span>
-              <span className={`text-[10px] font-bold uppercase ${
-                participant ? 'text-emerald-700 flex items-center gap-1 font-extrabold' : 'text-slate-400'
+              <span className={`text-[9px] font-extrabold uppercase tracking-tight ${
+                participant ? 'text-emerald-600 flex items-center gap-0.5' : 'text-slate-400'
               }`}>
                 {participant ? (
                   <>
-                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                    CONFIRMED
+                    <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600 inline" />
+                    <span>CONFIRMED</span>
                   </>
                 ) : (
                   'OPEN'
@@ -220,55 +269,53 @@ export default function SlotGrid({
               </span>
             </div>
 
-            {/* Squad Content */}
+            {/* Slot Content */}
             {participant ? (
-              <div className="space-y-2">
+              <div className="pt-1.5 space-y-1.5">
                 <div>
-                  <h4 className="text-sm font-black text-slate-900 truncate">{participant.squadName}</h4>
+                  <h4 className="text-xs font-black text-slate-900 truncate leading-tight">
+                    {participant.squadName}
+                  </h4>
                   {participant.iglName && (
-                    <span className="text-[11px] text-slate-500 block truncate">
-                      IGL: <strong className="text-slate-800">{participant.iglName}</strong>
+                    <span className="text-[10px] text-slate-500 block truncate font-medium">
+                      IGL: <strong className="text-slate-700">{participant.iglName}</strong>
                     </span>
                   )}
                 </div>
 
-                {/* Team Members List */}
-                <div className="space-y-1 pt-1 text-[11px] text-slate-600 font-mono">
-                  {participant.player1Name && (
-                    <div className="flex items-center gap-1.5 truncate">
-                      <span className="w-1.5 h-1.5 rounded-full bg-brand-orange" />
-                      <span className="truncate">{participant.player1Name}</span>
-                    </div>
-                  )}
-                  {participant.player2Name && (
-                    <div className="flex items-center gap-1.5 truncate">
-                      <span className="w-1.5 h-1.5 rounded-full bg-brand-orange" />
-                      <span className="truncate">{participant.player2Name}</span>
-                    </div>
-                  )}
-                  {participant.player3Name && (
-                    <div className="flex items-center gap-1.5 truncate">
-                      <span className="w-1.5 h-1.5 rounded-full bg-brand-orange" />
-                      <span className="truncate">{participant.player3Name}</span>
-                    </div>
-                  )}
-                  {participant.player4Name && (
-                    <div className="flex items-center gap-1.5 truncate">
-                      <span className="w-1.5 h-1.5 rounded-full bg-brand-orange" />
-                      <span className="truncate">{participant.player4Name}</span>
-                    </div>
-                  )}
+                {/* Team Members List (Compact 2-col or single-line bullets) */}
+                <div className="grid grid-cols-1 gap-0.5 pt-0.5 text-[10px] text-slate-600 font-mono">
+                  {[
+                    participant.player1Name,
+                    participant.player2Name,
+                    participant.player3Name,
+                    participant.player4Name,
+                  ]
+                    .filter(Boolean)
+                    .map((playerName, pIdx) => (
+                      <div key={pIdx} className="flex items-center gap-1 truncate">
+                        <span className="w-1 h-1 rounded-full bg-brand-orange shrink-0" />
+                        <span className="truncate">{playerName}</span>
+                      </div>
+                    ))}
                 </div>
               </div>
             ) : (
-              <div className="py-6 text-center text-xs text-slate-400 space-y-1">
-                <Users className="w-6 h-6 mx-auto text-slate-300" />
-                <p>Slot Available</p>
+              <div className="py-1 flex items-center justify-between text-slate-400">
+                <div className="flex items-center gap-1 text-[10px] font-medium text-slate-400">
+                  <Users className="w-3 h-3 text-slate-300 shrink-0" />
+                  <span>Available</span>
+                </div>
+                <span className="text-[9px] font-bold text-brand-orange bg-orange-50/80 px-1.5 py-0.2 rounded border border-orange-100">
+                  + Free
+                </span>
               </div>
             )}
           </div>
         ))}
       </div>
+
     </div>
   );
 }
+
