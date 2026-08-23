@@ -252,16 +252,12 @@ export default function HomeLotteryWheel() {
           </svg>
         </div>
 
-        {/* Center Spin Hub Button */}
-        <button
-          type="button"
-          disabled={isSpinning || !isLotteryActive}
-          onClick={() => handleSpinWheel(spinPaymentMode === 'CASH_ONLY' ? 'CASH' : 'COINS')}
-          className="absolute z-20 w-18 h-18 sm:w-20 sm:h-20 rounded-full bg-gradient-to-tr from-purple-600 via-indigo-600 to-purple-500 text-white font-heading font-black text-xs uppercase tracking-wider shadow-xl border-4 border-white flex flex-col items-center justify-center transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+        {/* Center Spin Hub Cap (Clean metallic center pin without text/icon) */}
+        <div
+          className="absolute z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-tr from-purple-700 via-indigo-600 to-purple-500 shadow-xl border-3 sm:border-4 border-white flex items-center justify-center pointer-events-none ring-2 ring-purple-400/40"
         >
-          <RotateCw className={`w-4 h-4 mb-0.5 ${isSpinning ? 'animate-spin' : ''}`} />
-          <span>{isSpinning ? (isBangla ? 'ঘুরছে...' : '...') : (isBangla ? 'স্পিন' : 'SPIN')}</span>
-        </button>
+          <div className="w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full bg-white/40 shadow-inner" />
+        </div>
       </div>
 
       {/* Dual Spin Buttons (Coin Spin + Taka/Money Spin) */}
