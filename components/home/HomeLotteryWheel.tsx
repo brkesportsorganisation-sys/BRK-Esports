@@ -111,6 +111,27 @@ export default function HomeLotteryWheel() {
       }
     }
 
+    const prevUser = { ...currentUser };
+
+    // 1. Instant (0ms delay) Optimistic Balance Deduction
+    const optimisticUser: User = {
+      ...currentUser,
+      coinBalance: method === 'COINS' 
+        ? Math.max(0, (currentUser.coinBalance || 0) - spinCoinCost)
+        : currentUser.coinBalance,
+      walletBalance: method === 'CASH'
+        ? Math.max(0, (currentUser.walletBalance || 0) - spinCashCost)
+        : currentUser.walletBalance,
+    };
+
+    setCurrentUser(optimisticUser);
+    db.setCurrentUser(optimisticUser);
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('wallet_balance_updated', { detail: optimisticUser }));
+      window.dispatchEvent(new Event('storage'));
+    }
+
     setFeedbackMsg('');
     setIsSpinning(true);
     setHasStartedActiveSpin(true);
@@ -155,13 +176,37 @@ export default function HomeLotteryWheel() {
           setIsSpinning(false);
           setSpinResult(wonItem);
           setShowWinModal(true);
-          if (currentUser?.id) void refreshUser(currentUser.id);
+
+          if (data.user) {
+            setCurrentUser(data.user);
+            db.setCurrentUser(data.user);
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('wallet_balance_updated', { detail: data.user }));
+              window.dispatchEvent(new Event('storage'));
+            }
+          } else if (currentUser?.id) {
+            void refreshUser(currentUser.id);
+          }
         }, 4700);
       } else {
+        // Rollback balance on failure
+        setCurrentUser(prevUser);
+        db.setCurrentUser(prevUser);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('wallet_balance_updated', { detail: prevUser }));
+          window.dispatchEvent(new Event('storage'));
+        }
         setIsSpinning(false);
         setFeedbackMsg(data.message || (isBangla ? 'স্পিন সম্পন্ন করা সম্ভব হয়নি।' : 'Failed to spin lottery wheel.'));
       }
     } catch (err: any) {
+      // Rollback balance on exception
+      setCurrentUser(prevUser);
+      db.setCurrentUser(prevUser);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('wallet_balance_updated', { detail: prevUser }));
+        window.dispatchEvent(new Event('storage'));
+      }
       setIsSpinning(false);
       setFeedbackMsg(err?.message || (isBangla ? 'ত্রুটি ঘটেছে, পরে চেষ্টা করুন।' : 'Error occurred while spinning wheel.'));
     }

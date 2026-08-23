@@ -125,6 +125,17 @@ export default function Navbar() {
 
     loadLiveNavbarData();
 
+    // Instant wallet balance listener for zero-delay UI sync
+    const handleBalanceUpdate = (e: any) => {
+      const u = e?.detail || db.getCurrentUser();
+      if (u) {
+        setCurrentUser((prev) => ({ ...(prev || {}), ...u }));
+      }
+    };
+
+    window.addEventListener('wallet_balance_updated', handleBalanceUpdate);
+    window.addEventListener('storage', handleBalanceUpdate);
+
     // Periodic refresh for notifications every 25 seconds
     const interval = setInterval(() => {
       const activeUser = db.getCurrentUser();
@@ -133,7 +144,11 @@ export default function Navbar() {
       }
     }, 25000);
 
-    return () => clearInterval(interval);
+    return () => {
+      window.removeEventListener('wallet_balance_updated', handleBalanceUpdate);
+      window.removeEventListener('storage', handleBalanceUpdate);
+      clearInterval(interval);
+    };
   }, []);
 
   // Close dropdown on outside click
