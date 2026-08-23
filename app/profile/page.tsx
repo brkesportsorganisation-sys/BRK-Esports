@@ -57,6 +57,17 @@ const AVATAR_PRESETS = [
   'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80', // Valkyrie
 ];
 
+const ESPORTS_ROLES = [
+  { role: 'RUSHER', label: 'Rusher', icon: '⚡' },
+  { role: 'NADER', label: 'Nader', icon: '💥' },
+  { role: 'SUPPORTER', label: 'Supporter', icon: '🛡️' },
+  { role: 'SNIPER', label: 'Sniper', icon: '🎯' },
+  { role: 'FLANKER', label: 'Flanker', icon: '🦅' },
+  { role: 'IGL', label: 'IGL / Leader', icon: '👑' },
+  { role: 'COACH', label: 'Coach', icon: '🧠' },
+  { role: 'ANALYST', label: 'Analyst', icon: '📊' },
+];
+
 export default function ProfilePage() {
   return (
     <Suspense fallback={<div className="min-h-screen bg-[#fdfaf6]" />}>
@@ -85,6 +96,7 @@ function ProfilePageContent() {
   const [fullName, setFullName] = useState('');
   const [ffUid, setFfUid] = useState('');
   const [ign, setIgn] = useState('');
+  const [inGameRole, setInGameRole] = useState('RUSHER');
   const [avatar, setAvatar] = useState('');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isFetchingIgn, setIsFetchingIgn] = useState(false);
@@ -193,6 +205,7 @@ function ProfilePageContent() {
           setFullName(uData.user.name || '');
           setFfUid(uData.user.freeFireUid || '');
           setIgn(uData.user.inGameName || '');
+          setInGameRole(uData.user.inGameRole || 'RUSHER');
           setAvatar(uData.user.avatar || '');
           db.setCurrentUser(uData.user);
         }
@@ -330,6 +343,7 @@ function ProfilePageContent() {
           name: fullName.trim() || user.name,
           freeFireUid: ffUid.trim(),
           inGameName: ign.trim() || user.name,
+          inGameRole: inGameRole,
           avatar: avatar || user.avatar,
         }),
       });
@@ -341,6 +355,7 @@ function ProfilePageContent() {
           name: fullName.trim() || user.name,
           freeFireUid: ffUid.trim(),
           inGameName: ign.trim() || user.name,
+          inGameRole: inGameRole,
           avatar: avatar || user.avatar,
         };
         setUser(updated);
@@ -363,6 +378,7 @@ function ProfilePageContent() {
       name: fullName.trim() || user.name,
       freeFireUid: ffUid.trim(),
       inGameName: ign.trim() || user.name,
+      inGameRole: inGameRole,
       avatar: avatar || user.avatar,
     });
     if (updated) {
@@ -566,6 +582,14 @@ function ProfilePageContent() {
                     <span>Full Name: <strong className="text-slate-900 font-semibold">{user.name}</strong></span>
                     <span className="text-slate-300">•</span>
                     <span>App ID: <strong className="text-orange-600 font-bold">{user.accountNumber || 'BRK-PLAYER'}</strong></span>
+                    <span className="text-slate-300">•</span>
+                    <span className="inline-flex items-center gap-1">
+                      Role: 
+                      <span className="px-2.5 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-800 font-sans font-black text-[11px] uppercase tracking-wide flex items-center gap-1 shadow-2xs">
+                        <span>{ESPORTS_ROLES.find(r => r.role === (user.inGameRole || 'RUSHER'))?.icon || '⚡'}</span>
+                        <span>{ESPORTS_ROLES.find(r => r.role === (user.inGameRole || 'RUSHER'))?.label || user.inGameRole || 'Rusher'}</span>
+                      </span>
+                    </span>
                     <span className="text-slate-300">•</span>
                     <span>Win Rate: <strong className="text-emerald-600 font-bold">{user.winRate || 0}%</strong></span>
                   </div>
@@ -1439,6 +1463,36 @@ function ProfilePageContent() {
                     placeholder="e.g. OCR-FALCON"
                     required
                   />
+                </div>
+              </div>
+
+              {/* In-Game Esports Role Selector */}
+              <div>
+                <label className="font-bold text-xs uppercase text-slate-700 block mb-1.5 flex items-center justify-between">
+                  <span>Esports In-Game Role</span>
+                  <span className="text-[10px] text-orange-600 font-bold">
+                    Selected: {ESPORTS_ROLES.find(r => r.role === inGameRole)?.label || inGameRole}
+                  </span>
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {ESPORTS_ROLES.map((r) => {
+                    const isSelected = inGameRole === r.role;
+                    return (
+                      <button
+                        key={r.role}
+                        type="button"
+                        onClick={() => setInGameRole(r.role)}
+                        className={`p-2.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-2 cursor-pointer text-left ${
+                          isSelected
+                            ? 'bg-gradient-to-r from-amber-500/15 to-orange-500/15 border-orange-500 text-orange-950 font-black shadow-xs ring-2 ring-orange-400/40'
+                            : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        <span className="text-base">{r.icon}</span>
+                        <span className="truncate">{r.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

@@ -31,6 +31,7 @@ export interface User {
   accountNumber?: string; // e.g. BRE-891024 (Bank-style public app ID)
   freeFireUid: string;
   inGameName: string;
+  inGameRole?: string; // e.g. RUSHER, NADER, SUPPORTER, SNIPER, FLANKER, IGL, COACH, ANALYST
   phone?: string;
   whatsApp?: string;
   bio?: string;

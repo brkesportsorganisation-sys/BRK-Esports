@@ -4,7 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, name, avatar, freeFireUid, inGameName, phone, bio } = body;
+    const { userId, name, avatar, freeFireUid, inGameName, inGameRole, phone, bio } = body;
 
     if (!userId) {
       return NextResponse.json({ message: 'User ID is required.' }, { status: 400 });
@@ -18,6 +18,7 @@ export async function PATCH(request: NextRequest) {
     if (avatar !== undefined) updates.avatar = avatar;
     if (freeFireUid !== undefined) updates.freeFireUid = freeFireUid.trim() || null;
     if (inGameName !== undefined) updates.inGameName = inGameName.trim() || null;
+    if (inGameRole !== undefined) updates.inGameRole = inGameRole.trim() || 'RUSHER';
     if (phone !== undefined) updates.phone = phone.trim() || null;
     if (bio !== undefined) updates.bio = bio.trim() || null;
 
