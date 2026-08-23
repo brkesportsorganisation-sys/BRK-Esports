@@ -177,7 +177,7 @@ export interface MatchResult {
   createdAt?: string;
 }
 
-export type BannerPlacement = 'MAIN_SLIDER' | 'SIDE_TOP' | 'SIDE_BOTTOM' | 'SHOP_BANNER';
+export type BannerPlacement = 'MAIN_SLIDER' | 'SIDE_TOP' | 'SIDE_BOTTOM' | 'SHOP_BANNER' | 'ARENA_BANNER';
 
 export interface Banner {
   id: string;

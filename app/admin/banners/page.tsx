@@ -274,6 +274,8 @@ export default function AdminBannersPage() {
         return { label: 'Side Bottom Card (Right)', color: 'bg-amber-100 text-amber-800 border-amber-200' };
       case 'SHOP_BANNER':
         return { label: '🛍️ Shop & Home Banner', color: 'bg-emerald-100 text-emerald-800 border-emerald-200' };
+      case 'ARENA_BANNER':
+        return { label: '⚔️ 1v1 Arena Duel Banner', color: 'bg-purple-100 text-purple-800 border-purple-200' };
       default:
         return { label: p, color: 'bg-slate-100 text-slate-800 border-slate-200' };
     }
@@ -520,6 +522,7 @@ export default function AdminBannersPage() {
           { key: 'SIDE_TOP', label: `Side Top Card (${banners.filter(b => b.placement === 'SIDE_TOP').length})` },
           { key: 'SIDE_BOTTOM', label: `Side Bottom Card (${banners.filter(b => b.placement === 'SIDE_BOTTOM').length})` },
           { key: 'SHOP_BANNER', label: `🛍️ Shop Banner (${banners.filter(b => b.placement === 'SHOP_BANNER').length})` },
+          { key: 'ARENA_BANNER', label: `⚔️ 1v1 Arena Banner (${banners.filter(b => b.placement === 'ARENA_BANNER').length})` },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -682,6 +685,7 @@ export default function AdminBannersPage() {
                   <option value="SIDE_TOP">Side Top Card (Right Top - PC Only)</option>
                   <option value="SIDE_BOTTOM">Side Bottom Card (Right Bottom - PC Only)</option>
                   <option value="SHOP_BANNER">🛍️ Shop & Home Banner (Gaming Shop Top Banner & Homepage Widget)</option>
+                  <option value="ARENA_BANNER">⚔️ 1v1 & 2v2 Arena Duel Top Banner (/arena)</option>
                 </select>
               </div>
 

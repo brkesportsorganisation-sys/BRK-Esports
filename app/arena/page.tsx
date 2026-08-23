@@ -26,12 +26,13 @@ import {
   Sparkles,
   ArrowRight
 } from 'lucide-react';
-import { DuelChallenge, User } from '@/lib/types';
+import { DuelChallenge, User, Banner } from '@/lib/types';
 import { useRealtimeBroadcast } from '@/lib/use-realtime';
 
 export default function ArenaPage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [duels, setDuels] = useState<DuelChallenge[]>([]);
+  const [arenaBanner, setArenaBanner] = useState<Banner | null>(null);
   const [loading, setLoading] = useState(true);
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
@@ -64,10 +65,28 @@ export default function ArenaPage() {
     }
   };
 
+  const loadBanner = async () => {
+    try {
+      const res = await fetch('/api/banners');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.arenaBanner) {
+          setArenaBanner(data.arenaBanner);
+        } else if (data.banners) {
+          const found = data.banners.find((b: any) => b.placement === 'ARENA_BANNER');
+          if (found) setArenaBanner(found);
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to load arena banner:', err);
+    }
+  };
+
   useEffect(() => {
     const user = db.getCurrentUser();
     setCurrentUser(user);
     loadDuels();
+    loadBanner();
     const interval = setInterval(loadDuels, 6000);
     return () => clearInterval(interval);
   }, []);
@@ -168,39 +187,99 @@ export default function ArenaPage() {
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         
-        {/* Hero Header matching Black Rock signature theme */}
-        <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border-2 border-orange-500/40 p-6 md:p-10 shadow-xl shadow-orange-500/10 text-white">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-brand-orange/20 rounded-full blur-3xl pointer-events-none"></div>
-          
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-            <div className="space-y-3">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-red/20 border border-brand-red/40 text-orange-400 text-xs font-bold uppercase tracking-wider shadow-sm">
-                <Flame className="w-4 h-4 text-brand-red animate-pulse" />
-                <span>INSTANT 1V1 & 2V2 DUEL ARENA</span>
-              </div>
-              <h1 className="font-heading text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-none">
-                CHALLENGE & <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold">WIN INSTANTLY</span>
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-300 max-w-xl leading-relaxed">
-                No need to wait for tournaments! Stake your entry, duel 1v1 against top players in Free Fire, and win instant cash directly into your wallet!
-              </p>
-            </div>
+        {/* Hero Header / Admin Customizable Arena Banner */}
+        {arenaBanner && arenaBanner.isActive ? (
+          <div className="relative rounded-3xl overflow-hidden border-2 border-orange-500/40 p-6 md:p-10 shadow-xl shadow-orange-500/10 text-white min-h-[200px] flex flex-col justify-center bg-slate-950 group">
+            {arenaBanner.imageUrl && (
+              <img
+                src={arenaBanner.imageUrl}
+                alt={arenaBanner.title}
+                className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700"
+              />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/80 to-transparent"></div>
+            <div className="absolute top-0 right-0 w-96 h-96 bg-brand-orange/20 rounded-full blur-3xl pointer-events-none"></div>
 
-            <button
-              onClick={() => {
-                if (!currentUser) {
-                  window.location.href = '/login';
-                  return;
-                }
-                setCreateModalOpen(true);
-              }}
-              className="px-6 py-4 bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold hover:brightness-110 active:scale-95 text-white font-heading font-black text-sm uppercase tracking-wider rounded-2xl transition-all shadow-neon-red flex items-center justify-center gap-2 flex-shrink-0 cursor-pointer"
-            >
-              <Plus className="w-5 h-5" />
-              <span>Create 1v1 Challenge</span>
-            </button>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+              <div className="space-y-3">
+                {arenaBanner.badge && (
+                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-red/20 border border-brand-red/40 text-orange-400 text-xs font-bold uppercase tracking-wider shadow-sm">
+                    <Flame className="w-4 h-4 text-brand-red animate-pulse" />
+                    <span>{arenaBanner.badge}</span>
+                  </div>
+                )}
+                <h1 className="font-heading text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-none drop-shadow-md">
+                  {arenaBanner.title}
+                </h1>
+                {arenaBanner.subtitle && (
+                  <p className="text-xs sm:text-sm text-slate-200 max-w-xl leading-relaxed">
+                    {arenaBanner.subtitle}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-center gap-3 shrink-0">
+                {arenaBanner.linkUrl && arenaBanner.linkUrl !== '/arena' && arenaBanner.linkUrl !== '#' ? (
+                  <a
+                    href={arenaBanner.linkUrl}
+                    className="px-6 py-4 bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold hover:brightness-110 active:scale-95 text-white font-heading font-black text-sm uppercase tracking-wider rounded-2xl transition-all shadow-neon-red flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <span>{arenaBanner.buttonText || 'EXPLORE NOW'}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </a>
+                ) : (
+                  <button
+                    onClick={() => {
+                      if (!currentUser) {
+                        window.location.href = '/login';
+                        return;
+                      }
+                      setCreateModalOpen(true);
+                    }}
+                    className="px-6 py-4 bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold hover:brightness-110 active:scale-95 text-white font-heading font-black text-sm uppercase tracking-wider rounded-2xl transition-all shadow-neon-red flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Plus className="w-5 h-5" />
+                    <span>{arenaBanner.buttonText || 'Create 1v1 Challenge'}</span>
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
+        ) : (
+          /* Default Hero Header matching Black Rock signature theme */
+          <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border-2 border-orange-500/40 p-6 md:p-10 shadow-xl shadow-orange-500/10 text-white">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-brand-orange/20 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+              <div className="space-y-3">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-red/20 border border-brand-red/40 text-orange-400 text-xs font-bold uppercase tracking-wider shadow-sm">
+                  <Flame className="w-4 h-4 text-brand-red animate-pulse" />
+                  <span>INSTANT 1V1 & 2V2 DUEL ARENA</span>
+                </div>
+                <h1 className="font-heading text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-none">
+                  CHALLENGE & <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold">WIN INSTANTLY</span>
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-300 max-w-xl leading-relaxed">
+                  No need to wait for tournaments! Stake your entry, duel 1v1 against top players in Free Fire, and win instant cash directly into your wallet!
+                </p>
+              </div>
+
+              <button
+                onClick={() => {
+                  if (!currentUser) {
+                    window.location.href = '/login';
+                    return;
+                  }
+                  setCreateModalOpen(true);
+                }}
+                className="px-6 py-4 bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold hover:brightness-110 active:scale-95 text-white font-heading font-black text-sm uppercase tracking-wider rounded-2xl transition-all shadow-neon-red flex items-center justify-center gap-2 flex-shrink-0 cursor-pointer"
+              >
+                <Plus className="w-5 h-5" />
+                <span>Create 1v1 Challenge</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Tab & Filters */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
