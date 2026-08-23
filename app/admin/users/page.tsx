@@ -130,7 +130,7 @@ export default function AdminUsersPage() {
 
   const handleBanToggle = async (id: string, currentBanned: boolean) => {
     const actionName = currentBanned ? 'Unban' : 'Ban';
-    if (!confirm(`Are you sure you want to ${actionName} this user?`)) return;
+    if (!confirm(`Are you sure you want to ${actionName.toUpperCase()} this user?`)) return;
 
     try {
       const res = await fetch('/api/admin/users', {
@@ -139,14 +139,20 @@ export default function AdminUsersPage() {
         credentials: 'include',
         body: JSON.stringify({ id, isBanned: !currentBanned }),
       });
+      const data = await res.json();
       if (res.ok) {
+        // Immediately update inspect modal state if open
+        setInspectUser((prev) => (prev && prev.id === id ? { ...prev, isBanned: !currentBanned } : prev));
+        // Immediately update user list in table
+        setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, isBanned: !currentBanned } : u)));
+        alert(`Player account has been ${!currentBanned ? 'BANNED' : 'UNBANNED'} successfully in the database.`);
         await refreshUsers();
       } else {
-        const err = await res.json();
-        alert(err.message || 'Ban toggle failed.');
+        alert(data.message || 'Ban toggle failed.');
       }
     } catch (err) {
       console.error('Ban toggle error:', err);
+      alert('Network error while toggling ban status.');
     }
   };
 
@@ -622,7 +628,12 @@ export default function AdminUsersPage() {
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="font-heading font-black text-xl text-slate-900">{inspectUser.name}</h3>
-                    {inspectUser.isOnline ? (
+                    {inspectUser.isBanned ? (
+                      <span className="px-2.5 py-0.5 rounded-full bg-red-100 text-red-700 font-bold text-[10px] uppercase border border-red-200 flex items-center gap-1">
+                        <Ban className="w-3 h-3" />
+                        <span>BANNED FROM PLATFORM</span>
+                      </span>
+                    ) : inspectUser.isOnline ? (
                       <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px]">
                         ONLINE NOW
                       </span>

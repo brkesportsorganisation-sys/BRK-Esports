@@ -161,15 +161,21 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   const session = await getSession();
-  if (!requireAdminRole(session, ['SUPER_ADMIN', 'ADMIN'])) {
+  if (!requireAdminRole(session, ['SUPER_ADMIN', 'ADMIN', 'MODERATOR'])) {
     return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
   }
 
   try {
     const body = await request.json();
+    const targetId = body.id || body.userId;
+
+    if (!targetId) {
+      return NextResponse.json({ message: 'User ID is required.' }, { status: 400 });
+    }
+
     const { 
-      id, 
       isBanned, 
+      action,
       role, 
       walletBalance, 
       promoBalance, 
@@ -182,15 +188,14 @@ export async function PATCH(request: NextRequest) {
       whatsApp 
     } = body;
 
-    if (!id) {
-      return NextResponse.json({ message: 'User ID is required.' }, { status: 400 });
-    }
-
     const updates: Record<string, any> = {
       updatedAt: new Date().toISOString(),
     };
 
     if (isBanned !== undefined) updates.isBanned = Boolean(isBanned);
+    if (action === 'BAN' || action === 'ban') updates.isBanned = true;
+    if (action === 'UNBAN' || action === 'unban') updates.isBanned = false;
+
     if (role !== undefined) updates.role = role;
     if (walletBalance !== undefined) updates.walletBalance = Number(walletBalance);
     if (promoBalance !== undefined) updates.promoBalance = Number(promoBalance);
@@ -202,20 +207,36 @@ export async function PATCH(request: NextRequest) {
     if (phone !== undefined) updates.phone = phone.trim();
     if (whatsApp !== undefined) updates.whatsApp = whatsApp.trim();
 
-    try {
-      await supabaseAdmin
-        .from('User')
-        .update(updates)
-        .eq('id', id);
-    } catch {}
+    // 1. Direct Supabase Database Write
+    const { error: updateErr } = await supabaseAdmin
+      .from('User')
+      .update(updates)
+      .eq('id', targetId);
 
-    db.updateUser(id, updates);
+    if (updateErr) {
+      console.error('[PATCH /api/admin/users] Supabase update error:', updateErr);
+      throw new Error(updateErr.message);
+    }
 
-    logAdminAction(session!.email, 'USER_UPDATE', `Updated user ${id} balances/status`);
+    // 2. Sync In-memory Fallback DB
+    db.updateUser(targetId, updates);
 
-    return NextResponse.json({ message: 'User updated successfully.' });
+    logAdminAction(session!.email, 'USER_UPDATE', `Updated user ${targetId} (isBanned: ${updates.isBanned})`);
+
+    return NextResponse.json({ 
+      success: true, 
+      message: updates.isBanned !== undefined 
+        ? `Player ${updates.isBanned ? 'banned' : 'unbanned'} successfully in database.`
+        : 'User updated successfully.',
+      isBanned: updates.isBanned,
+    });
   } catch (error: any) {
     console.error('[PATCH /api/admin/users]', error);
     return NextResponse.json({ message: error?.message || 'Failed to update user.' }, { status: 500 });
   }
+}
+
+export async function POST(request: NextRequest) {
+  // Direct alias for PATCH to support POST /api/admin/users with ban/unban payload
+  return PATCH(request);
 }
