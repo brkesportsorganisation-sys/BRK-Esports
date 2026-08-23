@@ -1,6 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 
+// Auto-mask phone numbers, emails, and Free Fire UIDs to ****
+function maskSensitiveContacts(text: string): string {
+  if (!text) return '';
+  let sanitized = text;
+
+  // 1. Mask emails: user@domain.com
+  sanitized = sanitized.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi, '****');
+
+  // 2. Mask social / chat links (wa.me, fb.com, etc.)
+  sanitized = sanitized.replace(/(https?:\/\/)?(www\.)?(wa\.me|whatsapp\.com|facebook\.com|fb\.com|t\.me|telegram\.me)\/[^\s]+/gi, '****');
+
+  // 3. Mask Bangladeshi & International phone numbers
+  sanitized = sanitized.replace(/(\+?880\s?|0)1[3-9]([\s.-]?\d){8}/g, '****');
+
+  // 4. Mask Free Fire UIDs / 6-12 digit numbers
+  sanitized = sanitized.replace(/(uid\s*[:#-]?\s*)\d{6,12}/gi, '$1****');
+  sanitized = sanitized.replace(/\b\d{6,12}\b/g, '****');
+
+  return sanitized;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -39,7 +60,6 @@ export async function POST(request: NextRequest) {
       type,
       gameMode = 'BR_SQUAD',
       roleNeeded = 'RUSHER',
-      contactWhatsApp,
       description,
       squadName,
     } = body;
@@ -58,6 +78,9 @@ export async function POST(request: NextRequest) {
     const postId = `lfg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     const calcWinRate = user && (user.totalWins || 0) > 0 ? Math.min(100, Math.round(((user.totalWins || 0) / Math.max(1, (user.totalWins || 0) + 5)) * 100)) : 0;
 
+    const sanitizedDescription = maskSensitiveContacts(description.trim());
+    const sanitizedSquadName = squadName ? maskSensitiveContacts(squadName.trim()) : null;
+
     const newPost = {
       id: postId,
       userId,
@@ -67,10 +90,10 @@ export async function POST(request: NextRequest) {
       type,
       gameMode,
       roleNeeded,
-      contactWhatsApp: contactWhatsApp?.trim() || null,
-      description: description.trim(),
+      contactWhatsApp: null,
+      description: sanitizedDescription,
       status: 'OPEN',
-      squadName: squadName?.trim() || null,
+      squadName: sanitizedSquadName,
       winRate: user?.winRate || calcWinRate,
       kills: user?.totalKills || 0,
       createdAt: new Date().toISOString(),
