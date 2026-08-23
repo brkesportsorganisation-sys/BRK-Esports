@@ -272,6 +272,10 @@ export default function AdminBannersPage() {
         return { label: 'Side Top Card (Right)', color: 'bg-red-100 text-red-800 border-red-200' };
       case 'SIDE_BOTTOM':
         return { label: 'Side Bottom Card (Right)', color: 'bg-amber-100 text-amber-800 border-amber-200' };
+      case 'SHOP_BANNER':
+        return { label: '🛍️ Shop & Home Banner', color: 'bg-emerald-100 text-emerald-800 border-emerald-200' };
+      default:
+        return { label: p, color: 'bg-slate-100 text-slate-800 border-slate-200' };
     }
   };
 
@@ -515,6 +519,7 @@ export default function AdminBannersPage() {
           { key: 'MAIN_SLIDER', label: `Main Slider (${banners.filter(b => b.placement === 'MAIN_SLIDER').length})` },
           { key: 'SIDE_TOP', label: `Side Top Card (${banners.filter(b => b.placement === 'SIDE_TOP').length})` },
           { key: 'SIDE_BOTTOM', label: `Side Bottom Card (${banners.filter(b => b.placement === 'SIDE_BOTTOM').length})` },
+          { key: 'SHOP_BANNER', label: `🛍️ Shop Banner (${banners.filter(b => b.placement === 'SHOP_BANNER').length})` },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -676,6 +681,7 @@ export default function AdminBannersPage() {
                   <option value="MAIN_SLIDER">Main Carousel Slider (Big Box Left - PC & Mobile)</option>
                   <option value="SIDE_TOP">Side Top Card (Right Top - PC Only)</option>
                   <option value="SIDE_BOTTOM">Side Bottom Card (Right Bottom - PC Only)</option>
+                  <option value="SHOP_BANNER">🛍️ Shop & Home Banner (Gaming Shop Top Banner & Homepage Widget)</option>
                 </select>
               </div>
 

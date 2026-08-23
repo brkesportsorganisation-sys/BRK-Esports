@@ -6,7 +6,7 @@ import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import MobileBottomNav from '@/components/ui/MobileBottomNav';
 import { db } from '@/lib/db';
-import { User, ShopProduct, DEFAULT_SHOP_PRODUCTS } from '@/lib/types';
+import { User, ShopProduct, DEFAULT_SHOP_PRODUCTS, Banner } from '@/lib/types';
 import { 
   Diamond, 
   Sparkles, 
@@ -17,24 +17,25 @@ import {
   DollarSign, 
   ShieldCheck, 
   Loader2, 
-  ArrowRight,
-  Gift,
-  Search,
-  ShoppingCart,
-  Tag,
-  Package,
-  Layers,
-  Flame,
-  CheckCircle2,
-  AlertCircle,
-  HelpCircle,
-  Clock,
+  ArrowRight, 
+  Gift, 
+  Search, 
+  ShoppingCart, 
+  Tag, 
+  Package, 
+  Layers, 
+  Flame, 
+  CheckCircle2, 
+  AlertCircle, 
+  HelpCircle, 
+  Clock, 
   Ticket
 } from 'lucide-react';
 
 export default function GamingShopPage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [products, setProducts] = useState<ShopProduct[]>(DEFAULT_SHOP_PRODUCTS);
+  const [shopBanner, setShopBanner] = useState<Banner | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
@@ -83,6 +84,15 @@ export default function GamingShopPage() {
           db.setCurrentUser(data.user);
           if (data.user.freeFireUid) setPlayerUid(data.user.freeFireUid);
           if (data.user.inGameName) setInGameName(data.user.inGameName);
+        }
+      })
+      .catch(() => {});
+
+    fetch('/api/banners')
+      .then(res => res.json())
+      .then(data => {
+        if (data.shopBanner) {
+          setShopBanner(data.shopBanner);
         }
       })
       .catch(() => {});
@@ -203,19 +213,37 @@ export default function GamingShopPage() {
         
         {/* ── Hero Banner ── */}
         <div className="relative rounded-[2.5rem] overflow-hidden bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border border-slate-800 p-6 sm:p-10 shadow-2xl text-white">
+          {/* Custom Banner Image Background if set by admin */}
+          {shopBanner?.imageUrl && (
+            <div className="absolute inset-0 z-0">
+              <img
+                src={shopBanner.imageUrl}
+                alt={shopBanner.title || 'Shop Banner'}
+                className="w-full h-full object-cover opacity-30 sm:opacity-40"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/85 to-slate-950/70" />
+            </div>
+          )}
+
           <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-orange-500/20 via-cyan-500/20 to-transparent rounded-full blur-3xl pointer-events-none" />
           
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 relative z-10">
             <div className="space-y-3 max-w-2xl">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-500/20 border border-orange-500/40 text-orange-400 text-xs font-black uppercase tracking-wider shadow-sm">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-500/20 border border-orange-500/40 text-orange-400 text-xs font-black uppercase tracking-wider shadow-sm backdrop-blur-md">
                 <Sparkles className="w-4 h-4 animate-pulse text-amber-400" />
-                <span>BRK ESPORTS OFFICIAL REWARDS & COIN SHOP</span>
+                <span>{shopBanner?.badge || 'BRK ESPORTS OFFICIAL REWARDS & COIN SHOP'}</span>
               </div>
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-black font-heading tracking-tight text-white leading-tight">
-                Gaming Shop & <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-red-500">Diamond Center</span>
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-black font-heading tracking-tight text-white leading-tight drop-shadow-md">
+                {shopBanner?.title ? (
+                  shopBanner.title
+                ) : (
+                  <>Gaming Shop & <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-red-500">Diamond Center</span></>
+                )}
               </h1>
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                আপনার অর্জিত <strong className="text-amber-400">BRK Coins (🪙)</strong> অথবা <strong className="text-emerald-400">Wallet Taka (৳)</strong> দিয়ে ইনস্ট্যান্ট ফ্রি ফায়ার ডায়মন্ড, উইকলি মেম্বারশিপ, স্কিন রিডিম ভাউচার ও ম্যাচ পাস কিনুন!
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed drop-shadow-sm">
+                {shopBanner?.subtitle || (
+                  <>আপনার অর্জিত <strong className="text-amber-400">BRK Coins (🪙)</strong> অথবা <strong className="text-emerald-400">Wallet Taka (৳)</strong> দিয়ে ইনস্ট্যান্ট ফ্রি ফায়ার ডায়মন্ড, উইকলি মেম্বারশিপ, স্কিন রিডিম ভাউচার ও ম্যাচ পাস কিনুন!</>
+                )}
               </p>
             </div>
 

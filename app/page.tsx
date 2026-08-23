@@ -34,7 +34,7 @@ import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import HomeBannerSlider from '@/components/home/HomeBannerSlider';
 import HomeLotteryWheel from '@/components/home/HomeLotteryWheel';
-import { Tournament, Announcement, User, ShopProduct } from '@/lib/types';
+import { Tournament, Announcement, User, ShopProduct, Banner } from '@/lib/types';
 import TournamentCard from '@/components/tournaments/TournamentCard';
 import { db } from '@/lib/db';
 import { useLanguage } from '@/lib/language-context';
@@ -87,6 +87,7 @@ export default function HomePage() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [featuredShopItems, setFeaturedShopItems] = useState<ShopProduct[]>([]);
+  const [shopBanner, setShopBanner] = useState<Banner | null>(null);
   const [siteSettings, setSiteSettings] = useState<Record<string, string>>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -195,10 +196,21 @@ export default function HomePage() {
       } catch {}
     };
 
+    const loadShopBanner = async () => {
+      try {
+        const res = await fetch('/api/banners');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.shopBanner) setShopBanner(data.shopBanner);
+        }
+      } catch {}
+    };
+
     void loadSettings();
     void loadTournaments();
     void loadAnnouncements();
     void loadShopItems();
+    void loadShopBanner();
   }, []);
 
   const displayedTournaments = (tournaments.length > 0 ? tournaments : initialTournaments).slice(0, 2);
@@ -296,6 +308,56 @@ export default function HomePage() {
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
+
+            {/* ── Custom Shop Banner (Click to Redirect Directly to /shop) ── */}
+            <Link
+              href={shopBanner?.linkUrl || '/shop'}
+              className="group relative block w-full rounded-3xl overflow-hidden border border-slate-800 hover:border-amber-400 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-0.5 cursor-pointer bg-slate-950 text-white"
+            >
+              {/* Banner Background Image */}
+              <div className="relative h-48 sm:h-64 w-full overflow-hidden bg-slate-950">
+                <img
+                  src={shopBanner?.imageUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1600&auto=format&fit=crop&q=80'}
+                  alt={shopBanner?.title || 'Gaming Shop'}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-60 group-hover:opacity-75"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t sm:bg-gradient-to-r from-slate-950 via-slate-950/80 to-transparent" />
+                <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-amber-500/20 via-orange-500/20 to-transparent rounded-full blur-3xl pointer-events-none" />
+              </div>
+
+              {/* Banner Overlay Details */}
+              <div className="absolute inset-0 p-5 sm:p-8 flex flex-col justify-between z-10">
+                <div className="space-y-2 max-w-xl">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-400 text-[10px] sm:text-xs font-black uppercase tracking-wider backdrop-blur-md">
+                    <Sparkles className="w-3.5 h-3.5 animate-pulse text-amber-400" />
+                    <span>{shopBanner?.badge || 'BRK ESPORTS OFFICIAL REWARDS & COIN SHOP'}</span>
+                  </div>
+                  <h3 className="text-xl sm:text-3xl md:text-4xl font-black font-heading tracking-tight text-white group-hover:text-amber-400 transition-colors drop-shadow-md">
+                    {shopBanner?.title || 'Gaming Shop & Diamond Center'}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-300 line-clamp-2 leading-relaxed drop-shadow-sm">
+                    {shopBanner?.subtitle || (
+                      isBangla
+                        ? 'আপনার অর্জিত BRK Coins (🪙) অথবা ওয়ালেট ক্যাশ (৳) দিয়ে ইনস্ট্যান্ট ডায়মন্ড, উইকলি মেম্বারশিপ ও স্কিন রিওয়ার্ডস কিনুন!'
+                        : 'Use your tournament winnings or BRK Coins to buy official Free Fire Diamonds, Weekly Passes, and Exclusive items!'
+                    )}
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white font-heading font-black text-xs uppercase tracking-wider shadow-lg group-hover:shadow-amber-500/40 group-hover:scale-105 transition-all">
+                    <ShoppingBag className="w-4 h-4" />
+                    <span>{shopBanner?.buttonText || (isBangla ? 'শপ ভিজিট করুন' : 'Explore Full Shop')}</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </div>
+
+                  <span className="hidden sm:inline-flex items-center gap-1.5 text-xs text-amber-400 font-bold bg-black/50 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-amber-500/30">
+                    <Coins className="w-4 h-4 text-amber-400" />
+                    <span>Instant Free Fire Delivery ⚡</span>
+                  </span>
+                </div>
+              </div>
+            </Link>
 
             {/* Featured Products Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

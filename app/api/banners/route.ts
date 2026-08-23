@@ -49,6 +49,7 @@ export async function GET(request: NextRequest) {
     const mainSliders = activeBanners.filter((b) => b.placement === 'MAIN_SLIDER');
     const sideTop = activeBanners.find((b) => b.placement === 'SIDE_TOP') || null;
     const sideBottom = activeBanners.find((b) => b.placement === 'SIDE_BOTTOM') || null;
+    const shopBanner = activeBanners.find((b) => b.placement === 'SHOP_BANNER') || null;
 
     return NextResponse.json({
       success: true,
@@ -57,6 +58,7 @@ export async function GET(request: NextRequest) {
       mainSliders,
       sideTop,
       sideBottom,
+      shopBanner,
     });
   } catch (error: any) {
     console.error('[GET /api/banners]', error);
