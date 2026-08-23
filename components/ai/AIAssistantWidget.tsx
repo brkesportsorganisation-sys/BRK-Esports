@@ -39,13 +39,13 @@ interface Message {
   };
 }
 
-const COACHING_PILLS = [
-  { id: 'discord', label: '💬 Discord Server', query: 'I want to join the official Discord server for instant support' },
-  { id: 'tournaments', label: '🏆 Live Tournaments', query: 'What active Free Fire tournaments are open for registration right now?' },
-  { id: 'sens', label: '🎯 Headshot Sens', query: 'What is the best Free Fire drag-headshot sensitivity and DPI settings?' },
-  { id: 'room', label: '🔑 Room ID & Pass', query: 'How and when will I get the Custom Room ID and Password for my match?' },
-  { id: 'wallet', label: '💰 bKash Cashout', query: 'How does prize money payout work and how to withdraw to bKash/Nagad?' },
-  { id: 'spin', label: '🎁 Free Rewards', query: 'How can I get free coins, spins, and diamond rewards on Black Rock Esports?' }
+const SUPPORT_PILLS = [
+  { id: 'tournaments', label: '🏆 How to Join Match', query: 'কীভাবে টুর্নামেন্টে রেজিস্ট্রেশন ও স্লট বুক করব?' },
+  { id: 'room', label: '🔑 Room ID & Pass', query: 'ম্যাচ শুরুর কতক্ষণ আগে Room ID এবং Password পাওয়া যাবে?' },
+  { id: 'wallet', label: '💰 bKash Cashout', query: 'জয়ের টাকা কীভাবে বিকাশ বা নগদে ক্যাশআউট করব?' },
+  { id: 'deposit', label: '💳 Add Money / Deposit', query: 'ওয়ালেটে টাকা ডিপোজিট করার নিয়ম কী?' },
+  { id: 'squad', label: '👥 Find Squad (LFG)', query: 'টুর্নামেন্ট খেলার জন্য স্কোয়াড বা টিমমেট কীভাবে খুঁজব?' },
+  { id: 'spin', label: '🎁 Free Rewards', query: 'কীভাবে ফ্রি লাকি স্পিন ও বোনাস রিওয়ার্ড পাওয়া যাবে?' }
 ];
 
 const DEFAULT_WELCOME_MESSAGE: Message = {
@@ -806,7 +806,7 @@ export default function AIAssistantWidget() {
 
             {/* Pill Chips Row */}
             <div className="px-3 py-2 bg-slate-50 border-b border-slate-100 overflow-x-auto scrollbar-none flex items-center gap-1.5">
-              {COACHING_PILLS.map((pill) => (
+              {SUPPORT_PILLS.map((pill) => (
                 <button
                   key={pill.id}
                   onClick={() => handleSendMessage(pill.query)}
