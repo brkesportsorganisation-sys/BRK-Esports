@@ -3,32 +3,20 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { db } from '@/lib/db';
 
 const COOLDOWN_MS = 24 * 60 * 60 * 1000; // Exact 24 hours
-const STREAK_EXPIRY_MS = 48 * 60 * 60 * 1000; // 48 hours to maintain streak
-
-const STREAK_REWARDS = [
-  { day: 1, label: '+15 Coins', type: 'COINS', value: 15 },
-  { day: 2, label: '+25 Coins', type: 'COINS', value: 25 },
-  { day: 3, label: '+40 Coins + Spin Ticket', type: 'COINS', value: 40 },
-  { day: 4, label: '+50 Coins', type: 'COINS', value: 50 },
-  { day: 5, label: '+75 Coins', type: 'COINS', value: 75 },
-  { day: 6, label: '+100 Mega Coins', type: 'COINS', value: 100 },
-  { day: 7, label: '৳10 Real Cash Bonus', type: 'WALLET', value: 10 },
-];
+const DAILY_LOGIN_REWARD_COINS = 20;
 
 function getUserStreakInfo(user: any) {
-  let currentStreak = Number(user.currentStreak || 0);
   let lastStreakClaimDate = user.lastStreakClaimDate || null;
 
   // Fallback check in deviceToken if columns are not yet in Supabase
   if (!lastStreakClaimDate && user.deviceToken && typeof user.deviceToken === 'string' && user.deviceToken.startsWith('STREAK:')) {
     try {
       const parsed = JSON.parse(user.deviceToken.replace('STREAK:', ''));
-      if (parsed.currentStreak !== undefined) currentStreak = Number(parsed.currentStreak);
       if (parsed.lastStreakClaimDate) lastStreakClaimDate = parsed.lastStreakClaimDate;
     } catch {}
   }
 
-  return { currentStreak, lastStreakClaimDate };
+  return { lastStreakClaimDate };
 }
 
 export async function GET(request: NextRequest) {
@@ -61,13 +49,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'User not found. Please log in.' }, { status: 404 });
     }
 
-    const { currentStreak, lastStreakClaimDate } = getUserStreakInfo(user);
+    const { lastStreakClaimDate } = getUserStreakInfo(user);
 
     const now = Date.now();
     let canClaimStreak = true;
     let remainingSeconds = 0;
     let nextClaimAvailableAt: string | null = null;
-    let currentStreakDay = currentStreak || 1;
 
     if (lastStreakClaimDate) {
       const lastClaimTime = new Date(lastStreakClaimDate).getTime();
@@ -78,41 +65,23 @@ export async function GET(request: NextRequest) {
         canClaimStreak = false;
         remainingSeconds = Math.max(0, Math.ceil((nextClaimTime - now) / 1000));
         nextClaimAvailableAt = new Date(nextClaimTime).toISOString();
-        currentStreakDay = currentStreak || 1;
       } else {
         canClaimStreak = true;
         remainingSeconds = 0;
-        // If user waited more than 48h since last claim, streak resets to Day 1
-        if (timeSinceLastClaim > STREAK_EXPIRY_MS) {
-          currentStreakDay = 1;
-        } else {
-          // Ready to claim next day!
-          currentStreakDay = ((currentStreak || 0) % 7) + 1;
-        }
       }
-    } else {
-      currentStreakDay = 1;
-      canClaimStreak = true;
     }
-
-    if (currentStreakDay > 7 || currentStreakDay < 1) currentStreakDay = 1;
 
     return NextResponse.json({
       success: true,
-      currentStreakDay,
       canClaimStreak,
       remainingSeconds,
+      rewardCoins: DAILY_LOGIN_REWARD_COINS,
+      lastStreakClaimDate,
       nextClaimAvailableAt,
-      streakRewards: STREAK_REWARDS,
-      dailyQuests: [
-        { id: 'q_tour', title: 'Play in 1 Free Fire Tournament Match', rewardCoins: 50, isCompleted: false },
-        { id: 'q_ad', title: 'Watch 2 Video Ads in Rewards Hub', rewardCoins: 30, isCompleted: true },
-        { id: 'q_spin', title: 'Spin the Lucky Lottery Wheel', rewardCoins: 20, isCompleted: false },
-      ]
     });
   } catch (error: any) {
-    console.error('[GET /api/user/quests]', error);
-    return NextResponse.json({ success: false, message: error?.message || 'Failed to fetch quests.' }, { status: 500 });
+    console.error('Error fetching quests info:', error);
+    return NextResponse.json({ success: false, message: 'Failed to retrieve daily login reward' }, { status: 500 });
   }
 }
 
@@ -121,8 +90,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { userId, action } = body;
 
-    if (!userId || !action) {
-      return NextResponse.json({ success: false, message: 'রিওয়ার্ড ক্লেইম করতে লগইন করা প্রয়োজন (User ID and action required).' }, { status: 401 });
+    if (!userId) {
+      return NextResponse.json({ success: false, message: 'User ID is required.' }, { status: 401 });
     }
 
     let user: any = null;
@@ -146,11 +115,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'একাউন্ট পাওয়া যায়নি। অনুগ্রহ করে লগইন করুন।' }, { status: 404 });
     }
 
-    const { currentStreak, lastStreakClaimDate } = getUserStreakInfo(user);
+    const { lastStreakClaimDate } = getUserStreakInfo(user);
     const now = Date.now();
 
-    // Handle Daily Login Streak Claim
-    if (action === 'CLAIM_STREAK') {
+    // Handle Daily Login Claim (20 Coins)
+    if (action === 'CLAIM_STREAK' || action === 'CLAIM_DAILY_LOGIN') {
       const claimNowIso = new Date().toISOString();
 
       if (lastStreakClaimDate) {
@@ -163,66 +132,35 @@ export async function POST(request: NextRequest) {
           const mins = Math.floor((remainingSeconds % 3600) / 60);
           return NextResponse.json({ 
             success: false,
-            message: `আজকে ইতিমধ্যেই আপনার ডেইলি রিওয়ার্ড ক্লেইম করা হয়েছে! আগামীকাল আবার চেষ্টা করুন (Try again tomorrow)। পরবর্তী রিওয়ার্ডের সময় বাকি: ${hours > 0 ? `${hours} ঘণ্টা ` : ''}${mins} মিনিট।`,
+            message: `আজকে ইতিমধ্যেই আপনার ডেইলি লগইন রিওয়ার্ড (২০ কয়েন) ক্লেইম করা হয়েছে! পরবর্তী ক্লেইম করতে বাকি: ${hours > 0 ? `${hours} ঘণ্টা ` : ''}${mins} মিনিট।`,
             canClaimStreak: false,
             remainingSeconds,
           }, { status: 400 });
         }
       }
 
-      // Calculate streak day progression
-      let streakDay = 1;
-      if (lastStreakClaimDate) {
-        const lastClaimTime = new Date(lastStreakClaimDate).getTime();
-        const timeSinceLastClaim = now - lastClaimTime;
+      const rewardValue = DAILY_LOGIN_REWARD_COINS;
+      let newCoinBal = Number(user.coinBalance || 0) + rewardValue;
 
-        if (timeSinceLastClaim > STREAK_EXPIRY_MS) {
-          streakDay = 1; // Expired streak resets to Day 1
-        } else {
-          streakDay = ((currentStreak || 0) % 7) + 1;
-        }
-      } else {
-        streakDay = 1;
-      }
+      const fallbackStreakStr = `STREAK:${JSON.stringify({ lastStreakClaimDate: claimNowIso })}`;
 
-      const reward = STREAK_REWARDS[streakDay - 1] || STREAK_REWARDS[0];
-
-      let newCoinBal = Number(user.coinBalance || 0);
-      let newWalletBal = Number(user.walletBalance || 0);
-      let newEarnings = Number(user.earnings || 0);
-
-      if (reward.type === 'WALLET') {
-        newWalletBal += reward.value;
-        newEarnings += reward.value;
-      } else {
-        newCoinBal += reward.value;
-      }
-
-      const fallbackStreakStr = `STREAK:${JSON.stringify({ currentStreak: streakDay, lastStreakClaimDate: claimNowIso })}`;
-
-      // Safe update to Supabase including currentStreak and lastStreakClaimDate
+      // Safe update to Supabase
       try {
         const { error } = await supabaseAdmin
           .from('User')
           .update({
             coinBalance: newCoinBal,
-            walletBalance: newWalletBal,
-            earnings: newEarnings,
-            currentStreak: streakDay,
             lastStreakClaimDate: claimNowIso,
             updatedAt: claimNowIso,
           })
           .eq('id', userId);
 
         if (error) {
-          // If custom streak columns don't exist yet in Supabase, update balances & persist streak in deviceToken fallback
-          console.warn('Supabase update with streak columns failed, using fallback:', error.message);
+          console.warn('Supabase update with lastStreakClaimDate failed, using fallback:', error.message);
           await supabaseAdmin
             .from('User')
             .update({
               coinBalance: newCoinBal,
-              walletBalance: newWalletBal,
-              earnings: newEarnings,
               deviceToken: fallbackStreakStr,
               updatedAt: claimNowIso,
             })
@@ -232,13 +170,10 @@ export async function POST(request: NextRequest) {
         console.warn('Supabase user balance update warning:', e);
       }
 
-      // Update in local DB with streak fields
+      // Update in local DB with claim fields
       const updatedUser = {
         ...user,
         coinBalance: newCoinBal,
-        walletBalance: newWalletBal,
-        earnings: newEarnings,
-        currentStreak: streakDay,
         lastStreakClaimDate: claimNowIso,
         deviceToken: fallbackStreakStr,
         updatedAt: claimNowIso,
@@ -250,10 +185,9 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        message: `Claimed Day ${streakDay} Streak Reward: ${reward.label}! 🎉`,
-        reward,
+        message: 'অভিনন্দন! আপনার একাউন্টে ২০ কয়েন সফলভাবে যোগ করা হয়েছে! 🎉',
+        reward: { label: '+20 Coins', type: 'COINS', value: 20 },
         user: sanitizedUser,
-        currentStreakDay: streakDay,
         canClaimStreak: false,
         remainingSeconds: COOLDOWN_MS / 1000,
         nextClaimAvailableAt: new Date(now + COOLDOWN_MS).toISOString(),

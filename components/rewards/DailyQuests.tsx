@@ -3,13 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
-  Flame, 
   Coins, 
   Gift, 
   CheckCircle2, 
   Sparkles, 
   Loader2, 
-  DollarSign, 
   Clock, 
   Lock, 
   LogIn, 
@@ -22,29 +20,10 @@ import {
 import { db } from '@/lib/db';
 import { User } from '@/lib/types';
 
-interface StreakReward {
-  day: number;
-  label: string;
-  type: string;
-  value: number;
-}
-
-const DEFAULT_STREAK_REWARDS: StreakReward[] = [
-  { day: 1, label: '+15 Coins', type: 'COINS', value: 15 },
-  { day: 2, label: '+25 Coins', type: 'COINS', value: 25 },
-  { day: 3, label: '+40 Coins + Spin Ticket', type: 'COINS', value: 40 },
-  { day: 4, label: '+50 Coins', type: 'COINS', value: 50 },
-  { day: 5, label: '+75 Coins', type: 'COINS', value: 75 },
-  { day: 6, label: '+100 Mega Coins', type: 'COINS', value: 100 },
-  { day: 7, label: '৳10 Real Cash Bonus', type: 'WALLET', value: 10 },
-];
-
 export default function DailyQuests() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [currentStreakDay, setCurrentStreakDay] = useState(1);
   const [canClaim, setCanClaim] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(0);
-  const [streakRewards, setStreakRewards] = useState<StreakReward[]>(DEFAULT_STREAK_REWARDS);
   const [isClaiming, setIsClaiming] = useState(false);
   const [claimFeedback, setClaimFeedback] = useState('');
   
@@ -66,15 +45,11 @@ export default function DailyQuests() {
       const res = await fetch(`/api/user/quests?userId=${uid}`, { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
-        setCurrentStreakDay(data.currentStreakDay || 1);
         setCanClaim(Boolean(data.canClaimStreak));
         setRemainingSeconds(data.remainingSeconds || 0);
-        if (data.streakRewards && data.streakRewards.length > 0) {
-          setStreakRewards(data.streakRewards);
-        }
       }
     } catch (err) {
-      console.warn('Failed to load quest data:', err);
+      console.warn('Failed to load daily login data:', err);
     }
   };
 
@@ -91,21 +66,17 @@ export default function DailyQuests() {
         if (timeSince < cooldownMs) {
           setCanClaim(false);
           setRemainingSeconds(Math.max(0, Math.ceil((cooldownMs - timeSince) / 1000)));
-          setCurrentStreakDay(user.currentStreak || 1);
         } else {
           setCanClaim(true);
           setRemainingSeconds(0);
-          if (timeSince > 48 * 60 * 60 * 1000) {
-            setCurrentStreakDay(1);
-          } else {
-            setCurrentStreakDay(((user.currentStreak || 0) % 7) + 1);
-          }
         }
+      } else {
+        setCanClaim(true);
+        setRemainingSeconds(0);
       }
       loadQuestData(user.id);
     } else {
       setCanClaim(false);
-      setCurrentStreakDay(1);
     }
   };
 
@@ -148,17 +119,15 @@ export default function DailyQuests() {
 
   // Format seconds to HH:MM:SS
   const formatTimeRemaining = (totalSec: number) => {
-    if (totalSec <= 0) return '00h 00m 00s';
+    if (totalSec <= 0) return '00:00:00';
     const hours = Math.floor(totalSec / 3600);
-    const mins = Math.floor((totalSec % 3600) / 60);
-    const secs = totalSec % 60;
-
-    const pad = (n: number) => n.toString().padStart(2, '0');
-    return `${pad(hours)}h ${pad(mins)}m ${pad(secs)}s`;
+    const minutes = Math.floor((totalSec % 3600) / 60);
+    const seconds = totalSec % 60;
+    return `${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s`;
   };
 
-  // Main Claim Handler
-  const handleClaimStreak = async () => {
+  // Main Claim Handler for 20 Coins
+  const handleClaimReward = async () => {
     if (!currentUser) {
       setShowLoginModal(true);
       return;
@@ -169,8 +138,6 @@ export default function DailyQuests() {
       return;
     }
 
-    if (isClaiming) return;
-
     setIsClaiming(true);
     setClaimFeedback('');
 
@@ -180,7 +147,7 @@ export default function DailyQuests() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: currentUser.id,
-          action: 'CLAIM_STREAK',
+          action: 'CLAIM_DAILY_LOGIN',
         }),
       });
 
@@ -188,24 +155,35 @@ export default function DailyQuests() {
 
       if (res.ok && data.success) {
         setCanClaim(false);
-        setCurrentStreakDay(data.currentStreakDay);
-        setRemainingSeconds(data.remainingSeconds || 86400);
-        setClaimFeedback(data.message || `Day ${data.currentStreakDay} reward claimed successfully! 🎉`);
+        setRemainingSeconds(24 * 60 * 60);
+        setClaimFeedback(`অভিনন্দন! আপনার একাউন্টে ২০ কয়েন সফলভাবে যোগ করা হয়েছে! 🎉`);
 
         if (data.user) {
-          setCurrentUser(data.user);
           db.setCurrentUser(data.user);
-          // Dispatch event so other components update balances instantly
+          setCurrentUser(data.user);
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new Event('user-updated'));
+            window.dispatchEvent(new Event('storage'));
+          }
+        } else {
+          // Local fallback update
+          const updated = {
+            ...currentUser,
+            coinBalance: Number(currentUser.coinBalance || 0) + 20,
+            lastStreakClaimDate: new Date().toISOString(),
+          };
+          db.setCurrentUser(updated);
+          db.updateUser(currentUser.id, updated);
+          setCurrentUser(updated);
           if (typeof window !== 'undefined') {
             window.dispatchEvent(new Event('user-updated'));
             window.dispatchEvent(new Event('storage'));
           }
         }
 
-        triggerToast(`🎉 অভিনন্দন! Day ${data.currentStreakDay} রিওয়ার্ড আপনার একাউন্টে যোগ হয়েছে!`, 'success');
+        triggerToast(`🎉 অভিনন্দন! ২০ ফ্রি কয়েন আপনার একাউন্টে যোগ হয়েছে!`, 'success');
         setTimeout(() => setClaimFeedback(''), 7000);
       } else {
-        // Backend blocked claim (e.g. within 24h)
         if (data.remainingSeconds) {
           setCanClaim(false);
           setRemainingSeconds(data.remainingSeconds);
@@ -213,41 +191,14 @@ export default function DailyQuests() {
         setShowTryTomorrowModal(true);
       }
     } catch (err: any) {
-      triggerToast(err?.message || 'Error claiming reward. Please try again.', 'warning');
+      triggerToast(err?.message || 'Error claiming daily reward. Please try again.', 'warning');
     } finally {
       setIsClaiming(false);
     }
   };
 
-  // Click handler on the claimed/unavailable button
-  const handleAlreadyClaimedClick = () => {
-    setShowTryTomorrowModal(true);
-  };
-
-  // Click on visual cards for friendly feedback
-  const handleCardClick = (rewardDay: number) => {
-    if (!currentUser) {
-      setShowLoginModal(true);
-      return;
-    }
-
-    const isPassed = rewardDay < currentStreakDay || (!canClaim && rewardDay === currentStreakDay);
-    const isCurrent = rewardDay === currentStreakDay && canClaim;
-
-    if (isPassed) {
-      triggerToast(`✓ Day ${rewardDay} রিওয়ার্ড ইতিমধ্যে সফলভাবে ক্লেইম করা হয়েছে।`, 'info');
-    } else if (isCurrent) {
-      handleClaimStreak();
-    } else {
-      triggerToast(`🔒 Day ${rewardDay} লক করা রয়েছে। ধারাবাহিক লগইন বজায় রেখে পর্যায়ক্রমে আনলক করুন!`, 'warning');
-    }
-  };
-
-  const nextDay = (currentStreakDay % 7) + 1;
-  const nextReward = streakRewards.find(r => r.day === nextDay) || streakRewards[0];
-
   return (
-    <div className="relative p-6 md:p-8 bg-white border border-slate-200/90 rounded-3xl space-y-6 shadow-sm text-slate-900 font-sans">
+    <div className="relative p-6 sm:p-8 bg-white border border-slate-200/90 rounded-3xl space-y-5 shadow-xs text-slate-900 font-sans">
       
       {/* Toast Notification Alert */}
       {toastMessage && (
@@ -268,86 +219,86 @@ export default function DailyQuests() {
           <span className="text-xs font-bold leading-relaxed">{toastMessage.text}</span>
           <button 
             onClick={() => setToastMessage(null)}
-            className="ml-auto p-1 rounded-lg hover:bg-white/20 text-white"
+            className="ml-auto p-1 rounded-lg hover:bg-white/20 text-white cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
       )}
 
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-        <div className="flex items-center gap-3.5">
-          <div className="p-3 bg-gradient-to-br from-brand-red/10 to-brand-orange/15 text-brand-orange border border-orange-200 rounded-2xl shadow-xs shrink-0">
-            <Flame className="w-6 h-6 animate-pulse" />
+      {/* Main Daily Login Reward Row */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
+        
+        {/* Left Side: Icon & Info */}
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 bg-gradient-to-tr from-amber-500 to-orange-500 text-slate-950 rounded-2xl flex items-center justify-center shadow-md border-2 border-amber-300 shrink-0">
+            <Coins className="w-7 h-7 animate-pulse text-slate-950" />
           </div>
-          <div>
+          <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-lg font-black text-slate-900 font-heading tracking-tight">
-                7-Day Daily Login Streak
+              <h3 className="text-lg sm:text-xl font-black text-slate-900 font-heading tracking-tight">
+                Daily Login Reward
               </h3>
-              <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-orange-50 border border-orange-200 text-brand-orange font-black">
-                FREE BONUS
+              <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-800 font-black flex items-center gap-1 shadow-2xs">
+                <Sparkles className="w-3 h-3 text-amber-600" />
+                <span>+20 FREE COINS</span>
               </span>
             </div>
-            <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
-              প্রতি ২৪ ঘণ্টা পর পর লগইন করে ফ্রি রিওয়ার্ড ক্লেইম করুন! (Claim every 24 hours)
+            <p className="text-xs text-slate-600 leading-relaxed font-medium">
+              প্রতি ২৪ ঘণ্টা পর পর লগইন করে ফ্রিতে ২০ কয়েন ক্লেইম করুন! (Claim 20 free coins once every 24 hours)
             </p>
           </div>
         </div>
 
-        {/* Dynamic Claim Button / State */}
-        {!currentUser ? (
-          /* State 1: Guest / Not Logged In */
-          <button
-            onClick={() => setShowLoginModal(true)}
-            className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:brightness-110 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
-            title="Login to Claim"
-          >
-            <LogIn className="w-4 h-4" />
-            <span>লগইন করে ক্লেইম করুন</span>
-          </button>
-        ) : canClaim ? (
-          /* State 2: Logged in & Available to claim today */
-          <button
-            onClick={handleClaimStreak}
-            disabled={isClaiming}
-            className="w-full sm:w-auto px-6 py-3.5 bg-gradient-to-r from-brand-red via-brand-orange to-amber-500 hover:brightness-110 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-neon-orange flex items-center justify-center gap-2 cursor-pointer animate-pulse hover:scale-[1.02] active:scale-[0.98]"
-          >
-            {isClaiming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Gift className="w-4 h-4" />}
-            <span>Claim Day {currentStreakDay} Reward</span>
-          </button>
-        ) : (
-          /* State 3: Logged in & Already claimed today (Unavailable / Claimed Style) */
-          <button
-            onClick={handleAlreadyClaimedClick}
-            className="w-full sm:w-auto px-5 py-2.5 bg-slate-100/90 hover:bg-slate-200/90 border border-slate-300/80 text-slate-700 rounded-xl transition-all shadow-2xs flex items-center justify-between sm:justify-start gap-3 cursor-pointer group select-none"
-            title="Already claimed today. Click to see details."
-          >
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 border border-emerald-200 flex items-center justify-center shrink-0">
+        {/* Right Side: Dynamic Action Button */}
+        <div className="shrink-0 flex items-center">
+          {!currentUser ? (
+            /* State 1: Guest / Not Logged In */
+            <button
+              onClick={() => setShowLoginModal(true)}
+              className="w-full md:w-auto px-6 py-3.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:brightness-110 text-white font-black text-xs uppercase tracking-wider rounded-2xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <LogIn className="w-4 h-4" />
+              <span>লগইন করে ক্লেইম করুন</span>
+            </button>
+          ) : canClaim ? (
+            /* State 2: Logged in & Ready to claim 20 Coins */
+            <button
+              onClick={handleClaimReward}
+              disabled={isClaiming}
+              className="w-full md:w-auto px-7 py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:brightness-110 text-slate-950 font-heading font-black text-xs uppercase tracking-wider rounded-2xl transition-all shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2 cursor-pointer animate-pulse hover:scale-[1.02] active:scale-[0.98]"
+            >
+              {isClaiming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Gift className="w-4 h-4" />}
+              <span>Claim +20 Daily Coins</span>
+            </button>
+          ) : (
+            /* State 3: Already Claimed Today (Shows 24h Countdown) */
+            <button
+              onClick={() => setShowTryTomorrowModal(true)}
+              className="w-full md:w-auto px-5 py-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-2xl transition-all shadow-2xs flex items-center justify-between sm:justify-start gap-3 cursor-pointer group select-none"
+              title="Already claimed today. Click to see details."
+            >
+              <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-600 border border-emerald-200 flex items-center justify-center shrink-0">
                 <CheckCircle2 className="w-4 h-4" />
               </div>
               <div className="flex flex-col text-left">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-black text-slate-800">
-                    Day {currentStreakDay} Claimed
+                  <span className="text-xs font-black text-slate-900">
+                    Today's 20 Coins Claimed
                   </span>
-                  <span className="text-[9px] px-1.5 py-0.2 bg-emerald-100 text-emerald-700 font-extrabold rounded">
+                  <span className="text-[9px] px-1.5 py-0.2 bg-emerald-100 text-emerald-700 font-bold rounded">
                     আজকেরটি সম্পন্ন
                   </span>
                 </div>
                 <div className="text-[11px] text-slate-500 font-mono font-bold flex items-center gap-1 mt-0.5">
-                  <Clock className="w-3 h-3 text-brand-orange animate-spin [animation-duration:8s]" />
-                  <span>Next: <strong className="text-brand-orange">{formatTimeRemaining(remainingSeconds)}</strong></span>
+                  <Clock className="w-3 h-3 text-amber-600 animate-spin [animation-duration:8s]" />
+                  <span>Next: <strong className="text-amber-600">{formatTimeRemaining(remainingSeconds)}</strong></span>
                 </div>
               </div>
-            </div>
-            <span className="text-[10px] text-brand-orange font-bold underline group-hover:opacity-80 sm:hidden">
-              Try Tomorrow
-            </span>
-          </button>
-        )}
+            </button>
+          )}
+        </div>
+
       </div>
 
       {/* Success Feedback Banner */}
@@ -360,100 +311,8 @@ export default function DailyQuests() {
         </div>
       )}
 
-      {/* 7-Day Visual Streak Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-        {streakRewards.map((reward) => {
-          // Passed/Claimed days:
-          const isPassed = reward.day < currentStreakDay || (!canClaim && reward.day === currentStreakDay && !!currentUser);
-          const isCurrent = reward.day === currentStreakDay && canClaim && !!currentUser;
-          const isDay7 = reward.day === 7;
-
-          return (
-            <div
-              key={reward.day}
-              onClick={() => handleCardClick(reward.day)}
-              className={`p-4 rounded-2xl border text-center transition-all space-y-2 relative overflow-hidden cursor-pointer select-none ${
-                isCurrent
-                  ? 'bg-gradient-to-b from-orange-50 to-amber-50/70 border-2 border-brand-orange shadow-md scale-105 ring-2 ring-brand-orange/20'
-                  : isPassed
-                  ? 'bg-emerald-50/70 border-emerald-300 text-slate-800'
-                  : 'bg-slate-50/90 border-slate-200 text-slate-500 opacity-80 hover:opacity-100 hover:border-slate-300'
-              }`}
-            >
-              {/* Day Header Badge */}
-              <div className="flex items-center justify-center gap-1 text-[10px] font-black uppercase tracking-wider text-slate-500">
-                <span>Day {reward.day}</span>
-              </div>
-
-              {/* Reward Icon */}
-              <div className="my-2">
-                {isDay7 ? (
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center mx-auto shadow-xs ${
-                    isPassed
-                      ? 'bg-emerald-500 text-white'
-                      : 'bg-gradient-to-tr from-brand-red to-brand-orange text-white'
-                  }`}>
-                    <DollarSign className="w-5 h-5 font-black" />
-                  </div>
-                ) : (
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center mx-auto border shadow-2xs ${
-                    isPassed 
-                      ? 'bg-emerald-100 text-emerald-600 border-emerald-300' 
-                      : isCurrent 
-                      ? 'bg-orange-500 text-white border-orange-400' 
-                      : 'bg-white text-brand-orange border-slate-200'
-                  }`}>
-                    <Coins className={`w-4 h-4 ${isCurrent ? 'text-white' : isPassed ? 'text-emerald-600' : 'text-amber-500'}`} />
-                  </div>
-                )}
-              </div>
-
-              {/* Reward Value Label */}
-              <div className="text-xs font-black text-slate-900 truncate">
-                {reward.label}
-              </div>
-
-              {/* Status Indicator */}
-              {isPassed ? (
-                <div className="absolute top-2 right-2 text-emerald-600 bg-emerald-100 rounded-full p-0.5 shadow-2xs" title="Claimed">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                </div>
-              ) : isCurrent ? (
-                <div className="absolute top-2 right-2">
-                  <span className="relative flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500"></span>
-                  </span>
-                </div>
-              ) : (
-                <div className="absolute top-2 right-2 text-slate-300">
-                  <Lock className="w-3 h-3" />
-                </div>
-              )}
-
-              {/* Status Tag */}
-              <div className="pt-1">
-                {isPassed ? (
-                  <span className="text-[9px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full inline-block">
-                    ✓ সম্পন্ন
-                  </span>
-                ) : isCurrent ? (
-                  <span className="text-[9px] font-black text-brand-orange bg-orange-100 px-2 py-0.5 rounded-full inline-block animate-pulse">
-                    আজকেরটি
-                  </span>
-                ) : (
-                  <span className="text-[9px] font-medium text-slate-400">
-                    লক করা
-                  </span>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
       {/* ========================================================================= */}
-      {/* MODAL 1: LOGIN REQUIRED MODAL (Account Protection)                        */}
+      {/* MODAL 1: LOGIN REQUIRED MODAL                                             */}
       {/* ========================================================================= */}
       {showLoginModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
@@ -466,23 +325,23 @@ export default function DailyQuests() {
             </button>
 
             <div className="text-center space-y-3">
-              <div className="w-14 h-14 bg-gradient-to-tr from-brand-red/10 to-brand-orange/20 text-brand-orange rounded-2xl flex items-center justify-center mx-auto border border-orange-200 shadow-xs">
+              <div className="w-14 h-14 bg-gradient-to-tr from-amber-500/20 to-orange-500/30 text-amber-600 rounded-2xl flex items-center justify-center mx-auto border border-amber-200 shadow-xs">
                 <Lock className="w-7 h-7" />
               </div>
               <h3 className="text-xl font-black text-slate-900 font-heading">
                 একাউন্টে লগইন প্রয়োজন
               </h3>
               <p className="text-xs text-slate-600 leading-relaxed max-w-sm mx-auto">
-                ডেইলি ফ্রি রিওয়ার্ড (BRK কয়েন ও রিয়েল ক্যাশ বোনাস) ক্লেইম করতে অনুগ্রহ করে আপনার একাউন্টে লগইন করুন অথবা একটি নতুন একাউন্ট খুলুন।
+                ডেইলি ফ্রি ২০ কয়েন ক্লেইম করতে অনুগ্রহ করে আপনার একাউন্টে লগইন করুন অথবা একটি নতুন একাউন্ট খুলুন।
               </p>
             </div>
 
-            <div className="bg-orange-50/80 border border-orange-200/80 rounded-2xl p-4 space-y-1.5 text-xs text-slate-700">
-              <div className="font-black text-brand-orange flex items-center gap-1.5">
-                <Gift className="w-4 h-4" /> ৭-দিনের ধারাবাহিক লগইন অফার
+            <div className="bg-amber-50/80 border border-amber-200/80 rounded-2xl p-4 space-y-1.5 text-xs text-slate-700">
+              <div className="font-black text-amber-800 flex items-center gap-1.5">
+                <Gift className="w-4 h-4 text-amber-600" /> প্রতিদিন ফ্রি ২০ কয়েন বোনাস
               </div>
               <p className="text-[11px] text-slate-600">
-                প্রতিদিন মাত্র ১ বার লগইন করে নিশ্চিত ফ্রি রিওয়ার্ড ক্লেইম করুন এবং আপনার ওয়ালেট ব্যালেন্স বৃদ্ধি করুন।
+                প্রতিদিন মাত্র ১ বার লগইন করে নিশ্চিত ফ্রি ২০ কয়েন ক্লেইম করুন এবং আপনার কয়েন ব্যালেন্স দিয়ে স্পিন বা টুর্নামেন্টে অংশ নিন।
               </p>
             </div>
 
@@ -490,7 +349,7 @@ export default function DailyQuests() {
               <Link
                 href="/login?redirect=/ads"
                 onClick={() => setShowLoginModal(false)}
-                className="py-3 px-4 bg-gradient-to-r from-brand-red to-brand-orange text-white font-black text-xs uppercase tracking-wider rounded-xl text-center shadow-md hover:brightness-110 transition-all flex items-center justify-center gap-2"
+                className="py-3 px-4 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl text-center shadow-md hover:brightness-110 transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <LogIn className="w-4 h-4" />
                 <span>লগইন করুন</span>
@@ -498,7 +357,7 @@ export default function DailyQuests() {
               <Link
                 href="/register"
                 onClick={() => setShowLoginModal(false)}
-                className="py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-xs uppercase tracking-wider rounded-xl text-center border border-slate-200 transition-all flex items-center justify-center gap-2"
+                className="py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-xs uppercase tracking-wider rounded-xl text-center border border-slate-200 transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <UserPlus className="w-4 h-4" />
                 <span>নতুন একাউন্ট</span>
@@ -509,7 +368,7 @@ export default function DailyQuests() {
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL 2: TRY AGAIN TOMORROW MODAL (Strict 1-Claim-per-Day Feedback)      */}
+      {/* MODAL 2: TRY AGAIN TOMORROW MODAL                                         */}
       {/* ========================================================================= */}
       {showTryTomorrowModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
@@ -529,7 +388,7 @@ export default function DailyQuests() {
                 Try Again Tomorrow!
               </h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                আজকের দিনের <strong>Day {currentStreakDay}</strong> রিওয়ার্ড ইতিমধ্যে আপনি সফলভাবে ক্লেইম করেছেন। প্রতিদিন সর্বোচ্চ ১ বার ক্লেইম করা যায়।
+                আজকের দিনের <strong>২০ ফ্রি কয়েন</strong> ইতিমধ্যে আপনি সফলভাবে ক্লেইম করেছেন। প্রতিদিন সর্বোচ্চ ১ বার ক্লেইম করা যায়।
               </p>
             </div>
 
@@ -538,28 +397,12 @@ export default function DailyQuests() {
               <span className="text-[11px] text-slate-500 font-bold uppercase tracking-wider block">
                 পরবর্তী ক্লেইম আনলক হতে সময় বাকি
               </span>
-              <div className="text-2xl font-black font-mono text-brand-orange">
+              <div className="text-2xl font-black font-mono text-amber-600">
                 {formatTimeRemaining(remainingSeconds)}
               </div>
               <p className="text-[10px] text-slate-500">
-                কাউন্টডাউন শেষ হলে আগামীকাল পরবর্তী রিওয়ার্ড ক্লেইম করতে পারবেন।
+                কাউন্টডাউন শেষ হলে আগামীকাল আবার ২০ কয়েন ক্লেইম করতে পারবেন।
               </p>
-            </div>
-
-            {/* Next Day Reward Preview */}
-            <div className="flex items-center justify-between p-3.5 bg-emerald-50/60 border border-emerald-200 rounded-2xl text-xs">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center font-black">
-                  {nextDay}
-                </div>
-                <div>
-                  <div className="font-bold text-slate-900">Next: Day {nextDay} Reward</div>
-                  <div className="text-[11px] text-emerald-700 font-black">{nextReward.label}</div>
-                </div>
-              </div>
-              <span className="text-[10px] px-2 py-0.5 bg-emerald-200/70 text-emerald-900 rounded-full font-bold">
-                Upcoming
-              </span>
             </div>
 
             <button
