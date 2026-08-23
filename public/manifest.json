@@ -1,8 +1,10 @@
 {
+  "id": "/?source=pwa",
   "name": "Black Rock Esports — Free Fire Tournaments",
   "short_name": "BRK Esports",
-  "description": "The Ultimate Free Fire Competitive Esports & Tournament Platform in Bangladesh.",
+  "description": "The Ultimate Free Fire Competitive Esports & Tournament Platform in Bangladesh. Daily scrims, weekly cups & rewards.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0F172A",
   "theme_color": "#EA580C",
@@ -26,5 +28,28 @@
       "type": "image/x-icon"
     }
   ],
-  "categories": ["games", "entertainment", "sports"]
+  "categories": ["games", "entertainment", "sports"],
+  "shortcuts": [
+    {
+      "name": "Tournaments",
+      "short_name": "Tournaments",
+      "description": "View active Free Fire tournaments",
+      "url": "/tournaments",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Shop & Rewards",
+      "short_name": "Shop",
+      "description": "Buy diamonds & memberships",
+      "url": "/shop",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Wallet",
+      "short_name": "Wallet",
+      "description": "Deposit & withdraw tournament winnings",
+      "url": "/wallet",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
 }

@@ -1,0 +1,23 @@
+{
+  "appId": "com.brkesports.app",
+  "appName": "Black Rock Esports",
+  "webDir": "public",
+  "bundledWebRuntime": false,
+  "server": {
+    "url": "https://brk-esports-d9ta.vercel.app",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "backgroundColor": "#0F172A",
+      "showSpinner": false,
+      "androidSplashResourceName": "splash"
+    }
+  }
+}

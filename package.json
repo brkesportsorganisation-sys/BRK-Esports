@@ -2,15 +2,14 @@
   "name": "helian-tournaments",
   "version": "1.0.3",
   "private": true,
-
-
-
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start"
   },
   "dependencies": {
+    "@capacitor/cli": "^8.5.0",
+    "@capacitor/core": "^8.5.0",
     "@supabase/supabase-js": "^2.49.1",
     "@zavudev/sdk": "^0.56.0",
     "bcryptjs": "^3.0.3",
