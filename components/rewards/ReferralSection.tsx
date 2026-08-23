@@ -304,39 +304,39 @@ export default function ReferralSection() {
       {/* ═══════════════════════════════════════════════════════════
           REFERRAL MILESTONES & REWARD PRIZES LADDER (কতো রেফারেল = কি প্রাইজ)
       ═══════════════════════════════════════════════════════════ */}
-      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-sm space-y-5 relative z-10">
+      <div className="bg-white rounded-3xl p-3.5 sm:p-5 border border-slate-200 shadow-sm space-y-3.5 relative z-10">
         
         {/* Milestone Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-orange-100 text-brand-orange flex items-center justify-center font-bold">
-              <Trophy className="w-5 h-5" />
+            <div className="w-8 h-8 rounded-xl bg-orange-100 text-brand-orange flex items-center justify-center font-bold shrink-0">
+              <Trophy className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="font-heading font-black text-base sm:text-lg text-slate-900 flex items-center gap-2">
+              <h3 className="font-heading font-black text-sm sm:text-base text-slate-900 flex items-center gap-2">
                 <span>{isBangla ? 'রেফারেল মাইলস্টোন প্রাইজ লিস্ট' : 'Referral Milestone Rewards'}</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-extrabold uppercase">
+                <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800 font-extrabold uppercase">
                   FREE PASS
                 </span>
               </h3>
-              <p className="text-xs text-slate-500 font-medium">
+              <p className="text-[11px] text-slate-500 font-medium">
                 {isBangla 
-                  ? 'আপনার রেফারেল লিংক দিয়ে জয়েন করানো বন্ধুদের সংখ্যা অনুযায়ী ইনস্ট্যান্ট রিওয়ার্ড ক্লেইম করুন।' 
-                  : 'Invite friends to unlock direct Cash & Coin prizes on each milestone reached.'}
+                  ? 'রেফারেল মাইলস্টোন পূরণ করে ক্যাশ ও কয়েন প্রাইজ সংগ্রহ করুন।' 
+                  : 'Reach invite milestones to unlock Cash & Coin prizes.'}
               </p>
             </div>
           </div>
 
           {currentUser && (
-            <div className="px-3.5 py-1.5 bg-orange-50 border border-orange-200 rounded-2xl text-xs flex items-center gap-1.5 self-start sm:self-auto">
-              <span className="text-slate-500 font-bold">{isBangla ? 'আপনার মোট রেফারেল:' : 'Your Referrals:'}</span>
-              <span className="font-mono font-black text-brand-orange text-sm">{totalUserReferrals}</span>
+            <div className="px-3 py-1 bg-orange-50 border border-orange-200 rounded-xl text-xs flex items-center gap-1.5 self-start sm:self-auto shrink-0">
+              <span className="text-slate-500 font-bold text-[11px]">{isBangla ? 'মোট রেফারেল:' : 'Referrals:'}</span>
+              <span className="font-mono font-black text-brand-orange text-xs sm:text-sm">{totalUserReferrals}</span>
             </div>
           )}
         </div>
 
-        {/* 4-Tier Interactive Milestone Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {/* 4-Tier Interactive Milestone Cards Grid - Compact 2x2 on Mobile */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
           {referralMilestones.map((milestone) => {
             const isUnlocked = totalUserReferrals >= milestone.required;
             const isClaimed = Boolean(currentUser?.claimedMilestones?.includes(milestone.id));
@@ -345,55 +345,53 @@ export default function ReferralSection() {
             return (
               <div
                 key={milestone.id}
-                className={`p-4 rounded-2xl border transition-all flex flex-col justify-between space-y-3 relative overflow-hidden ${
+                className={`p-2.5 sm:p-3.5 rounded-2xl border transition-all flex flex-col justify-between space-y-1.5 relative overflow-hidden ${
                   isClaimed
-                    ? 'bg-emerald-50/60 border-emerald-200 shadow-2xs'
+                    ? 'bg-emerald-50/70 border-emerald-200'
                     : isUnlocked
                     ? isGrandPrize
-                      ? 'bg-gradient-to-br from-red-50 to-orange-50 border-2 border-brand-orange shadow-md ring-2 ring-orange-500/20'
-                      : 'bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-300 shadow-sm'
-                    : isGrandPrize
-                    ? 'bg-slate-50/90 border-slate-200 hover:border-slate-300'
-                    : 'bg-[#F8FAFC] border-slate-200/80 hover:border-slate-300'
+                      ? 'bg-gradient-to-br from-red-50 to-orange-50 border border-brand-orange shadow-xs'
+                      : 'bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-300 shadow-xs'
+                    : 'bg-slate-50/80 border-slate-200'
                 }`}
               >
                 {/* Header */}
-                <div className="flex items-center justify-between">
-                  <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${
+                <div className="flex items-center justify-between gap-1 text-[10px]">
+                  <span className={`font-black uppercase px-1.5 py-0.5 rounded text-[9px] ${
                     isClaimed
                       ? 'bg-emerald-200/80 text-emerald-800'
                       : isUnlocked
-                      ? 'bg-orange-500 text-white shadow-xs'
+                      ? 'bg-orange-500 text-white'
                       : 'bg-slate-200 text-slate-600'
                   }`}>
                     Stage {milestone.stage}
                   </span>
 
-                  <span className="text-xs">
+                  <div>
                     {isClaimed ? (
-                      <span className="text-emerald-700 font-bold flex items-center gap-1 text-[11px]">
-                        <Check className="w-3.5 h-3.5 text-emerald-600" /> Claimed
+                      <span className="text-emerald-700 font-bold flex items-center gap-0.5 text-[10px]">
+                        <Check className="w-3 h-3 text-emerald-600" /> Done
                       </span>
                     ) : isUnlocked ? (
-                      <span className="text-orange-600 font-bold flex items-center gap-1 text-[11px] animate-pulse">
-                        <Unlock className="w-3.5 h-3.5" /> Unlocked
+                      <span className="text-orange-600 font-bold flex items-center gap-0.5 text-[10px] animate-pulse">
+                        <Unlock className="w-3 h-3 text-orange-600" /> Ready
                       </span>
                     ) : (
-                      <span className="text-slate-400 font-semibold flex items-center gap-1 text-[11px]">
-                        <Lock className="w-3.5 h-3.5" /> Locked
+                      <span className="text-slate-400 font-semibold flex items-center gap-0.5 text-[10px]">
+                        <Lock className="w-3 h-3" /> Locked
                       </span>
                     )}
-                  </span>
+                  </div>
                 </div>
 
                 {/* Prize Details */}
-                <div className="space-y-1 py-1">
-                  <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
-                    <Users className="w-3.5 h-3.5 text-brand-orange" />
-                    <span>{milestone.required} {isBangla ? 'টি রেফারেল প্রয়োজন' : 'Invites Required'}</span>
+                <div className="py-0.5">
+                  <div className="text-[10px] font-bold text-slate-500 flex items-center gap-1">
+                    <Users className="w-3 h-3 text-brand-orange" />
+                    <span>{milestone.required} {isBangla ? 'টি রেফারেল' : 'Invites'}</span>
                   </div>
 
-                  <div className="font-heading font-black text-lg sm:text-xl text-slate-900 flex items-center gap-1.5">
+                  <div className="font-heading font-black text-xs sm:text-sm md:text-base text-slate-900 mt-0.5 leading-tight truncate">
                     {isGrandPrize ? (
                       <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-orange-600">
                         {milestone.label}
@@ -405,51 +403,50 @@ export default function ReferralSection() {
                     )}
                   </div>
 
-                  <p className="text-[11px] text-slate-500 font-medium">
+                  <p className="text-[9px] sm:text-[10px] text-slate-500 font-medium truncate mt-0.5">
                     {isGrandPrize 
-                      ? (isBangla ? 'সরাসরি মেইন ওয়ালেট ক্যাশ ব্যালেন্সে জমা হবে।' : 'Direct Main Wallet Cash credit.') 
-                      : (isBangla ? 'টুর্নামেন্টে এন্ট্রি নিতে কয়েন ওয়ালেটে জমা হবে।' : 'Coins for free tournament entries.')}
+                      ? (isBangla ? 'মেইন ওয়ালেট ক্যাশ' : 'Cash Wallet credit') 
+                      : (isBangla ? 'কয়েন ওয়ালেট জমা' : 'Coins Wallet')}
                   </p>
                 </div>
 
                 {/* Action / Claim Button */}
-                <div className="pt-2 border-t border-slate-200/60">
+                <div className="pt-1.5 border-t border-slate-200/60">
                   {currentUser ? (
                     isClaimed ? (
-                      <div className="w-full py-2 rounded-xl bg-emerald-100/70 text-emerald-800 font-bold text-xs text-center flex items-center justify-center gap-1.5">
-                        <Check className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>{isBangla ? 'ক্লেইম করা হয়েছে' : 'Reward Claimed'}</span>
+                      <div className="w-full py-1 rounded-lg bg-emerald-100 text-emerald-800 font-bold text-[10px] text-center">
+                        Claimed
                       </div>
                     ) : isUnlocked ? (
                       <button
                         type="button"
                         onClick={() => handleClaimMilestone(milestone.id, milestone.rewardType, milestone.rewardAmount)}
                         disabled={claimingMilestoneId === milestone.id}
-                        className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold hover:brightness-110 active:scale-95 text-white font-heading font-black text-xs uppercase tracking-wider shadow-md flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                        className="w-full py-1 px-1.5 rounded-lg bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold text-white font-heading font-black text-[10px] uppercase shadow-xs flex items-center justify-center gap-1 cursor-pointer transition-all hover:brightness-110 active:scale-95"
                       >
                         {claimingMilestoneId === milestone.id ? (
                           <>
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            <span>Claiming...</span>
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            <span>...</span>
                           </>
                         ) : (
                           <>
-                            <Gift className="w-3.5 h-3.5" />
-                            <span>{isBangla ? 'পুরস্কার গ্রহণ করুন' : 'Claim Reward'}</span>
+                            <Gift className="w-3 h-3" />
+                            <span>{isBangla ? 'ক্লেইম' : 'Claim'}</span>
                           </>
                         )}
                       </button>
                     ) : (
-                      <div className="w-full py-1.5 rounded-xl bg-slate-100 text-slate-400 font-bold text-[11px] text-center flex items-center justify-center gap-1">
-                        <span>{Math.max(0, milestone.required - totalUserReferrals)} more invites needed</span>
+                      <div className="w-full py-1 rounded-lg bg-slate-100 text-slate-400 font-bold text-[9px] sm:text-[10px] text-center truncate">
+                        {Math.max(0, milestone.required - totalUserReferrals)} more needed
                       </div>
                     )
                   ) : (
                     <Link
                       href="/login?redirect=/rewards"
-                      className="w-full py-1.5 px-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-[11px] flex items-center justify-center gap-1 transition-all"
+                      className="w-full block py-1 px-1 rounded-lg bg-slate-900 text-white font-bold text-[9px] sm:text-[10px] text-center truncate"
                     >
-                      <span>লগইন করে ক্লেইম করুন</span>
+                      লগইন করুন
                     </Link>
                   )}
                 </div>
