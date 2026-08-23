@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSquads, saveSquads } from '@/lib/squads';
+import { getSquads, saveSquads, getSquadById } from '@/lib/squads';
 
 // 1. GET invite link token info
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const squads = await getSquads();
-    const squad = squads.find(s => s.id === id);
+    const squad = await getSquadById(id);
 
     if (!squad || squad.isDisbanded) {
       return NextResponse.json({ message: 'Squad not found.' }, { status: 404 });
@@ -30,8 +29,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const body = await req.json();
     const { requesterId, action } = body; // action: 'REGENERATE' | 'TOGGLE_APPROVAL'
 
-    const squads = await getSquads();
-    const index = squads.findIndex(s => s.id === id);
+    let squads = await getSquads();
+    let index = squads.findIndex(s => s.id === id);
+
+    if (index === -1) {
+      const imported = await getSquadById(id);
+      if (imported) {
+        squads = await getSquads();
+        index = squads.findIndex(s => s.id === id);
+      }
+    }
 
     if (index === -1) {
       return NextResponse.json({ message: 'Squad not found.' }, { status: 404 });

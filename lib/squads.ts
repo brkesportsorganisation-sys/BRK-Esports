@@ -54,11 +54,125 @@ export async function saveSquads(squads: Squad[]): Promise<boolean> {
 }
 
 /**
+ * Converts a legacy Team record from Supabase to Squad format on the fly.
+ */
+export async function importLegacyTeamAsSquad(teamId: string): Promise<Squad | null> {
+  try {
+    const { data: legacyTeam } = await supabaseAdmin
+      .from('Team')
+      .select('*')
+      .eq('id', teamId)
+      .maybeSingle();
+
+    if (!legacyTeam) return null;
+
+    const { data: leaderUser } = await supabaseAdmin
+      .from('User')
+      .select('*')
+      .eq('id', legacyTeam.captainId)
+      .maybeSingle();
+
+    const { data: teamMembers } = await supabaseAdmin
+      .from('TeamMember')
+      .select(`
+        id,
+        teamId,
+        userId,
+        role,
+        joinedAt,
+        user:User (
+          id,
+          name,
+          inGameName,
+          avatar,
+          accountNumber,
+          freeFireUid
+        )
+      `)
+      .eq('teamId', teamId);
+
+    const members: SquadMember[] = (teamMembers && teamMembers.length > 0)
+      ? teamMembers.map((tm: any, idx: number) => {
+          const u = tm.user || {};
+          const isLeader = tm.userId === legacyTeam.captainId || tm.role === 'CAPTAIN';
+          return {
+            id: tm.id || `mem_${idx}`,
+            squadId: legacyTeam.id,
+            userId: tm.userId || leaderUser?.id,
+            userName: u.inGameName || u.name || leaderUser?.name || 'Player',
+            userAvatar: u.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${u.name || tm.id}`,
+            accountNumber: u.accountNumber || `BRE-${(tm.userId || '').substring(0, 6).toUpperCase()}`,
+            freeFireUid: u.freeFireUid || '',
+            memberType: 'PLAYER',
+            inGameRole: isLeader ? 'IGL' : 'RUSHER',
+            isLeader,
+            joinedAt: tm.joinedAt || legacyTeam.createdAt,
+            status: 'ACTIVE',
+          };
+        })
+      : [
+          {
+            id: `mem_leader_${legacyTeam.id}`,
+            squadId: legacyTeam.id,
+            userId: legacyTeam.captainId,
+            userName: leaderUser?.inGameName || leaderUser?.name || 'Captain',
+            userAvatar: leaderUser?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${leaderUser?.name || 'Leader'}`,
+            accountNumber: leaderUser?.accountNumber || `BRE-${legacyTeam.captainId.substring(0, 6).toUpperCase()}`,
+            freeFireUid: leaderUser?.freeFireUid || '',
+            memberType: 'PLAYER',
+            inGameRole: 'IGL',
+            isLeader: true,
+            joinedAt: legacyTeam.createdAt,
+            status: 'ACTIVE',
+          }
+        ];
+
+    const newSquad: Squad = {
+      id: legacyTeam.id,
+      name: legacyTeam.name,
+      tag: legacyTeam.tag,
+      logoUrl: legacyTeam.logo || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=200',
+      bannerUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1200',
+      game: 'FREE_FIRE',
+      createdBy: legacyTeam.captainId,
+      leaderId: legacyTeam.captainId,
+      leaderName: leaderUser?.inGameName || leaderUser?.name || 'Captain',
+      description: 'Official registered esports squad roster.',
+      requireApprovalToJoin: true,
+      inviteToken: legacyTeam.inviteCode || legacyTeam.id,
+      matchesPlayed: 0,
+      matchesWon: 0,
+      totalKills: 0,
+      totalEarnings: 0,
+      members,
+      createdAt: legacyTeam.createdAt,
+      updatedAt: legacyTeam.createdAt,
+    };
+
+    return newSquad;
+  } catch (err) {
+    console.warn('[Squads DB] Legacy import error:', err);
+    return null;
+  }
+}
+
+/**
  * Retrieves a single squad by ID.
  */
 export async function getSquadById(id: string): Promise<Squad | null> {
   const squads = await getSquads();
-  return squads.find(s => s.id === id && !s.isDisbanded) || null;
+  let found = squads.find(s => s.id === id && !s.isDisbanded);
+  if (found) return found;
+
+  // Auto-import from legacy Supabase Team table if available
+  const imported = await importLegacyTeamAsSquad(id);
+  if (imported) {
+    squads.push(imported);
+    await saveSquads(squads);
+    return imported;
+  }
+
+  return null;
 }
 
 /**
@@ -67,7 +181,23 @@ export async function getSquadById(id: string): Promise<Squad | null> {
 export async function getSquadByInviteToken(token: string): Promise<Squad | null> {
   if (!token) return null;
   const squads = await getSquads();
-  return squads.find(s => s.inviteToken === token.trim() && !s.isDisbanded) || null;
+  let found = squads.find(s => (s.inviteToken === token.trim() || s.id === token.trim()) && !s.isDisbanded);
+  if (found) return found;
+
+  // Check legacy team by inviteCode
+  try {
+    const { data: legacyTeam } = await supabaseAdmin
+      .from('Team')
+      .select('id')
+      .or(`inviteCode.eq.${token.trim()},id.eq.${token.trim()}`)
+      .maybeSingle();
+
+    if (legacyTeam?.id) {
+      return getSquadById(legacyTeam.id);
+    }
+  } catch {}
+
+  return null;
 }
 
 /**

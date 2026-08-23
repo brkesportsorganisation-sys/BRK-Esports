@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSquads, saveSquads } from '@/lib/squads';
+import { getSquads, saveSquads, getSquadById } from '@/lib/squads';
 import { SquadMember, SquadMemberType, InGameRole, SquadMemberStatus } from '@/lib/types';
 import { supabaseAdmin } from '@/lib/supabase';
 
@@ -20,8 +20,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       isJoinRequest = false
     } = body;
 
-    const squads = await getSquads();
-    const index = squads.findIndex(s => s.id === id);
+    let squads = await getSquads();
+    let index = squads.findIndex(s => s.id === id);
+
+    if (index === -1) {
+      const imported = await getSquadById(id);
+      if (imported) {
+        squads = await getSquads();
+        index = squads.findIndex(s => s.id === id);
+      }
+    }
 
     if (index === -1) {
       return NextResponse.json({ message: 'Squad not found.' }, { status: 404 });
@@ -120,8 +128,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       memberType 
     } = body;
 
-    const squads = await getSquads();
-    const index = squads.findIndex(s => s.id === id);
+    let squads = await getSquads();
+    let index = squads.findIndex(s => s.id === id);
+
+    if (index === -1) {
+      const imported = await getSquadById(id);
+      if (imported) {
+        squads = await getSquads();
+        index = squads.findIndex(s => s.id === id);
+      }
+    }
 
     if (index === -1) {
       return NextResponse.json({ message: 'Squad not found.' }, { status: 404 });
@@ -264,8 +280,16 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       return NextResponse.json({ message: 'Requester ID and Member ID are required.' }, { status: 400 });
     }
 
-    const squads = await getSquads();
-    const index = squads.findIndex(s => s.id === id);
+    let squads = await getSquads();
+    let index = squads.findIndex(s => s.id === id);
+
+    if (index === -1) {
+      const imported = await getSquadById(id);
+      if (imported) {
+        squads = await getSquads();
+        index = squads.findIndex(s => s.id === id);
+      }
+    }
 
     if (index === -1) {
       return NextResponse.json({ message: 'Squad not found.' }, { status: 404 });
