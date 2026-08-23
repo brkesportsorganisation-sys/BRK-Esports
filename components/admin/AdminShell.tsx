@@ -242,7 +242,7 @@ export default function AdminShell({ children }: AdminShellProps) {
       title: '👥 PLAYERS & COMMUNITY',
       links: [
         { href: '/admin/users', label: 'Player Accounts Directory', icon: Users, colorClass: 'text-purple-600', permission: 'manage_users' },
-        { href: '/admin/teams', label: 'Squad Clans Directory', icon: Swords, colorClass: 'text-orange-500', permission: 'manage_tournaments' },
+        { href: '/admin/squads', label: 'Squad & Clan Management (🛡️)', icon: Swords, colorClass: 'text-orange-500', permission: 'manage_tournaments' },
         { href: '/admin/lfg', label: 'LFG Recruitment Board', icon: Crosshair, colorClass: 'text-blue-500', permission: 'moderate_lfg' },
         { href: '/admin/user-logs', label: 'Player Activity Logs (👥)', icon: History, colorClass: 'text-[#2563EB]', permission: 'manage_users' },
         { href: '/admin/moderation', label: 'Chat Moderation & Bans', icon: ShieldAlert, colorClass: 'text-red-500', permission: 'moderate_messages' },

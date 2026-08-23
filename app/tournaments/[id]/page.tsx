@@ -24,6 +24,7 @@ import {
   User,
   Gamepad2,
   Phone,
+  Zap,
 } from 'lucide-react';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
@@ -187,6 +188,7 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
 
   const [myRegistrations, setMyRegistrations] = useState<any[]>([]);
   const [selectedRegistration, setSelectedRegistration] = useState<any | null>(null);
+  const [userSquads, setUserSquads] = useState<any[]>([]);
 
   // Toast
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -196,6 +198,25 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
     setTimeout(() => setToastMessage(null), 3500);
   };
 
+  const applySquadRoster = (selectedSquad: any) => {
+    const activeMembers = (selectedSquad.members || []).filter((m: any) => m.status === 'ACTIVE');
+    const igl = activeMembers.find((m: any) => m.isLeader || m.inGameRole === 'IGL') || activeMembers[0];
+    const players = activeMembers.filter((m: any) => m.id !== igl?.id);
+
+    setForm(prev => ({
+      ...prev,
+      squadName: selectedSquad.name,
+      iglName: igl?.userName || currentUser?.inGameName || currentUser?.name || '',
+      player1Name: players[0]?.userName || '',
+      player2Name: players[1]?.userName || '',
+      player3Name: players[2]?.userName || '',
+      player4Name: players[3]?.userName || '',
+      backupPlayerName: players[4]?.userName || '',
+      captainWhatsApp: currentUser?.phone || currentUser?.whatsApp || prev.captainWhatsApp || '',
+    }));
+    showToast(`Auto-filled roster from squad [${selectedSquad.tag}] ${selectedSquad.name}!`);
+  };
+
   useEffect(() => {
     let isMounted = true;
     const loadTournament = async () => {
@@ -203,6 +224,15 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
         setLoading(true);
         const user = db.getCurrentUser();
         if (isMounted) setCurrentUser(user);
+
+        if (user?.id) {
+          fetch(`/api/squads?userId=${user.id}`)
+            .then(res => res.json())
+            .then(d => {
+              if (isMounted && d.squads) setUserSquads(d.squads);
+            })
+            .catch(() => {});
+        }
 
         const response = await fetch(`/api/tournaments/${resolvedParams.id}${user ? `?userId=${user.id}` : ''}`);
         if (!response.ok) {
@@ -1053,9 +1083,32 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
 
                   {/* ── SECTION 3: Squad Information ── */}
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-4">
-                    <h4 className="text-xs font-bold uppercase tracking-widest text-brand-orange flex items-center gap-2">
-                      <Users className="w-3.5 h-3.5" /> Squad Information
-                    </h4>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <h4 className="text-xs font-bold uppercase tracking-widest text-brand-orange flex items-center gap-2">
+                        <Users className="w-3.5 h-3.5" /> Squad Information
+                      </h4>
+
+                      {userSquads.length > 0 && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] text-amber-700 font-bold flex items-center gap-1">
+                            <Zap className="w-3.5 h-3.5 text-amber-500" /> Auto-Fill:
+                          </span>
+                          <select
+                            onChange={(e) => {
+                              const sel = userSquads.find(s => s.id === e.target.value);
+                              if (sel) applySquadRoster(sel);
+                            }}
+                            className="bg-white border border-amber-300 text-xs text-slate-900 font-bold rounded-xl px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-2xs"
+                          >
+                            <option value="">Select My Squad...</option>
+                            {userSquads.map(s => (
+                              <option key={s.id} value={s.id}>[{s.tag}] {s.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="sm:col-span-2">
                         <FieldInput label="Squad Name" value={form.squadName} onChange={setField('squadName')} error={fieldErrors.squadName} placeholder="e.g. Apex Predators" />

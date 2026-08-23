@@ -226,6 +226,7 @@ export default function Navbar() {
   ];
 
   const moreNavLinks: NavLinkItem[] = [
+    { name: isBangla ? 'আমার স্কোয়াড ও ক্ল্যান (🛡️)' : 'My Squads & Clans', href: '/teams', icon: ShieldCheck },
     { name: isBangla ? 'লিডারবোর্ড' : 'Leaderboard', href: '/leaderboard', icon: Trophy },
     { name: isBangla ? 'গেমিং শপ ও ডায়মন্ড (🛍️)' : 'Gaming Shop & Diamonds', href: '/shop', icon: ShoppingBag },
     { name: 'Hall of Champions', href: '/champions', icon: Crown },
@@ -594,6 +595,15 @@ export default function Navbar() {
                           >
                             <User className="w-4 h-4 text-slate-400" />
                             <span>{t('nav_profile', 'Player Profile')}</span>
+                          </Link>
+
+                          <Link
+                            href="/teams"
+                            onClick={() => setIsProfileOpen(false)}
+                            className="flex items-center space-x-2 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                          >
+                            <ShieldCheck className="w-4 h-4 text-amber-500" />
+                            <span>{isBangla ? 'আমার স্কোয়াড ও ক্ল্যান' : 'My Esports Squads'}</span>
                           </Link>
 
                           <Link

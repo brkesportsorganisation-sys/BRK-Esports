@@ -891,7 +891,131 @@ export interface WhatsAppMessageLog {
   sentAt: string;
 }
 
+/* ========================================================================= */
+/* 🛡️ IN-APP SQUAD & CLAN SYSTEM SPEC TYPES                                 */
+/* ========================================================================= */
 
+export type SquadMemberType = 'PLAYER' | 'MANAGER' | 'COACH';
 
+export type InGameRole = 
+  // Free Fire / PUBG Roles
+  | 'RUSHER'
+  | 'SNIPER'
+  | 'SUPPORT'
+  | 'IGL'
+  | 'FLANKER'
+  | 'ASSAULTER'
+  | 'SCOUT'
+  // Valorant Roles
+  | 'DUELIST'
+  | 'CONTROLLER'
+  | 'INITIATOR'
+  | 'SENTINEL'
+  // MLBB Roles
+  | 'EXP_LANER'
+  | 'GOLD_LANER'
+  | 'MID_LANER'
+  | 'JUNGLER'
+  | 'ROAMER'
+  // eFootball Roles
+  | 'ATTACKER'
+  | 'MIDFIELDER'
+  | 'DEFENDER'
+  | 'GOALKEEPER'
+  // Universal
+  | 'FLEX';
 
+export type SquadMemberStatus = 'ACTIVE' | 'INVITED' | 'PENDING_APPROVAL' | 'REJECTED' | 'REMOVED';
 
+export interface SquadMember {
+  id: string;
+  squadId: string;
+  userId: string;
+  userName: string;
+  userAvatar?: string;
+  accountNumber?: string;
+  freeFireUid?: string;
+  memberType: SquadMemberType;
+  inGameRole?: InGameRole;
+  isLeader: boolean;
+  joinedAt: string;
+  status: SquadMemberStatus;
+  invitedBy?: string;
+}
+
+export interface Squad {
+  id: string;
+  name: string;
+  tag: string;
+  logoUrl: string;
+  bannerUrl?: string;
+  game: GameType | string;
+  createdBy: string;
+  leaderId: string;
+  leaderName: string;
+  description?: string;
+  requireApprovalToJoin: boolean;
+  inviteToken?: string;
+  matchesPlayed: number;
+  matchesWon: number;
+  totalKills: number;
+  totalEarnings: number;
+  members?: SquadMember[];
+  createdAt: string;
+  updatedAt: string;
+  isDisbanded?: boolean;
+}
+
+export interface SquadInviteLink {
+  id: string;
+  squadId: string;
+  token: string;
+  createdBy: string;
+  expiresAt?: string;
+  maxUses?: number;
+  useCount: number;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export const GAME_ROLES_MAP: Record<string, { role: InGameRole; label: string; icon: string }[]> = {
+  FREE_FIRE: [
+    { role: 'IGL', label: '👑 In-Game Leader (IGL)', icon: '👑' },
+    { role: 'RUSHER', label: '⚡ Rusher / Entry Fragger', icon: '⚡' },
+    { role: 'SNIPER', label: '🎯 Long-Range Sniper', icon: '🎯' },
+    { role: 'SUPPORT', label: '🛡️ Support / Medic', icon: '🛡️' },
+    { role: 'FLANKER', label: '🥷 Flanker / Scout', icon: '🥷' },
+    { role: 'FLEX', label: '🔄 All-Rounder (Flex)', icon: '🔄' },
+  ],
+  PUBG_MOBILE: [
+    { role: 'IGL', label: '👑 In-Game Leader (IGL)', icon: '👑' },
+    { role: 'ASSAULTER', label: '💥 Assaulter', icon: '💥' },
+    { role: 'SNIPER', label: '🎯 DMR / Sniper', icon: '🎯' },
+    { role: 'SUPPORT', label: '🛡️ Support / Cover', icon: '🛡️' },
+    { role: 'SCOUT', label: '🔭 Scout / Spotter', icon: '🔭' },
+    { role: 'FLEX', label: '🔄 Flex', icon: '🔄' },
+  ],
+  VALORANT: [
+    { role: 'DUELIST', label: '⚔️ Duelist (Entry)', icon: '⚔️' },
+    { role: 'INITIATOR', label: '🏹 Initiator (Info)', icon: '🏹' },
+    { role: 'CONTROLLER', label: '☁️ Controller (Smokes)', icon: '☁️' },
+    { role: 'SENTINEL', label: '🛡️ Sentinel (Anchor)', icon: '🛡️' },
+    { role: 'IGL', label: '👑 Strategic Leader (IGL)', icon: '👑' },
+    { role: 'FLEX', label: '🔄 Flex', icon: '🔄' },
+  ],
+  MLBB: [
+    { role: 'JUNGLER', label: '🗡️ Core / Jungler', icon: '🗡️' },
+    { role: 'EXP_LANER', label: '🛡️ EXP Laner / Offlane', icon: '🛡️' },
+    { role: 'GOLD_LANER', label: '🏹 Gold Laner / Marksman', icon: '🏹' },
+    { role: 'MID_LANER', label: '🔮 Mid Laner / Mage', icon: '🔮' },
+    { role: 'ROAMER', label: '💫 Roamer / Tank-Support', icon: '💫' },
+    { role: 'IGL', label: '👑 Team Captain', icon: '👑' },
+  ],
+  EFOOTBALL: [
+    { role: 'ATTACKER', label: '⚽ Forward / Striker', icon: '⚽' },
+    { role: 'MIDFIELDER', label: '🎯 Playmaker / Midfielder', icon: '🎯' },
+    { role: 'DEFENDER', label: '🛡️ Center Back / Defender', icon: '🛡️' },
+    { role: 'GOALKEEPER', label: '🧤 Goalkeeper', icon: '🧤' },
+    { role: 'IGL', label: '👑 Team Captain', icon: '👑' },
+  ],
+};
