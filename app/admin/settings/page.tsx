@@ -149,7 +149,9 @@ Login to your account and book your slot today!`);
   const [sellerShare, setSellerShare] = useState('20');
 
   // 6. Platform General Branding
-  const [siteName, setSiteName] = useState('BlackRock Esports');
+  const [siteName, setSiteName] = useState('ESPORTS ZONE BD');
+  const [siteLogo, setSiteLogo] = useState('/logo.png');
+  const [siteFavicon, setSiteFavicon] = useState('/favicon.ico');
   const [helpline, setHelpline] = useState('+880 1712-998877');
 
   const loadSettings = async () => {
@@ -248,6 +250,8 @@ Login to your account and book your slot today!`);
         if (s.contact_unlock_seller_share) setSellerShare(s.contact_unlock_seller_share);
         if (s.PROFILE_COVER_URL || s.profile_cover_url) setProfileCoverUrl(s.PROFILE_COVER_URL || s.profile_cover_url);
         if (s.site_name) setSiteName(s.site_name);
+        if (s.site_logo) setSiteLogo(s.site_logo);
+        if (s.site_favicon) setSiteFavicon(s.site_favicon);
         if (s.helpline) setHelpline(s.helpline);
       }
     } catch (err) {
@@ -362,7 +366,9 @@ Login to your account and book your slot today!`);
         contact_unlock_fee: contactUnlockFee,
         contact_unlock_platform_share: platformShare,
         contact_unlock_seller_share: sellerShare,
-        site_name: siteName,
+        site_name: siteName.trim() || 'ESPORTS ZONE BD',
+        site_logo: siteLogo.trim() || '/logo.png',
+        site_favicon: siteFavicon.trim() || '/favicon.ico',
         helpline: helpline,
       };
 
@@ -1823,10 +1829,29 @@ Login to your account and book your slot today!`);
           {/* TAB 5: GENERAL BRANDING & HELPLINE */}
           {activeTab === 'GENERAL' && (
             <div className="space-y-6">
-              <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] p-6 space-y-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+              <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] p-6 space-y-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
                 <div className="flex items-center space-x-2 border-b border-[#F1F5F9] pb-3">
                   <Phone className="w-5 h-5 text-[#2563EB]" />
-                  <h2 className="text-[17px] font-bold text-[#0F172A]">Platform Branding & 24/7 Helpline</h2>
+                  <div>
+                    <h2 className="text-[17px] font-bold text-[#0F172A]">Platform Branding, Official Logo & Helpline</h2>
+                    <p className="text-xs text-slate-500 mt-0.5">Control the brand name, official platform logo path/URL, favicon, and 24/7 support helpline.</p>
+                  </div>
+                </div>
+
+                {/* Brand Logo & Favicon Preview Section */}
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col sm:flex-row items-center gap-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-md border-2 border-orange-500 bg-slate-950 p-1 flex-shrink-0">
+                      <img src={siteLogo || '/logo.png'} alt="Site Logo" className="w-full h-full object-cover rounded-xl" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                        <span>Official Platform Logo</span>
+                        <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">ACTIVE</span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-0.5">Displays on Header Navbar, Footer, Login/Register pages, and PWA App icon.</p>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
@@ -1837,6 +1862,28 @@ Login to your account and book your slot today!`);
                       value={siteName}
                       onChange={(e) => setSiteName(e.target.value)}
                       className="w-full px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] font-bold text-xs text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[#475569] font-semibold mb-1">Site Logo URL / Path</label>
+                    <input
+                      type="text"
+                      value={siteLogo}
+                      onChange={(e) => setSiteLogo(e.target.value)}
+                      placeholder="/logo.png"
+                      className="w-full px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] font-mono text-xs text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[#475569] font-semibold mb-1">Site Favicon URL / Path</label>
+                    <input
+                      type="text"
+                      value={siteFavicon}
+                      onChange={(e) => setSiteFavicon(e.target.value)}
+                      placeholder="/favicon.ico"
+                      className="w-full px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] font-mono text-xs text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
                     />
                   </div>
 

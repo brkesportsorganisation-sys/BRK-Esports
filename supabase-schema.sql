@@ -900,7 +900,22 @@ CREATE TABLE IF NOT EXISTS "SupportMessage" (
 CREATE INDEX IF NOT EXISTS "idx_supportmessage_ticketId" ON "SupportMessage"("ticketId");
 CREATE INDEX IF NOT EXISTS "idx_supportmessage_createdAt" ON "SupportMessage"("createdAt");
 
+-- =========================================================
+-- 25. SiteSetting Table (Global Site Configuration & Branding)
+-- =========================================================
+CREATE TABLE IF NOT EXISTS "SiteSetting" (
+    "id" TEXT PRIMARY KEY,
+    "key" TEXT UNIQUE NOT NULL,
+    "value" TEXT NOT NULL,
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
 
+CREATE INDEX IF NOT EXISTS "idx_sitesetting_key" ON "SiteSetting"("key");
 
-
-
+-- Insert default platform branding & logo if not present
+INSERT INTO "SiteSetting" ("id", "key", "value", "updatedAt")
+VALUES 
+  ('setting_site_logo', 'site_logo', '/logo.png', timezone('utc'::text, now())),
+  ('setting_site_favicon', 'site_favicon', '/favicon.ico', timezone('utc'::text, now())),
+  ('setting_site_name', 'site_name', 'ESPORTS ZONE BD', timezone('utc'::text, now()))
+ON CONFLICT ("key") DO NOTHING;

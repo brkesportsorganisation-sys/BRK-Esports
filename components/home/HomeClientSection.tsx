@@ -6,8 +6,9 @@ import dynamic from 'next/dynamic';
 const HomeLotteryWheel = dynamic(() => import('@/components/home/HomeLotteryWheel'), {
   ssr: false,
   loading: () => (
-    <div className="flex items-center justify-center py-8">
-      <div className="w-16 h-16 rounded-full border-4 border-orange-200 border-t-orange-500 animate-spin" />
+    <div className="w-full min-h-[460px] md:min-h-[400px] rounded-2xl bg-gradient-to-br from-slate-900/60 to-slate-950/60 border border-slate-800/80 p-6 flex flex-col items-center justify-center animate-pulse">
+      <div className="w-12 h-12 rounded-full border-4 border-orange-500/20 border-t-orange-500 animate-spin mb-4" />
+      <div className="h-4 w-40 bg-slate-800/60 rounded-full" />
     </div>
   ),
 });

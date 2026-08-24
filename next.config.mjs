@@ -18,8 +18,6 @@ const nextConfig = {
       'clsx',
       'tailwind-merge',
     ],
-    // Merge CSS into fewer chunks to reduce render-blocking requests
-    cssChunking: 'loose',
   },
 
   async headers() {
