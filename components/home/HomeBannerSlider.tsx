@@ -18,17 +18,20 @@ interface HomeBannerSliderProps {
 export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps) {
   const [banners, setBanners] = useState<Banner[]>(() => {
     if (initialData?.banners && initialData.banners.length > 0) return initialData.banners;
-    if (typeof window !== 'undefined') {
-      try {
-        const cached = localStorage.getItem('helian_banners');
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-        }
-      } catch {}
-    }
     return initialBanners;
   });
+
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem('helian_banners');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setBanners(parsed);
+        }
+      }
+    } catch {}
+  }, []);
 
   const [slideInterval, setSlideInterval] = useState<number>(() => {
     return initialData?.settings?.autoSlideInterval || 4000;
@@ -117,6 +120,9 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
               <img
                 src={currentSlide.imageUrl}
                 alt={currentSlide.title}
+                fetchPriority="high"
+                loading="eager"
+                decoding="async"
                 className="w-full h-full object-cover object-center"
               />
 
@@ -179,18 +185,23 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
 
           {/* Slider Pagination Pill Indicators (Matching Screenshot 2) */}
           {slidesToDisplay.length > 1 && (
-            <div className="absolute bottom-4 sm:bottom-6 right-5 sm:right-8 z-20 flex items-center gap-1.5 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+            <div className="absolute bottom-3 sm:bottom-5 right-4 sm:right-6 z-20 flex items-center bg-black/40 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/10">
               {slidesToDisplay.map((_, idx) => (
                 <button
                   key={idx}
+                  type="button"
                   onClick={() => setCurrentIndex(idx)}
                   aria-label={`Go to slide ${idx + 1}`}
-                  className={`transition-all duration-300 rounded-full cursor-pointer ${
-                    idx === currentIndex
-                      ? 'w-6 h-2 bg-white shadow-md'
-                      : 'w-2 h-2 bg-white/40 hover:bg-white/70'
-                  }`}
-                />
+                  className="p-2 cursor-pointer flex items-center justify-center focus:outline-none min-w-[36px] min-h-[36px]"
+                >
+                  <span
+                    className={`block transition-all duration-300 rounded-full ${
+                      idx === currentIndex
+                        ? 'w-6 h-2 bg-white shadow-md'
+                        : 'w-2 h-2 bg-white/40 hover:bg-white/70'
+                    }`}
+                  />
+                </button>
               ))}
             </div>
           )}
@@ -209,6 +220,8 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
             <img
               src={sideTop?.imageUrl || 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=600&auto=format&fit=crop&q=80'}
               alt={sideTop?.title || 'Side Top Banner'}
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
             {/* Gradient Overlay */}
@@ -241,6 +254,8 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
             <img
               src={sideBottom?.imageUrl || 'https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?w=600&auto=format&fit=crop&q=80'}
               alt={sideBottom?.title || 'Side Bottom Banner'}
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
             {/* Gradient Overlay */}

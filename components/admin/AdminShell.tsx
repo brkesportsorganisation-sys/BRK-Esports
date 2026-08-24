@@ -278,10 +278,8 @@ export default function AdminShell({ children }: AdminShellProps) {
         <div className="flex-shrink-0">
           <div className="flex items-center justify-between pb-4 border-b border-[#F1F5F9]">
             <Link href="/admin" className="flex items-center space-x-3 group flex-shrink-0">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-red to-brand-orange p-0.5 shadow-sm flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-                <div className="w-full h-full bg-white rounded-[10px] flex items-center justify-center">
-                  <ShieldCheck className="w-5 h-5 text-brand-red" />
-                </div>
+              <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform border border-slate-700/50 bg-slate-950 p-0.5">
+                <img src="/logo.png" alt="ESPORTS ZONE BD" className="w-full h-full object-cover rounded-[10px]" />
               </div>
               <div className="whitespace-nowrap">
                 <div className="font-heading font-black text-xl text-slate-900 leading-none flex items-center gap-1.5">

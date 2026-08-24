@@ -285,10 +285,8 @@ export default function Navbar() {
           
           {/* Brand Logo */}
           <Link href="/" className="flex items-center space-x-2.5 sm:space-x-3 group flex-shrink-0">
-            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-brand-red via-brand-orange to-brand-gold p-0.5 shadow-neon-red group-hover:scale-105 transition-transform duration-300 flex-shrink-0">
-              <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
-                <Flame className="w-5 h-5 sm:w-6 sm:h-6 text-brand-red animate-pulse" />
-              </div>
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl overflow-hidden shadow-md group-hover:scale-105 transition-transform duration-300 flex-shrink-0 border border-slate-700/50 bg-slate-950 p-0.5">
+              <img src="/logo.png" alt="ESPORTS ZONE BD" className="w-full h-full object-cover rounded-[14px]" />
             </div>
             <div className="whitespace-nowrap">
               <div className="font-heading font-black text-lg sm:text-2xl tracking-wider text-slate-900 leading-none">
@@ -401,7 +399,9 @@ export default function Navbar() {
                 {/* Rich In-App Notification Bell & Popover */}
                 <div className="relative" ref={notifDropdownRef}>
                   <button
+                    type="button"
                     onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                    aria-label="Notifications"
                     className={`w-9 h-9 rounded-2xl border flex items-center justify-center transition-all relative shadow-2xs cursor-pointer ${
                       isNotificationsOpen
                         ? 'bg-orange-50 border-brand-orange text-brand-orange'
@@ -681,7 +681,9 @@ export default function Navbar() {
 
             {/* Desktop Language Switcher */}
             <button
+              type="button"
               onClick={toggleLanguage}
+              aria-label={isBangla ? "Switch to English" : "বাংলায় দেখুন"}
               className="flex items-center space-x-1 bg-slate-100 hover:bg-slate-200 text-slate-800 px-2.5 py-1.5 rounded-xl border border-slate-200/80 transition-all text-xs font-extrabold shadow-2xs cursor-pointer group"
               title={isBangla ? "Switch to English" : "বাংলায় দেখুন"}
             >
@@ -695,7 +697,9 @@ export default function Navbar() {
           <div className="flex lg:hidden items-center space-x-1.5 flex-shrink-0">
             {/* Mobile Language Toggle */}
             <button
+              type="button"
               onClick={toggleLanguage}
+              aria-label={isBangla ? "Switch to English" : "বাংলায় দেখুন"}
               className="flex items-center space-x-1 bg-slate-100 hover:bg-slate-200 text-slate-800 px-2 py-1.5 rounded-xl border border-slate-200 text-[11px] font-extrabold shadow-2xs cursor-pointer"
               title={isBangla ? "Switch to English" : "বাংলায় দেখুন"}
             >

@@ -132,7 +132,7 @@ export const initialTournaments: Tournament[] = [
     id: 'tour_efootball_01',
     title: 'eFootball 2026 Mobile Masters Cup (1v1 Solo)',
     description: 'Showcase your football skills in competitive 1v1 eFootball Mobile matches! Top 16 players battle in a double-elimination knockout tournament.',
-    banner: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=1200&auto=format&fit=crop&q=80',
+    banner: 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=1200&auto=format&fit=crop&q=80',
     game: 'EFOOTBALL',
     gameName: 'eFootball',
     mode: 'SOLO',

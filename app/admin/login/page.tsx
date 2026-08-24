@@ -73,9 +73,11 @@ export default function AdminLoginPage() {
       <div className="w-full max-w-sm rounded-xl bg-white shadow-2xl overflow-hidden flex flex-col">
         {/* Header Area */}
         <div className="bg-[#0b2948] pt-8 pb-6 px-6 flex flex-col items-center justify-center text-center">
-          <Shield className="h-6 w-6 text-white mb-3" />
+          <div className="w-14 h-14 rounded-2xl overflow-hidden mb-3 border border-slate-700/50 bg-slate-950 p-0.5 shadow-md">
+            <img src="/logo.png" alt="ESPORTS ZONE BD" className="w-full h-full object-cover rounded-[14px]" />
+          </div>
           <h1 className="text-xl font-bold text-white mb-1 tracking-wide">Admin Panel</h1>
-          <p className="text-sm font-medium text-slate-300 mb-2">ESPORTS ZONE BD</p>
+          <p className="text-sm font-medium text-slate-300 mb-1">ESPORTS ZONE BD</p>
           <p className="text-[10px] text-[#4ea0da]">Secure Administration Access</p>
         </div>
 

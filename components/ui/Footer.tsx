@@ -19,10 +19,8 @@ export default function Footer() {
           {/* Brand Info */}
           <div className="lg:col-span-2 space-y-4">
             <Link href="/" className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-red to-brand-orange p-0.5 shadow-sm">
-                <div className="w-full h-full bg-white rounded-[10px] flex items-center justify-center">
-                  <Flame className="w-5 h-5 text-brand-red" />
-                </div>
+              <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm border border-slate-700/50 bg-slate-950 p-0.5">
+                <img src="/logo.png" alt="ESPORTS ZONE BD" className="w-full h-full object-cover rounded-[10px]" />
               </div>
               <span className="font-heading font-extrabold text-2xl tracking-wider text-slate-900">
                 ESPORTS ZONE <span className="text-brand-orange">BD</span>
@@ -93,7 +91,7 @@ export default function Footer() {
 
         {/* Bottom Banner */}
         <div className="pt-10 mt-10 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-600 text-center md:text-left">
-          <div>
+          <div suppressHydrationWarning>
             © {new Date().getFullYear()} ESPORTS ZONE BD. {t('footer_copyright', 'All rights reserved. Not affiliated with Garena Free Fire.')}
           </div>
           <div className="flex items-center space-x-6">

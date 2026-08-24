@@ -133,6 +133,8 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
           <img
             src={tournament.bannerImage || tournament.banner || tournament.thumbnailImage || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800'}
             alt={tournament.title}
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent" />
@@ -178,24 +180,24 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
         {/* 3-Column Metrics Panel: PRIZE | MODE | ENTRY */}
         <div className="grid grid-cols-3 gap-2 p-3 bg-[#F8FAFC] rounded-2xl border border-slate-200/80 text-center">
           <div className="space-y-0.5">
-            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">PRIZE</div>
-            <div className="font-heading font-black text-sm sm:text-base text-emerald-600 leading-tight truncate">
+            <div className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">PRIZE</div>
+            <div className="font-heading font-black text-sm sm:text-base text-emerald-700 leading-tight truncate">
               ৳{(tournament.prizePool || 0).toLocaleString()}
             </div>
           </div>
 
           <div className="space-y-0.5 border-x border-slate-200/80 px-1">
-            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">MODE</div>
+            <div className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">MODE</div>
             <div className="font-heading font-black text-sm sm:text-base text-slate-900 leading-tight uppercase truncate">
               {tournament.mode || 'SQUAD'}
             </div>
           </div>
 
           <div className="space-y-0.5">
-            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">ENTRY</div>
-            <div className="font-heading font-black text-sm sm:text-base text-brand-orange leading-tight truncate">
+            <div className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">ENTRY</div>
+            <div className="font-heading font-black text-sm sm:text-base text-orange-800 leading-tight truncate">
               {isFree ? (
-                <span className="text-emerald-600">FREE</span>
+                <span className="text-emerald-700">FREE</span>
               ) : tournament.entryFeeType === 'COINS' ? (
                 <span>{tournament.coinEntryFee || (tournament.entryFee * 10)} 🪙</span>
               ) : (
@@ -287,7 +289,8 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
               <button
                 type="button"
                 onClick={() => setActiveModal('NONE')}
-                className="absolute top-4 right-4 p-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+                aria-label="Close modal"
+                className="absolute top-4 right-4 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 transition-colors cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center"
               >
                 <X className="w-4 h-4" />
               </button>

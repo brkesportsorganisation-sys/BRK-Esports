@@ -149,10 +149,8 @@ export default function VendorShell({ children }: { children: React.ReactNode })
         {/* Brand Header */}
         <div className="flex items-center justify-between pb-5 border-b border-slate-800/80">
           <Link href="/vendor" className="flex items-center space-x-3 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-600 to-fuchsia-600 p-0.5 shadow-lg shadow-violet-950/50 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-              <div className="w-full h-full bg-[#0C101A] rounded-[10px] flex items-center justify-center">
-                <Store className="w-5 h-5 text-violet-400" />
-              </div>
+            <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg shadow-violet-950/50 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform border border-violet-500/40 bg-slate-950 p-0.5">
+              <img src="/logo.png" alt="ESPORTS ZONE BD" className="w-full h-full object-cover rounded-[10px]" />
             </div>
             <div>
               <div className="font-heading font-black text-lg text-white leading-none flex items-center gap-1.5">

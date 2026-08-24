@@ -50,8 +50,8 @@ export default function InstallPwaModal() {
     <div className="fixed bottom-20 sm:bottom-6 left-4 right-4 sm:left-auto sm:right-6 z-50 max-w-sm w-full bg-slate-900/95 backdrop-blur-xl border border-orange-500/40 rounded-3xl p-5 shadow-2xl shadow-orange-950/40 animate-slideUp">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-400 flex items-center justify-center text-black shadow-lg shadow-orange-500/30 flex-shrink-0">
-            <Smartphone className="w-6 h-6" />
+          <div className="w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center border border-orange-500/40 bg-slate-950 p-0.5 shadow-lg shadow-orange-500/20 flex-shrink-0">
+            <img src="/logo.png" alt="ESPORTS ZONE BD" className="w-full h-full object-cover rounded-[14px]" />
           </div>
           <div>
             <h4 className="font-black text-sm text-white flex items-center gap-1.5">

@@ -319,7 +319,8 @@ export default function DailyQuests() {
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full border border-slate-200 shadow-2xl space-y-6 relative animate-scaleUp">
             <button
               onClick={() => setShowLoginModal(false)}
-              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-100 transition-all cursor-pointer"
+              aria-label="Close modal"
+              className="absolute top-4 right-4 p-2 text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-all cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center"
             >
               <X className="w-5 h-5" />
             </button>
@@ -375,7 +376,8 @@ export default function DailyQuests() {
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full border border-slate-200 shadow-2xl space-y-6 relative animate-scaleUp">
             <button
               onClick={() => setShowTryTomorrowModal(false)}
-              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-100 transition-all cursor-pointer"
+              aria-label="Close modal"
+              className="absolute top-4 right-4 p-2 text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-all cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center"
             >
               <X className="w-5 h-5" />
             </button>

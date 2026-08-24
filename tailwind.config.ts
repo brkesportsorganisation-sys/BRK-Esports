@@ -42,8 +42,8 @@ const config: Config = {
         "4xl": "2rem",   // 32px
       },
       fontFamily: {
-        heading: ["Rajdhani", "sans-serif"],
-        body: ["Inter", "sans-serif"],
+        heading: ["var(--font-rajdhani)", "Rajdhani", "sans-serif"],
+        body: ["var(--font-inter)", "Inter", "sans-serif"],
       },
     },
   },
