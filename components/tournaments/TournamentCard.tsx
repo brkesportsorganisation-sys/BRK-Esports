@@ -181,22 +181,22 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
         {/* 3-Column Metrics Panel: PRIZE | MODE | ENTRY */}
         <div className="grid grid-cols-3 gap-2 p-3 bg-[#F8FAFC] rounded-2xl border border-slate-200/80 text-center">
           <div className="space-y-0.5">
-            <div className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">PRIZE</div>
+            <div className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">PRIZE</div>
             <div className="font-heading font-black text-sm sm:text-base text-emerald-700 leading-tight truncate">
               ৳{(tournament.prizePool || 0).toLocaleString()}
             </div>
           </div>
 
           <div className="space-y-0.5 border-x border-slate-200/80 px-1">
-            <div className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">MODE</div>
-            <div className="font-heading font-black text-sm sm:text-base text-slate-900 leading-tight uppercase truncate">
+            <div className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">MODE</div>
+            <div className="font-heading font-black text-sm sm:text-base text-slate-950 leading-tight uppercase truncate">
               {tournament.mode || 'SQUAD'}
             </div>
           </div>
 
           <div className="space-y-0.5">
-            <div className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">ENTRY</div>
-            <div className="font-heading font-black text-sm sm:text-base text-orange-800 leading-tight truncate">
+            <div className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">ENTRY</div>
+            <div className="font-heading font-black text-sm sm:text-base text-orange-900 leading-tight truncate">
               {isFree ? (
                 <span className="text-emerald-700">FREE</span>
               ) : tournament.entryFeeType === 'COINS' ? (
@@ -210,9 +210,9 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
 
         {/* Slots & Progress Bar */}
         <div className="space-y-1.5 pt-0.5">
-          <div className="flex items-center justify-between text-xs font-bold text-slate-600">
-            <span>Joined: <strong className="text-slate-900 font-black">{registeredCount}</strong></span>
-            <span>Slots: <strong className="text-slate-900 font-black">{maxSlots}</strong></span>
+          <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+            <span>Joined: <strong className="text-slate-950 font-black">{registeredCount}</strong></span>
+            <span>Slots: <strong className="text-slate-950 font-black">{maxSlots}</strong></span>
           </div>
 
           <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden border border-slate-200/80 p-0.5">
@@ -233,7 +233,7 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
           <button
             type="button"
             onClick={handleOpenSlots}
-            className="py-2 px-2.5 rounded-xl bg-slate-100 hover:bg-slate-200/90 text-slate-700 font-heading font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1 cursor-pointer"
+            className="py-2 px-2.5 rounded-xl bg-slate-100 hover:bg-slate-200/90 text-slate-800 font-heading font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1 cursor-pointer"
           >
             <span>SLOTS</span>
           </button>
@@ -241,7 +241,7 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
           <button
             type="button"
             onClick={() => setActiveModal('RULES')}
-            className="py-2 px-2.5 rounded-xl bg-slate-100 hover:bg-slate-200/90 text-slate-700 font-heading font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1 cursor-pointer"
+            className="py-2 px-2.5 rounded-xl bg-slate-100 hover:bg-slate-200/90 text-slate-800 font-heading font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1 cursor-pointer"
           >
             <span>RULES</span>
           </button>
@@ -249,7 +249,7 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
           <button
             type="button"
             onClick={() => setActiveModal('PRIZE')}
-            className="py-2 px-2.5 rounded-xl bg-slate-100 hover:bg-slate-200/90 text-slate-700 font-heading font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1 cursor-pointer"
+            className="py-2 px-2.5 rounded-xl bg-slate-100 hover:bg-slate-200/90 text-slate-800 font-heading font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1 cursor-pointer"
           >
             <span>PRIZE</span>
           </button>

@@ -233,15 +233,15 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
             {/* Content */}
             <div className="absolute inset-0 p-5 flex flex-col justify-end items-start z-10 space-y-1.5">
               {sideTop?.badge && (
-                <span className="px-2.5 py-0.5 rounded-full bg-brand-red text-white text-[9px] font-black uppercase tracking-wider shadow-sm">
+                <span className="px-2.5 py-0.5 rounded-full bg-red-700 text-white text-[9px] font-black uppercase tracking-wider shadow-sm">
                   {sideTop.badge}
                 </span>
               )}
-              <h3 className="font-heading font-black text-lg text-white leading-tight group-hover:text-brand-orange transition-colors line-clamp-1">
+              <h3 className="font-heading font-black text-lg text-white leading-tight group-hover:text-amber-400 transition-colors line-clamp-1">
                 {sideTop?.title || 'SOLO 1v1 DUEL ARENA'}
               </h3>
               {sideTop?.subtitle && (
-                <p className="text-[11px] text-slate-300 line-clamp-1">
+                <p className="text-[11px] text-slate-200 line-clamp-1 font-medium">
                   {sideTop.subtitle}
                 </p>
               )}
@@ -267,15 +267,15 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
             {/* Content */}
             <div className="absolute inset-0 p-5 flex flex-col justify-end items-start z-10 space-y-1.5">
               {sideBottom?.badge && (
-                <span className="px-2.5 py-0.5 rounded-full bg-brand-gold text-slate-950 text-[9px] font-black uppercase tracking-wider shadow-sm">
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[9px] font-black uppercase tracking-wider shadow-sm">
                   {sideBottom.badge}
                 </span>
               )}
-              <h3 className="font-heading font-black text-lg text-white leading-tight group-hover:text-brand-gold transition-colors line-clamp-1">
+              <h3 className="font-heading font-black text-lg text-white leading-tight group-hover:text-amber-400 transition-colors line-clamp-1">
                 {sideBottom?.title || 'LUCKY WHEEL & REWARDS'}
               </h3>
               {sideBottom?.subtitle && (
-                <p className="text-[11px] text-slate-300 line-clamp-1">
+                <p className="text-[11px] text-slate-200 line-clamp-1 font-medium">
                   {sideBottom.subtitle}
                 </p>
               )}

@@ -24,20 +24,20 @@ export default function Footer() {
                 <Image src="/logo.png" alt="ESPORTS ZONE BD" width={40} height={40} className="w-full h-full object-cover rounded-[10px]" />
               </div>
               <span className="font-heading font-extrabold text-2xl tracking-wider text-slate-900">
-                ESPORTS ZONE <span className="text-brand-orange">BD</span>
+                ESPORTS ZONE <span className="text-orange-600">BD</span>
               </span>
             </Link>
-            <p className="text-slate-600 text-sm leading-relaxed max-w-sm">
+            <p className="text-slate-700 text-sm leading-relaxed max-w-sm">
               {t('footer_tagline', 'The ultimate competitive esports platform for Free Fire players in South Asia. Compete in daily BR & CS ranked tournaments and build your legacy.')}
             </p>
             <div className="flex items-center space-x-3 pt-2">
-              <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs text-brand-cyan">
-                <ShieldCheck className="w-4 h-4 text-brand-cyan" />
-                <span className="font-semibold text-slate-700">{t('footer_anti_cheat', 'Anti-Cheat Secured')}</span>
+              <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-300 text-xs text-cyan-800">
+                <ShieldCheck className="w-4 h-4 text-cyan-700" />
+                <span className="font-bold text-slate-800">{t('footer_anti_cheat', 'Anti-Cheat Secured')}</span>
               </div>
-              <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs text-brand-gold">
-                <Zap className="w-4 h-4 text-brand-gold" />
-                <span className="font-semibold text-slate-700">{t('footer_instant_payouts', 'Instant Payouts')}</span>
+              <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-300 text-xs text-amber-900">
+                <Zap className="w-4 h-4 text-amber-700" />
+                <span className="font-bold text-slate-800">{t('footer_instant_payouts', 'Instant Payouts')}</span>
               </div>
             </div>
           </div>
@@ -47,11 +47,11 @@ export default function Footer() {
             <h4 className="font-heading font-bold text-lg text-slate-900 mb-4 uppercase tracking-wider border-l-2 border-brand-red pl-3">
               {t('footer_platform', 'Platform')}
             </h4>
-            <ul className="space-y-2.5 text-sm text-slate-600">
-              <li><Link href="/tournaments" className="hover:text-brand-orange transition-colors">BR Tournaments</Link></li>
-              <li><Link href="/tournaments" className="hover:text-brand-orange transition-colors">CS 4v4 Knockouts</Link></li>
-              <li><Link href="/leaderboard" className="hover:text-brand-orange transition-colors">{t('nav_leaderboard', 'Global Ranking')}</Link></li>
-              <li><Link href="/community" className="hover:text-brand-orange transition-colors">{t('nav_community', 'Community')}</Link></li>
+            <ul className="space-y-2.5 text-sm text-slate-700">
+              <li><Link href="/tournaments" className="hover:text-orange-600 font-medium transition-colors">BR Tournaments</Link></li>
+              <li><Link href="/tournaments" className="hover:text-orange-600 font-medium transition-colors">CS 4v4 Knockouts</Link></li>
+              <li><Link href="/leaderboard" className="hover:text-orange-600 font-medium transition-colors">{t('nav_leaderboard', 'Global Ranking')}</Link></li>
+              <li><Link href="/community" className="hover:text-orange-600 font-medium transition-colors">{t('nav_community', 'Community')}</Link></li>
             </ul>
           </div>
 
@@ -60,29 +60,29 @@ export default function Footer() {
             <h4 className="font-heading font-bold text-lg text-slate-900 mb-4 uppercase tracking-wider border-l-2 border-brand-orange pl-3">
               {t('footer_support_legal', 'Support & Legal')}
             </h4>
-            <ul className="space-y-2.5 text-sm text-slate-600">
-              <li><Link href="/contact" className="hover:text-brand-orange transition-colors">Contact Support</Link></li>
-              <li><Link href="/faq" className="hover:text-brand-orange transition-colors">Rules & FAQ</Link></li>
-              <li><Link href="/terms" className="hover:text-brand-orange transition-colors">Terms of Service</Link></li>
-              <li><Link href="/privacy" className="hover:text-brand-orange transition-colors">Privacy Policy</Link></li>
-              <li><Link href="/anti-cheat" className="hover:text-brand-orange transition-colors">Anti-Cheat Policy</Link></li>
+            <ul className="space-y-2.5 text-sm text-slate-700">
+              <li><Link href="/contact" className="hover:text-orange-600 font-medium transition-colors">Contact Support</Link></li>
+              <li><Link href="/faq" className="hover:text-orange-600 font-medium transition-colors">Rules & FAQ</Link></li>
+              <li><Link href="/terms" className="hover:text-orange-600 font-medium transition-colors">Terms of Service</Link></li>
+              <li><Link href="/privacy" className="hover:text-orange-600 font-medium transition-colors">Privacy Policy</Link></li>
+              <li><Link href="/anti-cheat" className="hover:text-orange-600 font-medium transition-colors">Anti-Cheat Policy</Link></li>
             </ul>
           </div>
 
           {/* Payment Methods */}
           <div>
-            <h4 className="font-heading font-bold text-lg text-slate-900 mb-4 uppercase tracking-wider border-l-2 border-brand-gold pl-3">
+            <h4 className="font-heading font-bold text-lg text-slate-900 mb-4 uppercase tracking-wider border-l-2 border-amber-500 pl-3">
               {t('footer_banking', 'Supported Banking')}
             </h4>
-            <p className="text-xs text-slate-600 mb-4">{t('footer_banking_desc', 'Instant deposit and fast automated withdrawal via trusted local payment partners.')}</p>
+            <p className="text-xs text-slate-700 mb-4">{t('footer_banking_desc', 'Instant deposit and fast automated withdrawal via trusted local payment partners.')}</p>
             <div className="grid grid-cols-3 gap-2">
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2 text-center text-xs font-bold text-pink-600">
+              <div className="bg-slate-100 border border-slate-300 rounded-xl p-2 text-center text-xs font-black text-pink-700">
                 bKash
               </div>
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2 text-center text-xs font-bold text-orange-600">
+              <div className="bg-slate-100 border border-slate-300 rounded-xl p-2 text-center text-xs font-black text-orange-800">
                 Nagad
               </div>
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2 text-center text-xs font-bold text-purple-600">
+              <div className="bg-slate-100 border border-slate-300 rounded-xl p-2 text-center text-xs font-black text-purple-800">
                 Rocket
               </div>
             </div>
@@ -91,16 +91,16 @@ export default function Footer() {
         </div>
 
         {/* Bottom Banner */}
-        <div className="pt-10 mt-10 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-600 text-center md:text-left">
+        <div className="pt-10 mt-10 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-700 text-center md:text-left font-medium">
           <div suppressHydrationWarning>
             © {new Date().getFullYear()} ESPORTS ZONE BD. {t('footer_copyright', 'All rights reserved. Not affiliated with Garena Free Fire.')}
           </div>
           <div className="flex items-center space-x-6">
-            <span className="hover:text-slate-900 cursor-pointer transition-colors flex items-center gap-1">
-              <MessageSquare className="w-4 h-4 text-brand-orange" /> {t('footer_discord', 'Discord Community')}
+            <span className="hover:text-slate-900 cursor-pointer transition-colors flex items-center gap-1 font-semibold">
+              <MessageSquare className="w-4 h-4 text-orange-600" /> {t('footer_discord', 'Discord Community')}
             </span>
-            <span className="hover:text-slate-900 cursor-pointer transition-colors flex items-center gap-1">
-              <Headphones className="w-4 h-4 text-brand-cyan" /> {t('footer_live_support', '24/7 Live Support')}
+            <span className="hover:text-slate-900 cursor-pointer transition-colors flex items-center gap-1 font-semibold">
+              <Headphones className="w-4 h-4 text-cyan-700" /> {t('footer_live_support', '24/7 Live Support')}
             </span>
           </div>
         </div>
