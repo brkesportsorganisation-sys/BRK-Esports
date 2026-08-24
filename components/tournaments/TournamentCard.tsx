@@ -19,6 +19,8 @@ interface Participant {
 
 interface TournamentCardProps {
   tournament: Tournament;
+  /** Set true for the first card (above-the-fold LCP image) */
+  priority?: boolean;
 }
 
 function stripHtml(html?: string) {
@@ -35,7 +37,7 @@ function stripHtml(html?: string) {
     .trim();
 }
 
-export default function TournamentCard({ tournament }: TournamentCardProps) {
+export default function TournamentCard({ tournament, priority = false }: TournamentCardProps) {
   const { t, isBangla } = useLanguage();
   const [activeModal, setActiveModal] = useState<'NONE' | 'SLOTS' | 'RULES' | 'PRIZE'>('NONE');
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -138,6 +140,7 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
             src={tournament.bannerImage || tournament.banner || tournament.thumbnailImage || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800'}
             alt={tournament.title}
             fill
+            priority={priority}
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 600px"
             className="object-cover object-center group-hover:scale-105 transition-transform duration-500"
           />

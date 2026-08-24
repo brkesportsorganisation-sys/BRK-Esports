@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotion, domAnimation, m, AnimatePresence } from 'framer-motion';
 import { 
   Flame, 
   Trophy, 
@@ -342,9 +342,10 @@ export default function Navbar() {
                 <ChevronDown className={`w-3 h-3 transition-transform ${isMoreOpen ? 'rotate-180' : ''}`} />
               </button>
 
-              <AnimatePresence>
+        <LazyMotion features={domAnimation}>
+          <AnimatePresence>
                 {isMoreOpen && (
-                  <motion.div
+                  <m.div
                     initial={{ opacity: 0, y: 8, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 8, scale: 0.95 }}
@@ -370,9 +371,10 @@ export default function Navbar() {
                         </Link>
                       );
                     })}
-                  </motion.div>
+                  </m.div>
                 )}
               </AnimatePresence>
+        </LazyMotion>
             </div>
           </div>
 
@@ -418,9 +420,10 @@ export default function Navbar() {
                     )}
                   </button>
 
-                  <AnimatePresence>
+                  <LazyMotion features={domAnimation}>
+                    <AnimatePresence>
                     {isNotificationsOpen && (
-                      <motion.div
+                      <m.div
                         initial={{ opacity: 0, y: 12, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 12, scale: 0.95 }}
@@ -564,9 +567,10 @@ export default function Navbar() {
                             Open Notification Center →
                           </Link>
                         </div>
-                      </motion.div>
+                      </m.div>
                     )}
                   </AnimatePresence>
+                  </LazyMotion>
                 </div>
 
                 {/* Profile Dropdown */}
@@ -575,17 +579,20 @@ export default function Navbar() {
                     onClick={() => setIsProfileOpen(!isProfileOpen)}
                     className="flex items-center space-x-1.5 bg-white p-1 pr-2 rounded-2xl border border-slate-200 hover:border-slate-300 shadow-2xs transition-all cursor-pointer"
                   >
-                    <img
+                    <Image
                       src={currentUser.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150'}
                       alt={currentUser.name}
+                      width={28}
+                      height={28}
                       className="w-7 h-7 rounded-xl object-cover border border-slate-200"
                     />
                     <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
                   </button>
 
+                  <LazyMotion features={domAnimation}>
                   <AnimatePresence>
                     {isProfileOpen && (
-                      <motion.div
+                      <m.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 10 }}
@@ -664,9 +671,10 @@ export default function Navbar() {
                             <span>{t('nav_logout', 'Sign Out')}</span>
                           </button>
                         </div>
-                      </motion.div>
+                      </m.div>
                     )}
                   </AnimatePresence>
+                  </LazyMotion>
                 </div>
               </>
             ) : (
@@ -754,22 +762,25 @@ export default function Navbar() {
       </div>
 
       {/* Mobile Menu Drawer */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="lg:hidden bg-white border-b border-slate-200 px-4 pt-3 pb-6 space-y-2.5 shadow-xl max-h-[80vh] overflow-y-auto"
-          >
+          <LazyMotion features={domAnimation}>
+          <AnimatePresence>
+          {isMobileMenuOpen && (
+            <m.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="lg:hidden bg-white border-b border-slate-200 px-4 pt-3 pb-6 space-y-2.5 shadow-xl max-h-[80vh] overflow-y-auto"
+            >
             {/* If logged in: Show Player Header in Drawer */}
             {currentUser && (
               <div className="p-3 bg-gradient-to-r from-slate-50 to-orange-50/40 rounded-2xl border border-slate-200/80 mb-3 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2.5">
-                    <img
+                    <Image
                       src={currentUser.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150'}
                       alt={currentUser.name}
+                      width={40}
+                      height={40}
                       className="w-10 h-10 rounded-xl object-cover border border-slate-200"
                     />
                     <div>
@@ -872,9 +883,10 @@ export default function Navbar() {
                 {t('nav_login', 'LOGIN')}
               </Link>
             )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </m.div>
+          )}
+        </AnimatePresence>
+        </LazyMotion>
     </nav>
   );
 }

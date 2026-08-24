@@ -11,15 +11,33 @@
   box-sizing: border-box;
 }
 
-html, body {
-  background-color: #F8F9FA; /* Light cream */
-  color: #0F172A; /* Dark slate text */
+html {
+  /* Smooth scrolling without jank */
+  scroll-behavior: smooth;
+  /* Prevent text size adjustments on mobile orientation change */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  background-color: #F8F9FA;
+  color: #0F172A;
   font-family: var(--font-inter), 'Inter', sans-serif;
   overflow-x: clip;
   max-width: 100vw;
   width: 100%;
   margin: 0;
   padding: 0;
+  /* Improve font rendering */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeSpeed;
+}
+
+/* Below-fold sections: skip rendering until visible (big LCP/CLS win) */
+.below-fold {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 400px;
 }
 
 h1, h2, h3, h4, h5, h6, .font-heading {
