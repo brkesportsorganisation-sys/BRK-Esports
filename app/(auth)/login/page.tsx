@@ -88,13 +88,10 @@ export default function LoginPage() {
 
     try {
       const fb = getFirebaseAuth();
-      const targetAuth = fb?.auth || auth;
-      const targetProvider = fb?.googleProvider || googleProvider;
-
-      if (!targetAuth) {
+      if (!fb?.auth || !fb?.googleProvider) {
         throw new Error('Google Sign-In service could not be initialized. Please sign in with email and password.');
       }
-      const result = await signInWithPopup(targetAuth, targetProvider);
+      const result = await signInWithPopup(fb.auth, fb.googleProvider);
       const user = result.user;
 
       if (!user.email) {

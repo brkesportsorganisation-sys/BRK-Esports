@@ -102,13 +102,13 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for the ones starting with:
+     * Match all request paths except for:
      * - _next/static (static files)
      * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public files (images, icons)
+     * - favicon.ico, logo.png, manifest.json, sw.js, and static assets
      */
-    '/((?!_next/static|_next/image|favicon.ico|icon-192.png|icon-512.png).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|json|js|css|woff2?)).*)',
   ],
 };
+
 

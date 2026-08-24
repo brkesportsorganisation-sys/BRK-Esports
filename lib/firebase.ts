@@ -13,7 +13,7 @@ const firebaseConfig = {
 
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
-let googleProvider: GoogleAuthProvider = new GoogleAuthProvider();
+let googleProvider: GoogleAuthProvider | null = null;
 
 export function getFirebaseAuth(): { auth: Auth; googleProvider: GoogleAuthProvider } | null {
   try {
@@ -24,6 +24,8 @@ export function getFirebaseAuth(): { auth: Auth; googleProvider: GoogleAuthProvi
     }
     if (!auth) {
       auth = getAuth(app);
+    }
+    if (!googleProvider) {
       googleProvider = new GoogleAuthProvider();
       googleProvider.setCustomParameters({
         prompt: 'select_account'
@@ -36,17 +38,5 @@ export function getFirebaseAuth(): { auth: Auth; googleProvider: GoogleAuthProvi
   }
 }
 
-// Initial client boot
-if (typeof window !== 'undefined' && firebaseConfig.apiKey) {
-  try {
-    app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-    auth = getAuth(app);
-    googleProvider.setCustomParameters({
-      prompt: 'select_account'
-    });
-  } catch (e) {
-    console.warn('Firebase client boot notice:', e);
-  }
-}
-
 export { app, auth, googleProvider, signInWithPopup, signInWithRedirect, getRedirectResult };
+
