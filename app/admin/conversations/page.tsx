@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import AdminShell from '@/components/admin/AdminShell';
 import {
   MessageSquare,
   Search,
@@ -185,8 +184,7 @@ export default function AdminConversationsMonitorPage() {
   };
 
   return (
-    <AdminShell>
-      <div className="space-y-6">
+    <div className="space-y-6">
 
         {/* ── HEADER ── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-xs">
