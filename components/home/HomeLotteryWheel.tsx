@@ -306,7 +306,7 @@ export default function HomeLotteryWheel() {
       </div>
 
       {/* Dual Spin Buttons (Coin Spin + Taka/Money Spin) */}
-      <div className="w-full max-w-md flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-1">
+      <div className="w-full max-w-lg grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 px-2">
         
         {/* 1. Spin with Coins Button */}
         {(spinPaymentMode === 'BOTH' || spinPaymentMode === 'COINS_ONLY') && (
@@ -314,10 +314,24 @@ export default function HomeLotteryWheel() {
             type="button"
             disabled={isSpinning || !isLotteryActive}
             onClick={() => handleSpinWheel('COINS')}
-            className="flex-1 w-full py-3 sm:py-3.5 px-4 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:brightness-110 text-white font-heading font-black text-xs sm:text-sm uppercase tracking-wider rounded-2xl transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+            className="group relative overflow-hidden py-3 px-4 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-500 text-white font-heading font-black rounded-2xl transition-all shadow-md hover:shadow-orange-500/30 active:scale-95 flex items-center justify-between gap-2.5 cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
           >
-            <Coins className="w-4 h-4" />
-            <span>{isBangla ? `কয়েন দিয়ে স্পিন (${spinCoinCost} 🪙)` : `SPIN WITH COINS (${spinCoinCost} 🪙)`}</span>
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/30 shadow-inner group-hover:scale-110 transition-transform">
+                <Coins className="w-5 h-5 text-amber-100" />
+              </div>
+              <div className="text-left">
+                <div className="text-xs sm:text-sm font-black leading-tight tracking-wide whitespace-nowrap">
+                  {isBangla ? 'কয়েন স্পিন' : 'COIN SPIN'}
+                </div>
+                <div className="text-[10px] text-amber-100/90 font-medium">
+                  {isBangla ? 'কয়েন দিয়ে খেলুন' : 'Play with Coins'}
+                </div>
+              </div>
+            </div>
+            <div className="px-2.5 py-1 rounded-xl bg-black/20 backdrop-blur-sm border border-white/20 text-xs font-black font-mono whitespace-nowrap shrink-0 shadow-inner">
+              {spinCoinCost} 🪙
+            </div>
           </button>
         )}
 
@@ -327,10 +341,24 @@ export default function HomeLotteryWheel() {
             type="button"
             disabled={isSpinning || !isLotteryActive}
             onClick={() => handleSpinWheel('CASH')}
-            className="flex-1 w-full py-3 sm:py-3.5 px-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:brightness-110 text-white font-heading font-black text-xs sm:text-sm uppercase tracking-wider rounded-2xl transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+            className="group relative overflow-hidden py-3 px-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-600 text-white font-heading font-black rounded-2xl transition-all shadow-md hover:shadow-emerald-600/30 active:scale-95 flex items-center justify-between gap-2.5 cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
           >
-            <DollarSign className="w-4 h-4" />
-            <span>{isBangla ? `টাকা দিয়ে স্পিন (৳${spinCashCost} 💵)` : `SPIN WITH TAKA (৳${spinCashCost} 💵)`}</span>
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/30 shadow-inner group-hover:scale-110 transition-transform">
+                <DollarSign className="w-5 h-5 text-emerald-100" />
+              </div>
+              <div className="text-left">
+                <div className="text-xs sm:text-sm font-black leading-tight tracking-wide whitespace-nowrap">
+                  {isBangla ? 'টাকা স্পিন' : 'CASH SPIN'}
+                </div>
+                <div className="text-[10px] text-emerald-100/90 font-medium">
+                  {isBangla ? 'ওয়ালেট ব্যালেন্স' : 'Wallet Balance'}
+                </div>
+              </div>
+            </div>
+            <div className="px-2.5 py-1 rounded-xl bg-black/20 backdrop-blur-sm border border-white/20 text-xs font-black font-mono whitespace-nowrap shrink-0 shadow-inner">
+              ৳{spinCashCost} 💵
+            </div>
           </button>
         )}
 
