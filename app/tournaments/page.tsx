@@ -375,7 +375,7 @@ export default function TournamentsPage() {
                   </span>
                 )}
                 {selectedMode !== 'ALL' && (
-                  <span className="inline-flex items-center gap-1 bg-orange-50 text-brand-orange border border-orange-200 px-2 py-0.5 rounded-lg text-[10px] font-bold">
+                  <span className="inline-flex items-center gap-1 bg-orange-50 text-orange-900 border border-orange-200 px-2 py-0.5 rounded-lg text-[10px] font-bold">
                     Mode: {activeConfig.modes.find(m => m.value === selectedMode)?.label.replace('🕹️ Mode: ', '') || selectedMode}
                     <button onClick={() => setSelectedMode('ALL')}><X className="w-3 h-3" /></button>
                   </span>

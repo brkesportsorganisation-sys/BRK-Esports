@@ -105,24 +105,24 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
     const tLower = (title || '').toLowerCase();
 
     if (g === 'EFOOTBALL' || tLower.includes('efootball') || tLower.includes('pes')) {
-      return { name: 'eFootball', icon: '⚽', color: 'bg-blue-50 text-blue-600 border-blue-200' };
+      return { name: 'eFootball', icon: '⚽', color: 'bg-blue-600 text-white border-blue-400/40 shadow-xs font-black' };
     }
     if (g === 'PUBG_MOBILE' || tLower.includes('pubg') || tLower.includes('bgmi')) {
-      return { name: 'PUBG Mobile', icon: '🪖', color: 'bg-amber-50 text-amber-700 border-amber-200' };
+      return { name: 'PUBG Mobile', icon: '🪖', color: 'bg-amber-600 text-white border-amber-400/40 shadow-xs font-black' };
     }
     if (g === 'VALORANT' || tLower.includes('valorant')) {
-      return { name: 'Valorant', icon: '🎯', color: 'bg-rose-50 text-rose-600 border-rose-200' };
+      return { name: 'Valorant', icon: '🎯', color: 'bg-rose-600 text-white border-rose-400/40 shadow-xs font-black' };
     }
     if (g === 'MLBB' || tLower.includes('mobile legends') || tLower.includes('mlbb')) {
-      return { name: 'MLBB', icon: '⚔️', color: 'bg-purple-50 text-purple-600 border-purple-200' };
+      return { name: 'MLBB', icon: '⚔️', color: 'bg-purple-600 text-white border-purple-400/40 shadow-xs font-black' };
     }
     if (g === 'COD_MOBILE' || tLower.includes('cod') || tLower.includes('call of duty')) {
-      return { name: 'COD Mobile', icon: '💥', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+      return { name: 'COD Mobile', icon: '💥', color: 'bg-emerald-600 text-white border-emerald-400/40 shadow-xs font-black' };
     }
     if (g === 'LUDO_KING' || tLower.includes('ludo')) {
-      return { name: 'Ludo King', icon: '🎲', color: 'bg-indigo-50 text-indigo-600 border-indigo-200' };
+      return { name: 'Ludo King', icon: '🎲', color: 'bg-indigo-600 text-white border-indigo-400/40 shadow-xs font-black' };
     }
-    return { name: 'Free Fire', icon: '🔥', color: 'bg-orange-50 text-brand-orange border-orange-200' };
+    return { name: 'Free Fire', icon: '🔥', color: 'bg-orange-600 text-white border-orange-400/40 shadow-xs font-black' };
   };
 
   const gameInfo = getGameBadge(tournament.game, tournament.title);
