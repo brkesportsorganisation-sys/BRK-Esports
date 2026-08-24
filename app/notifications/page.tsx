@@ -169,7 +169,7 @@ export default function UserNotificationsPage() {
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans">
       <Navbar />
 
-      <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-16 space-y-6">
+      <main className="flex-1 max-w-4xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-24 lg:pb-16 space-y-4 sm:space-y-6">
         
         {/* Header Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
