@@ -150,7 +150,7 @@ export default function VendorShell({ children }: { children: React.ReactNode })
         <div className="flex items-center justify-between pb-5 border-b border-slate-800/80">
           <Link href="/vendor" className="flex items-center space-x-3 group">
             <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg shadow-violet-950/50 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform border border-violet-500/40 bg-slate-950 p-0.5">
-              <img src="/logo.png" alt="ESPORTS ZONE BD" className="w-full h-full object-cover rounded-[10px]" />
+              <img src="/logo.png?v=3" alt="ESPORTS ZONE BD" className="w-full h-full object-cover rounded-[10px]" />
             </div>
             <div>
               <div className="font-heading font-black text-lg text-white leading-none flex items-center gap-1.5">

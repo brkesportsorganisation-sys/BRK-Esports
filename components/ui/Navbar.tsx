@@ -287,7 +287,7 @@ export default function Navbar() {
           {/* Brand Logo */}
           <Link href="/" className="flex items-center space-x-2.5 sm:space-x-3 group flex-shrink-0">
             <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl overflow-hidden shadow-md group-hover:scale-105 transition-transform duration-300 flex-shrink-0 border border-slate-700/50 bg-slate-950 p-0.5">
-              <Image src="/logo.png" alt="ESPORTS ZONE BD" width={44} height={44} priority className="w-full h-full object-cover rounded-[14px]" />
+              <img src="/logo.png?v=3" alt="ESPORTS ZONE BD" className="w-full h-full object-cover rounded-[14px]" />
             </div>
             <div className="whitespace-nowrap">
               <div className="font-heading font-black text-lg sm:text-2xl tracking-wider text-slate-900 leading-none">

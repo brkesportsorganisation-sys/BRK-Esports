@@ -20,8 +20,8 @@ export default function Footer() {
           {/* Brand Info */}
           <div className="lg:col-span-2 space-y-4">
             <Link href="/" className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm border border-slate-700/50 bg-slate-950 p-0.5">
-                <Image src="/logo.png" alt="ESPORTS ZONE BD" width={40} height={40} className="w-full h-full object-cover rounded-[10px]" />
+              <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm border border-slate-700/50 bg-slate-950 p-0.5 flex items-center justify-center">
+                <img src="/logo.png?v=3" alt="ESPORTS ZONE BD" className="w-full h-full object-cover rounded-[10px]" />
               </div>
               <span className="font-heading font-extrabold text-2xl tracking-wider text-slate-900">
                 ESPORTS ZONE <span className="text-orange-600">BD</span>
