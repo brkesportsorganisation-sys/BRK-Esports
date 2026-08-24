@@ -105,24 +105,24 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
     const tLower = (title || '').toLowerCase();
 
     if (g === 'EFOOTBALL' || tLower.includes('efootball') || tLower.includes('pes')) {
-      return { name: 'eFootball', icon: '⚽', color: 'bg-blue-600 text-white border-blue-400/40 shadow-xs font-black' };
+      return { name: 'eFootball', icon: '⚽', color: 'bg-slate-900/95 text-sky-400 border-sky-500/40 shadow-xs' };
     }
     if (g === 'PUBG_MOBILE' || tLower.includes('pubg') || tLower.includes('bgmi')) {
-      return { name: 'PUBG Mobile', icon: '🪖', color: 'bg-amber-600 text-white border-amber-400/40 shadow-xs font-black' };
+      return { name: 'PUBG Mobile', icon: '🪖', color: 'bg-slate-900/95 text-amber-300 border-amber-500/40 shadow-xs' };
     }
     if (g === 'VALORANT' || tLower.includes('valorant')) {
-      return { name: 'Valorant', icon: '🎯', color: 'bg-rose-600 text-white border-rose-400/40 shadow-xs font-black' };
+      return { name: 'Valorant', icon: '🎯', color: 'bg-slate-900/95 text-rose-400 border-rose-500/40 shadow-xs' };
     }
     if (g === 'MLBB' || tLower.includes('mobile legends') || tLower.includes('mlbb')) {
-      return { name: 'MLBB', icon: '⚔️', color: 'bg-purple-600 text-white border-purple-400/40 shadow-xs font-black' };
+      return { name: 'MLBB', icon: '⚔️', color: 'bg-slate-900/95 text-purple-300 border-purple-500/40 shadow-xs' };
     }
     if (g === 'COD_MOBILE' || tLower.includes('cod') || tLower.includes('call of duty')) {
-      return { name: 'COD Mobile', icon: '💥', color: 'bg-emerald-600 text-white border-emerald-400/40 shadow-xs font-black' };
+      return { name: 'COD Mobile', icon: '💥', color: 'bg-slate-900/95 text-emerald-400 border-emerald-500/40 shadow-xs' };
     }
     if (g === 'LUDO_KING' || tLower.includes('ludo')) {
-      return { name: 'Ludo King', icon: '🎲', color: 'bg-indigo-600 text-white border-indigo-400/40 shadow-xs font-black' };
+      return { name: 'Ludo King', icon: '🎲', color: 'bg-slate-900/95 text-indigo-300 border-indigo-500/40 shadow-xs' };
     }
-    return { name: 'Free Fire', icon: '🔥', color: 'bg-orange-600 text-white border-orange-400/40 shadow-xs font-black' };
+    return { name: 'Free Fire', icon: '🔥', color: 'bg-slate-900/95 text-amber-400 border-amber-500/40 shadow-xs' };
   };
 
   const gameInfo = getGameBadge(tournament.game, tournament.title);
@@ -150,9 +150,9 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
             </span>
 
             <div className="flex items-center gap-1.5">
-              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black border text-white ${gameInfo.color}`}>
+              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black border backdrop-blur-md ${gameInfo.color}`}>
                 <span className="text-xs">{gameInfo.icon}</span>
-                <span className="text-white font-black drop-shadow-xs">{tournament.gameName || gameInfo.name}</span>
+                <span>{tournament.gameName || gameInfo.name}</span>
               </span>
 
               {isLive ? (
