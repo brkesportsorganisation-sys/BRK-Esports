@@ -527,8 +527,8 @@ export default function Navbar() {
                                     {notif.message}
                                   </div>
 
-                                  <div className="flex items-center justify-between pt-1 text-[10px] text-slate-400 font-mono">
-                                    <span>
+                                  <div className="flex items-center justify-between pt-1 text-[10px] text-slate-500 font-mono">
+                                    <span suppressHydrationWarning>
                                       {notif.createdAt ? new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
                                     </span>
                                     {notif.link && (

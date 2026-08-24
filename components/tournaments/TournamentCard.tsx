@@ -57,11 +57,17 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
     .toUpperCase();
 
   // Match date formatted
-  const matchDate = tournament.tournamentStart || tournament.matchTime;
-  const formattedDate = matchDate ? new Date(matchDate).toISOString().split('T')[0] : '';
-  const formattedTime = matchDate
-    ? new Date(matchDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-    : '';
+  const [formattedDate, setFormattedDate] = useState('');
+  const [formattedTime, setFormattedTime] = useState('');
+
+  useEffect(() => {
+    const matchDate = tournament.tournamentStart || tournament.matchTime;
+    if (matchDate) {
+      const d = new Date(matchDate);
+      setFormattedDate(d.toISOString().split('T')[0]);
+      setFormattedTime(d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
+    }
+  }, [tournament.tournamentStart, tournament.matchTime]);
 
   // Calculate default prize distribution or use dynamic prizeDistribution list
   const firstPrize = tournament.firstPrize || Math.round((tournament.prizePool || 0) * 0.5) || 0;
@@ -165,7 +171,7 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
           </div>
 
           {/* Title & Date/Time on Banner */}
-          <div className="absolute bottom-3 left-4 right-4 text-white z-10 space-y-0.5">
+          <div className="absolute bottom-3 left-4 right-4 text-white z-10 space-y-0.5" suppressHydrationWarning>
             <h3 className="font-heading font-black text-base sm:text-lg text-white group-hover:text-brand-orange transition-colors truncate drop-shadow-sm">
               {tournament.title} {formattedDate && <span className="text-xs font-mono text-slate-300 font-normal">({formattedDate})</span>}
             </h3>
