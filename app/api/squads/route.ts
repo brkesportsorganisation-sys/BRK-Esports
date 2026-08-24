@@ -69,14 +69,40 @@ export async function POST(req: NextRequest) {
       logoUrl, 
       bannerUrl, 
       description,
-      leaderId,
-      leaderName,
-      leaderAccountNumber,
-      leaderUid
+      leaderId: explicitLeaderId,
+      userId,
+      leaderName: explicitLeaderName,
+      leaderAccountNumber: explicitLeaderAccountNumber,
+      leaderUid: explicitLeaderUid
     } = body;
 
+    const leaderId = explicitLeaderId || userId;
+
     if (!name?.trim() || !tag?.trim() || !leaderId) {
-      return NextResponse.json({ message: 'Squad name, tag code, and leader are required.' }, { status: 400 });
+      return NextResponse.json({ message: 'Squad name, tag code, and leader user are required.' }, { status: 400 });
+    }
+
+    // Fetch leader profile details from Supabase if not fully provided
+    let finalLeaderName = explicitLeaderName || 'Leader';
+    let finalLeaderAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${leaderId}`;
+    let finalLeaderAccountNumber = explicitLeaderAccountNumber || `EZBD-${leaderId.substring(0, 6).toUpperCase()}`;
+    let finalLeaderUid = explicitLeaderUid || '';
+
+    try {
+      const { data: dbUser } = await supabaseAdmin
+        .from('User')
+        .select('*')
+        .eq('id', leaderId)
+        .maybeSingle();
+
+      if (dbUser) {
+        finalLeaderName = dbUser.inGameName || dbUser.name || finalLeaderName;
+        finalLeaderAvatar = dbUser.avatar || finalLeaderAvatar;
+        finalLeaderAccountNumber = dbUser.accountNumber || finalLeaderAccountNumber;
+        finalLeaderUid = dbUser.freeFireUid || finalLeaderUid;
+      }
+    } catch (userErr) {
+      console.warn('[POST /api/squads] User lookup notice:', userErr);
     }
 
     const cleanName = name.trim();
@@ -122,10 +148,10 @@ export async function POST(req: NextRequest) {
       id: `mem_${Date.now()}_1`,
       squadId,
       userId: leaderId,
-      userName: leaderName || 'Leader',
-      userAvatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${leaderName || leaderId}`,
-      accountNumber: leaderAccountNumber || `EZBD-${leaderId.substring(0, 6).toUpperCase()}`,
-      freeFireUid: leaderUid || '',
+      userName: finalLeaderName,
+      userAvatar: finalLeaderAvatar,
+      accountNumber: finalLeaderAccountNumber,
+      freeFireUid: finalLeaderUid,
       memberType: 'PLAYER',
       inGameRole: 'IGL', // Default leader role
       isLeader: true,
@@ -142,7 +168,7 @@ export async function POST(req: NextRequest) {
       game,
       createdBy: leaderId,
       leaderId,
-      leaderName: leaderName || 'Leader',
+      leaderName: finalLeaderName,
       description: description?.trim() || '',
       requireApprovalToJoin: true,
       inviteToken,
@@ -166,7 +192,7 @@ export async function POST(req: NextRequest) {
         tag: cleanTag,
         logo: newSquad.logoUrl,
         captainId: leaderId,
-        captainName: leaderName || 'Leader',
+        captainName: finalLeaderName || 'Leader',
         membersCount: 1,
         wins: 0,
         inviteCode: inviteToken,

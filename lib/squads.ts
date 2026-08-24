@@ -32,7 +32,7 @@ export async function getSquads(): Promise<Squad[]> {
 }
 
 /**
- * Saves squads list to Supabase.
+ * Saves squads list to Supabase with persistent database storage.
  */
 export async function saveSquads(squads: Squad[]): Promise<boolean> {
   inMemorySquads = squads;
@@ -40,15 +40,19 @@ export async function saveSquads(squads: Squad[]): Promise<boolean> {
     const { error } = await supabaseAdmin
       .from('SiteSetting')
       .upsert({
+        id: 'setting_squads_data',
         key: 'BRK_ESPORTS_SQUADS',
         value: JSON.stringify(squads),
         updatedAt: new Date().toISOString(),
       }, { onConflict: 'key' });
 
-    if (error) throw error;
+    if (error) {
+      console.error('[Squads DB] Supabase save error:', error);
+      throw error;
+    }
     return true;
   } catch (err) {
-    console.warn('[Squads DB] Failed to save squads:', err);
+    console.warn('[Squads DB] Failed to save squads to Supabase:', err);
     return false;
   }
 }
