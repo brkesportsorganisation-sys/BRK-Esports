@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 
 const AIAssistantWidget = dynamic(() => import('@/components/ai/AIAssistantWidget'), { ssr: false });
@@ -8,6 +8,22 @@ const InstallPwaModal = dynamic(() => import('@/components/ui/InstallPwaModal'),
 const PushNotificationPrompt = dynamic(() => import('@/components/notifications/PushNotificationPrompt'), { ssr: false });
 
 export default function ClientWidgets() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if ('requestIdleCallback' in window) {
+        const handle = (window as any).requestIdleCallback(() => setMounted(true), { timeout: 2000 });
+        return () => (window as any).cancelIdleCallback(handle);
+      } else {
+        const timer = setTimeout(() => setMounted(true), 1200);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, []);
+
+  if (!mounted) return null;
+
   return (
     <>
       <AIAssistantWidget />
@@ -16,3 +32,4 @@ export default function ClientWidgets() {
     </>
   );
 }
+

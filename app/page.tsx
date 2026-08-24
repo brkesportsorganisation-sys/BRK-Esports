@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { 
   Flame, 
@@ -316,12 +317,12 @@ export default function HomePage() {
               >
                 {/* Banner Background Image */}
                 <div className="relative h-48 sm:h-64 w-full overflow-hidden bg-slate-950">
-                  <img
+                  <Image
                     src={shopBanner?.imageUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=75'}
                     alt={shopBanner?.title || 'Gaming Shop'}
-                    loading="lazy"
-                    decoding="async"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-60 group-hover:opacity-75"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 1200px"
+                    className="object-cover group-hover:scale-105 transition-transform duration-700 opacity-60 group-hover:opacity-75"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t sm:bg-gradient-to-r from-slate-950 via-slate-950/80 to-transparent" />
                   <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-amber-500/20 via-orange-500/20 to-transparent rounded-full blur-3xl pointer-events-none" />
@@ -370,12 +371,12 @@ export default function HomePage() {
                   >
                     {/* Top Thumbnail Banner */}
                     <div className="relative h-44 w-full overflow-hidden bg-slate-900">
-                      <img
+                      <Image
                         src={item.imageUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=500'}
                         alt={item.name}
-                        loading="lazy"
-                        decoding="async"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 360px"
+                        className="object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
 
@@ -462,8 +463,8 @@ export default function HomePage() {
                 {announcements.slice(0, 3).map((ann) => (
                   <div key={ann.id} className="bg-slate-50 rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col">
                     {ann.imageUrl && (
-                      <div className="relative w-full h-32 rounded-xl overflow-hidden mb-4">
-                        <img src={ann.imageUrl} alt={ann.title} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                      <div className="relative w-full h-32 rounded-xl overflow-hidden mb-4 bg-slate-200">
+                        <Image src={ann.imageUrl} alt={ann.title} fill sizes="(max-width: 768px) 100vw, 400px" className="object-cover" />
                       </div>
                     )}
                     <h3 className="font-heading font-bold text-lg text-slate-900 mb-2">{ann.title}</h3>

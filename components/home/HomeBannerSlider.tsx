@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, ArrowRight, Trophy, Sparkles, Flame, ShieldCheck, Tag } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowRight, Flame } from 'lucide-react';
 import { Banner } from '@/lib/types';
 import { initialBanners } from '@/lib/mock-data';
-import { db } from '@/lib/db';
 
 interface HomeBannerSliderProps {
   initialData?: {
@@ -96,7 +96,7 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-      {/* Grid Container matching User Reference: 3 Pictures on PC (1 large slider + 2 stacked promo banners), 1 Picture on Mobile */}
+      {/* Grid Container: 3 Pictures on PC (1 large slider + 2 stacked promo banners), 1 Picture on Mobile */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-stretch">
         
         {/* ============================================================== */}
@@ -114,16 +114,16 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
               initial={{ opacity: 0, scale: 1.02 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.5, ease: 'easeOut' }}
+              transition={{ duration: 0.4, ease: 'easeOut' }}
               className="absolute inset-0 w-full h-full"
             >
-              <img
+              <Image
                 src={currentSlide.imageUrl}
-                alt={currentSlide.title}
-                fetchPriority="high"
-                loading="eager"
-                decoding="async"
-                className="w-full h-full object-cover object-center"
+                alt={currentSlide.title || 'Esports Banner'}
+                fill
+                priority={currentIndex === 0}
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 70vw, 850px"
+                className="object-cover object-center"
               />
 
               {/* Rich Esports Cinematic Gradient Overlay */}
@@ -166,6 +166,7 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
           {slidesToDisplay.length > 1 && (
             <>
               <button
+                type="button"
                 onClick={handlePrev}
                 aria-label="Previous Banner"
                 className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/40 hover:bg-black/80 backdrop-blur-md text-white border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 z-20 cursor-pointer shadow-lg hover:scale-110"
@@ -174,6 +175,7 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
               </button>
 
               <button
+                type="button"
                 onClick={handleNext}
                 aria-label="Next Banner"
                 className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/40 hover:bg-black/80 backdrop-blur-md text-white border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 z-20 cursor-pointer shadow-lg hover:scale-110"
@@ -183,7 +185,7 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
             </>
           )}
 
-          {/* Slider Pagination Pill Indicators (Matching Screenshot 2) */}
+          {/* Slider Pagination Pill Indicators */}
           {slidesToDisplay.length > 1 && (
             <div className="absolute bottom-3 sm:bottom-5 right-4 sm:right-6 z-20 flex items-center bg-black/40 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/10">
               {slidesToDisplay.map((_, idx) => (
@@ -217,12 +219,12 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
             href={sideTop?.linkUrl || '/arena'}
             className="relative rounded-3xl overflow-hidden h-[200px] bg-slate-950 border border-slate-800/80 shadow-xl group cursor-pointer block transition-transform duration-300 hover:scale-[1.02]"
           >
-            <img
+            <Image
               src={sideTop?.imageUrl || 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=600&auto=format&fit=crop&q=80'}
               alt={sideTop?.title || 'Side Top Banner'}
-              loading="lazy"
-              decoding="async"
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              fill
+              sizes="(max-width: 1024px) 100vw, 400px"
+              className="object-cover group-hover:scale-105 transition-transform duration-500"
             />
             {/* Gradient Overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-transparent"></div>
@@ -251,12 +253,12 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
             href={sideBottom?.linkUrl || '/ads'}
             className="relative rounded-3xl overflow-hidden h-[200px] bg-slate-950 border border-slate-800/80 shadow-xl group cursor-pointer block transition-transform duration-300 hover:scale-[1.02]"
           >
-            <img
+            <Image
               src={sideBottom?.imageUrl || 'https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?w=600&auto=format&fit=crop&q=80'}
               alt={sideBottom?.title || 'Side Bottom Banner'}
-              loading="lazy"
-              decoding="async"
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              fill
+              sizes="(max-width: 1024px) 100vw, 400px"
+              className="object-cover group-hover:scale-105 transition-transform duration-500"
             />
             {/* Gradient Overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-transparent"></div>
@@ -286,3 +288,4 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
     </div>
   );
 }
+

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Flame, ShieldCheck, Zap, Headphones, MessageSquare } from 'lucide-react';
 import { useLanguage } from '@/lib/language-context';
 
@@ -20,7 +21,7 @@ export default function Footer() {
           <div className="lg:col-span-2 space-y-4">
             <Link href="/" className="flex items-center space-x-3">
               <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm border border-slate-700/50 bg-slate-950 p-0.5">
-                <img src="/logo.png" alt="ESPORTS ZONE BD" className="w-full h-full object-cover rounded-[10px]" />
+                <Image src="/logo.png" alt="ESPORTS ZONE BD" width={40} height={40} className="w-full h-full object-cover rounded-[10px]" />
               </div>
               <span className="font-heading font-extrabold text-2xl tracking-wider text-slate-900">
                 ESPORTS ZONE <span className="text-brand-orange">BD</span>

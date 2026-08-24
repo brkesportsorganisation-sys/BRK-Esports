@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, Users, Clock, Flame, ShieldCheck, Zap, X, Check, FileText, Gift, Award, Coins } from 'lucide-react';
 import { Tournament, TournamentStatus } from '@/lib/types';
@@ -130,12 +131,12 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
       >
         {/* Top Banner Image (Proportional 16:9 widescreen hero banner like homepage) */}
         <div className="relative w-full aspect-[16/9] min-h-[195px] sm:min-h-[220px] md:min-h-[235px] overflow-hidden bg-slate-900">
-          <img
+          <Image
             src={tournament.bannerImage || tournament.banner || tournament.thumbnailImage || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800'}
             alt={tournament.title}
-            loading="lazy"
-            decoding="async"
-            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 600px"
+            className="object-cover object-center group-hover:scale-105 transition-transform duration-500"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent" />
 

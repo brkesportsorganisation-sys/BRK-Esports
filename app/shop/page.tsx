@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import MobileBottomNav from '@/components/ui/MobileBottomNav';
@@ -216,10 +217,13 @@ export default function GamingShopPage() {
           {/* Custom Banner Image Background if set by admin */}
           {shopBanner?.imageUrl && (
             <div className="absolute inset-0 z-0">
-              <img
+              <Image
                 src={shopBanner.imageUrl}
                 alt={shopBanner.title || 'Shop Banner'}
-                className="w-full h-full object-cover opacity-30 sm:opacity-40"
+                fill
+                priority
+                sizes="(max-width: 768px) 100vw, 1200px"
+                className="object-cover opacity-30 sm:opacity-40"
               />
               <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/85 to-slate-950/70" />
             </div>
@@ -412,10 +416,12 @@ export default function GamingShopPage() {
 
                   {/* Top Image Box */}
                   <div className="relative w-full h-44 bg-slate-900 overflow-hidden">
-                    <img
+                    <Image
                       src={product.imageUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=500'}
                       alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 360px"
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
                     

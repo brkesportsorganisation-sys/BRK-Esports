@@ -4,7 +4,7 @@ const nextConfig = {
   poweredByHeader: false,
   compress: true,
   experimental: {
-    optimizePackageImports: ['lucide-react', 'framer-motion'],
+    optimizePackageImports: ['lucide-react', 'framer-motion', 'clsx', 'tailwind-merge'],
   },
   async headers() {
     return [
@@ -22,7 +22,16 @@ const nextConfig = {
         ],
       },
       {
-        source: '/(.*).(png|jpg|jpeg|gif|webp|svg|ico|woff|woff2)',
+        source: '/_next/image(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=2592000, stale-while-revalidate=86400, immutable',
+          },
+        ],
+      },
+      {
+        source: '/(.*).(png|jpg|jpeg|gif|webp|avif|svg|ico|woff|woff2)',
         headers: [
           {
             key: 'Cache-Control',
@@ -34,6 +43,9 @@ const nextConfig = {
   },
   images: {
     formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 2592000,
+    deviceSizes: [360, 480, 640, 750, 828, 1080, 1200, 1920],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     remotePatterns: [
       {
         protocol: 'https',
@@ -56,3 +68,4 @@ const nextConfig = {
 };
 
 export default nextConfig;
+
