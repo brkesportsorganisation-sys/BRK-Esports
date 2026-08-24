@@ -62,9 +62,9 @@ export default function MobileBottomNav() {
               <div className={`relative p-1.5 sm:p-2 rounded-xl transition-all ${
                 isActive 
                   ? 'bg-gradient-to-r from-brand-red to-brand-orange text-white shadow-md shadow-orange-500/25' 
-                  : 'bg-transparent text-slate-500'
+                  : 'bg-transparent text-slate-700'
               }`}>
-                <Icon className={`w-5 h-5 ${tab.isLive ? 'text-brand-red animate-pulse' : ''}`} />
+                <Icon className={`w-5 h-5 ${tab.isLive ? 'text-red-600 animate-pulse' : ''}`} />
                 {tab.isLive && (
                   <span className="absolute top-0.5 right-0.5 flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
@@ -74,8 +74,8 @@ export default function MobileBottomNav() {
               </div>
               <span className={`text-[11px] font-sans font-bold mt-0.5 leading-tight tracking-normal text-center truncate max-w-[72px] ${
                 isActive 
-                  ? 'text-brand-orange font-black' 
-                  : 'text-slate-600 font-semibold'
+                  ? 'text-orange-700 font-black' 
+                  : 'text-slate-800 font-bold'
               }`}>
                 {tab.name}
               </span>
