@@ -2,12 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
+import { usePathname } from 'next/navigation';
 
 const AIAssistantWidget = dynamic(() => import('@/components/ai/AIAssistantWidget'), { ssr: false });
 const InstallPwaModal = dynamic(() => import('@/components/ui/InstallPwaModal'), { ssr: false });
 const PushNotificationPrompt = dynamic(() => import('@/components/notifications/PushNotificationPrompt'), { ssr: false });
 
 export default function ClientWidgets() {
+  const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -23,6 +25,9 @@ export default function ClientWidgets() {
   }, []);
 
   if (!mounted) return null;
+  if (pathname?.startsWith('/admin') || pathname?.startsWith('/vendor') || pathname?.startsWith('/vandor')) {
+    return null;
+  }
 
   return (
     <>

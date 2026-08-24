@@ -44,6 +44,7 @@ export default function AdminDashboardPage() {
   const [overview, setOverview] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState<string>('');
+  const [isMounted, setIsMounted] = useState(false);
 
   const loadLiveOverview = async () => {
     try {
@@ -67,6 +68,7 @@ export default function AdminDashboardPage() {
   };
 
   useEffect(() => {
+    setIsMounted(true);
     const updateClock = () => {
       const now = new Date();
       setCurrentTime(now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true }));
@@ -230,53 +232,57 @@ export default function AdminDashboardPage() {
             </span>
           </div>
 
-          <div className="h-[260px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={salesChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="lightBlueGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.08}/>
-                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-                <XAxis 
-                  dataKey="month" 
-                  stroke="#64748B" 
-                  fontSize={11} 
-                  tickLine={false} 
-                  axisLine={false} 
-                />
-                <YAxis 
-                  stroke="#64748B" 
-                  fontSize={11} 
-                  tickLine={false} 
-                  axisLine={false}
-                  tickFormatter={(val) => val === 0 ? '0' : `${val}`}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#FFFFFF', 
-                    borderColor: '#E2E8F0', 
-                    borderRadius: '1rem',
-                    color: '#0F172A',
-                    fontSize: '12px',
-                    boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.08)'
-                  }} 
-                  formatter={(value: any) => [`৳ ${Number(value).toLocaleString()}`, 'Sales']}
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="sales" 
-                  stroke="#2563EB" 
-                  strokeWidth={2.5} 
-                  fillOpacity={1} 
-                  fill="url(#lightBlueGradient)"
-                  dot={{ r: 4, fill: '#FFFFFF', stroke: '#2563EB', strokeWidth: 2 }}
-                  activeDot={{ r: 6, fill: '#2563EB' }}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+          <div className="h-[260px] w-full min-h-[260px]">
+            {isMounted ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={salesChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="lightBlueGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.08}/>
+                      <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+                  <XAxis 
+                    dataKey="month" 
+                    stroke="#64748B" 
+                    fontSize={11} 
+                    tickLine={false} 
+                    axisLine={false} 
+                  />
+                  <YAxis 
+                    stroke="#64748B" 
+                    fontSize={11} 
+                    tickLine={false} 
+                    axisLine={false} 
+                    tickFormatter={(val) => val === 0 ? '0' : `${val}`}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#FFFFFF', 
+                      borderColor: '#E2E8F0', 
+                      borderRadius: '1rem',
+                      color: '#0F172A',
+                      fontSize: '12px',
+                      boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.08)'
+                    }} 
+                    formatter={(value: any) => [`৳ ${Number(value).toLocaleString()}`, 'Sales']}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="sales" 
+                    stroke="#2563EB" 
+                    strokeWidth={2.5} 
+                    fillOpacity={1} 
+                    fill="url(#lightBlueGradient)"
+                    dot={{ r: 4, fill: '#FFFFFF', stroke: '#2563EB', strokeWidth: 2 }}
+                    activeDot={{ r: 6, fill: '#2563EB' }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="w-full h-full bg-slate-50 rounded-xl animate-pulse" />
+            )}
           </div>
         </div>
 
@@ -288,36 +294,40 @@ export default function AdminDashboardPage() {
           </div>
 
           {/* Donut Chart Area */}
-          <div className="h-44 w-full flex items-center justify-center relative">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#FFFFFF', 
-                    borderColor: '#E2E8F0', 
-                    borderRadius: '0.75rem',
-                    color: '#0F172A',
-                    fontSize: '11px',
-                    boxShadow: '0 4px 15px -2px rgba(0, 0, 0, 0.08)'
-                  }}
-                  formatter={(value: any, name: any) => [`${value}`, name]}
-                />
-                <Pie
-                  data={donutData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={48}
-                  outerRadius={76}
-                  paddingAngle={4}
-                  dataKey="count"
-                  stroke="none"
-                >
-                  {donutData.map((entry: { name: string; count: number; color: string }, index: number) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
+          <div className="h-[180px] w-full min-h-[180px] relative flex items-center justify-center">
+            {isMounted ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#FFFFFF', 
+                      borderColor: '#E2E8F0', 
+                      borderRadius: '0.75rem',
+                      color: '#0F172A',
+                      fontSize: '11px',
+                      boxShadow: '0 4px 15px -2px rgba(0, 0, 0, 0.08)'
+                    }} 
+                    formatter={(value: any, name: any) => [`${value}`, name]}
+                  />
+                  <Pie
+                    data={donutData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={48}
+                    outerRadius={76}
+                    paddingAngle={4}
+                    dataKey="count"
+                    stroke="none"
+                  >
+                    {donutData.map((entry: { name: string; count: number; color: string }, index: number) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="w-full h-full bg-slate-50 rounded-xl animate-pulse" />
+            )}
           </div>
 
           {/* Legends at Bottom matching exact reference screenshot */}

@@ -72,14 +72,7 @@ export default function AdminShell({ children }: AdminShellProps) {
   const [sessionUser, setSessionUser] = useState<AdminSessionUser | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
   const [pendingShopCount, setPendingShopCount] = useState(0);
-  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
-    'TOURNAMENTS & MATCHES': false,
-    'HOSTS & VENDORS': false,
-    'SHOP & COMMERCE': false,
-    'WHATSAPP & AUTOMATION': false,
-    'PLAYERS & COMMUNITY': false,
-    'SECURITY & SETTINGS': false,
-  });
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
 
   const toggleSection = (title: string) => {
     setCollapsedSections(prev => ({
@@ -269,10 +262,10 @@ export default function AdminShell({ children }: AdminShellProps) {
   const isOwner = sessionUser?.role === 'OWNER' || sessionUser?.role === 'SUPER_ADMIN';
 
   return (
-    <div className="min-h-screen lg:h-screen lg:overflow-hidden bg-[#F8FAFC] text-[#0F172A] font-sans flex flex-col lg:flex-row antialiased selection:bg-blue-600 selection:text-white">
+    <div className="min-h-screen w-full bg-[#F8FAFC] text-[#0F172A] font-sans flex flex-col lg:flex-row antialiased selection:bg-blue-600 selection:text-white">
       
       {/* Clean Modern White Sidebar (Fixed Left) */}
-      <aside className="w-full lg:w-72 lg:h-screen lg:flex-shrink-0 bg-white border-b lg:border-b-0 lg:border-r border-[#E2E8F0] p-4 lg:p-5 flex flex-col z-30 overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+      <aside className="w-full lg:w-72 lg:h-screen lg:sticky lg:top-0 lg:flex-shrink-0 bg-white border-b lg:border-b-0 lg:border-r border-[#E2E8F0] p-4 lg:p-5 flex flex-col z-30 overflow-hidden shadow-xs">
         
         {/* Top Header & Brand */}
         <div className="flex-shrink-0">
@@ -415,10 +408,10 @@ export default function AdminShell({ children }: AdminShellProps) {
       </aside>
 
       {/* Main Executive Content Area (Independently Scrollable) */}
-      <div className="flex-1 flex flex-col min-w-0 lg:h-screen lg:overflow-y-auto custom-scrollbar">
+      <div className="flex-1 flex flex-col min-w-0 w-full min-h-screen bg-[#F8FAFC]">
         
         {/* Top Header Bar matching reference image structure */}
-        <header className="h-[60px] bg-white border-b border-[#E2E8F0] px-4 sm:px-8 flex items-center justify-between sticky top-0 z-20 flex-shrink-0 shadow-[0_1px_2px_rgba(0,0,0,0.01)]">
+        <header className="h-[60px] bg-white border-b border-[#E2E8F0] px-4 sm:px-8 flex items-center justify-between sticky top-0 z-20 flex-shrink-0 shadow-xs">
           
           {/* Left Title / Breadcrumb */}
           <div className="flex items-center space-x-2 text-[15px] font-bold text-[#0F172A]">
