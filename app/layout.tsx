@@ -1,14 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Rajdhani } from "next/font/google";
-import dynamic from "next/dynamic";
 import "./globals.css";
 import MobileBottomNav from "@/components/ui/MobileBottomNav";
+import ClientWidgets from "@/components/ui/ClientWidgets";
 import { LanguageProvider } from "@/lib/language-context";
-
-// Code-split heavy interactive client widgets to prevent blocking initial render
-const AIAssistantWidget = dynamic(() => import("@/components/ai/AIAssistantWidget"), { ssr: false });
-const InstallPwaModal = dynamic(() => import("@/components/ui/InstallPwaModal"), { ssr: false });
-const PushNotificationPrompt = dynamic(() => import("@/components/notifications/PushNotificationPrompt"), { ssr: false });
 
 const inter = Inter({
   subsets: ["latin"],
@@ -64,9 +59,7 @@ export default function RootLayout({
         <LanguageProvider>
           {children}
           <MobileBottomNav />
-          <AIAssistantWidget />
-          <InstallPwaModal />
-          <PushNotificationPrompt />
+          <ClientWidgets />
         </LanguageProvider>
       </body>
     </html>
