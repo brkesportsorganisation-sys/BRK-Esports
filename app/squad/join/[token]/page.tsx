@@ -111,22 +111,22 @@ export default function SquadJoinLandingPage({ params }: { params: Promise<{ tok
   const gameRoles = (squad && GAME_ROLES_MAP[squad.game]) || GAME_ROLES_MAP['FREE_FIRE'];
 
   return (
-    <div className="min-h-screen bg-[#0A0E17] text-slate-100 flex flex-col font-body">
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 flex flex-col font-sans pb-20 lg:pb-12">
       <Navbar />
 
       <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-10 space-y-8">
         
         {loading ? (
           <div className="py-32 text-center space-y-3">
-            <Loader2 className="w-10 h-10 text-amber-500 animate-spin mx-auto" />
-            <div className="text-xs text-slate-400 font-bold">Verifying squad invitation link...</div>
+            <Loader2 className="w-10 h-10 text-brand-orange animate-spin mx-auto" />
+            <div className="text-xs text-slate-500 font-bold">Verifying squad invitation link...</div>
           </div>
         ) : error && !squad ? (
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-10 text-center space-y-4 max-w-md mx-auto">
-            <AlertCircle className="w-12 h-12 text-red-500 mx-auto" />
-            <h2 className="text-xl font-black font-heading text-white">Invalid Squad Invite</h2>
-            <p className="text-xs text-slate-400">{error}</p>
-            <Link href="/teams" className="px-5 py-2.5 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs inline-block">
+          <div className="bg-white border border-slate-200 rounded-3xl p-10 text-center space-y-4 max-w-md mx-auto shadow-sm">
+            <AlertCircle className="w-12 h-12 text-brand-red mx-auto" />
+            <h2 className="text-xl font-black font-heading text-slate-900">Invalid Squad Invite</h2>
+            <p className="text-xs text-slate-500">{error}</p>
+            <Link href="/teams" className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-bold text-xs inline-block shadow-md">
               Browse All Squads
             </Link>
           </div>
@@ -134,14 +134,14 @@ export default function SquadJoinLandingPage({ params }: { params: Promise<{ tok
           <div className="space-y-6">
             
             {/* Squad Hero Card */}
-            <div className="relative rounded-[2.5rem] overflow-hidden bg-slate-900 border border-slate-800 shadow-2xl">
-              <div className="relative h-44 w-full overflow-hidden bg-slate-950">
+            <div className="relative rounded-3xl overflow-hidden bg-white border border-slate-200 shadow-sm">
+              <div className="relative h-44 w-full overflow-hidden bg-slate-900">
                 {squad.bannerUrl && (
-                  <img src={squad.bannerUrl} alt={squad.name} className="w-full h-full object-cover opacity-40" />
+                  <img src={squad.bannerUrl} alt={squad.name} className="w-full h-full object-cover opacity-60" />
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-900/40 to-transparent" />
                 <div className="absolute top-4 right-4 z-10">
-                  <span className="px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-slate-700 text-amber-400 text-xs font-black uppercase">
+                  <span className="px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-orange-300 text-xs font-black uppercase">
                     🎮 {squad.game}
                   </span>
                 </div>
@@ -152,69 +152,71 @@ export default function SquadJoinLandingPage({ params }: { params: Promise<{ tok
                   <img
                     src={squad.logoUrl}
                     alt={squad.name}
-                    className="w-20 h-20 rounded-2xl object-cover border-4 border-amber-500 shadow-xl bg-slate-950 shrink-0"
+                    className="w-20 h-20 rounded-2xl object-cover border-4 border-white shadow-xl bg-slate-900 shrink-0"
                   />
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="px-2.5 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/40 text-amber-400 font-mono text-xs font-black">
+                      <span className="px-2.5 py-0.5 rounded-md bg-orange-100 border border-orange-200 text-orange-700 font-mono text-xs font-black">
                         [{squad.tag}]
                       </span>
-                      <h1 className="text-2xl sm:text-3xl font-black font-heading text-white">{squad.name}</h1>
+                      <h1 className="text-2xl sm:text-3xl font-black font-heading text-slate-900">{squad.name}</h1>
                     </div>
-                    <p className="text-xs text-slate-400 mt-1">Leader: <strong className="text-white">{squad.leaderName}</strong></p>
+                    <p className="text-xs text-slate-500 mt-1 font-medium">Leader: <strong className="text-slate-900">{squad.leaderName}</strong></p>
                   </div>
                 </div>
 
                 {squad.description && (
-                  <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
+                  <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-200">
                     {squad.description}
                   </p>
                 )}
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-center text-xs font-mono">
-                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
                     <span className="text-slate-500 text-[10px] uppercase block">Active Roster</span>
-                    <strong className="text-white text-base">{squad.memberCount} / 6</strong>
+                    <strong className="text-slate-900 text-base">{squad.memberCount} / 6</strong>
                   </div>
-                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
                     <span className="text-slate-500 text-[10px] uppercase block">Matches Played</span>
-                    <strong className="text-amber-400 text-base">{squad.matchesPlayed || 0}</strong>
+                    <strong className="text-orange-600 text-base">{squad.matchesPlayed || 0}</strong>
                   </div>
-                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 col-span-2 sm:col-span-1">
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 col-span-2 sm:col-span-1">
                     <span className="text-slate-500 text-[10px] uppercase block">Tournament Wins</span>
-                    <strong className="text-emerald-400 text-base">{squad.matchesWon || 0}</strong>
+                    <strong className="text-emerald-600 text-base">{squad.matchesWon || 0}</strong>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Join Form / Action Box */}
-            <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-5">
-              <div className="flex items-center gap-2 text-white font-heading font-black text-lg">
-                <UserPlus className="w-5 h-5 text-amber-400" />
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-5 shadow-sm">
+              <div className="flex items-center gap-2.5 text-slate-900 font-heading font-black text-lg">
+                <span className="p-2 rounded-xl bg-orange-100 text-brand-orange">
+                  <UserPlus className="w-5 h-5" />
+                </span>
                 <span>Join This Esports Squad</span>
               </div>
 
               {error && (
-                <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-bold flex items-center gap-2">
+                <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs font-bold flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0" />
                   <span>{error}</span>
                 </div>
               )}
 
               {joinSuccess && (
-                <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
                   <span>{joinSuccess} Redirecting to squad hub...</span>
                 </div>
               )}
 
               {!currentUser ? (
-                <div className="p-6 bg-slate-950 rounded-2xl border border-slate-800 text-center space-y-3">
-                  <p className="text-xs text-slate-300">You need to log in to your ESPORTS ZONE BD account to join this squad.</p>
+                <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 text-center space-y-3">
+                  <p className="text-xs text-slate-600 font-medium">You need to log in to your ESPORTS ZONE BD account to join this squad.</p>
                   <Link
                     href={`/login?redirect=/squad/join/${token}`}
-                    className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-xs uppercase rounded-xl inline-block shadow-md"
+                    className="px-6 py-2.5 bg-gradient-to-r from-brand-red to-brand-orange text-white font-black text-xs uppercase rounded-xl inline-block shadow-md"
                   >
                     Log In to Join Squad
                   </Link>
@@ -223,11 +225,11 @@ export default function SquadJoinLandingPage({ params }: { params: Promise<{ tok
                 <form onSubmit={handleJoinSquad} className="space-y-4 text-xs font-medium">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <label className="text-slate-300 font-bold uppercase block text-[11px]">Your Preferred In-Game Role *</label>
+                      <label className="text-slate-700 font-bold uppercase block text-[11px]">Your Preferred In-Game Role *</label>
                       <select
                         value={preferredRole}
                         onChange={(e) => setPreferredRole(e.target.value as InGameRole)}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white font-bold focus:outline-none focus:border-amber-500"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-bold focus:outline-none focus:border-brand-orange cursor-pointer"
                       >
                         {gameRoles.map((r: { role: InGameRole; label: string; icon: string }) => (
                           <option key={r.role} value={r.role}>{r.label}</option>
@@ -236,19 +238,19 @@ export default function SquadJoinLandingPage({ params }: { params: Promise<{ tok
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-slate-300 font-bold uppercase block text-[11px]">Your Game UID (Free Fire / Game ID)</label>
+                      <label className="text-slate-700 font-bold uppercase block text-[11px]">Your Game UID (Free Fire / Game ID)</label>
                       <input
                         type="text"
                         placeholder="Enter your game UID..."
                         value={freeFireUid}
                         onChange={(e) => setFreeFireUid(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-emerald-400 font-mono font-bold focus:outline-none focus:border-amber-500"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-emerald-600 font-mono font-bold focus:outline-none focus:border-brand-orange"
                       />
                     </div>
                   </div>
 
-                  <div className="pt-2 flex items-center justify-between">
-                    <span className="text-[11px] text-slate-400">
+                  <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <span className="text-[11px] text-slate-500 font-medium">
                       {squad.requireApprovalToJoin
                         ? 'ℹ️ Squad leader approval is required before joining active roster.'
                         : '⚡ Instant join enabled — you will be added directly!'}
@@ -257,7 +259,7 @@ export default function SquadJoinLandingPage({ params }: { params: Promise<{ tok
                     <button
                       type="submit"
                       disabled={isJoining}
-                      className="px-6 py-3 bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 hover:brightness-110 text-slate-950 font-heading font-black text-xs uppercase rounded-xl shadow-lg shadow-orange-500/20 cursor-pointer disabled:opacity-50 flex items-center gap-2"
+                      className="px-6 py-3 bg-gradient-to-r from-brand-red to-brand-orange hover:brightness-110 text-white font-heading font-black text-xs uppercase rounded-xl shadow-lg shadow-orange-500/20 cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 transition-all shrink-0"
                     >
                       {isJoining && <Loader2 className="w-4 h-4 animate-spin" />}
                       <span>{squad.requireApprovalToJoin ? 'Send Join Request' : 'Join Squad Now'}</span>
