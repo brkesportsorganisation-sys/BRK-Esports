@@ -18,6 +18,8 @@ const nextConfig = {
       'clsx',
       'tailwind-merge',
     ],
+    // Merge CSS into fewer chunks to reduce render-blocking requests
+    cssChunking: 'loose',
   },
 
   async headers() {
@@ -29,6 +31,8 @@ const nextConfig = {
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+          // HSTS: Tell browsers to always use HTTPS (eliminates http→https redirect penalty)
+          { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
           {
             key: 'Content-Security-Policy',
             value: "default-src 'self' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com https://*.cloudflareinsights.com https://challenges.cloudflare.com https://*.cloudflare.com https://apis.google.com https://*.firebaseapp.com https://accounts.google.com https://www.gstatic.com https://identitytoolkit.googleapis.com; script-src-elem 'self' 'unsafe-inline' https://static.cloudflareinsights.com https://*.cloudflareinsights.com https://challenges.cloudflare.com https://*.cloudflare.com https://apis.google.com https://*.firebaseapp.com https://accounts.google.com https://www.gstatic.com https://identitytoolkit.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https: wss: https://cloudflareinsights.com https://*.cloudflareinsights.com; object-src 'none'; base-uri 'self'; frame-src 'self' https://challenges.cloudflare.com https://accounts.google.com https://*.firebaseapp.com https://www.youtube.com https://www.youtube-nocookie.com;",

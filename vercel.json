@@ -4,6 +4,25 @@
       "path": "/api/admin/whatsapp/cron",
       "schedule": "0 0 * * *"
     }
+  ],
+  "trailingSlash": false,
+  "cleanUrls": true,
+  "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+        { "key": "Service-Worker-Allowed", "value": "/" }
+      ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "www.esportszonebd.online" }],
+      "destination": "https://esportszonebd.online/$1",
+      "permanent": true
+    }
   ]
 }
 
