@@ -150,9 +150,9 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
             </span>
 
             <div className="flex items-center gap-1.5">
-              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold backdrop-blur-md border ${gameInfo.color}`}>
-                <span>{gameInfo.icon}</span>
-                <span>{tournament.gameName || gameInfo.name}</span>
+              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black border text-white ${gameInfo.color}`}>
+                <span className="text-xs">{gameInfo.icon}</span>
+                <span className="text-white font-black drop-shadow-xs">{tournament.gameName || gameInfo.name}</span>
               </span>
 
               {isLive ? (
