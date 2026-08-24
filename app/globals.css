@@ -34,12 +34,6 @@ body {
   text-rendering: optimizeSpeed;
 }
 
-/* Below-fold sections: skip rendering until visible (big LCP/CLS win) */
-.below-fold {
-  content-visibility: auto;
-  contain-intrinsic-size: 0 400px;
-}
-
 h1, h2, h3, h4, h5, h6, .font-heading {
   font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
   letter-spacing: 0.04em;

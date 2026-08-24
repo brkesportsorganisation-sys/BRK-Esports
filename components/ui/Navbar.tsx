@@ -579,13 +579,16 @@ export default function Navbar() {
                     onClick={() => setIsProfileOpen(!isProfileOpen)}
                     className="flex items-center space-x-1.5 bg-white p-1 pr-2 rounded-2xl border border-slate-200 hover:border-slate-300 shadow-2xs transition-all cursor-pointer"
                   >
-                    <Image
-                      src={currentUser.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150'}
-                      alt={currentUser.name}
-                      width={28}
-                      height={28}
-                      className="w-7 h-7 rounded-xl object-cover border border-slate-200"
-                    />
+                    <div className="w-7 h-7 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center flex-shrink-0">
+                      <img
+                        src={currentUser.avatar || '/logo.png'}
+                        alt={currentUser.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/logo.png';
+                        }}
+                      />
+                    </div>
                     <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
                   </button>
 
@@ -776,13 +779,16 @@ export default function Navbar() {
               <div className="p-3 bg-gradient-to-r from-slate-50 to-orange-50/40 rounded-2xl border border-slate-200/80 mb-3 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2.5">
-                    <Image
-                      src={currentUser.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150'}
-                      alt={currentUser.name}
-                      width={40}
-                      height={40}
-                      className="w-10 h-10 rounded-xl object-cover border border-slate-200"
-                    />
+                    <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center flex-shrink-0">
+                      <img
+                        src={currentUser.avatar || '/logo.png'}
+                        alt={currentUser.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/logo.png';
+                        }}
+                      />
+                    </div>
                     <div>
                       <div className="font-bold text-sm text-slate-900 leading-tight">
                         {currentUser.inGameName || currentUser.name}

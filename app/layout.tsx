@@ -83,19 +83,6 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
-        {/* Critical CSS inlined — eliminates render-blocking CSS delay for above-the-fold content */}
-        <style dangerouslySetInnerHTML={{ __html: `
-          *,*::before,*::after{box-sizing:border-box}
-          html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
-          body{margin:0;padding:0;background-color:#F8F9FA;color:#0F172A;font-family:Inter,ui-sans-serif,system-ui,sans-serif;overflow-x:hidden;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
-          nav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,0.95);border-bottom:1px solid rgba(226,232,240,0.8);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px)}
-          #main-content{flex:1;width:100%}
-          .flex{display:flex}
-          .flex-col{flex-direction:column}
-          .min-h-screen{min-height:100vh}
-          img,video{max-width:100%;height:auto}
-        ` }} />
-
         {/* Service Worker registration — non-blocking */}
         <script
           dangerouslySetInnerHTML={{
