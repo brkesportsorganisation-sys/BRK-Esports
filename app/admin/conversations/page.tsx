@@ -523,8 +523,6 @@ export default function AdminConversationsMonitorPage() {
           </div>
 
         </div>
-
-      </div>
-    </AdminShell>
+    </div>
   );
 }
