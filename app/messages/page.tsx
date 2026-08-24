@@ -344,13 +344,13 @@ function MessagesInboxContent() {
   });
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 flex flex-col font-body pb-20 lg:pb-0">
+    <div className="h-[100dvh] bg-[#F8FAFC] text-slate-900 flex flex-col font-body overflow-hidden">
       <Navbar />
 
-      <main className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-6 flex-1 w-full flex flex-col">
+      <main className="max-w-7xl mx-auto px-1 sm:px-4 lg:px-8 py-1.5 sm:py-4 flex-1 w-full flex flex-col min-h-0 overflow-hidden pb-16 lg:pb-2">
         
         {/* Main Inbox Container */}
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex-1 flex flex-col lg:flex-row h-[78vh] min-h-[550px]">
+        <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex-1 flex flex-col lg:flex-row min-h-0 h-full">
           
           {/* ── LEFT COLUMN: Conversations List ── */}
           <div className={`w-full lg:w-80 border-r border-slate-200 flex flex-col bg-white ${
@@ -823,8 +823,6 @@ function MessagesInboxContent() {
           </div>
         </div>
       )}
-
-      <Footer />
     </div>
   );
 }

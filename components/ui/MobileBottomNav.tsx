@@ -41,11 +41,11 @@ export default function MobileBottomNav() {
   return (
     <nav 
       aria-label="Mobile Navigation"
-      className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 border-t border-slate-200 backdrop-blur-2xl px-1 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_rgba(15,23,42,0.08),0_-1px_3px_rgba(15,23,42,0.04)] font-sans"
+      className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/98 border-t border-slate-200/90 backdrop-blur-2xl px-1 py-1 shadow-[0_-4px_20px_rgba(15,23,42,0.08),0_-1px_3px_rgba(15,23,42,0.04)] font-sans h-15 flex items-center"
     >
       {/* Top subtle highlight divider line */}
       <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-slate-300 to-transparent pointer-events-none" />
-      <div className="flex items-center justify-around max-w-md mx-auto">
+      <div className="flex items-center justify-around max-w-md mx-auto w-full">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = pathname === tab.href;
@@ -53,18 +53,18 @@ export default function MobileBottomNav() {
             <Link
               key={tab.href}
               href={tab.href}
-              className={`flex-1 flex flex-col items-center py-1 px-1 rounded-2xl transition-all duration-200 cursor-pointer select-none ${
+              className={`flex-1 flex flex-col items-center py-0.5 px-0.5 rounded-xl transition-all duration-200 cursor-pointer select-none ${
                 isActive
                   ? 'scale-105'
                   : 'hover:opacity-90 active:scale-95'
               }`}
             >
-              <div className={`relative p-1.5 sm:p-2 rounded-xl transition-all ${
+              <div className={`relative p-1 rounded-xl transition-all ${
                 isActive 
                   ? 'bg-gradient-to-r from-brand-red to-brand-orange text-white shadow-md shadow-orange-500/25' 
                   : 'bg-transparent text-slate-700'
               }`}>
-                <Icon className={`w-5 h-5 ${tab.isLive ? 'text-red-600 animate-pulse' : ''}`} />
+                <Icon className={`w-4.5 h-4.5 ${tab.isLive ? 'text-red-600 animate-pulse' : ''}`} />
                 {tab.isLive && (
                   <span className="absolute top-0.5 right-0.5 flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
@@ -72,7 +72,7 @@ export default function MobileBottomNav() {
                   </span>
                 )}
               </div>
-              <span className={`text-[11px] font-sans font-bold mt-0.5 leading-tight tracking-normal text-center truncate max-w-[72px] ${
+              <span className={`text-[10px] font-sans font-bold mt-0.5 leading-none tracking-tight text-center truncate max-w-[72px] ${
                 isActive 
                   ? 'text-orange-700 font-black' 
                   : 'text-slate-800 font-bold'
