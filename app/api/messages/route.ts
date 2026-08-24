@@ -79,21 +79,23 @@ export async function GET(request: NextRequest) {
 
     let contactInfo = {
       isUnlocked: Boolean(unlock),
-      sellerPhone: unlock?.sellerPhone || null,
-      sellerWhatsApp: unlock?.sellerWhatsApp || null,
+      sellerPhone: (unlock?.sellerPhone && !unlock.sellerPhone.startsWith('BRE-') && !unlock.sellerPhone.startsWith('EZBD-')) ? unlock.sellerPhone : null,
+      sellerWhatsApp: (unlock?.sellerWhatsApp && !unlock.sellerWhatsApp.startsWith('BRE-') && !unlock.sellerWhatsApp.startsWith('EZBD-')) ? unlock.sellerWhatsApp : null,
       unlockedAt: unlock?.unlockedAt || null,
     };
 
-    // If unlocked and contact info is missing, fetch from seller's profile
+    // If unlocked and valid contact number is missing, fetch from seller's profile
     if (unlock && (!contactInfo.sellerPhone || !contactInfo.sellerWhatsApp)) {
       const { data: seller } = await supabaseAdmin
         .from('User')
-        .select('accountNumber, inGameName')
+        .select('phone, whatsApp, bkashNumber, nagadNumber, rocketNumber, accountNumber, inGameName')
         .eq('id', conversation.sellerId)
         .maybeSingle();
 
       if (seller) {
-        contactInfo.sellerPhone = contactInfo.sellerPhone || seller.accountNumber || null;
+        const resolvedNumber = seller.whatsApp || seller.phone || seller.bkashNumber || seller.nagadNumber || seller.rocketNumber || null;
+        contactInfo.sellerPhone = contactInfo.sellerPhone || resolvedNumber;
+        contactInfo.sellerWhatsApp = contactInfo.sellerWhatsApp || resolvedNumber;
       }
     }
 
@@ -121,8 +123,18 @@ export async function POST(request: NextRequest) {
 
     const trimmedContent = content.trim();
 
+    // Check if contact is unlocked for this conversation
+    const { data: existingUnlock } = await supabaseAdmin
+      .from('ContactUnlock')
+      .select('id')
+      .eq('conversationId', conversationId)
+      .eq('status', 'COMPLETED')
+      .maybeSingle();
+
+    const isContactUnlocked = Boolean(existingUnlock);
+
     // 🛡️ 1. SERVER-SIDE SECURITY LINK & PHONE FILTER
-    const filterResult = validateChatMessage(trimmedContent);
+    const filterResult = validateChatMessage(trimmedContent, isContactUnlocked);
 
     if (filterResult.isBlocked) {
       // Reject and do NOT insert the blocked phone number or link into the chat table!

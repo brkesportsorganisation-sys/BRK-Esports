@@ -96,9 +96,10 @@ export async function POST(request: NextRequest) {
       .eq('id', sellerId)
       .single();
 
-    // Check if seller has specific WhatsApp in LFG or generate from account
-    const sellerWhatsApp = seller?.accountNumber || `017${Math.floor(10000000 + Math.random() * 90000000)}`;
-    const sellerPhone = seller?.accountNumber || sellerWhatsApp;
+    // Check if seller has specific WhatsApp/phone or payment number
+    const resolvedNumber = seller?.whatsApp || seller?.phone || seller?.bkashNumber || seller?.nagadNumber || seller?.rocketNumber || null;
+    const sellerWhatsApp = resolvedNumber || `017${Math.floor(10000000 + Math.random() * 90000000)}`;
+    const sellerPhone = sellerWhatsApp;
 
     // Optional seller revenue share (20%)
     const sellerShare = Math.floor(unlockFee * 0.2);

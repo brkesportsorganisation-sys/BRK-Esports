@@ -524,7 +524,7 @@ function MessagesInboxContent() {
                       <div className="text-[11px] uppercase tracking-wider font-bold text-emerald-200">
                         Verified WhatsApp & Direct Contact
                       </div>
-                      <div className="font-mono font-black text-sm sm:text-base">
+                      <div className="font-mono font-black text-sm sm:text-base tracking-wide">
                         {contactInfo.sellerWhatsApp || contactInfo.sellerPhone || '017XXXXXXXX'}
                       </div>
                     </div>
@@ -532,16 +532,20 @@ function MessagesInboxContent() {
 
                   <div className="flex items-center gap-2 self-end sm:self-auto">
                     <button
-                      onClick={() => copyNumber(contactInfo.sellerWhatsApp || '')}
-                      className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-1 transition-colors"
+                      type="button"
+                      onClick={() => copyNumber(contactInfo.sellerWhatsApp || contactInfo.sellerPhone || '')}
+                      className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
                     >
                       {copiedContact ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Copy className="w-3.5 h-3.5" />}
                       <span>{copiedContact ? 'Copied' : 'Copy'}</span>
                     </button>
 
-                    {contactInfo.sellerWhatsApp && (
+                    {(contactInfo.sellerWhatsApp || contactInfo.sellerPhone) && (
                       <a
-                        href={`https://wa.me/${contactInfo.sellerWhatsApp.replace(/[^0-9]/g, '')}`}
+                        href={`https://wa.me/${(() => {
+                          const digits = (contactInfo.sellerWhatsApp || contactInfo.sellerPhone || '').replace(/[^0-9]/g, '');
+                          return digits.startsWith('88') ? digits : (digits.startsWith('0') ? `88${digits}` : `880${digits}`);
+                        })()}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-3.5 py-1.5 rounded-lg bg-white text-emerald-800 font-bold text-xs flex items-center gap-1.5 shadow-sm hover:bg-emerald-50 transition-colors"

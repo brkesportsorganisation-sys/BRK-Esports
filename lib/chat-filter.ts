@@ -21,7 +21,7 @@ export interface ChatFilterResult {
   warningMessage: string | null;
 }
 
-export function validateChatMessage(rawContent: string): ChatFilterResult {
+export function validateChatMessage(rawContent: string, isContactUnlocked = false): ChatFilterResult {
   if (!rawContent || typeof rawContent !== 'string') {
     return {
       isBlocked: false,
@@ -127,37 +127,26 @@ export function validateChatMessage(rawContent: string): ChatFilterResult {
     }
   }
 
-  // 🛡️ 3. PHONE / WHATSAPP NUMBER FILTER REGEX PATTERNS
-  // Remove all spaces, dashes, dots, parentheses, and brackets between digits to detect spaced/formatted numbers
-  const digitsOnly = normalizedText.replace(/[\s\-\.\(\)\+\/]/g, '');
+  // 🛡️ 3. PHONE / WHATSAPP NUMBER FILTER REGEX PATTERNS (Only if contact is NOT unlocked)
+  if (!isContactUnlocked) {
+    // Remove all spaces, dashes, dots, parentheses, and brackets between digits to detect spaced/formatted numbers
+    const digitsOnly = normalizedText.replace(/[\s\-\.\(\)\+\/]/g, '');
 
-  const phonePatterns = [
-    // Bangladeshi mobile formats: 013, 014, 015, 016, 017, 018, 019 followed by 8 digits (total 11 digits)
-    /\b01[3-9]\d{8}\b/,
-    // International BD format: +8801X... or 8801X... (total 13 digits)
-    /\b(880|00880)1[3-9]\d{8}\b/,
-    // Any sequence of 9 to 14 consecutive numbers
-    /\b\d{9,14}\b/,
-    // Spaced out BD phone numbers (e.g. 0 1 7 1 2 3 4 5 6 7 8)
-    /\b0\s*1\s*[3-9](\s*\d){8}\b/,
-    // Words representation of numbers: "zero one seven...", "whatsapp num..."
-    /\b(whatsapp|imo|bkash|nagad|phone|mobile|number|call|phn)\s*[:=]?\s*0?1[3-9]/i,
-  ];
+    const phonePatterns = [
+      // Bangladeshi mobile formats: 013, 014, 015, 016, 017, 018, 019 followed by 8 digits (total 11 digits)
+      /\b01[3-9]\d{8}\b/,
+      // International BD format: +8801X... or 8801X... (total 13 digits)
+      /\b(880|00880)1[3-9]\d{8}\b/,
+      // Any sequence of 9 to 14 consecutive numbers
+      /\b\d{9,14}\b/,
+      // Spaced out BD phone numbers (e.g. 0 1 7 1 2 3 4 5 6 7 8)
+      /\b0\s*1\s*[3-9](\s*\d){8}\b/,
+      // Words representation of numbers: "zero one seven...", "whatsapp num..."
+      /\b(whatsapp|imo|bkash|nagad|phone|mobile|number|call|phn)\s*[:=]?\s*0?1[3-9]/i,
+    ];
 
-  // Check digits-only collapsed string
-  if (/(01[3-9]\d{8}|8801[3-9]\d{8})/.test(digitsOnly)) {
-    return {
-      isBlocked: true,
-      hasLink: false,
-      hasPhone: true,
-      hasProfanity: false,
-      flagReason: 'BLOCKED_PHONE',
-      warningMessage: 'সরাসরি চ্যাটে ফোন নম্বর বা WhatsApp নম্বর আদান-প্রদান সুরক্ষিত রয়েছে। নম্বর দেখতে "Unlock WhatsApp" বাটন ব্যবহার করুন।',
-    };
-  }
-
-  for (const pattern of phonePatterns) {
-    if (pattern.test(normalizedText)) {
+    // Check digits-only collapsed string
+    if (/(01[3-9]\d{8}|8801[3-9]\d{8})/.test(digitsOnly)) {
       return {
         isBlocked: true,
         hasLink: false,
@@ -166,6 +155,19 @@ export function validateChatMessage(rawContent: string): ChatFilterResult {
         flagReason: 'BLOCKED_PHONE',
         warningMessage: 'সরাসরি চ্যাটে ফোন নম্বর বা WhatsApp নম্বর আদান-প্রদান সুরক্ষিত রয়েছে। নম্বর দেখতে "Unlock WhatsApp" বাটন ব্যবহার করুন।',
       };
+    }
+
+    for (const pattern of phonePatterns) {
+      if (pattern.test(normalizedText)) {
+        return {
+          isBlocked: true,
+          hasLink: false,
+          hasPhone: true,
+          hasProfanity: false,
+          flagReason: 'BLOCKED_PHONE',
+          warningMessage: 'সরাসরি চ্যাটে ফোন নম্বর বা WhatsApp নম্বর আদান-প্রদান সুরক্ষিত রয়েছে। নম্বর দেখতে "Unlock WhatsApp" বাটন ব্যবহার করুন।',
+        };
+      }
     }
   }
 
