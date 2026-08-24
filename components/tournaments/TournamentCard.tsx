@@ -129,10 +129,7 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
 
   return (
     <>
-      <motion.div
-        initial={{ opacity: 0, y: 15 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
+      <div
         className="bg-white rounded-3xl border border-slate-200/90 shadow-sm hover:shadow-xl hover:border-brand-orange/50 transition-all duration-300 flex flex-col justify-between overflow-hidden relative group"
       >
         {/* Top Banner Image (Proportional 16:9 widescreen hero banner like homepage) */}
@@ -278,7 +275,7 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
           </Link>
         )}
         </div>
-      </motion.div>
+      </div>
 
       {/* ========================================================================= */}
       {/* MODALS (Slot List, Prize Pool Breakdown, Rules)                            */}
