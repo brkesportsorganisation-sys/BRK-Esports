@@ -15,14 +15,5 @@
         { "key": "Service-Worker-Allowed", "value": "/" }
       ]
     }
-  ],
-  "redirects": [
-    {
-      "source": "/(.*)",
-      "has": [{ "type": "host", "value": "www.esportszonebd.online" }],
-      "destination": "https://esportszonebd.online/$1",
-      "permanent": true
-    }
   ]
 }
-
