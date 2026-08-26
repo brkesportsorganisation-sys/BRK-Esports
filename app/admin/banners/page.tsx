@@ -102,6 +102,7 @@ export default function AdminBannersPage() {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
+  const [isSavingBanner, setIsSavingBanner] = useState(false);
   const [modalImageTab, setModalImageTab] = useState<'UPLOAD' | 'URL' | 'PRESETS'>('UPLOAD');
   const [isUploadingModalImage, setIsUploadingModalImage] = useState(false);
   const [modalImageFileInfo, setModalImageFileInfo] = useState<{ name: string; size: string } | null>(null);
@@ -294,6 +295,7 @@ export default function AdminBannersPage() {
       return;
     }
 
+    setIsSavingBanner(true);
     try {
       if (editingBanner) {
         // Update
@@ -305,11 +307,12 @@ export default function AdminBannersPage() {
             ...modalForm,
           }),
         });
-        if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
           setIsModalOpen(false);
-          loadBanners();
+          await loadBanners();
         } else {
-          alert('Failed to update banner.');
+          alert(data.message || 'Failed to update banner.');
         }
       } else {
         // Create
@@ -318,15 +321,18 @@ export default function AdminBannersPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(modalForm),
         });
-        if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
           setIsModalOpen(false);
-          loadBanners();
+          await loadBanners();
         } else {
-          alert('Failed to create banner.');
+          alert(data.message || 'Failed to create banner.');
         }
       }
     } catch (err) {
-      alert('Error processing banner request.');
+      alert('Error processing banner request. Please check network connection.');
+    } finally {
+      setIsSavingBanner(false);
     }
   };
 
@@ -1196,9 +1202,11 @@ export default function AdminBannersPage() {
 
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-black text-xs shadow-md hover:brightness-110 cursor-pointer"
+                  disabled={isSavingBanner}
+                  className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-black text-xs shadow-md hover:brightness-110 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {editingBanner ? 'Update Banner' : 'Create Banner'}
+                  {isSavingBanner && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                  <span>{isSavingBanner ? 'Saving & Uploading...' : editingBanner ? 'Update Banner' : 'Create Banner'}</span>
                 </button>
               </div>
             </form>

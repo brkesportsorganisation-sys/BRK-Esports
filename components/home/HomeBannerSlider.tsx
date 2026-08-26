@@ -50,9 +50,11 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
           const data = await res.json();
           if (data.banners && data.banners.length > 0) {
             setBanners(data.banners);
-            if (typeof window !== 'undefined') {
-              localStorage.setItem('helian_banners', JSON.stringify(data.banners));
-            }
+            try {
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('helian_banners', JSON.stringify(data.banners));
+              }
+            } catch {}
           }
           if (data.settings?.autoSlideInterval) {
             setSlideInterval(data.settings.autoSlideInterval);

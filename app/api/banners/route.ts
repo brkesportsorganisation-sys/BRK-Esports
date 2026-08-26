@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { Banner, BannerPlacement } from '@/lib/types';
+import { initialBanners } from '@/lib/mock-data';
 import { supabaseAdmin } from '@/lib/supabase';
+import { saveBase64Image } from '@/lib/upload';
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,7 +13,7 @@ export async function GET(request: NextRequest) {
     let banners: Banner[] = [];
     let settings = { autoSlideInterval: 4000, isEnabled: true };
 
-    // Try Supabase first if table exists, else fallback to db
+    // Try Supabase first
     try {
       const { data: dbBanners, error } = await supabaseAdmin
         .from('Banner')
@@ -21,18 +23,42 @@ export async function GET(request: NextRequest) {
       if (!error && dbBanners && dbBanners.length > 0) {
         banners = dbBanners as Banner[];
       }
-    } catch {}
+    } catch (e) {
+      console.warn('[GET /api/banners] Supabase fetch error:', e);
+    }
 
+    // Auto-seed initial banners if table is currently empty
     if (banners.length === 0) {
-      banners = db.getBanners();
-      settings = db.getBannerSettings();
+      try {
+        const seededBanners = initialBanners.map((b) => ({
+          ...b,
+          createdAt: b.createdAt || new Date().toISOString(),
+          updatedAt: b.updatedAt || new Date().toISOString(),
+        }));
+
+        const { data: inserted, error: insertErr } = await supabaseAdmin
+          .from('Banner')
+          .upsert(seededBanners, { onConflict: 'id' })
+          .select();
+
+        if (!insertErr && inserted && inserted.length > 0) {
+          banners = inserted as Banner[];
+        }
+      } catch (seedErr) {
+        console.warn('[GET /api/banners] Auto-seed failed:', seedErr);
+      }
+
+      if (banners.length === 0) {
+        banners = db.getBanners();
+        settings = db.getBannerSettings();
+      }
     }
 
     // Try to load site settings for banner speed if configured
     try {
       const { data: siteSettingsData } = await supabaseAdmin
-        .from('SiteSettings')
-        .select('*')
+        .from('SiteSetting')
+        .select('value')
         .eq('key', 'banner_slide_speed')
         .maybeSingle();
 
@@ -96,23 +122,52 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Title and image URL are required.' }, { status: 400 });
     }
 
-    const newBannerData: Omit<Banner, 'id' | 'createdAt'> = {
-      title,
-      subtitle: subtitle || '',
-      badge: badge || '',
-      imageUrl,
+    // Upload base64 image to Supabase Storage if uploaded from device
+    let finalImageUrl = imageUrl;
+    if (typeof imageUrl === 'string' && imageUrl.startsWith('data:image/')) {
+      try {
+        const uploadedUrl = await saveBase64Image(imageUrl, 'banner');
+        if (uploadedUrl) {
+          finalImageUrl = uploadedUrl;
+        }
+      } catch (uploadErr) {
+        console.error('[POST /api/banners] Base64 upload failed, using fallback:', uploadErr);
+      }
+    }
+
+    const newBannerId = `banner_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const now = new Date().toISOString();
+
+    const newBanner: Banner = {
+      id: newBannerId,
+      title: title.trim(),
+      subtitle: (subtitle || '').trim(),
+      badge: (badge || '').trim(),
+      imageUrl: finalImageUrl,
       linkUrl: linkUrl || '/tournaments',
       buttonText: buttonText || 'JOIN TOURNAMENT',
       placement: (placement as BannerPlacement) || 'MAIN_SLIDER',
       order: Number(order || 1),
       isActive: isActive ?? true,
+      createdAt: now,
+      updatedAt: now,
     };
 
-    const newBanner = db.createBanner(newBannerData);
+    db.createBanner(newBanner);
 
     try {
-      await supabaseAdmin.from('Banner').insert(newBanner);
-    } catch {}
+      const { data: saved, error: dbErr } = await supabaseAdmin
+        .from('Banner')
+        .upsert(newBanner, { onConflict: 'id' })
+        .select()
+        .single();
+
+      if (!dbErr && saved) {
+        return NextResponse.json({ success: true, banner: saved });
+      }
+    } catch (e) {
+      console.warn('[POST /api/banners] Supabase insert warning:', e);
+    }
 
     return NextResponse.json({ success: true, banner: newBanner });
   } catch (error: any) {
@@ -130,19 +185,44 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ message: 'Banner ID is required.' }, { status: 400 });
     }
 
-    const updated = db.updateBanner(id, updates);
-    if (!updated) {
-      return NextResponse.json({ message: 'Banner not found.' }, { status: 404 });
+    // Upload base64 image to Supabase Storage if uploaded from device
+    if (typeof updates.imageUrl === 'string' && updates.imageUrl.startsWith('data:image/')) {
+      try {
+        const uploadedUrl = await saveBase64Image(updates.imageUrl, 'banner');
+        if (uploadedUrl) {
+          updates.imageUrl = uploadedUrl;
+        }
+      } catch (uploadErr) {
+        console.error('[PUT /api/banners] Base64 upload failed:', uploadErr);
+      }
     }
 
-    try {
-      await supabaseAdmin
-        .from('Banner')
-        .update({ ...updates, updatedAt: new Date().toISOString() })
-        .eq('id', id);
-    } catch {}
+    const now = new Date().toISOString();
+    const bannerPayload = {
+      id,
+      ...updates,
+      updatedAt: now,
+    };
 
-    return NextResponse.json({ success: true, banner: updated });
+    // Update in-memory db
+    db.updateBanner(id, updates);
+
+    // Upsert into Supabase so that initial/mock banners are seamlessly saved into the DB table
+    try {
+      const { data: saved, error: dbErr } = await supabaseAdmin
+        .from('Banner')
+        .upsert(bannerPayload, { onConflict: 'id' })
+        .select()
+        .single();
+
+      if (!dbErr && saved) {
+        return NextResponse.json({ success: true, banner: saved });
+      }
+    } catch (e) {
+      console.warn('[PUT /api/banners] Supabase update warning:', e);
+    }
+
+    return NextResponse.json({ success: true, banner: bannerPayload });
   } catch (error: any) {
     console.error('[PUT /api/banners]', error);
     return NextResponse.json({ message: error?.message || 'Failed to update banner.' }, { status: 500 });
@@ -158,15 +238,18 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ message: 'Banner ID is required.' }, { status: 400 });
     }
 
-    const deleted = db.deleteBanner(id);
+    db.deleteBanner(id);
 
     try {
       await supabaseAdmin.from('Banner').delete().eq('id', id);
-    } catch {}
+    } catch (e) {
+      console.warn('[DELETE /api/banners] Supabase delete warning:', e);
+    }
 
-    return NextResponse.json({ success: deleted });
+    return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('[DELETE /api/banners]', error);
     return NextResponse.json({ message: error?.message || 'Failed to delete banner.' }, { status: 500 });
   }
 }
+

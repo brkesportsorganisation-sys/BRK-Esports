@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { supabaseAdmin } from '@/lib/supabase';
 import { verifyAdminSession, requireAdminRole } from '@/lib/admin-auth';
+import { saveBase64Image } from '@/lib/upload';
 
 async function getSession() {
   const cookieStore = await cookies();
@@ -49,12 +50,24 @@ export async function POST(request: Request) {
     // Support batch update { settings: { key1: val1, key2: val2, ... } }
     if (body.settings && typeof body.settings === 'object') {
       const entries = Object.entries(body.settings);
-      const upserts = entries.map(([key, value]) => ({
-        id: `setting_${key}`,
-        key,
-        value: typeof value === 'string' ? value : JSON.stringify(value),
-        updatedAt: new Date().toISOString(),
-      }));
+      const upserts = [];
+      for (const [key, rawVal] of entries) {
+        let val = rawVal;
+        if (typeof val === 'string' && val.startsWith('data:image/')) {
+          try {
+            const uploadedUrl = await saveBase64Image(val, key.toLowerCase());
+            if (uploadedUrl) val = uploadedUrl;
+          } catch (e) {
+            console.error(`[POST /api/admin/settings] Failed to upload image for ${key}:`, e);
+          }
+        }
+        upserts.push({
+          id: `setting_${key}`,
+          key,
+          value: typeof val === 'string' ? val : JSON.stringify(val),
+          updatedAt: new Date().toISOString(),
+        });
+      }
 
       const { error } = await supabaseAdmin
         .from('SiteSetting')
@@ -70,12 +83,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Key is required' }, { status: 400 });
     }
 
+    let finalVal = value;
+    if (typeof value === 'string' && value.startsWith('data:image/')) {
+      try {
+        const uploadedUrl = await saveBase64Image(value, key.toLowerCase());
+        if (uploadedUrl) finalVal = uploadedUrl;
+      } catch (e) {
+        console.error(`[POST /api/admin/settings] Failed to upload image for ${key}:`, e);
+      }
+    }
+
     const { data: setting, error } = await supabaseAdmin
       .from('SiteSetting')
       .upsert({
         id: `setting_${key}`,
         key,
-        value: typeof value === 'string' ? value : JSON.stringify(value),
+        value: typeof finalVal === 'string' ? finalVal : JSON.stringify(finalVal),
         updatedAt: new Date().toISOString()
       }, { onConflict: 'key' })
       .select()
@@ -91,3 +114,4 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: error?.message || 'Failed to update setting' }, { status: 500 });
   }
 }
+
