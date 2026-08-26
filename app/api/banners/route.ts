@@ -75,7 +75,8 @@ export async function GET(request: NextRequest) {
     const mainSliders = activeBanners.filter((b) => b.placement === 'MAIN_SLIDER');
     const sideTop = activeBanners.find((b) => b.placement === 'SIDE_TOP') || null;
     const sideBottom = activeBanners.find((b) => b.placement === 'SIDE_BOTTOM') || null;
-    const shopBanner = activeBanners.find((b) => b.placement === 'SHOP_BANNER') || null;
+    const shopBanners = activeBanners.filter((b) => b.placement === 'SHOP_BANNER');
+    const shopBanner = shopBanners[0] || null;
     const arenaBanner = activeBanners.find((b) => b.placement === 'ARENA_BANNER') || null;
 
     return NextResponse.json({
@@ -86,6 +87,7 @@ export async function GET(request: NextRequest) {
       sideTop,
       sideBottom,
       shopBanner,
+      shopBanners,
       arenaBanner,
     });
   } catch (error: any) {
