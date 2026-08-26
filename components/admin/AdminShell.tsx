@@ -47,7 +47,11 @@ import {
   Headphones,
   MessageSquare,
   MessageCircle,
-  Crown
+  Crown,
+  Database,
+  Server,
+  Activity,
+  HardDrive
 } from 'lucide-react';
 
 import { AdminPermissionKey } from '@/lib/types';
@@ -255,6 +259,15 @@ export default function AdminShell({ children }: AdminShellProps) {
         { href: '/admin/delete-requests', label: 'Delete Approvals', icon: ShieldAlert, colorClass: 'text-red-500', permission: 'approve_deletes', ownerOnly: true },
         { href: '/admin/activity-log', label: 'Admin Activity Log (🛡️)', icon: ShieldCheck, colorClass: 'text-teal-600', permission: 'manage_roles', ownerOnly: true },
         { href: '/admin/settings', label: 'Platform Settings & CMS', icon: Settings, colorClass: 'text-slate-400', permission: 'manage_settings', ownerOnly: true },
+      ]
+    },
+    {
+      title: '🖥️ SERVER & DATABASE',
+      links: [
+        { href: '/admin/server/usage', label: 'Server Resource Usage', icon: Server, colorClass: 'text-indigo-500', permission: 'view_dashboard', ownerOnly: true },
+        { href: '/admin/server/database', label: 'Database Metrics', icon: Database, colorClass: 'text-emerald-500', permission: 'view_dashboard', ownerOnly: true },
+        { href: '/admin/server/storage', label: 'Storage & Media Buckets', icon: HardDrive, colorClass: 'text-amber-500', permission: 'view_dashboard', ownerOnly: true },
+        { href: '/admin/server/page-speed', label: 'Page Speed & Latency', icon: Activity, colorClass: 'text-rose-500', permission: 'view_dashboard', ownerOnly: true },
       ]
     }
   ];
