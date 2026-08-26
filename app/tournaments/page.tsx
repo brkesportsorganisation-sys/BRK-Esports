@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, Trophy, Filter, X, RotateCcw, Sparkles, Gamepad2 } from 'lucide-react';
+import { Search, Trophy, Filter, X, RotateCcw, Sparkles, Gamepad2, ChevronDown } from 'lucide-react';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import TournamentCard from '@/components/tournaments/TournamentCard';
@@ -127,6 +127,7 @@ export default function TournamentsPage() {
   const [selectedFormat, setSelectedFormat] = useState<string>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
   const [selectedType, setSelectedType] = useState<string>('ALL'); // ALL, FREE, PAID
+  const [showFilters, setShowFilters] = useState(false);
 
   // Auto reset mode and format when game changes
   const handleGameChange = (game: string) => {
@@ -262,105 +263,132 @@ export default function TournamentsPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full space-y-5">
         
         {/* Compact All-in-One Filter Bar */}
-        <div className="bg-white rounded-2xl p-2.5 sm:p-3 border border-slate-200/90 shadow-xs space-y-2">
-          <div className="flex items-center gap-2 overflow-x-auto w-full scroll-smooth pb-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        <div className="bg-white rounded-2xl p-2.5 sm:p-3 border border-slate-200/90 shadow-xs space-y-2 relative z-30">
+          <div className="flex items-center gap-2 w-full">
             
             {/* Search Input */}
-            <div className="relative shrink-0 w-[160px] sm:w-[200px]">
+            <div className="relative flex-1">
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl pl-8 pr-7 py-2 text-[11px] sm:text-xs font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-orange focus:bg-white transition-colors"
+                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl pl-8 pr-7 py-2.5 text-[11px] sm:text-xs font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-orange focus:bg-white transition-colors"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
                 >
                   <X className="w-3 h-3" />
                 </button>
               )}
             </div>
 
-            {/* Game Select */}
-            <div className="shrink-0 min-w-[140px]">
-              <select
-                value={selectedGame}
-                onChange={(e) => handleGameChange(e.target.value)}
-                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-[11px] sm:text-xs font-semibold text-slate-800 focus:outline-none focus:border-brand-orange focus:bg-white cursor-pointer"
-              >
-                <option value="ALL">🎮 All Games</option>
-                <option value="FREE_FIRE">🔥 Free Fire</option>
-                <option value="EFOOTBALL">⚽ eFootball</option>
-                <option value="PUBG_MOBILE">🪖 PUBG Mobile</option>
-                <option value="VALORANT">🎯 Valorant</option>
-                <option value="MLBB">⚔️ Mobile Legends</option>
-                <option value="COD_MOBILE">💥 COD Mobile</option>
-                <option value="LUDO_KING">🎲 Ludo King</option>
-              </select>
-            </div>
-
-            {/* Mode Select */}
-            <div className="shrink-0 min-w-[130px]">
-              <select
-                value={selectedMode}
-                onChange={(e) => setSelectedMode(e.target.value)}
-                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-[11px] sm:text-xs font-semibold text-slate-800 focus:outline-none focus:border-brand-orange focus:bg-white cursor-pointer"
-              >
-                {activeConfig.modes.map((m) => (
-                  <option key={m.value} value={m.value}>
-                    {m.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Format Select */}
-            <div className="shrink-0 min-w-[130px]">
-              <select
-                value={selectedFormat}
-                onChange={(e) => setSelectedFormat(e.target.value)}
-                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-[11px] sm:text-xs font-semibold text-slate-800 focus:outline-none focus:border-brand-orange focus:bg-white cursor-pointer"
-              >
-                {activeConfig.formats.map((f) => (
-                  <option key={f.value} value={f.value}>
-                    {f.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Status Select */}
-            <div className="shrink-0 min-w-[120px]">
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-2.5 py-2 text-[11px] sm:text-xs font-semibold text-slate-800 focus:outline-none focus:border-brand-orange focus:bg-white cursor-pointer"
-              >
-                <option value="ALL">⚡ All Status</option>
-                <option value="UPCOMING">🕒 Upcoming</option>
-                <option value="LIVE">🔴 Live</option>
-                <option value="COMPLETED">✅ Ended</option>
-              </select>
-            </div>
-
-            {/* Entry Fee Select */}
-            <div className="shrink-0 min-w-[110px]">
-              <select
-                value={selectedType}
-                onChange={(e) => setSelectedType(e.target.value)}
-                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-2.5 py-2 text-[11px] sm:text-xs font-semibold text-slate-800 focus:outline-none focus:border-brand-orange focus:bg-white cursor-pointer"
-              >
-                <option value="ALL">💰 All Entry</option>
-                <option value="FREE">🎁 Free</option>
-                <option value="PAID">৳ Paid</option>
-              </select>
-            </div>
+            {/* Filter Toggle Button */}
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`shrink-0 flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all border ${
+                showFilters || hasActiveFilters 
+                  ? 'bg-brand-orange text-white border-brand-orange shadow-md' 
+                  : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+              }`}
+            >
+              <Filter className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Filters</span>
+              {(showFilters || hasActiveFilters) && <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showFilters ? 'rotate-180' : ''}`} />}
+            </button>
           </div>
+
+          {/* Collapsible Dropdown Panel */}
+          {showFilters && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200/90 shadow-xl rounded-2xl p-3 sm:p-4 z-50 animate-fadeIn">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                {/* Game Select */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Game</label>
+                  <select
+                    value={selectedGame}
+                    onChange={(e) => handleGameChange(e.target.value)}
+                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2.5 text-[11px] sm:text-xs font-semibold text-slate-800 focus:outline-none focus:border-brand-orange focus:bg-white cursor-pointer"
+                  >
+                    <option value="ALL">🎮 All Games</option>
+                    <option value="FREE_FIRE">🔥 Free Fire</option>
+                    <option value="EFOOTBALL">⚽ eFootball</option>
+                    <option value="PUBG_MOBILE">🪖 PUBG Mobile</option>
+                    <option value="VALORANT">🎯 Valorant</option>
+                    <option value="MLBB">⚔️ Mobile Legends</option>
+                    <option value="COD_MOBILE">💥 COD Mobile</option>
+                    <option value="LUDO_KING">🎲 Ludo King</option>
+                  </select>
+                </div>
+
+                {/* Mode Select */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Mode</label>
+                  <select
+                    value={selectedMode}
+                    onChange={(e) => setSelectedMode(e.target.value)}
+                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2.5 text-[11px] sm:text-xs font-semibold text-slate-800 focus:outline-none focus:border-brand-orange focus:bg-white cursor-pointer"
+                  >
+                    {activeConfig.modes.map((m) => (
+                      <option key={m.value} value={m.value}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Format Select */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Format</label>
+                  <select
+                    value={selectedFormat}
+                    onChange={(e) => setSelectedFormat(e.target.value)}
+                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2.5 text-[11px] sm:text-xs font-semibold text-slate-800 focus:outline-none focus:border-brand-orange focus:bg-white cursor-pointer"
+                  >
+                    {activeConfig.formats.map((f) => (
+                      <option key={f.value} value={f.value}>
+                        {f.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Status Select */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Status</label>
+                  <select
+                    value={selectedStatus}
+                    onChange={(e) => setSelectedStatus(e.target.value)}
+                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-2.5 py-2.5 text-[11px] sm:text-xs font-semibold text-slate-800 focus:outline-none focus:border-brand-orange focus:bg-white cursor-pointer"
+                  >
+                    <option value="ALL">⚡ All Status</option>
+                    <option value="UPCOMING">🕒 Upcoming</option>
+                    <option value="LIVE">🔴 Live</option>
+                    <option value="COMPLETED">✅ Ended</option>
+                  </select>
+                </div>
+
+                {/* Entry Fee Select */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Entry</label>
+                  <select
+                    value={selectedType}
+                    onChange={(e) => setSelectedType(e.target.value)}
+                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-2.5 py-2.5 text-[11px] sm:text-xs font-semibold text-slate-800 focus:outline-none focus:border-brand-orange focus:bg-white cursor-pointer"
+                  >
+                    <option value="ALL">💰 All Entry</option>
+                    <option value="FREE">🎁 Free</option>
+                    <option value="PAID">৳ Paid</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
           {/* Active Filter Chips & Reset Bar (only when filters applied) */}
           {hasActiveFilters && (

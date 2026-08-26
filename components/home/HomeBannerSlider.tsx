@@ -127,50 +127,51 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
               transition={{ duration: 0.4, ease: 'easeOut' }}
               className="absolute inset-0 w-full h-full"
             >
-              <Image
-                src={currentSlide?.imageUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1920&h=1080&fit=crop&q=85'}
-                alt={currentSlide?.title || 'Esports Banner'}
-                fill
-                priority={currentIndex === 0}
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 70vw, 850px"
-                className="object-cover object-center"
-              />
+              <Link href={currentSlide?.linkUrl || '/tournaments'} className="block w-full h-full relative cursor-pointer group/mainlink">
+                <Image
+                  src={currentSlide?.imageUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1920&h=1080&fit=crop&q=85'}
+                  alt={currentSlide?.title || 'Esports Banner'}
+                  fill
+                  priority={currentIndex === 0}
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 70vw, 850px"
+                  className="object-cover object-center transition-transform duration-700 group-hover/mainlink:scale-105"
+                />
 
-              {/* Rich Esports Cinematic Gradient Overlay (Adjustable Brightness) */}
-              <div className="absolute inset-0 transition-opacity duration-300 pointer-events-none" style={{ opacity: overlayOpacity / 100 }}>
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent"></div>
-                <div className="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-950/50 to-transparent"></div>
-              </div>
-
-              {/* Banner Text & Action Content */}
-              <div className="absolute inset-0 p-5 sm:p-8 md:p-10 flex flex-col justify-end items-start z-10 space-y-2.5 sm:space-y-3.5 max-w-xl">
-                {currentSlide?.badge && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-brand-red to-brand-orange text-white text-[10px] sm:text-xs font-black uppercase tracking-wider shadow-lg shadow-red-500/30 animate-pulse">
-                    <Flame className="w-3.5 h-3.5" />
-                    <span>{currentSlide.badge}</span>
-                  </span>
-                )}
-
-                <h2 className="font-heading font-black text-2xl sm:text-3xl md:text-4xl text-white leading-tight drop-shadow-md">
-                  {currentSlide?.title || 'ESPORTS TOURNAMENT'}
-                </h2>
-
-                {currentSlide?.subtitle && (
-                  <p className="text-xs sm:text-sm text-slate-200 font-medium line-clamp-2 drop-shadow-sm max-w-md">
-                    {currentSlide.subtitle}
-                  </p>
-                )}
-
-                <div className="pt-2">
-                  <Link
-                    href={currentSlide?.linkUrl || '/tournaments'}
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-white hover:bg-slate-100 text-slate-900 font-heading font-black text-xs sm:text-sm shadow-xl hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer group/btn"
-                  >
-                    <span>{currentSlide?.buttonText || 'JOIN TOURNAMENT'}</span>
-                    <ArrowRight className="w-4 h-4 text-brand-orange group-hover/btn:translate-x-1 transition-transform" />
-                  </Link>
+                {/* Rich Esports Cinematic Gradient Overlay (Adjustable Brightness) */}
+                <div className="absolute inset-0 transition-opacity duration-300 pointer-events-none" style={{ opacity: overlayOpacity / 100 }}>
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent"></div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-950/50 to-transparent"></div>
                 </div>
-              </div>
+
+                {/* Banner Text & Action Content */}
+                <div className="absolute inset-0 p-5 sm:p-8 md:p-10 flex flex-col justify-end items-start z-10 space-y-2.5 sm:space-y-3.5 max-w-xl">
+                  {currentSlide?.badge && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-brand-red to-brand-orange text-white text-[10px] sm:text-xs font-black uppercase tracking-wider shadow-lg shadow-red-500/30 animate-pulse">
+                      <Flame className="w-3.5 h-3.5" />
+                      <span>{currentSlide.badge}</span>
+                    </span>
+                  )}
+
+                  <h2 className="font-heading font-black text-2xl sm:text-3xl md:text-4xl text-white leading-tight drop-shadow-md">
+                    {currentSlide?.title || 'ESPORTS TOURNAMENT'}
+                  </h2>
+
+                  {currentSlide?.subtitle && (
+                    <p className="text-xs sm:text-sm text-slate-200 font-medium line-clamp-2 drop-shadow-sm max-w-md">
+                      {currentSlide.subtitle}
+                    </p>
+                  )}
+
+                  <div className="pt-2">
+                    <span
+                      className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-white text-slate-900 font-heading font-black text-xs sm:text-sm shadow-xl transition-all duration-300 group-hover/mainlink:bg-brand-orange group-hover/mainlink:text-white"
+                    >
+                      <span>{currentSlide?.buttonText || 'JOIN TOURNAMENT'}</span>
+                      <ArrowRight className="w-4 h-4 text-brand-orange group-hover/mainlink:text-white group-hover/mainlink:translate-x-1 transition-transform" />
+                    </span>
+                  </div>
+                </div>
+              </Link>
             </motion.div>
           </AnimatePresence>
 
