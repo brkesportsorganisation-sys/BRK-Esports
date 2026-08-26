@@ -108,7 +108,7 @@ export default function GamingShopPage() {
       })
       .catch(() => {});
 
-    fetch('/api/banners')
+    fetch('/api/banners', { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
         if (data.shopBanners && Array.isArray(data.shopBanners) && data.shopBanners.length > 0) {

@@ -45,7 +45,7 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
   useEffect(() => {
     async function loadBanners() {
       try {
-        const res = await fetch('/api/banners');
+        const res = await fetch('/api/banners', { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
           if (data.banners && data.banners.length > 0) {
