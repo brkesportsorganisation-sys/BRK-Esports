@@ -11,12 +11,14 @@ interface ShopBannerSliderProps {
   banners: Banner[];
   currentUser: User | null;
   slideInterval?: number;
+  hideBalances?: boolean;
 }
 
 export default function ShopBannerSlider({
   banners,
   currentUser,
   slideInterval = 4000,
+  hideBalances = false,
 }: ShopBannerSliderProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
@@ -148,7 +150,8 @@ export default function ShopBannerSlider({
       </div>
 
       {/* ── Quick Balances Bar ── */}
-      <div className="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+      {!hideBalances && (
+        <div className="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 font-bold shrink-0">
             <Sparkles className="w-5 h-5" />
@@ -192,7 +195,7 @@ export default function ShopBannerSlider({
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

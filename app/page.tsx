@@ -8,7 +8,6 @@ import {
   Sparkles,
   ShoppingBag,
   Coins,
-  ShoppingCart
 } from 'lucide-react';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
