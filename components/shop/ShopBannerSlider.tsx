@@ -62,7 +62,7 @@ export default function ShopBannerSlider({
           <div className="relative w-full overflow-hidden">
             <AnimatePresence mode="wait">
               <motion.div
-                key={currentSlide.id || currentIndex}
+                key={currentSlide?.id || currentIndex}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
