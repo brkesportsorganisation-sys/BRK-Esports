@@ -30,9 +30,42 @@ import {
   Crown,
   Ticket,
   Save,
-  ArrowRight
+  ArrowRight,
+  UploadCloud,
+  Upload
 } from 'lucide-react';
 import { ShopProduct, DEFAULT_SHOP_PRODUCTS } from '@/lib/types';
+
+const compressImage = (file: File, maxWidth = 1600, quality = 0.85): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const scale = Math.min(1, maxWidth / Math.max(img.width, img.height));
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(reader.result as string);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        try {
+          const dataUrl = canvas.toDataURL('image/webp', quality);
+          resolve(dataUrl);
+        } catch {
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        }
+      };
+      img.onerror = () => resolve(reader.result as string);
+      img.src = reader.result as string;
+    };
+    reader.onerror = (error) => reject(error);
+    reader.readAsDataURL(file);
+  });
+};
 
 interface ShopOrder {
   id: string;
@@ -916,15 +949,16 @@ export default function AdminGamingShopPage() {
                 <div className="sm:col-span-4">
                   <input
                     type="file"
-                    accept="image/*"
-                    onChange={(e) => {
+                    accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
+                    onChange={async (e) => {
                       const file = e.target.files?.[0];
                       if (file) {
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                          if (reader.result) setShopBanner({ ...shopBanner, imageUrl: reader.result as string });
-                        };
-                        reader.readAsDataURL(file);
+                        try {
+                          const compressed = await compressImage(file, 1600, 0.85);
+                          setShopBanner({ ...shopBanner, imageUrl: compressed });
+                        } catch (err) {
+                          alert('Failed to process image from device.');
+                        }
                       }
                     }}
                     className="w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer"

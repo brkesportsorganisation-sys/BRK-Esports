@@ -21,10 +21,54 @@ import {
   Flame,
   Trophy,
   Swords,
-  Gift
+  Gift,
+  UploadCloud,
+  Upload,
+  X,
+  Loader2,
+  CheckCircle2
 } from 'lucide-react';
 import { Banner, BannerPlacement } from '@/lib/types';
 import { initialBanners } from '@/lib/mock-data';
+
+// High-speed client-side image compressor (converts device files to optimized WebP/JPEG DataURL)
+const compressImage = (file: File, maxWidth = 1600, quality = 0.85): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const scale = Math.min(1, maxWidth / Math.max(img.width, img.height));
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(reader.result as string);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        try {
+          const dataUrl = canvas.toDataURL('image/webp', quality);
+          resolve(dataUrl);
+        } catch {
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        }
+      };
+      img.onerror = () => resolve(reader.result as string);
+      img.src = reader.result as string;
+    };
+    reader.onerror = (error) => reject(error);
+    reader.readAsDataURL(file);
+  });
+};
+
+const formatFileSize = (bytes: number) => {
+  if (!bytes) return '';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
 
 const PRESET_IMAGES = [
   { name: 'Free Fire BR Tournament', url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200&auto=format&fit=crop&q=80' },
@@ -58,6 +102,15 @@ export default function AdminBannersPage() {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
+  const [modalImageTab, setModalImageTab] = useState<'UPLOAD' | 'URL' | 'PRESETS'>('UPLOAD');
+  const [isUploadingModalImage, setIsUploadingModalImage] = useState(false);
+  const [modalImageFileInfo, setModalImageFileInfo] = useState<{ name: string; size: string } | null>(null);
+  const [isDraggingModal, setIsDraggingModal] = useState(false);
+
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [coverFileInfo, setCoverFileInfo] = useState<{ name: string; size: string } | null>(null);
+  const [isDraggingCover, setIsDraggingCover] = useState(false);
+
   const [modalForm, setModalForm] = useState({
     title: '',
     subtitle: '',
@@ -69,6 +122,48 @@ export default function AdminBannersPage() {
     order: 1,
     isActive: true,
   });
+
+  const handleModalFileSelect = async (file?: File | null) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Please select a valid image file (PNG, JPG, JPEG, WEBP, GIF)');
+      return;
+    }
+    setIsUploadingModalImage(true);
+    try {
+      const compressed = await compressImage(file, 1600, 0.85);
+      setModalForm((prev) => ({ ...prev, imageUrl: compressed }));
+      setModalImageFileInfo({
+        name: file.name,
+        size: formatFileSize(file.size),
+      });
+    } catch (err) {
+      alert('Failed to process image from device.');
+    } finally {
+      setIsUploadingModalImage(false);
+    }
+  };
+
+  const handleCoverFileSelect = async (file?: File | null) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Please select a valid image file (PNG, JPG, JPEG, WEBP, GIF)');
+      return;
+    }
+    setIsUploadingCover(true);
+    try {
+      const compressed = await compressImage(file, 1800, 0.85);
+      setProfileCoverUrl(compressed);
+      setCoverFileInfo({
+        name: file.name,
+        size: formatFileSize(file.size),
+      });
+    } catch (err) {
+      alert('Failed to process image from device.');
+    } finally {
+      setIsUploadingCover(false);
+    }
+  };
 
   const loadBanners = async () => {
     setLoading(true);
@@ -158,6 +253,8 @@ export default function AdminBannersPage() {
 
   const openCreateModal = () => {
     setEditingBanner(null);
+    setModalImageTab('UPLOAD');
+    setModalImageFileInfo(null);
     setModalForm({
       title: '',
       subtitle: '',
@@ -174,6 +271,8 @@ export default function AdminBannersPage() {
 
   const openEditModal = (banner: Banner) => {
     setEditingBanner(banner);
+    setModalImageTab(banner.imageUrl?.startsWith('data:') ? 'UPLOAD' : 'URL');
+    setModalImageFileInfo(null);
     setModalForm({
       title: banner.title,
       subtitle: banner.subtitle || '',
@@ -397,34 +496,72 @@ export default function AdminBannersPage() {
         <div className="space-y-4 pt-1">
           {/* Custom URL Input & File Upload */}
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-            <div className="sm:col-span-8 space-y-1">
-              <label className="text-xs font-bold text-slate-700 uppercase block">Cover Image URL</label>
+            <div className="sm:col-span-6 space-y-1">
+              <label className="text-xs font-bold text-slate-700 uppercase block">1. Cover Image Web URL</label>
               <input
                 type="text"
                 value={profileCoverUrl}
-                onChange={(e) => setProfileCoverUrl(e.target.value)}
+                onChange={(e) => {
+                  setProfileCoverUrl(e.target.value);
+                  setCoverFileInfo(null);
+                }}
                 placeholder="https://images.unsplash.com/..."
                 className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-mono focus:outline-none focus:border-brand-orange"
               />
             </div>
 
-            <div className="sm:col-span-4 space-y-1">
-              <label className="text-xs font-bold text-slate-700 uppercase block">Or Upload Local Image</label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    const reader = new FileReader();
-                    reader.onloadend = () => {
-                      if (reader.result) setProfileCoverUrl(reader.result as string);
-                    };
-                    reader.readAsDataURL(file);
-                  }
+            <div className="sm:col-span-6 space-y-1">
+              <label className="text-xs font-bold text-slate-700 uppercase block">2. Or Upload Directly From Device</label>
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDraggingCover(true);
                 }}
-                className="w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer"
-              />
+                onDragLeave={() => setIsDraggingCover(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDraggingCover(false);
+                  const file = e.dataTransfer.files?.[0];
+                  if (file) handleCoverFileSelect(file);
+                }}
+                className={`relative flex items-center justify-between px-3.5 py-2 rounded-xl border-2 border-dashed transition-all ${
+                  isDraggingCover
+                    ? 'border-brand-orange bg-orange-50/50'
+                    : 'border-slate-300 hover:border-slate-400 bg-slate-50'
+                }`}
+              >
+                <div className="flex items-center gap-2 text-xs truncate">
+                  {isUploadingCover ? (
+                    <>
+                      <Loader2 className="w-4 h-4 text-brand-orange animate-spin flex-shrink-0" />
+                      <span className="text-slate-600 font-medium">Processing device image...</span>
+                    </>
+                  ) : coverFileInfo ? (
+                    <>
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                      <span className="text-slate-800 font-bold truncate">{coverFileInfo.name} ({coverFileInfo.size})</span>
+                    </>
+                  ) : (
+                    <>
+                      <UploadCloud className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                      <span className="text-slate-600 text-[11px] truncate">Drag & drop or pick from device</span>
+                    </>
+                  )}
+                </div>
+
+                <label className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-[11px] cursor-pointer shadow-xs transition-all">
+                  <span>{coverFileInfo ? 'Change' : 'Browse'}</span>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleCoverFileSelect(file);
+                    }}
+                  />
+                </label>
+              </div>
             </div>
           </div>
 
@@ -438,7 +575,10 @@ export default function AdminBannersPage() {
                 <button
                   key={idx}
                   type="button"
-                  onClick={() => setProfileCoverUrl(preset.url)}
+                  onClick={() => {
+                    setProfileCoverUrl(preset.url);
+                    setCoverFileInfo(null);
+                  }}
                   className={`group relative rounded-xl overflow-hidden border-2 transition-all p-1 text-left flex flex-col justify-between h-24 ${
                     profileCoverUrl === preset.url
                       ? 'border-brand-orange shadow-md shadow-orange-500/25 ring-2 ring-orange-400/40'
@@ -655,13 +795,21 @@ export default function AdminBannersPage() {
 
       {/* Add / Edit Banner Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-xl w-full border border-slate-200 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-xl w-full border border-slate-200 shadow-2xl space-y-5 max-h-[92vh] overflow-y-auto">
             
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-heading font-black text-xl text-slate-900">
-                {editingBanner ? 'Edit Banner' : 'Add New Banner'}
-              </h3>
+              <div>
+                <h3 className="font-heading font-black text-xl text-slate-900 flex items-center gap-2">
+                  <span>{editingBanner ? 'Edit Banner' : 'Add New Banner'}</span>
+                  <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-700 font-bold uppercase">
+                    Device Upload Ready
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  ডিভাইস থেকে ছবি আপলোড করুন অথবা ইন্টারনেট লিঙ্ক ও প্রিসেট ব্যবহার করুন।
+                </p>
+              </div>
               <button
                 onClick={() => setIsModalOpen(false)}
                 className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-sm cursor-pointer"
@@ -674,7 +822,7 @@ export default function AdminBannersPage() {
               {/* Placement Selector */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase">
-                  Where should this banner be placed?
+                  Where should this banner be placed? *
                 </label>
                 <select
                   value={modalForm.placement}
@@ -687,6 +835,246 @@ export default function AdminBannersPage() {
                   <option value="SHOP_BANNER">🛍️ Shop & Home Banner (Gaming Shop Top Banner & Homepage Widget)</option>
                   <option value="ARENA_BANNER">⚔️ 1v1 & 2v2 Arena Duel Top Banner (/arena)</option>
                 </select>
+              </div>
+
+              {/* Banner Image Upload & Picker Card */}
+              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-black text-slate-800 uppercase flex items-center gap-1.5">
+                    <ImageIcon className="w-4 h-4 text-brand-orange" />
+                    Banner Image (ব্যানার ছবি) *
+                  </label>
+
+                  {/* Mode Selector Tabs */}
+                  <div className="flex items-center bg-white p-1 rounded-xl border border-slate-200 gap-1 text-[11px] font-bold">
+                    <button
+                      type="button"
+                      onClick={() => setModalImageTab('UPLOAD')}
+                      className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
+                        modalImageTab === 'UPLOAD'
+                          ? 'bg-slate-900 text-white shadow-2xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <UploadCloud className="w-3 h-3" />
+                      <span>Device Upload</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setModalImageTab('URL')}
+                      className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
+                        modalImageTab === 'URL'
+                          ? 'bg-slate-900 text-white shadow-2xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      <span>URL</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setModalImageTab('PRESETS')}
+                      className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
+                        modalImageTab === 'PRESETS'
+                          ? 'bg-slate-900 text-white shadow-2xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <Sparkles className="w-3 h-3 text-amber-500" />
+                      <span>Presets</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* TAB 1: DEVICE UPLOAD */}
+                {modalImageTab === 'UPLOAD' && (
+                  <div className="space-y-2">
+                    <div
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setIsDraggingModal(true);
+                      }}
+                      onDragLeave={() => setIsDraggingModal(false)}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setIsDraggingModal(false);
+                        const file = e.dataTransfer.files?.[0];
+                        if (file) handleModalFileSelect(file);
+                      }}
+                      className={`border-2 border-dashed rounded-2xl p-4 text-center transition-all bg-white relative ${
+                        isDraggingModal
+                          ? 'border-brand-orange bg-orange-50/50'
+                          : 'border-slate-300 hover:border-slate-400'
+                      }`}
+                    >
+                      {isUploadingModalImage ? (
+                        <div className="py-4 space-y-2">
+                          <Loader2 className="w-8 h-8 text-brand-orange animate-spin mx-auto" />
+                          <p className="text-xs text-slate-600 font-bold">Optimizing image from device...</p>
+                        </div>
+                      ) : modalImageFileInfo ? (
+                        <div className="flex items-center justify-between p-2 rounded-xl bg-emerald-50 border border-emerald-200">
+                          <div className="flex items-center gap-2.5 text-left">
+                            <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                            <div>
+                              <div className="text-xs font-bold text-emerald-900 truncate max-w-[240px]">
+                                {modalImageFileInfo.name}
+                              </div>
+                              <div className="text-[10px] text-emerald-700 font-mono">
+                                {modalImageFileInfo.size} • Ready & Loaded
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <label className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] cursor-pointer">
+                              Change
+                              <input
+                                type="file"
+                                accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleModalFileSelect(file);
+                                }}
+                              />
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setModalImageFileInfo(null);
+                                setModalForm((prev) => ({ ...prev, imageUrl: '' }));
+                              }}
+                              className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-100"
+                              title="Remove"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="py-3 space-y-2">
+                          <div className="w-10 h-10 rounded-2xl bg-orange-100 text-brand-orange flex items-center justify-center mx-auto shadow-2xs">
+                            <UploadCloud className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <div className="text-xs font-black text-slate-800">
+                              কম্পিউটার বা মোবাইল থেকে ছবি সিলেক্ট করুন
+                            </div>
+                            <p className="text-[11px] text-slate-500 mt-0.5">
+                              Drag & drop here, or click to browse files (PNG, JPG, WEBP, GIF)
+                            </p>
+                          </div>
+                          <label className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold cursor-pointer shadow-sm">
+                            <Upload className="w-3.5 h-3.5" />
+                            <span>Browse Device Image</span>
+                            <input
+                              type="file"
+                              accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleModalFileSelect(file);
+                              }}
+                            />
+                          </label>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB 2: IMAGE URL */}
+                {modalImageTab === 'URL' && (
+                  <div className="space-y-1.5">
+                    <input
+                      type="url"
+                      placeholder="https://images.unsplash.com/photo-..."
+                      value={modalForm.imageUrl}
+                      onChange={(e) => {
+                        setModalForm({ ...modalForm, imageUrl: e.target.value });
+                        setModalImageFileInfo(null);
+                      }}
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-brand-orange font-mono"
+                    />
+                    <p className="text-[10px] text-slate-500">
+                      Enter any publicly accessible direct image URL (Unsplash, Imgur, Cloudinary, etc.)
+                    </p>
+                  </div>
+                )}
+
+                {/* TAB 3: 1-CLICK PRESETS */}
+                {modalImageTab === 'PRESETS' && (
+                  <div className="space-y-1.5">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {PRESET_IMAGES.map((preset) => (
+                        <button
+                          key={preset.name}
+                          type="button"
+                          onClick={() => {
+                            setModalForm({ ...modalForm, imageUrl: preset.url });
+                            setModalImageFileInfo(null);
+                          }}
+                          className={`group relative rounded-xl overflow-hidden border-2 text-left p-1.5 h-16 transition-all flex flex-col justify-end ${
+                            modalForm.imageUrl === preset.url
+                              ? 'border-brand-orange ring-2 ring-orange-400/40 shadow-xs'
+                              : 'border-slate-200 hover:border-slate-300'
+                          }`}
+                        >
+                          <img src={preset.url} alt={preset.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                          <span className="relative z-10 text-[9px] font-bold text-white truncate drop-shadow">
+                            {preset.name}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Real-time Banner Card Preview */}
+                {modalForm.imageUrl && (
+                  <div className="space-y-1.5 pt-1">
+                    <div className="text-[10px] font-bold text-slate-600 uppercase flex items-center gap-1">
+                      <Eye className="w-3 h-3 text-orange-500" />
+                      Live Banner Card Preview:
+                    </div>
+                    <div className="relative h-32 rounded-2xl overflow-hidden border-2 border-slate-300 bg-slate-950 shadow-inner group">
+                      <img
+                        src={modalForm.imageUrl}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
+                      
+                      {modalForm.badge && (
+                        <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full bg-brand-red text-white text-[9px] font-black uppercase">
+                          {modalForm.badge}
+                        </div>
+                      )}
+
+                      <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-end justify-between gap-2">
+                        <div className="truncate">
+                          <div className="text-white font-heading font-black text-xs drop-shadow truncate">
+                            {modalForm.title || 'Banner Title Preview'}
+                          </div>
+                          {modalForm.subtitle && (
+                            <div className="text-slate-300 text-[10px] truncate">
+                              {modalForm.subtitle}
+                            </div>
+                          )}
+                        </div>
+                        {modalForm.buttonText && (
+                          <div className="px-2 py-1 rounded-lg bg-brand-orange text-white text-[9px] font-black uppercase whitespace-nowrap shadow-xs">
+                            {modalForm.buttonText}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Title */}
@@ -731,50 +1119,6 @@ export default function AdminBannersPage() {
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-brand-orange"
                   />
                 </div>
-              </div>
-
-              {/* Image URL & Preset Selection */}
-              <div className="space-y-2">
-                <label className="block text-xs font-bold text-slate-700 uppercase">
-                  Image URL *
-                </label>
-                <input
-                  type="url"
-                  required
-                  placeholder="https://..."
-                  value={modalForm.imageUrl}
-                  onChange={(e) => setModalForm({ ...modalForm, imageUrl: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-brand-orange font-mono"
-                />
-
-                {/* Quick Preset Buttons */}
-                <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                  <span className="text-[10px] text-slate-500 font-bold">Presets:</span>
-                  {PRESET_IMAGES.map((preset) => (
-                    <button
-                      key={preset.name}
-                      type="button"
-                      onClick={() => setModalForm({ ...modalForm, imageUrl: preset.url })}
-                      className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[10px] text-slate-700 font-medium cursor-pointer"
-                    >
-                      {preset.name}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Live Preview */}
-                {modalForm.imageUrl && (
-                  <div className="relative h-28 rounded-2xl overflow-hidden border border-slate-200 mt-2 bg-slate-950">
-                    <img
-                      src={modalForm.imageUrl}
-                      alt="Preview"
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLElement).style.display = 'none';
-                      }}
-                    />
-                  </div>
-                )}
               </div>
 
               {/* Target Link URL & Button Text */}
