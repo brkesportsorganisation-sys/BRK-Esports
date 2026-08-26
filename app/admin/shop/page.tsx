@@ -113,16 +113,7 @@ export default function AdminGamingShopPage() {
     buttonText: string;
     linkUrl: string;
     isActive: boolean;
-  }>({
-    id: 'ban_shop_main',
-    title: 'Gaming Shop & Diamond Center',
-    subtitle: 'আপনার অর্জিত BRK Coins (🪙) অথবা Wallet Taka (৳) দিয়ে ইনস্ট্যান্ট ফ্রি ফায়ার ডায়মন্ড, উইকলি মেম্বারশিপ, স্কিন রিডিম ভাউচার ও ম্যাচ পাস কিনুন!',
-    badge: 'BRK ESPORTS OFFICIAL REWARDS & COIN SHOP',
-    imageUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1600&auto=format&fit=crop&q=80',
-    buttonText: 'VISIT GAMING SHOP',
-    linkUrl: '/shop',
-    isActive: true,
-  });
+  } | null>(null);
   const [isSavingBanner, setIsSavingBanner] = useState(false);
   const [bannerSaveSuccess, setBannerSaveSuccess] = useState(false);
 
@@ -373,39 +364,7 @@ export default function AdminGamingShopPage() {
 
   const handleSaveShopBanner = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSavingBanner(true);
-    setBannerSaveSuccess(false);
-    try {
-      const res = await fetch('/api/banners', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: shopBanner.id || 'ban_shop_main',
-          title: shopBanner.title,
-          subtitle: shopBanner.subtitle,
-          badge: shopBanner.badge,
-          imageUrl: shopBanner.imageUrl,
-          buttonText: shopBanner.buttonText || 'VISIT GAMING SHOP',
-          linkUrl: shopBanner.linkUrl || '/shop',
-          placement: 'SHOP_BANNER',
-          order: 1,
-          isActive: shopBanner.isActive,
-        }),
-      });
-
-      if (res.ok) {
-        setBannerSaveSuccess(true);
-        setTimeout(() => setBannerSaveSuccess(false), 3000);
-        loadData();
-      } else {
-        const d = await res.json();
-        alert(d.message || 'Failed to save shop banner.');
-      }
-    } catch (err: any) {
-      alert(err?.message || 'Failed to save shop banner.');
-    } finally {
-      setIsSavingBanner(false);
-    }
+    // This is handled via /admin/banners now.
   };
 
   // Filtered lists
@@ -837,278 +796,21 @@ export default function AdminGamingShopPage() {
         </div>
       )}
 
-      {/* ══════════ TAB 3: SHOP & HOME BANNER CUSTOMIZER ══════════ */}
+      {/* ══════════ TAB 3: SHOP BANNER REDIRECT ══════════ */}
       {activeTab === 'BANNER' && (
-        <div className="space-y-8">
-          {/* Header Info */}
-          <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-red-500/10 border-2 border-amber-300/80 rounded-3xl p-6 sm:p-7 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-amber-200/60 pb-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="p-2 rounded-xl bg-amber-500 text-slate-950 font-black shadow-md">
-                    <Sparkles className="w-5 h-5" />
-                  </span>
-                  <h2 className="text-xl font-black font-heading text-slate-900">
-                    Customize Gaming Shop & Homepage Banner
-                  </h2>
-                </div>
-                <p className="text-xs text-slate-600">
-                  This banner is displayed on top of the <strong>/shop</strong> page and as the featured interactive banner in the Homepage <strong>Shop Section</strong>. Clicking it redirects players directly to the shop!
-                </p>
-              </div>
-
-              <button
-                onClick={handleSaveShopBanner}
-                disabled={isSavingBanner}
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-heading font-black text-xs shadow-md shadow-emerald-600/20 active:scale-95 transition-all cursor-pointer shrink-0"
-              >
-                {isSavingBanner ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : bannerSaveSuccess ? (
-                  <Check className="w-4 h-4" />
-                ) : (
-                  <Save className="w-4 h-4" />
-                )}
-                <span>{bannerSaveSuccess ? 'Banner Saved Successfully!' : 'SAVE SHOP BANNER'}</span>
-              </button>
-            </div>
-
-            {/* Live Interactive Preview Box */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                  <Eye className="w-4 h-4 text-amber-600" />
-                  <span>Live Preview (হোমপেজ ও শপ পেজে যেমন দেখাবে):</span>
-                </span>
-                <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full">
-                  Clickable ➡️ /shop
-                </span>
-              </div>
-
-              {/* Preview Card */}
-              {shopBanner.imageUrl ? (
-                <div className="relative rounded-3xl overflow-hidden bg-slate-950 border border-slate-800 shadow-xl group">
-                  <img
-                    src={shopBanner.imageUrl}
-                    alt={shopBanner.title || 'Shop Banner'}
-                    className="w-full h-auto block rounded-3xl"
-                  />
-                  <div className="p-4 bg-slate-900/90 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-white">
-                    <div className="text-xs">
-                      <span className="font-bold text-amber-400">{shopBanner.title || 'Gaming Shop & Diamond Center'}</span>
-                      <p className="text-slate-400 text-[11px] line-clamp-1">{shopBanner.subtitle || 'Instant Free Fire Diamond Delivery & Coins'}</p>
-                    </div>
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold shrink-0">
-                      <span>{shopBanner.buttonText || 'VISIT SHOP'}</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="relative rounded-[2rem] overflow-hidden bg-slate-950 border border-slate-800 p-6 sm:p-8 shadow-2xl text-white">
-                  <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-amber-500/20 via-orange-500/20 to-transparent rounded-full blur-3xl pointer-events-none" />
-
-                  <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="space-y-2 max-w-xl">
-                      {shopBanner.badge && (
-                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-400 text-[10px] sm:text-xs font-black uppercase tracking-wider backdrop-blur-md">
-                          <Sparkles className="w-3.5 h-3.5 animate-pulse text-amber-400" />
-                          <span>{shopBanner.badge}</span>
-                        </div>
-                      )}
-                      <h3 className="text-2xl sm:text-3xl md:text-4xl font-black font-heading tracking-tight text-white drop-shadow-md">
-                        {shopBanner.title || 'Gaming Shop & Diamond Center'}
-                      </h3>
-                      <p className="text-xs sm:text-sm text-slate-300 line-clamp-2 leading-relaxed drop-shadow-sm">
-                        {shopBanner.subtitle || 'আপনার অর্জিত EZBD Coins অথবা Wallet Taka দিয়ে ফ্রি ফায়ার ডায়মন্ড কিনুন!'}
-                      </p>
-                    </div>
-
-                    <div className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white font-heading font-black text-xs uppercase tracking-wider shadow-lg shrink-0">
-                      <ShoppingBag className="w-4 h-4" />
-                      <span>{shopBanner.buttonText || 'VISIT GAMING SHOP'}</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+        <div className="bg-white border border-slate-200/80 rounded-3xl shadow-sm p-8 sm:p-12 text-center max-w-3xl mx-auto space-y-6">
+          <div className="w-20 h-20 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-4 border border-amber-100">
+            <Sparkles className="w-10 h-10 text-amber-500" />
           </div>
-
-          {/* Banner Editing Form */}
-          <form onSubmit={handleSaveShopBanner} className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
-            
-            {/* Image URL & File Upload */}
-            <div className="space-y-3">
-              <label className="text-xs font-bold text-slate-800 uppercase block">
-                1. Banner Background / Poster Image (ছবির লিঙ্ক অথবা ফাইল আপলোড করুন) *
-              </label>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-                <div className="sm:col-span-8">
-                  <input
-                    type="url"
-                    required
-                    placeholder="https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1600..."
-                    value={shopBanner.imageUrl}
-                    onChange={(e) => setShopBanner({ ...shopBanner, imageUrl: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-mono focus:outline-none focus:border-brand-orange"
-                  />
-                </div>
-
-                <div className="sm:col-span-4">
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        try {
-                          const compressed = await compressImage(file, 1600, 0.85);
-                          setShopBanner({ ...shopBanner, imageUrl: compressed });
-                        } catch (err) {
-                          alert('Failed to process image from device.');
-                        }
-                      }
-                    }}
-                    className="w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer"
-                  />
-                </div>
-              </div>
-
-              {/* 1-Click Preset Gallery */}
-              <div className="space-y-2 pt-1">
-                <label className="text-[11px] font-bold text-slate-600 uppercase block">
-                  Or pick a 1-Click Gaming Preset Banner:
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
-                  {[
-                    { name: '🔥 Free Fire Diamonds & Arena', url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1600&auto=format&fit=crop&q=80' },
-                    { name: '⚡ Neon Cyber Gaming Hub', url: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1600&auto=format&fit=crop&q=80' },
-                    { name: '🏆 Golden Esports Trophy', url: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1600&auto=format&fit=crop&q=80' },
-                    { name: '⚔️ Crimson Battleground', url: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=1600&auto=format&fit=crop&q=80' },
-                    { name: '👑 Royal Rewards & Crates', url: 'https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?w=1600&auto=format&fit=crop&q=80' },
-                  ].map((preset, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => setShopBanner({ ...shopBanner, imageUrl: preset.url })}
-                      className={`group relative rounded-xl overflow-hidden border-2 transition-all p-1 text-left flex flex-col justify-between h-20 ${
-                        shopBanner.imageUrl === preset.url
-                          ? 'border-amber-500 shadow-md ring-2 ring-amber-400/40'
-                          : 'border-slate-200 hover:border-slate-300'
-                      }`}
-                    >
-                      <img src={preset.url} alt={preset.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                      <div className="relative z-10 self-end">
-                        {shopBanner.imageUrl === preset.url && (
-                          <span className="w-5 h-5 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center shadow-xs">
-                            <Check className="w-3 h-3" />
-                          </span>
-                        )}
-                      </div>
-                      <span className="relative z-10 text-[9px] font-bold text-white truncate drop-shadow-sm">
-                        {preset.name}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Title & Badge */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 uppercase block">
-                  Banner Main Title *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Gaming Shop & Diamond Center"
-                  value={shopBanner.title}
-                  onChange={(e) => setShopBanner({ ...shopBanner, title: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-bold focus:outline-none focus:border-brand-orange"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 uppercase block">
-                  Category Tag / Badge
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. 💎 BRK ESPORTS OFFICIAL REWARDS & COIN SHOP"
-                  value={shopBanner.badge}
-                  onChange={(e) => setShopBanner({ ...shopBanner, badge: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-brand-orange"
-                />
-              </div>
-            </div>
-
-            {/* Subtitle / Description */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700 uppercase block">
-                Subtitle / Description Text
-              </label>
-              <textarea
-                rows={3}
-                placeholder="আপনার অর্জিত BRK Coins অথবা Wallet Taka দিয়ে ইনস্ট্যান্ট ডায়মন্ড, উইকলি মেম্বারশিপ ও স্কিন রিওয়ার্ডস কিনুন!"
-                value={shopBanner.subtitle}
-                onChange={(e) => setShopBanner({ ...shopBanner, subtitle: e.target.value })}
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-brand-orange"
-              />
-            </div>
-
-            {/* CTA Button Text & Link */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 uppercase block">
-                  Button CTA Text
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. VISIT GAMING SHOP"
-                  value={shopBanner.buttonText}
-                  onChange={(e) => setShopBanner({ ...shopBanner, buttonText: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-bold focus:outline-none focus:border-brand-orange"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 uppercase block">
-                  Redirect Destination URL (ক্লিক করলে যেখানে যাবে)
-                </label>
-                <input
-                  type="text"
-                  placeholder="/shop"
-                  value={shopBanner.linkUrl}
-                  onChange={(e) => setShopBanner({ ...shopBanner, linkUrl: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-mono focus:outline-none focus:border-brand-orange"
-                />
-              </div>
-            </div>
-
-            {/* Save Button */}
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-end">
-              <button
-                type="submit"
-                disabled={isSavingBanner}
-                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-black text-xs shadow-neon-orange hover:brightness-110 active:scale-95 transition-all cursor-pointer"
-              >
-                {isSavingBanner ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : bannerSaveSuccess ? (
-                  <Check className="w-4 h-4" />
-                ) : (
-                  <Save className="w-4 h-4" />
-                )}
-                <span>{bannerSaveSuccess ? 'Banner Saved Successfully!' : 'SAVE SHOP BANNER CHANGES'}</span>
-              </button>
-            </div>
-
-          </form>
+          <h2 className="text-2xl font-black font-heading text-slate-900">Multiple Shop Banners & Slider Manager</h2>
+          <p className="text-slate-600 text-sm leading-relaxed max-w-xl mx-auto">You can now add <strong>multiple banners</strong> to the shop page to create an auto-sliding carousel. To manage these banners, please use the Main Banners Manager.</p>
+          <div className="pt-6">
+            <a href="/admin/banners" className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-black text-sm uppercase tracking-wider shadow-neon-orange hover:scale-105 active:scale-95 transition-all cursor-pointer">
+              <span>Go To Banners Manager</span>
+              <ArrowRight className="w-5 h-5" />
+            </a>
+          </div>
+          <p className="text-xs text-slate-400 mt-4">Select <strong>"🛍️ Shop & Home Banner"</strong> from the Placement dropdown to add them to the shop slider.</p>
         </div>
       )}
 

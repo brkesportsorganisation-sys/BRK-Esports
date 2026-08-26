@@ -262,38 +262,38 @@ export default function TournamentsPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full space-y-5">
         
         {/* Compact All-in-One Filter Bar */}
-        <div className="bg-white rounded-2xl p-3 sm:p-4 border border-slate-200/90 shadow-xs space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5 items-center">
+        <div className="bg-white rounded-2xl p-2.5 sm:p-3 border border-slate-200/90 shadow-xs space-y-2">
+          <div className="flex items-center gap-2 overflow-x-auto w-full scroll-smooth pb-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             
             {/* Search Input */}
-            <div className="sm:col-span-2 lg:col-span-3 relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <div className="relative shrink-0 w-[160px] sm:w-[200px]">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search tournament, game..."
+                placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl pl-9 pr-8 py-2 text-xs font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-orange focus:bg-white transition-colors"
+                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl pl-8 pr-7 py-2 text-[11px] sm:text-xs font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-orange focus:bg-white transition-colors"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <X className="w-3 h-3" />
                 </button>
               )}
             </div>
 
             {/* Game Select */}
-            <div className="lg:col-span-2">
+            <div className="shrink-0 min-w-[140px]">
               <select
                 value={selectedGame}
                 onChange={(e) => handleGameChange(e.target.value)}
-                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-brand-orange focus:bg-white cursor-pointer"
+                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-[11px] sm:text-xs font-semibold text-slate-800 focus:outline-none focus:border-brand-orange focus:bg-white cursor-pointer"
               >
-                <option value="ALL">🎮 Game: All Games</option>
+                <option value="ALL">🎮 All Games</option>
                 <option value="FREE_FIRE">🔥 Free Fire</option>
                 <option value="EFOOTBALL">⚽ eFootball</option>
                 <option value="PUBG_MOBILE">🪖 PUBG Mobile</option>
@@ -304,12 +304,12 @@ export default function TournamentsPage() {
               </select>
             </div>
 
-            {/* Mode Select (Dynamic based on selected game) */}
-            <div className="lg:col-span-2">
+            {/* Mode Select */}
+            <div className="shrink-0 min-w-[130px]">
               <select
                 value={selectedMode}
                 onChange={(e) => setSelectedMode(e.target.value)}
-                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-brand-orange focus:bg-white cursor-pointer"
+                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-[11px] sm:text-xs font-semibold text-slate-800 focus:outline-none focus:border-brand-orange focus:bg-white cursor-pointer"
               >
                 {activeConfig.modes.map((m) => (
                   <option key={m.value} value={m.value}>
@@ -319,12 +319,12 @@ export default function TournamentsPage() {
               </select>
             </div>
 
-            {/* Format Select (Dynamic based on selected game) */}
-            <div className="lg:col-span-2">
+            {/* Format Select */}
+            <div className="shrink-0 min-w-[130px]">
               <select
                 value={selectedFormat}
                 onChange={(e) => setSelectedFormat(e.target.value)}
-                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-brand-orange focus:bg-white cursor-pointer"
+                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-[11px] sm:text-xs font-semibold text-slate-800 focus:outline-none focus:border-brand-orange focus:bg-white cursor-pointer"
               >
                 {activeConfig.formats.map((f) => (
                   <option key={f.value} value={f.value}>
@@ -335,11 +335,11 @@ export default function TournamentsPage() {
             </div>
 
             {/* Status Select */}
-            <div className="lg:col-span-1.5">
+            <div className="shrink-0 min-w-[120px]">
               <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
-                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-brand-orange focus:bg-white cursor-pointer"
+                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-2.5 py-2 text-[11px] sm:text-xs font-semibold text-slate-800 focus:outline-none focus:border-brand-orange focus:bg-white cursor-pointer"
               >
                 <option value="ALL">⚡ All Status</option>
                 <option value="UPCOMING">🕒 Upcoming</option>
@@ -349,18 +349,17 @@ export default function TournamentsPage() {
             </div>
 
             {/* Entry Fee Select */}
-            <div className="lg:col-span-1.5">
+            <div className="shrink-0 min-w-[110px]">
               <select
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value)}
-                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-brand-orange focus:bg-white cursor-pointer"
+                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-2.5 py-2 text-[11px] sm:text-xs font-semibold text-slate-800 focus:outline-none focus:border-brand-orange focus:bg-white cursor-pointer"
               >
                 <option value="ALL">💰 All Entry</option>
                 <option value="FREE">🎁 Free</option>
                 <option value="PAID">৳ Paid</option>
               </select>
             </div>
-
           </div>
 
           {/* Active Filter Chips & Reset Bar (only when filters applied) */}
