@@ -91,6 +91,7 @@ export default function AdminBannersPage() {
   const [loading, setLoading] = useState(true);
   const [filterPlacement, setFilterPlacement] = useState<'ALL' | BannerPlacement>('ALL');
   const [autoSlideInterval, setAutoSlideInterval] = useState(4000);
+  const [overlayOpacity, setOverlayOpacity] = useState(50);
   const [savingSettings, setSavingSettings] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -176,6 +177,9 @@ export default function AdminBannersPage() {
         if (data.settings?.autoSlideInterval) {
           setAutoSlideInterval(data.settings.autoSlideInterval);
         }
+        if (data.settings?.overlayOpacity !== undefined) {
+          setOverlayOpacity(data.settings.overlayOpacity);
+        }
       }
 
       // Load Profile Cover Photo
@@ -208,6 +212,7 @@ export default function AdminBannersPage() {
           action: 'UPDATE_SETTINGS',
           autoSlideInterval,
           isEnabled: true,
+          overlayOpacity,
         }),
       });
 
@@ -686,6 +691,25 @@ export default function AdminBannersPage() {
               <div className="text-[10px] text-slate-500 font-mono">{ms}ms interval</div>
             </button>
           ))}
+        </div>
+
+        <div className="pt-4 border-t border-slate-100 mt-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-heading font-bold text-slate-900 text-sm">Banner Overlay Darkness</h3>
+            <span className="text-xs font-bold text-brand-orange">{overlayOpacity}%</span>
+          </div>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            step="5"
+            value={overlayOpacity}
+            onChange={(e) => setOverlayOpacity(parseInt(e.target.value))}
+            className="w-full accent-brand-orange"
+          />
+          <p className="text-[10px] text-slate-500 mt-1">
+            0% = No dark overlay (original image brightness), 100% = Completely black. Default is 50%.
+          </p>
         </div>
       </div>
 

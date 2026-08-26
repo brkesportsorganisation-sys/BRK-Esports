@@ -13,7 +13,11 @@ export async function GET(request: NextRequest) {
     const all = searchParams.get('all') === 'true';
 
     let banners: Banner[] = [];
-    let settings = { autoSlideInterval: 4000, isEnabled: true };
+    let settings: { autoSlideInterval: number; isEnabled: boolean; overlayOpacity: number } = { 
+      autoSlideInterval: 4000, 
+      isEnabled: true,
+      overlayOpacity: 50
+    };
 
     // Try Supabase first
     try {
@@ -52,7 +56,7 @@ export async function GET(request: NextRequest) {
 
       if (banners.length === 0) {
         banners = db.getBanners();
-        settings = db.getBannerSettings();
+        settings = { ...settings, ...db.getBannerSettings() };
       }
     }
 
@@ -60,15 +64,24 @@ export async function GET(request: NextRequest) {
     try {
       const { data: siteSettingsData } = await supabaseAdmin
         .from('SiteSetting')
-        .select('value')
-        .eq('key', 'banner_slide_speed')
-        .maybeSingle();
+        .select('key, value')
+        .in('key', ['banner_slide_speed', 'banner_overlay_opacity']);
 
-      if (siteSettingsData?.value) {
-        const speed = parseInt(siteSettingsData.value, 10);
-        if (!isNaN(speed) && speed > 0) {
-          settings.autoSlideInterval = speed;
-        }
+      if (siteSettingsData && siteSettingsData.length > 0) {
+        siteSettingsData.forEach((setting) => {
+          if (setting.key === 'banner_slide_speed') {
+            const speed = parseInt(setting.value, 10);
+            if (!isNaN(speed) && speed > 0) {
+              settings.autoSlideInterval = speed;
+            }
+          }
+          if (setting.key === 'banner_overlay_opacity') {
+            const opacity = parseInt(setting.value, 10);
+            if (!isNaN(opacity) && opacity >= 0 && opacity <= 100) {
+              settings.overlayOpacity = opacity;
+            }
+          }
+        });
       }
     } catch {}
 
@@ -103,18 +116,26 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     if (body.action === 'UPDATE_SETTINGS') {
-      const { autoSlideInterval, isEnabled } = body;
-      const updated = db.updateBannerSettings({ autoSlideInterval, isEnabled });
+      const { autoSlideInterval, isEnabled, overlayOpacity } = body;
+      const updated = db.updateBannerSettings({ autoSlideInterval, isEnabled, overlayOpacity });
 
       try {
         await supabaseAdmin
           .from('SiteSetting')
-          .upsert({
-            id: 'setting_banner_slide_speed',
-            key: 'banner_slide_speed',
-            value: String(autoSlideInterval || 4000),
-            updatedAt: new Date().toISOString(),
-          }, { onConflict: 'key' });
+          .upsert([
+            {
+              id: 'setting_banner_slide_speed',
+              key: 'banner_slide_speed',
+              value: String(autoSlideInterval || 4000),
+              updatedAt: new Date().toISOString(),
+            },
+            {
+              id: 'setting_banner_overlay_opacity',
+              key: 'banner_overlay_opacity',
+              value: String(overlayOpacity ?? 50),
+              updatedAt: new Date().toISOString(),
+            }
+          ], { onConflict: 'key' });
       } catch {}
 
       return NextResponse.json({ success: true, settings: updated });

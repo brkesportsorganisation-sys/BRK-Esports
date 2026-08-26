@@ -10,9 +10,10 @@ class LocalDatabase {
   private banners: Banner[] = [...initialBanners];
   private supportTickets: SupportTicket[] = [];
   private supportMessages: SupportMessage[] = [];
-  private bannerSettings: { autoSlideInterval: number; isEnabled: boolean } = {
+  private bannerSettings: { autoSlideInterval: number; isEnabled: boolean; overlayOpacity?: number } = {
     autoSlideInterval: 4000,
     isEnabled: true,
+    overlayOpacity: 50,
   };
   private matchResults: MatchResult[] = [];
   private registrations: any[] = [];
@@ -614,11 +615,11 @@ class LocalDatabase {
     return true;
   }
 
-  getBannerSettings(): { autoSlideInterval: number; isEnabled: boolean } {
+  getBannerSettings(): { autoSlideInterval: number; isEnabled: boolean; overlayOpacity?: number } {
     return this.bannerSettings;
   }
 
-  updateBannerSettings(settings: Partial<{ autoSlideInterval: number; isEnabled: boolean }>) {
+  updateBannerSettings(settings: Partial<{ autoSlideInterval: number; isEnabled: boolean; overlayOpacity: number }>) {
     this.bannerSettings = {
       ...this.bannerSettings,
       ...settings,

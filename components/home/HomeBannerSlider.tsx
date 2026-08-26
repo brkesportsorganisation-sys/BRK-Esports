@@ -36,6 +36,11 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
   const [slideInterval, setSlideInterval] = useState<number>(() => {
     return initialData?.settings?.autoSlideInterval || 4000;
   });
+  
+  const [overlayOpacity, setOverlayOpacity] = useState<number>(() => {
+    // @ts-ignore
+    return initialData?.settings?.overlayOpacity ?? 60;
+  });
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
@@ -58,6 +63,9 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
           }
           if (data.settings?.autoSlideInterval) {
             setSlideInterval(data.settings.autoSlideInterval);
+          }
+          if (data.settings?.overlayOpacity !== undefined) {
+            setOverlayOpacity(data.settings.overlayOpacity);
           }
         }
       } catch (err) {
@@ -128,9 +136,11 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
                 className="object-cover object-center"
               />
 
-              {/* Rich Esports Cinematic Gradient Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent"></div>
-              <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/40 to-transparent"></div>
+              {/* Rich Esports Cinematic Gradient Overlay (Adjustable Brightness) */}
+              <div className="absolute inset-0 transition-opacity duration-300 pointer-events-none" style={{ opacity: overlayOpacity / 100 }}>
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-950/50 to-transparent"></div>
+              </div>
 
               {/* Banner Text & Action Content */}
               <div className="absolute inset-0 p-5 sm:p-8 md:p-10 flex flex-col justify-end items-start z-10 space-y-2.5 sm:space-y-3.5 max-w-xl">
@@ -228,9 +238,11 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
               sizes="(max-width: 1024px) 100vw, 400px"
               className="object-cover group-hover:scale-105 transition-transform duration-500"
             />
-            {/* Gradient Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-transparent"></div>
-            <div className="absolute inset-0 bg-gradient-to-r from-slate-950/80 via-slate-950/30 to-transparent"></div>
+            {/* Gradient Overlay (Adjustable Brightness) */}
+            <div className="absolute inset-0 transition-opacity duration-300 pointer-events-none" style={{ opacity: overlayOpacity / 100 }}>
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/70 to-transparent"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/40 to-transparent"></div>
+            </div>
 
             {/* Content */}
             <div className="absolute inset-0 p-5 flex flex-col justify-end items-start z-10 space-y-1.5">
@@ -262,9 +274,11 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
               sizes="(max-width: 1024px) 100vw, 400px"
               className="object-cover group-hover:scale-105 transition-transform duration-500"
             />
-            {/* Gradient Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-transparent"></div>
-            <div className="absolute inset-0 bg-gradient-to-r from-slate-950/80 via-slate-950/30 to-transparent"></div>
+            {/* Gradient Overlay (Adjustable Brightness) */}
+            <div className="absolute inset-0 transition-opacity duration-300 pointer-events-none" style={{ opacity: overlayOpacity / 100 }}>
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/70 to-transparent"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/40 to-transparent"></div>
+            </div>
 
             {/* Content */}
             <div className="absolute inset-0 p-5 flex flex-col justify-end items-start z-10 space-y-1.5">
