@@ -63,25 +63,25 @@ export default function ShopBannerSlider({
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentSlide.id || currentIndex}
-                initial={{ opacity: 0, scale: 1.01 }}
-                animate={{ opacity: 1, scale: 1 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.45, ease: 'easeOut' }}
-                className="w-full"
+                transition={{ duration: 0.35, ease: 'easeInOut' }}
+                className="w-full h-auto block"
               >
                 {currentSlide.linkUrl && currentSlide.linkUrl !== '#' && currentSlide.linkUrl !== '/shop' ? (
                   <Link href={currentSlide.linkUrl} className="block w-full cursor-pointer">
                     <img
                       src={currentSlide.imageUrl}
                       alt={currentSlide.title || 'Shop Banner'}
-                      className="w-full h-auto max-h-[500px] object-cover object-center rounded-3xl transition-transform duration-500 group-hover:scale-[1.008]"
+                      className="w-full h-auto block rounded-3xl transition-transform duration-500 group-hover:scale-[1.006]"
                     />
                   </Link>
                 ) : (
                   <img
                     src={currentSlide.imageUrl}
                     alt={currentSlide.title || 'Shop Banner'}
-                    className="w-full h-auto max-h-[500px] object-cover object-center rounded-3xl"
+                    className="w-full h-auto block rounded-3xl"
                   />
                 )}
               </motion.div>

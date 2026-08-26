@@ -891,7 +891,7 @@ export default function AdminGamingShopPage() {
                   <img
                     src={shopBanner.imageUrl}
                     alt={shopBanner.title || 'Shop Banner'}
-                    className="w-full h-auto max-h-[400px] object-cover object-center rounded-3xl"
+                    className="w-full h-auto block rounded-3xl"
                   />
                   <div className="p-4 bg-slate-900/90 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-white">
                     <div className="text-xs">
