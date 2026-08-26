@@ -194,6 +194,7 @@ export default function ShopBannerSlider({
               <span>{(currentUser?.walletBalance || 0).toLocaleString()}</span>
             </div>
           </div>
+          </div>
         </div>
       )}
     </div>

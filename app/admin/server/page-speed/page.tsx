@@ -92,7 +92,7 @@ export default function PageSpeedMetricsPage() {
                   <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center border border-slate-100 text-slate-400">
                     <Clock className="w-6 h-6" />
                   </div>
-                  <span className={\`text-xs font-bold px-3 py-1 rounded-full border \${route.error ? 'text-red-600 bg-red-50 border-red-200' : 'text-slate-600 bg-slate-50 border-slate-200'}\`}>
+                  <span className={`text-xs font-bold px-3 py-1 rounded-full border ${route.error ? 'text-red-600 bg-red-50 border-red-200' : 'text-slate-600 bg-slate-50 border-slate-200'}`}>
                     HTTP {route.status}
                   </span>
                 </div>
@@ -104,13 +104,13 @@ export default function PageSpeedMetricsPage() {
                   <div>
                     <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400 mb-1">Latency</p>
                     <div className="flex items-center gap-2">
-                      <span className={\`text-2xl font-black \${route.error ? 'text-red-500' : 'text-slate-900'}\`}>
+                      <span className={`text-2xl font-black ${route.error ? 'text-red-500' : 'text-slate-900'}`}>
                         {route.latencyMs}
                       </span>
                       <span className="text-sm font-bold text-slate-400">ms</span>
                     </div>
                   </div>
-                  <span className={\`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded border \${getLatencyColor(route.latencyMs)}\`}>
+                  <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded border ${getLatencyColor(route.latencyMs)}`}>
                     {getLatencyStatus(route.latencyMs)}
                   </span>
                 </div>

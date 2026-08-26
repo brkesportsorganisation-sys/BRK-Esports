@@ -388,7 +388,6 @@ export default function TournamentsPage() {
               </div>
             </div>
           )}
-        </div>
 
           {/* Active Filter Chips & Reset Bar (only when filters applied) */}
           {hasActiveFilters && (
@@ -438,7 +437,6 @@ export default function TournamentsPage() {
             </div>
           )}
         </div>
-
         {/* Results Info */}
         <div className="flex items-center justify-between text-xs text-slate-600 font-semibold px-1">
           {loading ? (

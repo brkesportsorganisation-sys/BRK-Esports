@@ -85,7 +85,7 @@ export default function DatabaseMetricsPage() {
                     <div className="w-32 bg-slate-100 rounded-full h-2 hidden sm:block">
                       <div 
                         className="bg-emerald-500 h-full rounded-full" 
-                        style={{ width: \`\${Math.min((table.count / metrics.totalRows) * 100, 100)}%\` }}
+                        style={{ width: `${Math.min((table.count / metrics.totalRows) * 100, 100)}%` }}
                       />
                     </div>
                     <div className="font-black text-slate-900 bg-emerald-50 px-3 py-1 rounded-lg">

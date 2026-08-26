@@ -96,7 +96,7 @@ export default function StorageMetricsPage() {
                   </div>
                   <div>
                     <h4 className="font-black text-lg text-slate-800">{bucket.name}</h4>
-                    <span className={\`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase \${bucket.public ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}\`}>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${bucket.public ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
                       {bucket.public ? 'Public' : 'Private'}
                     </span>
                   </div>
