@@ -174,44 +174,12 @@ export default async function HomePage() {
                 href={shopBanner?.linkUrl || '/shop'}
                 className="group relative block w-full rounded-3xl overflow-hidden border border-slate-800 hover:border-amber-400 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-0.5 cursor-pointer bg-slate-950 text-white"
               >
-                <div className="relative h-48 sm:h-64 w-full overflow-hidden bg-slate-950">
-                  <Image
+                <div className="relative w-full overflow-hidden bg-slate-950">
+                  <img
                     src={shopBanner?.imageUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=75'}
                     alt={shopBanner?.title || 'Gaming Shop'}
-                    fill
-                    sizes="(max-width: 768px) 100vw, 1200px"
-                    className="object-cover group-hover:scale-105 transition-transform duration-700 opacity-60 group-hover:opacity-75"
+                    className="w-full h-auto max-h-[360px] object-cover group-hover:scale-[1.01] transition-transform duration-700"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t sm:bg-gradient-to-r from-slate-950 via-slate-950/80 to-transparent" aria-hidden="true" />
-                  <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-amber-500/20 via-orange-500/20 to-transparent rounded-full blur-3xl pointer-events-none" aria-hidden="true" />
-                </div>
-
-                <div className="absolute inset-0 p-5 sm:p-8 flex flex-col justify-between z-10">
-                  <div className="space-y-2 max-w-xl">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] sm:text-xs font-black uppercase tracking-wider backdrop-blur-md">
-                      <Sparkles className="w-3.5 h-3.5 text-amber-300" aria-hidden="true" />
-                      <span>{shopBanner?.badge || 'ESPORTS ZONE BD OFFICIAL REWARDS & COIN SHOP'}</span>
-                    </div>
-                    <h3 className="text-xl sm:text-3xl md:text-4xl font-black font-heading tracking-tight text-white group-hover:text-amber-400 transition-colors drop-shadow-md">
-                      {shopBanner?.title || 'Gaming Shop & Diamond Center'}
-                    </h3>
-                    <p className="text-xs sm:text-sm text-slate-300 line-clamp-2 leading-relaxed drop-shadow-sm">
-                      {shopBanner?.subtitle || 'Use your tournament winnings or EZBD Coins to buy official Free Fire Diamonds, Weekly Passes, and Exclusive items!'}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-2">
-                    <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white font-heading font-black text-xs uppercase tracking-wider shadow-lg group-hover:shadow-amber-500/40 group-hover:scale-105 transition-all">
-                      <ShoppingBag className="w-4 h-4" aria-hidden="true" />
-                      <span>{shopBanner?.buttonText || 'Explore Full Shop'}</span>
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
-                    </div>
-
-                    <span className="hidden sm:inline-flex items-center gap-1.5 text-xs text-amber-300 font-bold bg-black/60 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-amber-500/40">
-                      <Coins className="w-4 h-4 text-amber-300" aria-hidden="true" />
-                      <span>Instant Free Fire Delivery ⚡</span>
-                    </span>
-                  </div>
                 </div>
               </Link>
 

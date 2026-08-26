@@ -886,42 +886,52 @@ export default function AdminGamingShopPage() {
               </div>
 
               {/* Preview Card */}
-              <div className="relative rounded-[2rem] overflow-hidden bg-slate-950 border border-slate-800 p-6 sm:p-8 shadow-2xl text-white">
-                {shopBanner.imageUrl && (
-                  <div className="absolute inset-0 z-0">
-                    <img
-                      src={shopBanner.imageUrl}
-                      alt={shopBanner.title || 'Shop Banner'}
-                      className="w-full h-full object-cover opacity-40 sm:opacity-50"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/85 to-slate-950/70" />
-                  </div>
-                )}
-                <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-amber-500/20 via-orange-500/20 to-transparent rounded-full blur-3xl pointer-events-none" />
-
-                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                  <div className="space-y-2 max-w-xl">
-                    {shopBanner.badge && (
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-400 text-[10px] sm:text-xs font-black uppercase tracking-wider backdrop-blur-md">
-                        <Sparkles className="w-3.5 h-3.5 animate-pulse text-amber-400" />
-                        <span>{shopBanner.badge}</span>
-                      </div>
-                    )}
-                    <h3 className="text-2xl sm:text-3xl md:text-4xl font-black font-heading tracking-tight text-white drop-shadow-md">
-                      {shopBanner.title || 'Gaming Shop & Diamond Center'}
-                    </h3>
-                    <p className="text-xs sm:text-sm text-slate-300 line-clamp-2 leading-relaxed drop-shadow-sm">
-                      {shopBanner.subtitle || 'আপনার অর্জিত BRK Coins অথবা Wallet Taka দিয়ে ফ্রি ফায়ার ডায়মন্ড কিনুন!'}
-                    </p>
-                  </div>
-
-                  <div className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white font-heading font-black text-xs uppercase tracking-wider shadow-lg shrink-0">
-                    <ShoppingBag className="w-4 h-4" />
-                    <span>{shopBanner.buttonText || 'VISIT GAMING SHOP'}</span>
-                    <ArrowRight className="w-4 h-4" />
+              {shopBanner.imageUrl ? (
+                <div className="relative rounded-3xl overflow-hidden bg-slate-950 border border-slate-800 shadow-xl group">
+                  <img
+                    src={shopBanner.imageUrl}
+                    alt={shopBanner.title || 'Shop Banner'}
+                    className="w-full h-auto max-h-[400px] object-cover object-center rounded-3xl"
+                  />
+                  <div className="p-4 bg-slate-900/90 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-white">
+                    <div className="text-xs">
+                      <span className="font-bold text-amber-400">{shopBanner.title || 'Gaming Shop & Diamond Center'}</span>
+                      <p className="text-slate-400 text-[11px] line-clamp-1">{shopBanner.subtitle || 'Instant Free Fire Diamond Delivery & Coins'}</p>
+                    </div>
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold shrink-0">
+                      <span>{shopBanner.buttonText || 'VISIT SHOP'}</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="relative rounded-[2rem] overflow-hidden bg-slate-950 border border-slate-800 p-6 sm:p-8 shadow-2xl text-white">
+                  <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-amber-500/20 via-orange-500/20 to-transparent rounded-full blur-3xl pointer-events-none" />
+
+                  <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="space-y-2 max-w-xl">
+                      {shopBanner.badge && (
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-400 text-[10px] sm:text-xs font-black uppercase tracking-wider backdrop-blur-md">
+                          <Sparkles className="w-3.5 h-3.5 animate-pulse text-amber-400" />
+                          <span>{shopBanner.badge}</span>
+                        </div>
+                      )}
+                      <h3 className="text-2xl sm:text-3xl md:text-4xl font-black font-heading tracking-tight text-white drop-shadow-md">
+                        {shopBanner.title || 'Gaming Shop & Diamond Center'}
+                      </h3>
+                      <p className="text-xs sm:text-sm text-slate-300 line-clamp-2 leading-relaxed drop-shadow-sm">
+                        {shopBanner.subtitle || 'আপনার অর্জিত EZBD Coins অথবা Wallet Taka দিয়ে ফ্রি ফায়ার ডায়মন্ড কিনুন!'}
+                      </p>
+                    </div>
+
+                    <div className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white font-heading font-black text-xs uppercase tracking-wider shadow-lg shrink-0">
+                      <ShoppingBag className="w-4 h-4" />
+                      <span>{shopBanner.buttonText || 'VISIT GAMING SHOP'}</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

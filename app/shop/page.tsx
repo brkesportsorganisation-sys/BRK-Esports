@@ -213,78 +213,125 @@ export default function GamingShopPage() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         
         {/* ── Hero Banner ── */}
-        <div className="relative rounded-[2.5rem] overflow-hidden bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border border-slate-800 p-6 sm:p-10 shadow-2xl text-white">
-          {/* Custom Banner Image Background if set by admin */}
-          {shopBanner?.imageUrl && (
-            <div className="absolute inset-0 z-0">
-              <Image
-                src={shopBanner.imageUrl}
-                alt={shopBanner.title || 'Shop Banner'}
-                fill
-                priority
-                sizes="(max-width: 768px) 100vw, 1200px"
-                className="object-cover opacity-30 sm:opacity-40"
-              />
-              <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/85 to-slate-950/70" />
-            </div>
-          )}
-
-          <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-orange-500/20 via-cyan-500/20 to-transparent rounded-full blur-3xl pointer-events-none" />
-          
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 relative z-10">
-            <div className="space-y-3 max-w-2xl">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-500/20 border border-orange-500/40 text-orange-400 text-xs font-black uppercase tracking-wider shadow-sm backdrop-blur-md">
-                <Sparkles className="w-4 h-4 animate-pulse text-amber-400" />
-                <span>{shopBanner?.badge || 'ESPORTS ZONE BD OFFICIAL REWARDS & COIN SHOP'}</span>
-              </div>
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-black font-heading tracking-tight text-white leading-tight drop-shadow-md">
-                {shopBanner?.title ? (
-                  shopBanner.title
-                ) : (
-                  <>Gaming Shop & <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-red-500">Diamond Center</span></>
-                )}
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed drop-shadow-sm">
-                {shopBanner?.subtitle || (
-                  <>আপনার অর্জিত <strong className="text-amber-400">EZBD Coins (🪙)</strong> অথবা <strong className="text-emerald-400">Wallet Taka (৳)</strong> দিয়ে ইনস্ট্যান্ট ফ্রি ফায়ার ডায়মন্ড, উইকলি মেম্বারশিপ, স্কিন রিডিম ভাউচার ও ম্যাচ পাস কিনুন!</>
-                )}
-              </p>
+        {shopBanner?.imageUrl ? (
+          <div className="space-y-4">
+            {/* Custom Banner Graphic: Automatic responsive size matching the uploaded image */}
+            <div className="relative w-full rounded-3xl overflow-hidden shadow-xl border border-slate-800 bg-slate-950 group">
+              {shopBanner.linkUrl && shopBanner.linkUrl !== '#' && shopBanner.linkUrl !== '/shop' ? (
+                <Link href={shopBanner.linkUrl} className="block w-full">
+                  <img
+                    src={shopBanner.imageUrl}
+                    alt={shopBanner.title || 'Shop Banner'}
+                    className="w-full h-auto max-h-[500px] object-cover object-center rounded-3xl transition-transform duration-500 group-hover:scale-[1.008]"
+                  />
+                </Link>
+              ) : (
+                <img
+                  src={shopBanner.imageUrl}
+                  alt={shopBanner.title || 'Shop Banner'}
+                  className="w-full h-auto max-h-[500px] object-cover object-center rounded-3xl"
+                />
+              )}
             </div>
 
-            {/* Live Balances Card */}
-            <div className="bg-slate-900/80 backdrop-blur-md border border-slate-700/80 rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-6 flex-shrink-0">
-              
-              {/* Coin Balance Box */}
-              <div className="space-y-1 bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">Your Coins</span>
-                  <Link href="/ads" className="text-[10px] text-amber-300 hover:underline font-bold flex items-center gap-0.5">
-                    Earn Free <ArrowRight className="w-3 h-3" />
-                  </Link>
+            {/* Quick Balances Bar */}
+            <div className="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 font-bold shrink-0">
+                  <Sparkles className="w-5 h-5" />
                 </div>
-                <div className="text-2xl font-heading font-black text-amber-400 flex items-center gap-1.5">
-                  <Coins className="w-6 h-6 text-amber-400" />
-                  <span>{(currentUser?.coinBalance || 0).toLocaleString()}</span>
-                </div>
-              </div>
-
-              {/* Wallet Balance Box */}
-              <div className="space-y-1 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 flex-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">Wallet Cash</span>
-                  <Link href="/wallet" className="text-[10px] text-emerald-300 hover:underline font-bold flex items-center gap-0.5">
-                    Deposit <ArrowRight className="w-3 h-3" />
-                  </Link>
-                </div>
-                <div className="text-2xl font-heading font-black text-emerald-400 flex items-center gap-1">
-                  <span>৳</span>
-                  <span>{(currentUser?.walletBalance || 0).toLocaleString()}</span>
+                <div>
+                  <h2 className="text-sm sm:text-base font-black font-heading text-slate-900 leading-tight">
+                    {shopBanner.title || 'Gaming Shop & Diamond Center'}
+                  </h2>
+                  <p className="text-[11px] sm:text-xs text-slate-500 line-clamp-1">
+                    {shopBanner.subtitle || 'Instant Free Fire Diamond Delivery, Passes & EZBD Coin Rewards'}
+                  </p>
                 </div>
               </div>
 
+              <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+                {/* Coin Balance Box */}
+                <div className="bg-amber-50 border border-amber-200/80 rounded-2xl px-4 py-2 flex-1 sm:flex-initial min-w-[130px]">
+                  <div className="flex items-center justify-between text-[10px] text-amber-700 font-bold uppercase tracking-wider">
+                    <span>Coins</span>
+                    <Link href="/ads" className="text-amber-600 hover:underline flex items-center gap-0.5">
+                      Earn <ArrowRight className="w-2.5 h-2.5" />
+                    </Link>
+                  </div>
+                  <div className="text-lg font-heading font-black text-amber-600 flex items-center gap-1">
+                    <Coins className="w-4 h-4 text-amber-500" />
+                    <span>{(currentUser?.coinBalance || 0).toLocaleString()}</span>
+                  </div>
+                </div>
+
+                {/* Wallet Balance Box */}
+                <div className="bg-emerald-50 border border-emerald-200/80 rounded-2xl px-4 py-2 flex-1 sm:flex-initial min-w-[130px]">
+                  <div className="flex items-center justify-between text-[10px] text-emerald-700 font-bold uppercase tracking-wider">
+                    <span>Wallet</span>
+                    <Link href="/wallet" className="text-emerald-600 hover:underline flex items-center gap-0.5">
+                      Deposit <ArrowRight className="w-2.5 h-2.5" />
+                    </Link>
+                  </div>
+                  <div className="text-lg font-heading font-black text-emerald-600 flex items-center gap-0.5">
+                    <span>৳</span>
+                    <span>{(currentUser?.walletBalance || 0).toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="relative rounded-[2.5rem] overflow-hidden bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border border-slate-800 p-6 sm:p-10 shadow-2xl text-white">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-orange-500/20 via-cyan-500/20 to-transparent rounded-full blur-3xl pointer-events-none" />
+            
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 relative z-10">
+              <div className="space-y-3 max-w-2xl">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-500/20 border border-orange-500/40 text-orange-400 text-xs font-black uppercase tracking-wider shadow-sm backdrop-blur-md">
+                  <Sparkles className="w-4 h-4 animate-pulse text-amber-400" />
+                  <span>ESPORTS ZONE BD OFFICIAL REWARDS & COIN SHOP</span>
+                </div>
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-black font-heading tracking-tight text-white leading-tight drop-shadow-md">
+                  Gaming Shop & <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-red-500">Diamond Center</span>
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed drop-shadow-sm">
+                  আপনার অর্জিত <strong className="text-amber-400">EZBD Coins (🪙)</strong> অথবা <strong className="text-emerald-400">Wallet Taka (৳)</strong> দিয়ে ইনস্ট্যান্ট ফ্রি ফায়ার ডায়মন্ড, উইকলি মেম্বারশিপ, স্কিন রিডিম ভাউচার ও ম্যাচ পাস কিনুন!
+                </p>
+              </div>
+
+              {/* Live Balances Card */}
+              <div className="bg-slate-900/80 backdrop-blur-md border border-slate-700/80 rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-6 flex-shrink-0">
+                {/* Coin Balance Box */}
+                <div className="space-y-1 bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">Your Coins</span>
+                    <Link href="/ads" className="text-[10px] text-amber-300 hover:underline font-bold flex items-center gap-0.5">
+                      Earn Free <ArrowRight className="w-3 h-3" />
+                    </Link>
+                  </div>
+                  <div className="text-2xl font-heading font-black text-amber-400 flex items-center gap-1.5">
+                    <Coins className="w-6 h-6 text-amber-400" />
+                    <span>{(currentUser?.coinBalance || 0).toLocaleString()}</span>
+                  </div>
+                </div>
+
+                {/* Wallet Balance Box */}
+                <div className="space-y-1 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">Wallet Cash</span>
+                    <Link href="/wallet" className="text-[10px] text-emerald-300 hover:underline font-bold flex items-center gap-0.5">
+                      Deposit <ArrowRight className="w-3 h-3" />
+                    </Link>
+                  </div>
+                  <div className="text-2xl font-heading font-black text-emerald-400 flex items-center gap-1">
+                    <span>৳</span>
+                    <span>{(currentUser?.walletBalance || 0).toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── Search & Filter Controls ── */}
         <div className="space-y-4">
