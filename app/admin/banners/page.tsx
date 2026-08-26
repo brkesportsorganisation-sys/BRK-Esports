@@ -31,8 +31,8 @@ import {
 import { Banner, BannerPlacement } from '@/lib/types';
 import { initialBanners } from '@/lib/mock-data';
 
-// High-speed client-side image compressor (converts device files to optimized WebP/JPEG DataURL)
-const compressImage = (file: File, maxWidth = 1600, quality = 0.85): Promise<string> => {
+// High-speed client-side image compressor (converts device files to optimized 16:9 / 1920x1080 WebP/JPEG DataURL)
+const compressImage = (file: File, maxWidth = 1920, quality = 0.88): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
@@ -71,11 +71,11 @@ const formatFileSize = (bytes: number) => {
 };
 
 const PRESET_IMAGES = [
-  { name: 'Free Fire BR Tournament', url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200&auto=format&fit=crop&q=80' },
-  { name: 'Esports Gaming Arena', url: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1200&auto=format&fit=crop&q=80' },
-  { name: 'Neon Cyber Gaming', url: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1200&auto=format&fit=crop&q=80' },
-  { name: 'Solo Duel Esports', url: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=600&auto=format&fit=crop&q=80' },
-  { name: 'Lucky Wheel & Rewards', url: 'https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?w=600&auto=format&fit=crop&q=80' },
+  { name: '🔥 Free Fire BR Tournament (16:9)', url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1920&h=1080&fit=crop&q=85' },
+  { name: '⚡ Esports Gaming Arena (16:9)', url: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1920&h=1080&fit=crop&q=85' },
+  { name: '💎 Neon Cyber Gaming (16:9)', url: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1920&h=1080&fit=crop&q=85' },
+  { name: '⚔️ Solo Duel Esports (16:9)', url: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=1920&h=1080&fit=crop&q=85' },
+  { name: '🎁 Lucky Wheel & Rewards (16:9)', url: 'https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?w=1920&h=1080&fit=crop&q=85' },
 ];
 
 const PROFILE_COVER_PRESETS = [
@@ -350,18 +350,47 @@ export default function AdminBannersPage() {
     }
   };
 
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+
   const handleToggleActive = async (banner: Banner) => {
+    const nextState = !banner.isActive;
+    setTogglingId(banner.id);
+    
+    // Optimistic update for instant visual feedback
+    setBanners((prev) =>
+      prev.map((b) => (b.id === banner.id ? { ...b, isActive: nextState } : b))
+    );
+
     try {
-      await fetch('/api/banners', {
+      const res = await fetch('/api/banners', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id: banner.id,
-          isActive: !banner.isActive,
+          ...banner,
+          isActive: nextState,
         }),
       });
-      loadBanners();
-    } catch {}
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        // Revert on failure
+        setBanners((prev) =>
+          prev.map((b) => (b.id === banner.id ? { ...b, isActive: banner.isActive } : b))
+        );
+      } else if (data.banner) {
+        setBanners((prev) =>
+          prev.map((b) => (b.id === banner.id ? { ...b, ...data.banner } : b))
+        );
+      }
+    } catch (err) {
+      console.error('Failed to toggle banner status:', err);
+      // Revert on network failure
+      setBanners((prev) =>
+        prev.map((b) => (b.id === banner.id ? { ...b, isActive: banner.isActive } : b))
+      );
+    } finally {
+      setTogglingId(null);
+    }
   };
 
   const filteredBanners = banners.filter((b) => {
@@ -712,8 +741,8 @@ export default function AdminBannersPage() {
                   banner.isActive ? 'border-slate-200' : 'border-slate-200 opacity-60'
                 }`}
               >
-                {/* Banner Thumbnail Preview */}
-                <div className="relative h-44 bg-slate-950 overflow-hidden group">
+                {/* Banner Thumbnail Preview (16:9 Widescreen 1920x1080) */}
+                <div className="relative aspect-[16/9] w-full bg-slate-950 overflow-hidden group">
                   <img
                     src={banner.imageUrl}
                     alt={banner.title}
@@ -734,15 +763,26 @@ export default function AdminBannersPage() {
                   </div>
 
                   <button
-                    onClick={() => handleToggleActive(banner)}
-                    className={`absolute top-3 right-3 p-1.5 rounded-xl text-xs font-bold border transition-colors shadow-sm cursor-pointer ${
+                    type="button"
+                    disabled={togglingId === banner.id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleActive(banner);
+                    }}
+                    className={`absolute top-3 right-3 p-1.5 rounded-xl text-xs font-bold border transition-all shadow-sm cursor-pointer disabled:opacity-50 ${
                       banner.isActive
-                        ? 'bg-emerald-500 text-white border-emerald-400'
-                        : 'bg-slate-700 text-slate-300 border-slate-600'
+                        ? 'bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-400 ring-2 ring-emerald-500/30'
+                        : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-600'
                     }`}
-                    title={banner.isActive ? 'Active on Home' : 'Inactive'}
+                    title={banner.isActive ? 'Active (Click to hide)' : 'Inactive (Click to show)'}
                   >
-                    {banner.isActive ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                    {togglingId === banner.id ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : banner.isActive ? (
+                      <Eye className="w-3.5 h-3.5" />
+                    ) : (
+                      <EyeOff className="w-3.5 h-3.5" />
+                    )}
                   </button>
 
                   {banner.badge && (
@@ -1040,11 +1080,16 @@ export default function AdminBannersPage() {
                 {/* Real-time Banner Card Preview */}
                 {modalForm.imageUrl && (
                   <div className="space-y-1.5 pt-1">
-                    <div className="text-[10px] font-bold text-slate-600 uppercase flex items-center gap-1">
-                      <Eye className="w-3 h-3 text-orange-500" />
-                      Live Banner Card Preview:
+                    <div className="text-[10px] font-bold text-slate-600 uppercase flex items-center justify-between">
+                      <span className="flex items-center gap-1">
+                        <Eye className="w-3 h-3 text-orange-500" />
+                        Live Banner Card Preview:
+                      </span>
+                      <span className="text-[10px] text-brand-orange font-mono font-bold bg-orange-50 px-2 py-0.5 rounded-md border border-orange-200">
+                        16:9 Widescreen (1920×1080)
+                      </span>
                     </div>
-                    <div className="relative h-32 rounded-2xl overflow-hidden border-2 border-slate-300 bg-slate-950 shadow-inner group">
+                    <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden border-2 border-slate-300 bg-slate-950 shadow-inner group">
                       <img
                         src={modalForm.imageUrl}
                         alt="Preview"

@@ -198,8 +198,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const now = new Date().toISOString();
-    const bannerPayload = {
-      id,
+    const updatePayload = {
       ...updates,
       updatedAt: now,
     };
@@ -207,22 +206,54 @@ export async function PUT(request: NextRequest) {
     // Update in-memory db
     db.updateBanner(id, updates);
 
-    // Upsert into Supabase so that initial/mock banners are seamlessly saved into the DB table
+    // 1. Try standard column-level UPDATE in Supabase first
     try {
+      const { data: updatedData, error: updateErr } = await supabaseAdmin
+        .from('Banner')
+        .update(updatePayload)
+        .eq('id', id)
+        .select()
+        .maybeSingle();
+
+      if (!updateErr && updatedData) {
+        return NextResponse.json({ success: true, banner: updatedData });
+      }
+
+      // 2. If row was not found in Supabase table yet, build full banner object and UPSERT
+      const existing = db.getBannerById(id) || initialBanners.find((b) => b.id === id);
+      const fullBannerToUpsert: Banner = {
+        id,
+        title: updates.title || existing?.title || 'Banner',
+        subtitle: updates.subtitle !== undefined ? updates.subtitle : (existing?.subtitle || ''),
+        badge: updates.badge !== undefined ? updates.badge : (existing?.badge || ''),
+        imageUrl: updates.imageUrl || existing?.imageUrl || '',
+        linkUrl: updates.linkUrl || existing?.linkUrl || '/tournaments',
+        buttonText: updates.buttonText || existing?.buttonText || 'JOIN TOURNAMENT',
+        placement: (updates.placement || existing?.placement || 'MAIN_SLIDER') as BannerPlacement,
+        order: Number(updates.order ?? existing?.order ?? 1),
+        isActive: updates.isActive !== undefined ? Boolean(updates.isActive) : (existing?.isActive ?? true),
+        createdAt: existing?.createdAt || now,
+        updatedAt: now,
+      };
+
       const { data: saved, error: dbErr } = await supabaseAdmin
         .from('Banner')
-        .upsert(bannerPayload, { onConflict: 'id' })
+        .upsert(fullBannerToUpsert, { onConflict: 'id' })
         .select()
         .single();
 
       if (!dbErr && saved) {
         return NextResponse.json({ success: true, banner: saved });
       }
+      if (dbErr) {
+        console.warn('[PUT /api/banners] Supabase upsert error:', dbErr);
+      }
     } catch (e) {
       console.warn('[PUT /api/banners] Supabase update warning:', e);
     }
 
-    return NextResponse.json({ success: true, banner: bannerPayload });
+    const fallbackBanner = db.getBannerById(id) || { id, ...updates, updatedAt: now };
+    return NextResponse.json({ success: true, banner: fallbackBanner });
   } catch (error: any) {
     console.error('[PUT /api/banners]', error);
     return NextResponse.json({ message: error?.message || 'Failed to update banner.' }, { status: 500 });

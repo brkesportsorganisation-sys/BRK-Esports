@@ -102,10 +102,10 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-stretch">
         
         {/* ============================================================== */}
-        {/* LEFT / MAIN HERO SLIDER (Desktop 8 Cols / Mobile Full Width) */}
+        {/* LEFT / MAIN HERO SLIDER (Desktop 8 Cols / Mobile Full Width - 16:9 Widescreen 1920x1080) */}
         {/* ============================================================== */}
         <div 
-          className="lg:col-span-8 relative rounded-3xl overflow-hidden h-[260px] sm:h-[340px] md:h-[380px] lg:h-[420px] bg-slate-950 border border-slate-800/80 shadow-2xl shadow-slate-950/40 group"
+          className="lg:col-span-8 relative rounded-3xl overflow-hidden aspect-[16/9] min-h-[220px] bg-slate-950 border border-slate-800/80 shadow-2xl shadow-slate-950/40 group"
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
         >
@@ -219,7 +219,7 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
           {/* Top Promo Banner */}
           <Link
             href={sideTop?.linkUrl || '/arena'}
-            className="relative rounded-3xl overflow-hidden h-[200px] bg-slate-950 border border-slate-800/80 shadow-xl group cursor-pointer block transition-transform duration-300 hover:scale-[1.02]"
+            className="relative rounded-3xl overflow-hidden flex-1 min-h-[160px] bg-slate-950 border border-slate-800/80 shadow-xl group cursor-pointer block transition-transform duration-300 hover:scale-[1.02]"
           >
             <Image
               src={sideTop?.imageUrl || 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=600&auto=format&fit=crop&q=80'}
@@ -253,7 +253,7 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
           {/* Bottom Promo Banner */}
           <Link
             href={sideBottom?.linkUrl || '/ads'}
-            className="relative rounded-3xl overflow-hidden h-[200px] bg-slate-950 border border-slate-800/80 shadow-xl group cursor-pointer block transition-transform duration-300 hover:scale-[1.02]"
+            className="relative rounded-3xl overflow-hidden flex-1 min-h-[160px] bg-slate-950 border border-slate-800/80 shadow-xl group cursor-pointer block transition-transform duration-300 hover:scale-[1.02]"
           >
             <Image
               src={sideBottom?.imageUrl || 'https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?w=600&auto=format&fit=crop&q=80'}
