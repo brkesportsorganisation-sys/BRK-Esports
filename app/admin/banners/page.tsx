@@ -286,7 +286,7 @@ export default function AdminBannersPage() {
       imageUrl: banner.imageUrl,
       linkUrl: banner.linkUrl || '/tournaments',
       buttonText: banner.buttonText || 'JOIN TOURNAMENT',
-      placement: banner.placement,
+      placement: banner.placement || 'MAIN_SLIDER',
       order: banner.order || 1,
       isActive: banner.isActive,
     });

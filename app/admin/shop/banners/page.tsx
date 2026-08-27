@@ -31,6 +31,7 @@ export default function AdminShopBannersPage() {
     link: '/shop',
     buttonText: 'SHOP PACKAGES NOW',
     isActive: true,
+    order: 1,
     displayOrder: 1,
     createdAt: new Date().toISOString(),
   });

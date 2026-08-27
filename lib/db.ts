@@ -582,7 +582,7 @@ class LocalDatabase {
     return this.banners.find((b) => b.id === id) || null;
   }
 
-  createBanner(banner: Omit<Banner, 'id' | 'createdAt'>): Banner {
+  createBanner(banner: Omit<Banner, 'id' | 'createdAt' | 'updatedAt'>): Banner {
     const newBanner: Banner = {
       ...banner,
       id: `banner_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,

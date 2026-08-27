@@ -178,18 +178,21 @@ export interface MatchResult {
   createdAt?: string;
 }
 
-export type BannerPlacement = 'MAIN_SLIDER' | 'SIDE_TOP' | 'SIDE_BOTTOM' | 'SHOP_BANNER' | 'ARENA_BANNER';
+export type BannerPlacement = 'MAIN_SLIDER' | 'HERO_SLIDER' | 'SIDE_TOP' | 'SIDE_BOTTOM' | 'SHOP_BANNER' | 'ARENA_BANNER' | 'POPUP' | string;
 
 export interface Banner {
   id: string;
   title: string;
   subtitle?: string;
   badge?: string;
+  badgeText?: string;
   imageUrl: string;
-  linkUrl: string;
+  linkUrl?: string;
+  link?: string;
   buttonText?: string;
   placement: BannerPlacement;
   order: number;
+  displayOrder?: number;
   isActive: boolean;
   createdAt: string;
   updatedAt?: string;
