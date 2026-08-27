@@ -40,8 +40,27 @@ export async function GET(request: NextRequest) {
         }
 
         // Filter out folders (which usually have an empty name or just metadata)
-        const validFiles = files.filter(f => f.id);
+        const validFiles = files.filter(f => f.id || f.name);
         const totalSize = validFiles.reduce((acc, f) => acc + (f.metadata?.size || 0), 0);
+
+        const detailedFiles = validFiles.map((f) => {
+          const publicUrl = supabaseAdmin.storage.from(bucket.name).getPublicUrl(f.name).data.publicUrl;
+          const isImg = Boolean(
+            f.metadata?.mimetype?.startsWith('image/') ||
+            /\.(jpg|jpeg|png|webp|gif|svg|avif)$/i.test(f.name)
+          );
+
+          return {
+            id: f.id || f.name,
+            name: f.name,
+            size: f.metadata?.size || 0,
+            mimetype: f.metadata?.mimetype || (isImg ? 'image/jpeg' : 'application/octet-stream'),
+            createdAt: f.created_at || f.updated_at || new Date().toISOString(),
+            updatedAt: f.updated_at || f.created_at,
+            publicUrl: bucket.public ? publicUrl : null,
+            isImage: isImg,
+          };
+        });
 
         return {
           id: bucket.id,
@@ -49,6 +68,7 @@ export async function GET(request: NextRequest) {
           public: bucket.public,
           fileCount: validFiles.length,
           totalSizeInBytes: totalSize,
+          files: detailedFiles,
           error: false
         };
       })
