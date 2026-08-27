@@ -635,7 +635,7 @@ export default function GamingShopPage() {
                               {details.itemName}
                             </h4>
                             <p className="text-[10px] text-slate-500 font-mono mt-0.5">
-                              {new Date(order.createdAt).toLocaleDateString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                              {new Date(order.createdAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
                             </p>
                           </div>
 

@@ -303,7 +303,7 @@ export default function AdminShopOrdersPage() {
                       <td className="p-3.5">
                         <div className="font-mono text-slate-900 font-bold">{order.trxId || order.id.slice(0, 12)}</div>
                         <div className="text-[10px] text-slate-400 mt-0.5">
-                          {new Date(order.createdAt).toLocaleDateString([], { dateStyle: 'short', timeStyle: 'short' })}
+                          {new Date(order.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
                         </div>
                       </td>
 

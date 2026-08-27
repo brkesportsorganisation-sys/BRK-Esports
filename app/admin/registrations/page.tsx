@@ -480,7 +480,7 @@ export default function AdminRegistrationsPage() {
                             {tour.matchTime ? (
                               <span className="flex items-center gap-1">
                                 <Calendar className="w-3 h-3 text-slate-400" />
-                                {new Date(tour.matchTime).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                {new Date(tour.matchTime).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                               </span>
                             ) : (
                               <span>Schedule TBA</span>
