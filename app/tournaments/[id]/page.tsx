@@ -96,8 +96,8 @@ function FieldInput({
   mono?: boolean;
 }) {
   return (
-    <div>
-      <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
+    <div className="w-full">
+      <label className="block text-[11px] font-bold text-slate-700 mb-1 uppercase tracking-wider truncate">
         {label} {required && <span className="text-brand-red">*</span>}
       </label>
       <input
@@ -105,11 +105,11 @@ function FieldInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className={`w-full px-4 py-2.5 rounded-xl border text-sm text-slate-900 placeholder-slate-400 bg-[#F8FAFC] focus:bg-white focus:outline-none transition-colors ${
+        className={`w-full px-3 py-1.5 sm:py-2 rounded-xl border text-xs sm:text-sm text-slate-900 placeholder-slate-400 bg-white focus:outline-none transition-colors ${
           error ? 'border-red-500 bg-red-50/50' : 'border-slate-200 focus:border-brand-orange'
         } ${mono ? 'font-mono font-semibold' : ''}`}
       />
-      {error && <p className="mt-1 text-[11px] text-red-500 font-semibold">{error}</p>}
+      {error && <p className="mt-0.5 text-[10px] text-red-500 font-semibold leading-tight">{error}</p>}
     </div>
   );
 }
@@ -868,28 +868,28 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
               className="bg-white rounded-3xl max-w-2xl w-full border-2 border-red-200/90 shadow-2xl overflow-y-auto max-h-[92vh] relative text-slate-900"
             >
               {/* Modal Header */}
-              <div className="sticky top-0 z-10 flex items-center justify-between bg-white/95 backdrop-blur-md border-b border-slate-100 px-6 py-4">
+              <div className="sticky top-0 z-10 flex items-center justify-between bg-white/95 backdrop-blur-md border-b border-slate-100 px-4 py-2.5 sm:px-6 sm:py-3.5">
                 <div>
-                  <h3 className="font-heading font-black text-xl text-slate-900">JOIN TOURNAMENT</h3>
-                  <div className="text-xs text-brand-orange font-semibold truncate max-w-[280px]">{tournament.title}</div>
+                  <h3 className="font-heading font-black text-lg sm:text-xl text-slate-900">JOIN TOURNAMENT</h3>
+                  <div className="text-xs text-brand-orange font-semibold truncate max-w-[240px] sm:max-w-md">{tournament.title}</div>
                 </div>
-                <button onClick={closeJoinModal} className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 flex items-center justify-center transition-colors">
-                  <X className="w-5 h-5" />
+                <button onClick={closeJoinModal} className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 flex items-center justify-center transition-colors">
+                  <X className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
               </div>
 
               {/* ── SUCCESS SCREEN ── */}
               {successData ? (
-                <div className="p-6 space-y-6">
-                  <div className="text-center space-y-2">
-                    <div className="w-16 h-16 rounded-full bg-emerald-50 border-2 border-emerald-500 flex items-center justify-center mx-auto shadow-sm">
-                      <CheckCircle2 className="w-9 h-9 text-emerald-600" />
+                <div className="p-3.5 sm:p-5 space-y-2.5 sm:space-y-3">
+                  <div className="text-center space-y-1">
+                    <div className="w-10 h-10 rounded-full bg-emerald-50 border-2 border-emerald-500 flex items-center justify-center mx-auto shadow-2xs">
+                      <CheckCircle2 className="w-6 h-6 text-emerald-600" />
                     </div>
-                    <h4 className="font-heading font-black text-2xl text-slate-900">Registration Successful!</h4>
-                    <p className="text-xs text-slate-600">Your slot is confirmed. You now have full access to Room ID and the official Discussion Group.</p>
+                    <h4 className="font-heading font-black text-lg sm:text-xl text-slate-900">Registration Successful!</h4>
+                    <p className="text-[11px] text-slate-600 max-w-sm mx-auto">Your slot is confirmed. You now have full access to Room ID and the official Discussion Group.</p>
                   </div>
 
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 divide-y divide-slate-200 text-sm">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 divide-y divide-slate-200/80 text-xs">
                     {[
                       { label: 'Tournament', value: successData.tournamentTitle },
                       { label: 'Squad Name', value: successData.squadName },
@@ -898,17 +898,17 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                       { label: 'Entry Fee Deducted', value: `৳ ${successData.entryFee.toLocaleString()}`, highlight: 'red' },
                       { label: 'Remaining Balance', value: `৳ ${successData.remainingBalance.toLocaleString()}`, highlight: 'gold' },
                     ].map((row) => (
-                      <div key={row.label} className="flex items-center justify-between px-4 py-3">
-                        <span className="text-slate-500 font-semibold">{row.label}</span>
-                        <span className={`font-bold ${row.mono ? 'font-mono text-brand-orange' : ''} ${row.highlight === 'red' ? 'text-brand-red' : ''} ${row.highlight === 'gold' ? 'text-amber-600' : 'text-slate-900'}`}>
+                      <div key={row.label} className="flex items-center justify-between px-3 py-1.5 sm:py-2">
+                        <span className="text-slate-500 font-medium text-[11px] sm:text-xs">{row.label}</span>
+                        <span className={`font-bold text-[11px] sm:text-xs ${row.mono ? 'font-mono text-brand-orange' : ''} ${row.highlight === 'red' ? 'text-brand-red' : ''} ${row.highlight === 'gold' ? 'text-amber-600' : 'text-slate-900'}`}>
                           {row.value}
                         </span>
                       </div>
                     ))}
-                    <div className="flex items-center justify-between px-4 py-3">
-                      <span className="text-slate-500 font-semibold">Status</span>
-                      <span className="px-3 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-700 text-xs font-bold uppercase flex items-center gap-1.5 shadow-2xs">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <div className="flex items-center justify-between px-3 py-1.5 sm:py-2">
+                      <span className="text-slate-500 font-medium text-[11px] sm:text-xs">Status</span>
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-700 text-[10px] font-bold uppercase flex items-center gap-1 shadow-2xs">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                         <span>APPROVED / CONFIRMED</span>
                       </span>
                     </div>
@@ -916,52 +916,52 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
 
                   {/* Room ID & Password Instant Access Card */}
                   {tournament.roomId ? (
-                    <div className="p-4 rounded-2xl bg-gradient-to-br from-orange-50/80 to-amber-50/80 border border-orange-200 text-xs space-y-2">
+                    <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-orange-50/80 to-amber-50/80 border border-orange-200 text-xs space-y-1.5">
                       <div className="font-bold text-slate-900 flex items-center justify-between">
-                        <span className="flex items-center gap-1.5 text-brand-orange uppercase tracking-wider font-extrabold">
-                          <Gamepad2 className="w-4 h-4" /> Custom Room Access Unlocked
+                        <span className="flex items-center gap-1 text-brand-orange uppercase tracking-wider font-extrabold text-[11px]">
+                          <Gamepad2 className="w-3.5 h-3.5" /> Custom Room Access Unlocked
                         </span>
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase">LIVE READY</span>
+                        <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-black uppercase">LIVE READY</span>
                       </div>
-                      <div className="grid grid-cols-2 gap-2 pt-1 font-mono text-sm">
-                        <div className="bg-white p-2.5 rounded-xl border border-orange-200">
-                          <div className="text-[10px] uppercase font-bold text-slate-500 font-sans">Room ID</div>
-                          <div className="font-black text-brand-orange text-base tracking-wider">{tournament.roomId}</div>
+                      <div className="grid grid-cols-2 gap-1.5 pt-0.5 font-mono text-xs">
+                        <div className="bg-white p-2 rounded-lg border border-orange-200">
+                          <div className="text-[9px] uppercase font-bold text-slate-500 font-sans">Room ID</div>
+                          <div className="font-black text-brand-orange text-sm tracking-wider">{tournament.roomId}</div>
                         </div>
-                        <div className="bg-white p-2.5 rounded-xl border border-orange-200">
-                          <div className="text-[10px] uppercase font-bold text-slate-500 font-sans">Room Password</div>
-                          <div className="font-black text-slate-900 text-base tracking-wider">{tournament.roomPassword || 'None'}</div>
+                        <div className="bg-white p-2 rounded-lg border border-orange-200">
+                          <div className="text-[9px] uppercase font-bold text-slate-500 font-sans">Room Password</div>
+                          <div className="font-black text-slate-900 text-sm tracking-wider">{tournament.roomPassword || 'None'}</div>
                         </div>
                       </div>
                     </div>
                   ) : (
-                    <div className="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200 text-xs text-emerald-900 space-y-1.5">
-                      <div className="font-bold flex items-center gap-1.5 text-emerald-800">
-                        <Unlock className="w-4 h-4 text-emerald-600" /> Room ID & Password Access Unlocked!
+                    <div className="p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200 text-xs text-emerald-900 space-y-1">
+                      <div className="font-bold flex items-center gap-1.5 text-emerald-800 text-xs">
+                        <Unlock className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> Room ID & Password Access Unlocked!
                       </div>
                       <p className="text-emerald-700 leading-relaxed text-[11px]">
-                        আপনার স্লট নিশ্চিত করা হয়েছে। ম্যাচ শুরুর <strong>১০-১৫ মিনিট আগে</strong> স্বয়ংক্রিয়ভাবে রুম আইডি ও পাসওয়ার্ড পেজে লাইভ দেখতে পাবেন।
+                        আপনার স্লট নিশ্চিত করা হয়েছে। ম্যাচ শুরুর <strong>১০-১৫ মিনিট আগে</strong> স্বয়ংক্রিয়ভাবে রুম আইডি ও পাসওয়ার্ড পেজে দেখতে পাবেন।
                       </p>
                     </div>
                   )}
 
                   {/* Official Discussion / WhatsApp Community Group Link */}
                   {communityLink && (
-                    <div className="p-3.5 rounded-2xl bg-emerald-50/90 border border-emerald-200 flex items-center justify-between gap-3">
-                      <div className="text-xs">
-                        <div className="font-bold text-emerald-900 flex items-center gap-1.5">
-                          <ShieldCheck className="w-4 h-4 text-emerald-600" /> Official Discussion Group
+                    <div className="p-2.5 rounded-xl bg-emerald-50/90 border border-emerald-200 flex items-center justify-between gap-2">
+                      <div className="text-xs min-w-0">
+                        <div className="font-bold text-emerald-900 flex items-center gap-1 text-[11px] truncate">
+                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> Official Discussion Group
                         </div>
-                        <div className="text-[11px] text-emerald-700 font-medium">Join match updates & discussions</div>
+                        <div className="text-[10px] text-emerald-700 font-medium truncate">Join match updates & discussions</div>
                       </div>
                       <a
                         href={communityLink}
                         target="_blank"
                         rel="noreferrer"
-                        className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 shadow-xs transition-all shrink-0 cursor-pointer"
+                        className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] flex items-center gap-1 shadow-xs transition-all shrink-0 cursor-pointer"
                       >
                         <span>Join Group</span>
-                        <ChevronRight className="w-3.5 h-3.5" />
+                        <ChevronRight className="w-3 h-3" />
                       </a>
                     </div>
                   )}
@@ -971,20 +971,20 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                       closeJoinModal();
                       setActiveTab('ROOM');
                     }}
-                    className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold text-white font-heading font-black text-sm shadow-neon-red hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold text-white font-heading font-black text-xs sm:text-sm shadow-neon-red hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    <Gamepad2 className="w-5 h-5" />
+                    <Gamepad2 className="w-4 h-4" />
                     <span>Go To Room ID & Slot Table →</span>
                   </button>
                 </div>
               ) : (
                 /* ── REGISTRATION FORM ── */
-                <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                <form onSubmit={handleSubmit} className="p-3.5 sm:p-5 space-y-2.5 sm:space-y-3.5">
 
                   {/* ── SECTION 1: Payment Method Selection ── */}
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-4">
+                  <div className="rounded-xl sm:rounded-2xl border border-slate-200 bg-slate-50 p-2.5 sm:p-3 space-y-2">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-xs font-bold uppercase tracking-widest text-brand-orange flex items-center gap-2">
+                      <h4 className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-brand-orange flex items-center gap-1.5">
                         <Wallet className="w-3.5 h-3.5" /> Payment Currency
                       </h4>
                       {isFree && (
@@ -995,22 +995,29 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                     </div>
 
                     {!isFree && (
-                      <div className={`grid gap-3 ${allowCoins && !isCoinOnly && requiredCash > 0 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                      <div className={`grid gap-2 ${allowCoins && !isCoinOnly && requiredCash > 0 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                         {/* Wallet / Cash Button */}
                         {!isCoinOnly && (
                           <button
                             type="button"
                             onClick={() => setPaymentMethod('WALLET')}
-                            className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                            className={`p-2 rounded-xl border flex items-center gap-2 transition-all cursor-pointer text-left ${
                               paymentMethod === 'WALLET'
-                                ? 'border-brand-orange bg-orange-50 text-brand-orange shadow-xs font-bold'
+                                ? 'border-brand-orange bg-orange-50/80 text-brand-orange shadow-2xs font-bold'
                                 : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
                             }`}
                           >
-                            <Wallet className="w-5 h-5" />
-                            <div className="font-bold text-xs uppercase">Wallet Cash (৳)</div>
-                            <div className="text-[11px] font-bold text-slate-900">Fee: ৳{requiredCash}</div>
-                            <div className="text-[10px] text-slate-500">Your Bal: ৳{walletBalance}</div>
+                            <div className="w-7 h-7 rounded-lg bg-orange-100/80 flex items-center justify-center shrink-0">
+                              <Wallet className="w-3.5 h-3.5 text-brand-orange" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="font-bold text-[11px] uppercase truncate">Wallet Cash (৳)</div>
+                              <div className="text-[10px] text-slate-500 font-medium flex items-center gap-1 truncate">
+                                <span>Fee: <strong className="text-slate-900 font-bold">৳{requiredCash}</strong></span>
+                                <span>•</span>
+                                <span className="truncate">Bal: ৳{walletBalance}</span>
+                              </div>
+                            </div>
                           </button>
                         )}
 
@@ -1019,40 +1026,47 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                           <button
                             type="button"
                             onClick={() => setPaymentMethod('COINS')}
-                            className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                            className={`p-2 rounded-xl border flex items-center gap-2 transition-all cursor-pointer text-left ${
                               paymentMethod === 'COINS'
-                                ? 'border-amber-500 bg-amber-50 text-amber-700 shadow-xs font-bold'
+                                ? 'border-amber-500 bg-amber-50/80 text-amber-700 shadow-2xs font-bold'
                                 : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
                             }`}
                           >
-                            <Coins className="w-5 h-5 text-amber-500" />
-                            <div className="font-bold text-xs uppercase">EZBD Coins (🪙)</div>
-                            <div className="text-[11px] font-bold text-amber-700">Fee: {requiredCoins.toLocaleString()} 🪙</div>
-                            <div className="text-[10px] text-slate-500">Your Bal: {coinBalance.toLocaleString()} 🪙</div>
+                            <div className="w-7 h-7 rounded-lg bg-amber-100/80 flex items-center justify-center shrink-0">
+                              <Coins className="w-3.5 h-3.5 text-amber-500" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="font-bold text-[11px] uppercase truncate">EZBD Coins (🪙)</div>
+                              <div className="text-[10px] text-slate-500 font-medium flex items-center gap-1 truncate">
+                                <span>Fee: <strong className="text-amber-700 font-bold">{requiredCoins.toLocaleString()}</strong></span>
+                                <span>•</span>
+                                <span className="truncate">Bal: {coinBalance.toLocaleString()}</span>
+                              </div>
+                            </div>
                           </button>
                         )}
                       </div>
                     )}
 
                     {!isFree && (
-                      <div className="grid grid-cols-3 gap-3 text-center pt-2 border-t border-slate-200">
-                        <div className="p-3 rounded-xl bg-white border border-slate-200 shadow-2xs">
-                          <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">Your Balance</div>
-                          <div className={`font-heading font-extrabold text-sm sm:text-base ${paymentMethod === 'WALLET' ? 'text-brand-orange' : 'text-amber-600'}`}>
-                            {paymentMethod === 'WALLET' ? `৳ ${walletBalance.toLocaleString()}` : `${coinBalance.toLocaleString()} 🪙`}
+                      <div className="grid grid-cols-3 gap-1.5 sm:gap-2 text-center pt-1.5 border-t border-slate-200/80">
+                        <div className="py-1 px-1.5 rounded-lg bg-white border border-slate-200 shadow-2xs">
+                          <div className="text-[9px] text-slate-500 uppercase font-semibold">Balance</div>
+                          <div className={`font-heading font-extrabold text-xs sm:text-sm ${paymentMethod === 'WALLET' ? 'text-brand-orange' : 'text-amber-600'}`}>
+                            {paymentMethod === 'WALLET' ? `৳${walletBalance.toLocaleString()}` : `${coinBalance.toLocaleString()} 🪙`}
                           </div>
                         </div>
-                        <div className="p-3 rounded-xl bg-white border border-slate-200 shadow-2xs">
-                          <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">Entry Fee</div>
-                          <div className="font-heading font-extrabold text-brand-red text-sm sm:text-base">
-                            {paymentMethod === 'WALLET' ? `৳ ${requiredCash.toLocaleString()}` : `${requiredCoins.toLocaleString()} 🪙`}
+                        <div className="py-1 px-1.5 rounded-lg bg-white border border-slate-200 shadow-2xs">
+                          <div className="text-[9px] text-slate-500 uppercase font-semibold">Entry Fee</div>
+                          <div className="font-heading font-extrabold text-brand-red text-xs sm:text-sm">
+                            {paymentMethod === 'WALLET' ? `৳${requiredCash.toLocaleString()}` : `${requiredCoins.toLocaleString()} 🪙`}
                           </div>
                         </div>
-                        <div className={`p-3 rounded-xl border shadow-2xs ${hasSufficientBalance ? 'bg-white border-slate-200' : 'bg-red-50 border-red-200'}`}>
-                          <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">After Payment</div>
-                          <div className={`font-heading font-extrabold text-sm sm:text-base ${hasSufficientBalance ? 'text-emerald-600' : 'text-red-500'}`}>
+                        <div className={`py-1 px-1.5 rounded-lg border shadow-2xs ${hasSufficientBalance ? 'bg-white border-slate-200' : 'bg-red-50 border-red-200'}`}>
+                          <div className="text-[9px] text-slate-500 uppercase font-semibold">After Pay</div>
+                          <div className={`font-heading font-extrabold text-xs sm:text-sm ${hasSufficientBalance ? 'text-emerald-600' : 'text-red-500'}`}>
                             {paymentMethod === 'WALLET' 
-                              ? `৳ ${Math.max(0, walletBalance - requiredCash).toLocaleString()}`
+                              ? `৳${Math.max(0, walletBalance - requiredCash).toLocaleString()}`
                               : `${Math.max(0, coinBalance - requiredCoins).toLocaleString()} 🪙`
                             }
                           </div>
@@ -1061,10 +1075,10 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                     )}
 
                     {!hasSufficientBalance && !isFree && (
-                      <div className="flex items-center justify-between p-3 rounded-xl bg-red-50 border border-red-200">
-                        <div className="flex items-center gap-2 text-xs font-bold text-red-600">
-                          <AlertCircle className="w-4 h-4" />
-                          <span>
+                      <div className="flex items-center justify-between p-2 rounded-xl bg-red-50 border border-red-200">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-red-600">
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                          <span className="text-[11px]">
                             {paymentMethod === 'COINS' 
                               ? `Need ${(requiredCoins - coinBalance).toLocaleString()} more Coins!` 
                               : `Need ৳${(requiredCash - walletBalance).toLocaleString()} more Cash!`}
@@ -1073,34 +1087,34 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                         <Link 
                           href={paymentMethod === 'COINS' ? '/ads' : '/wallet'} 
                           onClick={closeJoinModal} 
-                          className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange text-white text-xs font-bold hover:brightness-110 transition-all shadow-xs"
+                          className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-brand-red to-brand-orange text-white text-[10px] font-bold hover:brightness-110 transition-all shadow-xs shrink-0"
                         >
-                          {paymentMethod === 'COINS' ? 'Earn Free Coins 🪙' : 'Deposit Wallet'}
+                          {paymentMethod === 'COINS' ? 'Earn Free 🪙' : 'Deposit'}
                         </Link>
                       </div>
                     )}
                   </div>
 
-                  {/* ── SECTION 3: Squad Information ── */}
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <h4 className="text-xs font-bold uppercase tracking-widest text-brand-orange flex items-center gap-2">
+                  {/* ── SECTION 2: Squad Information (Compact 2-Column Grid) ── */}
+                  <div className="rounded-xl sm:rounded-2xl border border-slate-200 bg-slate-50 p-2.5 sm:p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <h4 className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-brand-orange flex items-center gap-1.5">
                         <Users className="w-3.5 h-3.5" /> Squad Information
                       </h4>
 
                       {userSquads.length > 0 && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] text-amber-700 font-bold flex items-center gap-1">
-                            <Zap className="w-3.5 h-3.5 text-amber-500" /> Auto-Fill:
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-amber-700 font-bold flex items-center gap-0.5">
+                            <Zap className="w-3 h-3 text-amber-500" /> Auto-Fill:
                           </span>
                           <select
                             onChange={(e) => {
                               const sel = userSquads.find(s => s.id === e.target.value);
                               if (sel) applySquadRoster(sel);
                             }}
-                            className="bg-white border border-amber-300 text-xs text-slate-900 font-bold rounded-xl px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-2xs"
+                            className="bg-white border border-amber-300 text-[10px] sm:text-xs text-slate-900 font-bold rounded-lg px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-2xs max-w-[130px] sm:max-w-[180px] truncate"
                           >
-                            <option value="">Select My Squad...</option>
+                            <option value="">Select Squad...</option>
                             {userSquads.map(s => (
                               <option key={s.id} value={s.id}>[{s.tag}] {s.name}</option>
                             ))}
@@ -1109,65 +1123,55 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                       )}
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="sm:col-span-2">
-                        <FieldInput label="Squad Name" value={form.squadName} onChange={setField('squadName')} error={fieldErrors.squadName} placeholder="e.g. Apex Predators" />
-                      </div>
-                      <div className="sm:col-span-2">
-                        <FieldInput label="IGL Name" value={form.iglName} onChange={setField('iglName')} error={fieldErrors.iglName} placeholder="In-Game Leader name" />
-                      </div>
+                    <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+                      <FieldInput label="Squad Name" value={form.squadName} onChange={setField('squadName')} error={fieldErrors.squadName} placeholder="e.g. Apex Predators" />
+                      <FieldInput label="WhatsApp Number" value={form.captainWhatsApp} onChange={setField('captainWhatsApp')} error={fieldErrors.captainWhatsApp} placeholder="017xxxxxxxx" type="tel" />
+                      
+                      <FieldInput label="IGL Name" value={form.iglName} onChange={setField('iglName')} error={fieldErrors.iglName} placeholder="In-Game Leader" />
+                      <FieldInput label="Backup Player" value={form.backupPlayerName} onChange={setField('backupPlayerName')} error={fieldErrors.backupPlayerName} placeholder="Optional" required={false} />
+                      
                       <FieldInput label="Player 1 Name" value={form.player1Name} onChange={setField('player1Name')} error={fieldErrors.player1Name} placeholder="Player 1 IGN" />
                       <FieldInput label="Player 2 Name" value={form.player2Name} onChange={setField('player2Name')} error={fieldErrors.player2Name} placeholder="Player 2 IGN" />
+                      
                       <FieldInput label="Player 3 Name" value={form.player3Name} onChange={setField('player3Name')} error={fieldErrors.player3Name} placeholder="Player 3 IGN" />
                       <FieldInput label="Player 4 Name" value={form.player4Name} onChange={setField('player4Name')} error={fieldErrors.player4Name} placeholder="Player 4 IGN" />
-                      <div className="sm:col-span-2">
-                        <FieldInput label="Backup Player Name" value={form.backupPlayerName} onChange={setField('backupPlayerName')} error={fieldErrors.backupPlayerName} placeholder="Optional" required={false} />
-                      </div>
                     </div>
-                  </div>
-
-                  {/* ── SECTION 5: Captain Contact ── */}
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-4">
-                    <h4 className="text-xs font-bold uppercase tracking-widest text-brand-orange flex items-center gap-2">
-                      <Phone className="w-3.5 h-3.5" /> Captain Contact
-                    </h4>
-                    <FieldInput label="WhatsApp Number" value={form.captainWhatsApp} onChange={setField('captainWhatsApp')} error={fieldErrors.captainWhatsApp} placeholder="e.g. 01712345678" type="tel" />
                   </div>
 
                   {/* Global submit error */}
                   {submitError && (
-                    <div className="flex items-start gap-2 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600">
-                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                    <div className="flex items-start gap-2 p-2.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-600">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                       <span>{submitError}</span>
                     </div>
                   )}
 
-                  {/* ── SECTION 6: Buttons ── */}
-                  <div className="flex gap-3 pt-1">
+                  {/* ── SECTION 3: Buttons ── */}
+                  <div className="flex gap-2.5 pt-0.5">
                     <button
                       type="button"
                       onClick={closeJoinModal}
                       disabled={isSubmitting}
-                      className="flex-1 py-3.5 rounded-2xl bg-slate-100 border border-slate-200 text-slate-700 font-heading font-bold text-sm hover:bg-slate-200 transition-colors disabled:opacity-50 cursor-pointer"
+                      className="flex-1 py-2.5 sm:py-3 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 font-heading font-bold text-xs sm:text-sm hover:bg-slate-200 transition-colors disabled:opacity-50 cursor-pointer"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={isSubmitting || !hasSufficientBalance}
-                      className="flex-[2] py-3.5 rounded-2xl bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold text-white font-heading font-black text-sm shadow-neon-red hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
+                      className="flex-[2] py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold text-white font-heading font-black text-xs sm:text-sm shadow-neon-red hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
                     >
                       {isSubmitting ? (
                         <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
                           Registering…
                         </>
                       ) : isFree ? (
                         'CONFIRM FREE REGISTRATION (🎁 0 ৳)'
                       ) : paymentMethod === 'COINS' ? (
-                        `CONFIRM REGISTRATION (${requiredCoins.toLocaleString()} 🪙 COINS)`
+                        `CONFIRM (${requiredCoins.toLocaleString()} 🪙)`
                       ) : (
-                        `CONFIRM REGISTRATION (৳ ${requiredCash})`
+                        `CONFIRM (৳ ${requiredCash})`
                       )}
                     </button>
                   </div>
