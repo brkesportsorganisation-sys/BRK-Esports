@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Banner } from '@/lib/types';
 import { initialBanners } from '@/lib/mock-data';
+import ImageUploadInput from '@/components/ui/ImageUploadInput';
 
 export default function AdminShopBannersPage() {
   const [banners, setBanners] = useState<Banner[]>([]);
@@ -215,14 +216,15 @@ export default function AdminShopBannersPage() {
             />
           </div>
 
-          <div className="space-y-1">
-            <label className="font-bold text-slate-700 uppercase">Background Image URL</label>
-            <input
-              type="url"
+          <div className="space-y-1 md:col-span-2">
+            <ImageUploadInput
+              label="Background Banner Image"
+              theme="light"
               required
               value={activeBanner.imageUrl}
-              onChange={(e) => setActiveBanner({ ...activeBanner, imageUrl: e.target.value })}
-              className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-slate-900 font-mono text-[11px]"
+              onChange={(val) => setActiveBanner({ ...activeBanner, imageUrl: val })}
+              placeholder="https://... or upload banner from device"
+              helperText="High-quality storefront banner • Auto-compressed for maximum web speed"
             />
           </div>
 

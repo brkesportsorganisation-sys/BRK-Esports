@@ -32,6 +32,7 @@ import {
   AlertCircle,
   MessageSquare
 } from 'lucide-react';
+import ImageUploadInput from '@/components/ui/ImageUploadInput';
 
 export default function AdminSettingsPage() {
   const [activeTab, setActiveTab] = useState<'HOMEPAGE' | 'YOUTUBE_LIVE' | 'WELCOME_EMAIL' | 'WHATSAPP' | 'PAYMENTS' | 'GENERAL'>('HOMEPAGE');
@@ -1865,25 +1866,23 @@ Login to your account and book your slot today!`);
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-[#475569] font-semibold mb-1">Site Logo URL / Path</label>
-                    <input
-                      type="text"
+                  <div className="sm:col-span-2 space-y-4 pt-2">
+                    <ImageUploadInput
+                      label="Official Platform Logo"
+                      theme="light"
                       value={siteLogo}
-                      onChange={(e) => setSiteLogo(e.target.value)}
-                      placeholder="/logo.png"
-                      className="w-full px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] font-mono text-xs text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
+                      onChange={(val) => setSiteLogo(val)}
+                      placeholder="/logo.png or https://... or upload from device"
+                      helperText="Official website logo • Auto-compressed to WebP"
                     />
-                  </div>
 
-                  <div>
-                    <label className="block text-[#475569] font-semibold mb-1">Site Favicon URL / Path</label>
-                    <input
-                      type="text"
+                    <ImageUploadInput
+                      label="Site Favicon Icon"
+                      theme="light"
                       value={siteFavicon}
-                      onChange={(e) => setSiteFavicon(e.target.value)}
-                      placeholder="/favicon.ico"
-                      className="w-full px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] font-mono text-xs text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
+                      onChange={(val) => setSiteFavicon(val)}
+                      placeholder="/favicon.ico or https://... or upload from device"
+                      helperText="Browser tab icon • Auto-compressed"
                     />
                   </div>
 

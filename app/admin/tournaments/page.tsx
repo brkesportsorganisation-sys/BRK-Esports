@@ -5,6 +5,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { AlertCircle, CheckCircle2, Coins, Copy, Eye, Filter, Loader2, Plus, PlusCircle, Search, ShieldCheck, Sparkles, Star, Trash2, Trophy, UploadCloud, X, MessageSquare, Send } from 'lucide-react';
 import { Tournament, Mode, Format, TournamentStatus, CommunityAccessType, CommunityUnlockMode, PrizeTier } from '@/lib/types';
+import ImageUploadInput from '@/components/ui/ImageUploadInput';
 import 'react-quill-new/dist/quill.snow.css';
 
 const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false });
@@ -1267,36 +1268,36 @@ export default function AdminTournamentsPage() {
               </div>
 
               <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700">Banner Image</label>
-                  <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-300 bg-white px-3 py-6 text-sm text-slate-500 hover:border-red-300 hover:bg-red-50 transition-colors">
-                    <UploadCloud className="h-5 w-5" /> Upload Banner
-                    <input type="file" accept="image/png,image/jpeg,image/jpg,image/webp" className="hidden" onChange={(event) => void handleFilePick(event, 'bannerImage')} />
-                  </label>
-                  {form.bannerImage ? <img src={form.bannerImage} alt="Banner preview" className="mt-3 h-32 w-full rounded-2xl object-cover shadow-sm border border-slate-200" /> : null}
-                </div>
+                <ImageUploadInput
+                  label="Tournament Banner Image"
+                  theme="light"
+                  value={form.bannerImage}
+                  onChange={(val) => setForm((prev) => ({ ...prev, bannerImage: val }))}
+                  placeholder="https://... or upload banner from device"
+                  helperText="High-res 16:9 banner • Auto-compressed to lightweight WebP"
+                />
+
                 <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700">Thumbnail</label>
-                    <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-300 bg-white px-3 py-4 text-sm text-slate-500 hover:border-red-300 hover:bg-red-50 transition-colors">
-                      <UploadCloud className="h-4 w-4" /> Upload
-                      <input type="file" accept="image/png,image/jpeg,image/jpg,image/webp" className="hidden" onChange={(event) => void handleFilePick(event, 'thumbnailImage')} />
-                    </label>
-                    {form.thumbnailImage ? <img src={form.thumbnailImage} alt="Thumbnail preview" className="mt-3 h-20 w-full rounded-2xl object-cover shadow-sm border border-slate-200" /> : null}
-                  </div>
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700">Logo</label>
-                    <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-300 bg-white px-3 py-4 text-sm text-slate-500 hover:border-red-300 hover:bg-red-50 transition-colors">
-                      <UploadCloud className="h-4 w-4" /> Upload
-                      <input type="file" accept="image/png,image/jpeg,image/jpg,image/webp" className="hidden" onChange={(event) => void handleFilePick(event, 'logoImage')} />
-                    </label>
-                    {form.logoImage ? <img src={form.logoImage} alt="Logo preview" className="mt-3 h-20 w-full rounded-2xl object-cover shadow-sm border border-slate-200" /> : null}
-                  </div>
+                  <ImageUploadInput
+                    label="Thumbnail Image"
+                    theme="light"
+                    value={form.thumbnailImage}
+                    onChange={(val) => setForm((prev) => ({ ...prev, thumbnailImage: val }))}
+                    placeholder="https://... or upload thumbnail"
+                  />
+                  <ImageUploadInput
+                    label="Logo Image"
+                    theme="light"
+                    value={form.logoImage}
+                    onChange={(val) => setForm((prev) => ({ ...prev, logoImage: val }))}
+                    placeholder="https://... or upload logo"
+                  />
                 </div>
+
                 <div>
                   <label className="mb-2 block text-sm font-medium text-slate-700">Additional Gallery Images</label>
                   <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-300 bg-white px-3 py-4 text-sm text-slate-500 hover:border-red-300 hover:bg-red-50 transition-colors">
-                    <UploadCloud className="h-4 w-4" /> Upload multiple images
+                    <UploadCloud className="h-4 w-4" /> Upload multiple images (Auto-compressed)
                     <input type="file" accept="image/png,image/jpeg,image/jpg,image/webp" className="hidden" multiple onChange={(event) => void handleGalleryUpload(event)} />
                   </label>
                   {form.galleryImages.length ? <div className="mt-3 flex flex-wrap gap-2">{form.galleryImages.map((image, index) => <img key={`${image}-${index}`} src={image} alt={`Gallery ${index + 1}`} className="h-16 w-16 rounded-2xl object-cover shadow-sm border border-slate-200" />)}</div> : null}

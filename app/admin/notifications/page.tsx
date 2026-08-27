@@ -45,6 +45,7 @@ import {
   Hash
 } from 'lucide-react';
 import { NotificationType, NotificationPriority, NotificationSchedule } from '@/lib/types';
+import ImageUploadInput from '@/components/ui/ImageUploadInput';
 
 interface NotificationRecipientUser {
   id: string;
@@ -727,45 +728,15 @@ export default function AdminNotificationsPage() {
                 </div>
 
                 {/* Picture / Image URL */}
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center justify-between">
-                    <span className="flex items-center gap-1.5">
-                      <ImageIcon className="w-4 h-4 text-orange-400" />
-                      Picture / Banner Image URL (Optional)
-                    </span>
-                    {imageUrl && (
-                      <button
-                        type="button"
-                        onClick={() => setImageUrl('')}
-                        className="text-[10px] text-rose-400 hover:underline"
-                      >
-                        Clear Image
-                      </button>
-                    )}
-                  </label>
-                  <input
-                    type="url"
-                    placeholder="https://images.unsplash.com/... or direct image link"
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    className="w-full bg-slate-800/60 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
-                  />
-
-                  {/* Preset Banner Quick-picks */}
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    <span className="text-[10px] text-slate-500 font-bold self-center">Presets:</span>
-                    {SAMPLE_IMAGE_PRESETS.map((preset, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => setImageUrl(preset.url)}
-                        className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:border-orange-500 hover:text-orange-400 transition-colors"
-                      >
-                        {preset.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <ImageUploadInput
+                  label="Notification Banner Image (Optional)"
+                  theme="dark"
+                  value={imageUrl}
+                  onChange={(val) => setImageUrl(val)}
+                  placeholder="https://... or upload notification picture"
+                  presets={SAMPLE_IMAGE_PRESETS}
+                  helperText="Upload any picture from device • Auto-compressed to WebP for instant push delivery"
+                />
 
                 {/* Action Link */}
                 <div className="space-y-2">

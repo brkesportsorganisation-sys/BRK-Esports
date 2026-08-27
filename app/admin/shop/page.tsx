@@ -46,6 +46,7 @@ import {
   CheckCheck
 } from 'lucide-react';
 import { ShopProduct, DEFAULT_SHOP_PRODUCTS, ShopCoupon } from '@/lib/types';
+import ImageUploadInput from '@/components/ui/ImageUploadInput';
 
 const compressImage = (file: File, maxWidth = 1600, quality = 0.85): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -1293,27 +1294,16 @@ export default function AdminGamingShopPage() {
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-slate-300 font-bold mb-1">Image URL *</label>
-                  <input
-                    type="text"
+                  <ImageUploadInput
+                    label="Product Image"
+                    theme="dark"
                     required
                     value={formData.imageUrl}
-                    onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                    placeholder="https://..."
-                    className="w-full bg-[#07090E] border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-violet-500"
+                    onChange={(val) => setFormData({ ...formData, imageUrl: val })}
+                    placeholder="https://... or upload image from device"
+                    presets={PRESET_SHOP_IMAGES.map(p => ({ label: p.name, url: p.url }))}
+                    helperText="Upload any product picture from device • Auto-compressed to WebP"
                   />
-                  <div className="flex gap-2 mt-2 overflow-x-auto pb-1">
-                    {PRESET_SHOP_IMAGES.map((preset, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => setFormData({ ...formData, imageUrl: preset.url })}
-                        className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[10px] text-slate-300 hover:text-white whitespace-nowrap"
-                      >
-                        {preset.name}
-                      </button>
-                    ))}
-                  </div>
                 </div>
 
                 <div className="md:col-span-2">
