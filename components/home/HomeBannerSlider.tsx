@@ -253,7 +253,7 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
                 </span>
               )}
               <h3 className="font-heading font-black text-lg text-white leading-tight group-hover:text-amber-400 transition-colors line-clamp-1">
-                {sideTop?.title || 'SOLO 1v1 DUEL ARENA'}
+                {sideTop?.title || 'CUSTOM ROOMS & DUEL ARENA'}
               </h3>
               {sideTop?.subtitle && (
                 <p className="text-[11px] text-slate-200 line-clamp-1 font-medium">

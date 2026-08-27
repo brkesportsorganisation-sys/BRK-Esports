@@ -5,7 +5,7 @@ export const translations = {
     // Navigation
     nav_home: 'Home',
     nav_tournaments: 'Tournaments',
-    nav_arena: '1v1 Arena',
+    nav_arena: 'Custom Rooms',
     nav_rewards: 'Rewards',
     nav_live: 'Live Stream',
     nav_community: 'Community',
@@ -112,7 +112,7 @@ export const translations = {
     // Navigation
     nav_home: 'হোম',
     nav_tournaments: 'টুর্নামেন্ট',
-    nav_arena: '১v১ অ্যারেনা',
+    nav_arena: 'কাস্টম রুমস',
     nav_rewards: 'রিওয়ার্ডস',
     nav_live: 'লাইভ স্ট্রিম',
     nav_community: 'কমিউনিটি',

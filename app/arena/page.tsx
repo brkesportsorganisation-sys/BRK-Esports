@@ -239,7 +239,7 @@ export default function ArenaPage() {
                     className="px-6 py-4 bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold hover:brightness-110 active:scale-95 text-white font-heading font-black text-sm uppercase tracking-wider rounded-2xl transition-all shadow-neon-red flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <Plus className="w-5 h-5" />
-                    <span>{arenaBanner.buttonText || 'Create 1v1 Challenge'}</span>
+                    <span>{arenaBanner.buttonText || 'Create Custom Room'}</span>
                   </button>
                 )}
               </div>
@@ -254,13 +254,13 @@ export default function ArenaPage() {
               <div className="space-y-3">
                 <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-red/20 border border-brand-red/40 text-orange-400 text-xs font-bold uppercase tracking-wider shadow-sm">
                   <Flame className="w-4 h-4 text-brand-red animate-pulse" />
-                  <span>INSTANT 1V1 & 2V2 DUEL ARENA</span>
+                  <span>INSTANT CUSTOM ROOMS & DUEL ARENA</span>
                 </div>
                 <h1 className="font-heading text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-none">
                   CHALLENGE & <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold">WIN INSTANTLY</span>
                 </h1>
                 <p className="text-xs sm:text-sm text-slate-300 max-w-xl leading-relaxed">
-                  No need to wait for tournaments! Stake your entry, duel 1v1 against top players in Free Fire, and win instant cash directly into your wallet!
+                  No need to wait for tournaments! Stake your entry, play custom rooms and duels against top players, and win instant cash directly into your wallet!
                 </p>
               </div>
 
@@ -275,7 +275,7 @@ export default function ArenaPage() {
                 className="px-6 py-4 bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold hover:brightness-110 active:scale-95 text-white font-heading font-black text-sm uppercase tracking-wider rounded-2xl transition-all shadow-neon-red flex items-center justify-center gap-2 flex-shrink-0 cursor-pointer"
               >
                 <Plus className="w-5 h-5" />
-                <span>Create 1v1 Challenge</span>
+                <span>Create Custom Room</span>
               </button>
             </div>
           </div>

@@ -236,7 +236,7 @@ export default function Navbar() {
   const primaryNavLinks: NavLinkItem[] = [
     { name: t('nav_home', 'Home'), href: '/', icon: Flame },
     { name: t('nav_tournaments', 'Tournaments'), href: '/tournaments', icon: Trophy },
-    { name: '1v1 Arena', href: '/arena', icon: Swords },
+    { name: t('nav_arena', isBangla ? 'কাস্টম রুমস' : 'Custom Rooms'), href: '/arena', icon: Swords },
     { name: 'Rewards', href: '/ads', icon: Gift },
     { name: t('nav_live', 'Live'), href: '/live', icon: Radio, isLive: isLiveActive },
   ];
