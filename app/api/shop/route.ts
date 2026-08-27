@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { DEFAULT_SHOP_PRODUCTS, ShopProduct } from '@/lib/types';
+import { DEFAULT_SHOP_PRODUCTS, ShopProduct, ShopCoupon } from '@/lib/types';
 
 async function getDynamicProducts(): Promise<ShopProduct[]> {
   try {
@@ -22,8 +22,77 @@ async function getDynamicProducts(): Promise<ShopProduct[]> {
   return DEFAULT_SHOP_PRODUCTS;
 }
 
-export async function GET() {
+async function getCoupons(): Promise<ShopCoupon[]> {
   try {
+    const { data, error } = await supabaseAdmin
+      .from('SiteSetting')
+      .select('value')
+      .eq('key', 'SHOP_PROMO_COUPONS')
+      .single();
+
+    if (!error && data?.value) {
+      const parsed = JSON.parse(data.value);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {}
+  return [];
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+    const validateCoupon = searchParams.get('coupon');
+
+    // 1. Validate Coupon Code
+    if (validateCoupon) {
+      const codeClean = validateCoupon.trim().toUpperCase();
+      const coupons = await getCoupons();
+      const coupon = coupons.find(c => c.code.toUpperCase() === codeClean && c.isActive);
+
+      if (!coupon) {
+        return NextResponse.json({ success: false, message: 'Invalid or expired coupon code.' }, { status: 404 });
+      }
+
+      if (coupon.expiryDate && new Date(coupon.expiryDate).getTime() < Date.now()) {
+        return NextResponse.json({ success: false, message: 'This coupon code has expired.' }, { status: 400 });
+      }
+
+      if (coupon.maxUses && coupon.usedCount >= coupon.maxUses) {
+        return NextResponse.json({ success: false, message: 'This coupon has reached its maximum usage limit.' }, { status: 400 });
+      }
+
+      return NextResponse.json({
+        success: true,
+        coupon: {
+          code: coupon.code,
+          discountPercent: coupon.discountPercent || 0,
+          discountAmountBdt: coupon.discountAmountBdt || 0,
+          minOrderBdt: coupon.minOrderBdt || 0,
+        },
+      });
+    }
+
+    // 2. Fetch User Purchase History
+    let userOrders: any[] = [];
+    if (userId) {
+      try {
+        const { data: orders } = await supabaseAdmin
+          .from('Payment')
+          .select('*')
+          .eq('userId', userId)
+          .ilike('notes', '%[Shop Order]%')
+          .order('createdAt', { ascending: false })
+          .limit(20);
+
+        if (orders) {
+          userOrders = orders;
+        }
+      } catch (historyErr) {
+        console.warn('Failed to fetch user shop order history:', historyErr);
+      }
+    }
+
     const products = await getDynamicProducts();
     const activeProducts = products.filter(p => p.isActive !== false);
 
@@ -31,16 +100,17 @@ export async function GET() {
       success: true,
       products: activeProducts,
       allCount: products.length,
+      userOrders,
     });
   } catch (error: any) {
-    return NextResponse.json({ success: true, products: DEFAULT_SHOP_PRODUCTS });
+    return NextResponse.json({ success: true, products: DEFAULT_SHOP_PRODUCTS, userOrders: [] });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, productId, paymentMethod = 'WALLET', playerUid, inGameName } = body;
+    const { userId, productId, paymentMethod = 'WALLET', playerUid, inGameName, couponCode, shippingAddress } = body;
 
     if (!userId || !productId) {
       return NextResponse.json({ message: 'User ID and Product ID are required.' }, { status: 400 });
@@ -63,7 +133,12 @@ export async function POST(request: NextRequest) {
 
     // UID requirement for FF items
     if (product.deliveryType === 'FF_UID' && (!playerUid || playerUid.trim().length < 5)) {
-      return NextResponse.json({ message: 'Please enter a valid Free Fire Player UID.' }, { status: 400 });
+      return NextResponse.json({ message: 'Please enter a valid Free Fire Player UID (minimum 5 digits).' }, { status: 400 });
+    }
+
+    // Physical shipping address requirement
+    if (product.deliveryType === 'PHYSICAL' && (!shippingAddress || shippingAddress.trim().length < 5)) {
+      return NextResponse.json({ message: 'Please enter your complete shipping delivery address.' }, { status: 400 });
     }
 
     // Validate payment method compatibility
@@ -75,10 +150,36 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'This item can only be purchased with BRK Coins (🪙).' }, { status: 400 });
     }
 
+    // Base price
+    let basePrice = isCoins ? Number(product.priceCoins) : Number(product.priceBdt);
+    let discountAmount = 0;
+    let appliedCoupon: string | null = null;
+
+    // Apply coupon if provided
+    if (couponCode && !isCoins) {
+      const cleanCoupon = String(couponCode).trim().toUpperCase();
+      const coupons = await getCoupons();
+      const coupon = coupons.find(c => c.code.toUpperCase() === cleanCoupon && c.isActive);
+
+      if (coupon) {
+        const minOrder = coupon.minOrderBdt || 0;
+        if (basePrice >= minOrder) {
+          if (coupon.discountPercent) {
+            discountAmount = Math.round((basePrice * coupon.discountPercent) / 100);
+          } else if (coupon.discountAmountBdt) {
+            discountAmount = Math.min(basePrice, coupon.discountAmountBdt);
+          }
+          appliedCoupon = coupon.code;
+        }
+      }
+    }
+
+    const requiredAmount = Math.max(1, basePrice - discountAmount);
+
     // Verify user balance
     const { data: user, error: uErr } = await supabaseAdmin
       .from('User')
-      .select('id, name, email, walletBalance, coinBalance, freeFireUid')
+      .select('id, name, email, walletBalance, coinBalance, freeFireUid, inGameName')
       .eq('id', userId)
       .single();
 
@@ -86,7 +187,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'User account not found.' }, { status: 404 });
     }
 
-    const requiredAmount = isCoins ? Number(product.priceCoins) : Number(product.priceBdt);
     const currentCoinBal = Number(user.coinBalance || 0);
     const currentWalletBal = Number(user.walletBalance || 0);
     const userBalance = isCoins ? currentCoinBal : currentWalletBal;
@@ -106,14 +206,32 @@ export async function POST(request: NextRequest) {
       .update({
         coinBalance: newCoinBal,
         walletBalance: newWalletBal,
+        freeFireUid: playerUid ? playerUid.trim() : user.freeFireUid,
+        inGameName: inGameName ? inGameName.trim() : user.inGameName,
         updatedAt: new Date().toISOString(),
       })
       .eq('id', userId);
 
+    // If product has limited stock, decrement stock
+    if (typeof product.stock === 'number' && product.stock > 0) {
+      try {
+        const updatedProducts = allProducts.map(p => p.id === product.id ? { ...p, stock: Math.max(0, (p.stock || 1) - 1) } : p);
+        await supabaseAdmin.from('SiteSetting').upsert({
+          id: 'setting_GAMING_SHOP_ITEMS',
+          key: 'GAMING_SHOP_ITEMS',
+          value: JSON.stringify(updatedProducts),
+          updatedAt: new Date().toISOString(),
+        }, { onConflict: 'key' });
+      } catch {}
+    }
+
     // Create Order Record in Payment table as PENDING
     const orderId = `shop_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     const effectiveUid = playerUid || user.freeFireUid || 'N/A';
-    
+    const effectiveIgn = inGameName || user.inGameName || 'N/A';
+    const couponNote = appliedCoupon ? ` | Coupon: ${appliedCoupon} (-৳${discountAmount})` : '';
+    const addressNote = shippingAddress ? ` | Address: ${shippingAddress.trim()}` : '';
+
     await supabaseAdmin.from('Payment').insert([{
       id: orderId,
       userId,
@@ -123,7 +241,7 @@ export async function POST(request: NextRequest) {
       amount: requiredAmount,
       trxId: `SHOP-${Date.now().toString().slice(-6)}`,
       status: 'PENDING',
-      notes: `[Shop Order] ${product.name} | Category: ${product.category} | Method: ${isCoins ? 'COINS' : 'WALLET'} | UID: ${effectiveUid} | IGN: ${inGameName || 'N/A'} | Delivery: ${product.deliveryType || 'FF_UID'}`,
+      notes: `[Shop Order] ${product.name} | Category: ${product.category} | Method: ${isCoins ? 'COINS' : 'WALLET'} | UID: ${effectiveUid} | IGN: ${effectiveIgn} | Delivery: ${product.deliveryType || 'FF_UID'}${couponNote}${addressNote}`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }]);
@@ -135,7 +253,7 @@ export async function POST(request: NextRequest) {
         id: userNotifId,
         userId,
         title: `Shop Order Placed: ${product.name} ⏳`,
-        message: `Your order for "${product.name}" (${isCoins ? requiredAmount + ' Coins 🪙' : '৳' + requiredAmount}) is pending admin verification. Item will be delivered to your UID (${effectiveUid}) shortly!`,
+        message: `Your order for "${product.name}" (${isCoins ? requiredAmount + ' Coins 🪙' : '৳' + requiredAmount}) has been placed. Our team will verify and deliver to your UID (${effectiveUid}) shortly!`,
         isRead: false,
         createdAt: new Date().toISOString(),
       }]);
@@ -167,10 +285,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       status: 'PENDING',
-      message: `Order submitted successfully! Your order for "${product.name}" is pending admin delivery to UID: ${effectiveUid}.`,
+      message: `Order placed successfully! Your order for "${product.name}" is pending admin delivery to UID: ${effectiveUid}.`,
       orderId,
       remainingCoinBalance: newCoinBal,
       remainingWalletBalance: newWalletBal,
+      discountAmount,
     });
   } catch (error: any) {
     console.error('[POST /api/shop]', error);

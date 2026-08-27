@@ -451,10 +451,11 @@ export interface ShopProduct {
   id: string;
   name: string;
   description?: string;
-  category: 'DIAMONDS' | 'PASSES' | 'SKINS' | 'TICKETS' | 'CRATES' | 'OTHERS';
+  category: 'DIAMONDS' | 'PASSES' | 'SKINS' | 'TICKETS' | 'CRATES' | 'VOUCHERS' | 'MERCH' | 'OTHERS';
   currencyType: 'COINS' | 'WALLET' | 'BOTH';
   priceCoins: number;
   priceBdt: number;
+  originalPriceBdt?: number;
   diamonds?: number;
   bonusDiamonds?: number;
   icon?: string;
@@ -463,8 +464,21 @@ export interface ShopProduct {
   stock?: number;
   isActive: boolean;
   isFeaturedOnHome?: boolean;
-  deliveryType?: 'FF_UID' | 'REDEEM_CODE' | 'INSTANT_PASS' | 'MANUAL';
+  deliveryType?: 'FF_UID' | 'REDEEM_CODE' | 'INSTANT_PASS' | 'MANUAL' | 'PHYSICAL';
   createdAt?: string;
+}
+
+export interface ShopCoupon {
+  id: string;
+  code: string;
+  discountPercent?: number;
+  discountAmountBdt?: number;
+  minOrderBdt?: number;
+  maxUses?: number;
+  usedCount: number;
+  expiryDate?: string;
+  isActive: boolean;
+  createdAt: string;
 }
 
 // Backwards compatibility alias

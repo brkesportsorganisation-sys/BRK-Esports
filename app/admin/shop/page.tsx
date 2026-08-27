@@ -32,9 +32,20 @@ import {
   Save,
   ArrowRight,
   UploadCloud,
-  Upload
+  Upload,
+  MessageCircle,
+  TrendingUp,
+  Percent,
+  Shirt,
+  ShieldCheck,
+  Zap,
+  HelpCircle,
+  Smartphone,
+  ChevronRight,
+  Info,
+  CheckCheck
 } from 'lucide-react';
-import { ShopProduct, DEFAULT_SHOP_PRODUCTS } from '@/lib/types';
+import { ShopProduct, DEFAULT_SHOP_PRODUCTS, ShopCoupon } from '@/lib/types';
 
 const compressImage = (file: File, maxWidth = 1600, quality = 0.85): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -86,26 +97,32 @@ const PRESET_SHOP_IMAGES = [
   { name: 'Dragon AK47 Skin 🔫', url: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=500&auto=format&fit=crop&q=80' },
   { name: 'VIP Tournament Pass 🎟️', url: 'https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?w=500&auto=format&fit=crop&q=80' },
   { name: 'Level Up & Mystery Crate 📦', url: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=500&auto=format&fit=crop&q=80' },
+  { name: 'Esports Jersey / Merch 👕', url: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=500&auto=format&fit=crop&q=80' },
 ];
 
 export default function AdminGamingShopPage() {
-  const [activeTab, setActiveTab] = useState<'PRODUCTS' | 'ORDERS' | 'BANNER'>('PRODUCTS');
+  const [activeTab, setActiveTab] = useState<'PRODUCTS' | 'ORDERS' | 'COUPONS' | 'BANNER' | 'ANALYTICS'>('PRODUCTS');
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [orders, setOrders] = useState<ShopOrder[]>([]);
+  const [coupons, setCoupons] = useState<ShopCoupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [orderStatusFilter, setOrderStatusFilter] = useState<'ALL' | 'PENDING' | 'VERIFIED' | 'REJECTED'>('ALL');
+  const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
+  const [orderStatusFilter, setOrderStatusFilter] = useState<'ALL' | 'PENDING' | 'PROCESSING' | 'VERIFIED' | 'REJECTED'>('ALL');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
   const [stats, setStats] = useState({
     totalOrders: 0,
     totalCashRevenue: 0,
     totalCoinsSpent: 0,
     completedDeliveries: 0,
+    processingDeliveries: 0,
     pendingDeliveries: 0,
+    rejectedDeliveries: 0,
   });
 
-  // Shop Banner Customizer State
+  // Shop Banner State
   const [shopBanner, setShopBanner] = useState<{
-    id?: string;
     title: string;
     subtitle: string;
     badge: string;
@@ -113,59 +130,68 @@ export default function AdminGamingShopPage() {
     buttonText: string;
     linkUrl: string;
     isActive: boolean;
-  } | null>(null);
+  }>({
+    title: 'OFFICIAL GAMING & TOP-UP STORE',
+    subtitle: 'Get instant Free Fire Diamonds, Weekly & Monthly Memberships, and Exclusive Esports Merch with 100% security.',
+    badge: '💎 INSTANT UID TOP-UP',
+    imageUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200&auto=format&fit=crop&q=80',
+    buttonText: 'EXPLORE DEALS',
+    linkUrl: '/shop',
+    isActive: true,
+  });
   const [isSavingBanner, setIsSavingBanner] = useState(false);
   const [bannerSaveSuccess, setBannerSaveSuccess] = useState(false);
 
-  // Modal State for Add / Edit Product
+  // Product Modal State
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ShopProduct | null>(null);
-  const [productForm, setProductForm] = useState<Partial<ShopProduct>>({
-    name: '',
-    description: '',
-    category: 'DIAMONDS',
-    currencyType: 'BOTH',
-    priceCoins: 500,
-    priceBdt: 80,
-    diamonds: 100,
-    bonusDiamonds: 0,
-    icon: '💎',
-    imageUrl: PRESET_SHOP_IMAGES[0].url,
-    badge: 'HOT',
-    stock: 999,
-    isActive: true,
-    deliveryType: 'FF_UID',
-  });
   const [isSavingProduct, setIsSavingProduct] = useState(false);
 
-  // Deliver Modal State
-  const [deliverModalOrder, setDeliverModalOrder] = useState<ShopOrder | null>(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    category: 'DIAMONDS' as ShopProduct['category'],
+    currencyType: 'BOTH' as ShopProduct['currencyType'],
+    priceCoins: 0,
+    priceBdt: 0,
+    originalPriceBdt: 0,
+    diamonds: 0,
+    bonusDiamonds: 0,
+    icon: '💎',
+    imageUrl: '',
+    badge: '',
+    stock: '',
+    deliveryType: 'FF_UID' as ShopProduct['deliveryType'],
+    isActive: true,
+    isFeaturedOnHome: false,
+  });
+
+  // Coupon Modal State
+  const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
+  const [couponCode, setCouponCode] = useState('');
+  const [discountPercent, setDiscountPercent] = useState('');
+  const [discountAmountBdt, setDiscountAmountBdt] = useState('');
+  const [minOrderBdt, setMinOrderBdt] = useState('100');
+  const [maxUses, setMaxUses] = useState('100');
+  const [expiryDate, setExpiryDate] = useState('');
+  const [isSavingCoupon, setIsSavingCoupon] = useState(false);
+
+  // Order Delivery Modal State
+  const [selectedOrder, setSelectedOrder] = useState<ShopOrder | null>(null);
+  const [deliveryAction, setDeliveryAction] = useState<'DELIVER' | 'PROCESSING' | 'REFUND' | null>(null);
   const [redeemCode, setRedeemCode] = useState('');
-  const [isProcessingDelivery, setIsProcessingDelivery] = useState(false);
+  const [actionNote, setActionNote] = useState('');
+  const [isUpdatingOrder, setIsUpdatingOrder] = useState(false);
 
   const loadData = async () => {
-    setLoading(true);
     try {
-      const [res, bRes] = await Promise.all([
-        fetch('/api/admin/shop'),
-        fetch('/api/banners?all=true'),
-      ]);
-
+      const res = await fetch('/api/admin/shop', { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         setProducts(data.products || []);
         setOrders(data.orders || []);
+        setCoupons(data.coupons || []);
         if (data.stats) setStats(data.stats);
-      }
-
-      if (bRes.ok) {
-        const bData = await bRes.json();
-        if (bData.shopBanner) {
-          setShopBanner(bData.shopBanner);
-        } else if (bData.banners) {
-          const found = bData.banners.find((b: any) => b.placement === 'SHOP_BANNER');
-          if (found) setShopBanner(found);
-        }
       }
     } catch (err) {
       console.warn('Failed to load admin shop data:', err);
@@ -178,453 +204,599 @@ export default function AdminGamingShopPage() {
     loadData();
   }, []);
 
-  const openAddModal = () => {
+  const handleCopy = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  // Product Actions
+  const handleOpenAddProduct = () => {
     setEditingProduct(null);
-    setProductForm({
+    setFormData({
       name: '',
-      description: 'Instant Free Fire game delivery directly to player UID.',
+      description: '',
       category: 'DIAMONDS',
       currencyType: 'BOTH',
       priceCoins: 500,
-      priceBdt: 80,
+      priceBdt: 50,
+      originalPriceBdt: 60,
       diamonds: 100,
-      bonusDiamonds: 0,
+      bonusDiamonds: 10,
       icon: '💎',
       imageUrl: PRESET_SHOP_IMAGES[0].url,
-      badge: 'NEW',
-      stock: 999,
-      isActive: true,
+      badge: 'POPULAR',
+      stock: '',
       deliveryType: 'FF_UID',
+      isActive: true,
+      isFeaturedOnHome: false,
     });
     setIsProductModalOpen(true);
   };
 
-  const openEditModal = (p: ShopProduct) => {
-    setEditingProduct(p);
-    setProductForm({
-      ...p,
+  const handleOpenEditProduct = (product: ShopProduct) => {
+    setEditingProduct(product);
+    setFormData({
+      name: product.name,
+      description: product.description || '',
+      category: product.category || 'DIAMONDS',
+      currencyType: product.currencyType || 'BOTH',
+      priceCoins: product.priceCoins || 0,
+      priceBdt: product.priceBdt || 0,
+      originalPriceBdt: product.originalPriceBdt || 0,
+      diamonds: product.diamonds || 0,
+      bonusDiamonds: product.bonusDiamonds || 0,
+      icon: product.icon || '🛍️',
+      imageUrl: product.imageUrl || '',
+      badge: product.badge || '',
+      stock: product.stock !== undefined ? String(product.stock) : '',
+      deliveryType: product.deliveryType || 'FF_UID',
+      isActive: product.isActive !== false,
+      isFeaturedOnHome: Boolean(product.isFeaturedOnHome),
     });
     setIsProductModalOpen(true);
   };
 
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!productForm.name?.trim()) {
-      alert('Product name is required!');
-      return;
-    }
-
     setIsSavingProduct(true);
+
     try {
-      const action = editingProduct ? 'UPDATE_PRODUCT' : 'ADD_PRODUCT';
       const payload = {
-        action,
-        product: {
-          ...productForm,
-          id: editingProduct?.id,
-        },
+        ...formData,
+        priceCoins: Number(formData.priceCoins) || 0,
+        priceBdt: Number(formData.priceBdt) || 0,
+        originalPriceBdt: formData.originalPriceBdt ? Number(formData.originalPriceBdt) : undefined,
+        diamonds: formData.diamonds ? Number(formData.diamonds) : undefined,
+        bonusDiamonds: formData.bonusDiamonds ? Number(formData.bonusDiamonds) : undefined,
+        stock: formData.stock !== '' ? Number(formData.stock) : undefined,
       };
 
       const res = await fetch('/api/admin/shop', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        credentials: 'include',
+        body: JSON.stringify({
+          action: editingProduct ? 'UPDATE_PRODUCT' : 'ADD_PRODUCT',
+          product: editingProduct ? { ...payload, id: editingProduct.id } : payload,
+        }),
       });
 
-      const data = await res.json();
       if (res.ok) {
         setIsProductModalOpen(false);
-        loadData();
-      } else {
-        alert(data.message || 'Failed to save product.');
+        await loadData();
       }
-    } catch (err: any) {
-      alert(err.message || 'Error saving product.');
+    } catch (err) {
+      console.error('Failed to save product:', err);
     } finally {
       setIsSavingProduct(false);
     }
   };
 
-  const handleDeleteProduct = async (productId: string) => {
-    if (!confirm('Are you sure you want to remove this item from the shop?')) return;
+  const handleDeleteProduct = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this product from the shop?')) return;
     try {
       const res = await fetch('/api/admin/shop', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'DELETE_PRODUCT', productId }),
+        credentials: 'include',
+        body: JSON.stringify({ action: 'DELETE_PRODUCT', productId: id }),
       });
-      if (res.ok) {
-        loadData();
-      }
-    } catch {
-      alert('Failed to delete product.');
+      if (res.ok) await loadData();
+    } catch (err) {
+      console.error(err);
     }
   };
 
-  const handleToggleActive = async (productId: string) => {
+  const handleToggleProductStatus = async (id: string) => {
     try {
       const res = await fetch('/api/admin/shop', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'TOGGLE_ACTIVE', productId }),
+        credentials: 'include',
+        body: JSON.stringify({ action: 'TOGGLE_ACTIVE', productId: id }),
       });
-      if (res.ok) {
-        loadData();
-      }
-    } catch {
-      alert('Failed to toggle status.');
+      if (res.ok) await loadData();
+    } catch (err) {
+      console.error(err);
     }
   };
 
-  const handleToggleHomeFeatured = async (productId: string) => {
+  const handleToggleFeatured = async (id: string) => {
     try {
       const res = await fetch('/api/admin/shop', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'TOGGLE_HOME_FEATURED', productId }),
+        credentials: 'include',
+        body: JSON.stringify({ action: 'TOGGLE_HOME_FEATURED', productId: id }),
       });
-      if (res.ok) {
-        loadData();
-      }
-    } catch {
-      alert('Failed to toggle homepage featured status.');
+      if (res.ok) await loadData();
+    } catch (err) {
+      console.error(err);
     }
   };
 
   const handleResetDefaults = async () => {
-    if (!confirm('Reset all shop items back to default Free Fire & Esports products?')) return;
+    if (!confirm('Reset entire shop inventory to standard Free Fire packages? Custom changes will be overwritten.')) return;
     try {
       const res = await fetch('/api/admin/shop', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ action: 'RESET_DEFAULTS' }),
       });
-      if (res.ok) {
-        loadData();
-      }
-    } catch {
-      alert('Failed to reset defaults.');
+      if (res.ok) await loadData();
+    } catch (err) {
+      console.error(err);
     }
   };
 
-  const handleDeliver = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!deliverModalOrder) return;
+  // Order Actions
+  const handleOpenOrderAction = (order: ShopOrder, action: 'DELIVER' | 'PROCESSING' | 'REFUND') => {
+    setSelectedOrder(order);
+    setDeliveryAction(action);
+    setRedeemCode('');
+    setActionNote('');
+  };
 
-    setIsProcessingDelivery(true);
+  const handleExecuteOrderAction = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedOrder || !deliveryAction) return;
+
+    setIsUpdatingOrder(true);
     try {
       const res = await fetch('/api/admin/shop', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
-          orderId: deliverModalOrder.id,
-          action: 'DELIVER',
-          redeemCode: redeemCode.trim(),
+          orderId: selectedOrder.id,
+          action: deliveryAction,
+          redeemCode: redeemCode.trim() || undefined,
+          note: actionNote.trim() || undefined,
         }),
       });
 
-      const data = await res.json();
-
       if (res.ok) {
-        setDeliverModalOrder(null);
-        setRedeemCode('');
-        loadData();
-      } else {
-        alert(data.message || 'Failed to fulfill order.');
+        setSelectedOrder(null);
+        setDeliveryAction(null);
+        await loadData();
       }
-    } catch (err: any) {
-      alert(err.message || 'Error delivering order.');
+    } catch (err) {
+      console.error('Order action failed:', err);
     } finally {
-      setIsProcessingDelivery(false);
+      setIsUpdatingOrder(false);
     }
   };
 
-  const handleRefund = async (order: ShopOrder) => {
-    if (!confirm(`Refund ${order.amount} ${order.method === 'COINS' ? 'Coins' : 'BDT'} back to ${order.userName}?`)) return;
-
+  // Coupon Actions
+  const handleSaveCoupon = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingCoupon(true);
     try {
       const res = await fetch('/api/admin/shop', {
-        method: 'PATCH',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
-          orderId: order.id,
-          action: 'REFUND',
+          action: 'ADD_COUPON',
+          coupon: {
+            code: couponCode,
+            discountPercent: discountPercent ? Number(discountPercent) : undefined,
+            discountAmountBdt: discountAmountBdt ? Number(discountAmountBdt) : undefined,
+            minOrderBdt: minOrderBdt ? Number(minOrderBdt) : 0,
+            maxUses: maxUses ? Number(maxUses) : undefined,
+            expiryDate: expiryDate || undefined,
+          },
         }),
       });
 
       if (res.ok) {
-        loadData();
-      } else {
-        alert('Failed to refund order.');
+        setIsCouponModalOpen(false);
+        setCouponCode('');
+        setDiscountPercent('');
+        setDiscountAmountBdt('');
+        await loadData();
       }
-    } catch {
-      alert('Error processing refund.');
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSavingCoupon(false);
     }
   };
 
-  const handleSaveShopBanner = async (e: React.FormEvent) => {
-    e.preventDefault();
-    // This is handled via /admin/banners now.
+  const handleDeleteCoupon = async (id: string) => {
+    if (!confirm('Delete this coupon code?')) return;
+    try {
+      await fetch('/api/admin/shop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'DELETE_COUPON', couponId: id }),
+      });
+      await loadData();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  // Filtered lists
-  const filteredProducts = products.filter((p) => {
-    const q = searchQuery.toLowerCase();
-    return p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q);
+  const handleToggleCoupon = async (id: string) => {
+    try {
+      await fetch('/api/admin/shop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'TOGGLE_COUPON', couponId: id }),
+      });
+      await loadData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Helper parsing notes
+  const parseOrderDetails = (notes: string) => {
+    const itemMatch = notes.match(/\[Shop Order\]\s*([^|]+)/i);
+    const uidMatch = notes.match(/UID:\s*([^|]+)/i);
+    const ignMatch = notes.match(/IGN:\s*([^|]+)/i);
+    const methodMatch = notes.match(/Method:\s*([^|]+)/i);
+    const couponMatch = notes.match(/Coupon:\s*([^|]+)/i);
+    const addressMatch = notes.match(/Address:\s*([^|]+)/i);
+
+    return {
+      itemName: itemMatch ? itemMatch[1].trim() : 'Gaming Package',
+      uid: uidMatch ? uidMatch[1].trim() : '',
+      ign: ignMatch ? ignMatch[1].trim() : '',
+      method: methodMatch ? methodMatch[1].trim() : '',
+      coupon: couponMatch ? couponMatch[1].trim() : '',
+      address: addressMatch ? addressMatch[1].trim() : '',
+    };
+  };
+
+  const filteredProducts = products.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()));
+    const matchesCat = categoryFilter === 'ALL' || p.category === categoryFilter;
+    return matchesSearch && matchesCat;
   });
 
-  const filteredOrders = orders.filter((o) => {
-    const q = searchQuery.toLowerCase();
-    const matchesSearch = (
-      o.userName?.toLowerCase().includes(q) ||
-      o.userEmail?.toLowerCase().includes(q) ||
-      o.notes?.toLowerCase().includes(q) ||
-      o.trxId?.toLowerCase().includes(q)
-    );
+  const filteredOrders = orders.filter(o => {
+    const details = parseOrderDetails(o.notes || '');
+    const matchesSearch = o.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          o.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          o.userEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          details.uid.includes(searchQuery) ||
+                          details.itemName.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = orderStatusFilter === 'ALL' || o.status === orderStatusFilter;
     return matchesSearch && matchesStatus;
   });
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto p-6 md:p-8">
+    <div className="space-y-6">
       
-      {/* ── Header Banner ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-6 rounded-3xl text-white shadow-xl border border-slate-700">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
-              <ShoppingBag className="w-5 h-5" />
-            </span>
-            <h1 className="text-2xl font-black font-heading tracking-wide">
-              Gaming Shop & Diamond Manager
+      {/* 1. Header & Live KPIs Bar */}
+      <div className="rounded-3xl border border-violet-500/20 bg-gradient-to-r from-violet-950/40 via-[#0E1322] to-slate-900/60 p-6 sm:p-8 shadow-xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-violet-600/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[10px] uppercase font-mono tracking-[0.3em] text-violet-400 font-bold">
+                COMMERCE & FULFILLMENT
+              </span>
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-[10px] font-mono font-bold flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                LIVE TOP-UP ENGINE
+              </span>
+            </div>
+
+            <h1 className="text-2xl sm:text-3xl font-black text-white font-heading tracking-tight flex items-center gap-2.5">
+              <ShoppingBag className="w-7 h-7 text-violet-400" />
+              <span>Gaming Shop & Diamond Fulfillment</span>
             </h1>
+            <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-2xl">
+              Manage in-game Free Fire diamond packages, memberships, instant UID delivery, discount coupons, and financial ledger.
+            </p>
           </div>
-          <p className="text-xs text-slate-300">
-            Manage Coin Shop products, Free Fire Diamond packs, prices (Coins / Taka), and fulfill player orders.
-          </p>
+
+          <div className="flex flex-wrap gap-2.5">
+            <button
+              onClick={handleOpenAddProduct}
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-bold text-xs shadow-lg shadow-violet-900/40 transition-all flex items-center gap-2 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add New Product</span>
+            </button>
+
+            <button
+              onClick={() => setIsCouponModalOpen(true)}
+              className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold text-xs transition-colors flex items-center gap-2 cursor-pointer"
+            >
+              <Ticket className="w-4 h-4 text-amber-400" />
+              <span>New Coupon</span>
+            </button>
+
+            <button
+              onClick={loadData}
+              className="p-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition-colors"
+              title="Refresh Data"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            onClick={() => setActiveTab('BANNER')}
-            className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-heading font-black text-xs border border-white/15 transition-all cursor-pointer"
-          >
-            <Sparkles className="w-4 h-4 text-amber-400" />
-            <span>CUSTOMIZE BANNER</span>
-          </button>
+        {/* 4 Summary Stats */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 mt-6 pt-6 border-t border-slate-800/80">
+          <div className="p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800/80">
+            <div className="flex items-center justify-between text-slate-400 text-[11px] font-bold">
+              <span>Gross Cash Revenue</span>
+              <DollarSign className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div className="text-xl sm:text-2xl font-black text-white font-mono mt-1">
+              ৳ {stats.totalCashRevenue.toLocaleString()}
+            </div>
+            <div className="text-[10px] text-slate-500 font-mono mt-0.5">Wallet Payments</div>
+          </div>
 
-          <button
-            onClick={openAddModal}
-            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-black text-xs shadow-neon-orange hover:brightness-110 active:scale-95 transition-all cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>ADD NEW SHOP ITEM</span>
-          </button>
+          <div className="p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800/80">
+            <div className="flex items-center justify-between text-slate-400 text-[11px] font-bold">
+              <span>Coins Redeemed</span>
+              <Coins className="w-4 h-4 text-amber-400" />
+            </div>
+            <div className="text-xl sm:text-2xl font-black text-amber-300 font-mono mt-1">
+              {stats.totalCoinsSpent.toLocaleString()} 🪙
+            </div>
+            <div className="text-[10px] text-slate-500 font-mono mt-0.5">BRK Coins Spent</div>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800/80">
+            <div className="flex items-center justify-between text-slate-400 text-[11px] font-bold">
+              <span>Pending Deliveries</span>
+              <Clock className="w-4 h-4 text-amber-400" />
+            </div>
+            <div className="text-xl sm:text-2xl font-black text-amber-300 font-mono mt-1">
+              {stats.pendingDeliveries + stats.processingDeliveries} Orders
+            </div>
+            <div className="text-[10px] text-amber-400 font-bold mt-0.5">
+              {stats.pendingDeliveries} Pending • {stats.processingDeliveries} Processing
+            </div>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800/80">
+            <div className="flex items-center justify-between text-slate-400 text-[11px] font-bold">
+              <span>Active Catalog</span>
+              <Package className="w-4 h-4 text-cyan-400" />
+            </div>
+            <div className="text-xl sm:text-2xl font-black text-cyan-300 font-mono mt-1">
+              {products.filter(p => p.isActive).length} / {products.length}
+            </div>
+            <div className="text-[10px] text-slate-500 font-mono mt-0.5">{coupons.length} Active Coupons</div>
+          </div>
         </div>
       </div>
 
-      {/* ── Stats Row ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-5 bg-white border border-slate-200/80 rounded-2xl shadow-sm space-y-1">
-          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Cash Revenue</span>
-          <div className="text-2xl font-black text-emerald-600 font-heading">
-            ৳ {stats.totalCashRevenue.toLocaleString()}
-          </div>
-        </div>
+      {/* 2. Top Tabs */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar">
+        {[
+          { key: 'PRODUCTS', label: `Products Catalog (${products.length})`, icon: Package },
+          { key: 'ORDERS', label: `Fulfillment & Orders (${orders.length})`, icon: ShoppingBag, badge: stats.pendingDeliveries > 0 ? stats.pendingDeliveries : null },
+          { key: 'COUPONS', label: `Promo Coupons (${coupons.length})`, icon: Ticket },
+          { key: 'BANNER', label: 'Shop Banner & Slider', icon: Sparkles },
+          { key: 'ANALYTICS', label: 'Revenue Analytics', icon: TrendingUp },
+        ].map((tab) => {
+          const Icon = tab.icon;
+          const active = activeTab === tab.key;
 
-        <div className="p-5 bg-white border border-slate-200/80 rounded-2xl shadow-sm space-y-1">
-          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Coins Redeemed</span>
-          <div className="text-2xl font-black text-amber-500 font-heading">
-            {stats.totalCoinsSpent.toLocaleString()} 🪙
-          </div>
-        </div>
-
-        <div className="p-5 bg-white border border-slate-200/80 rounded-2xl shadow-sm space-y-1">
-          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Active Shop Items</span>
-          <div className="text-2xl font-black text-slate-900 font-heading">
-            {products.filter(p => p.isActive).length} / {products.length}
-          </div>
-        </div>
-
-        <div className="p-5 bg-white border border-slate-200/80 rounded-2xl shadow-sm space-y-1">
-          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Orders & Deliveries</span>
-          <div className="text-2xl font-black text-cyan-600 font-heading">
-            {orders.length}
-          </div>
-        </div>
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key as any)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                active
+                  ? 'bg-violet-600 text-white shadow-lg shadow-violet-900/30'
+                  : 'bg-[#0C101A] border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-900'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              <span>{tab.label}</span>
+              {tab.badge && (
+                <span className="w-5 h-5 rounded-full bg-amber-500 text-slate-950 font-black text-[10px] flex items-center justify-center animate-bounce">
+                  {tab.badge}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
-      {/* ── Main Tab Navigation ── */}
-      <div className="flex items-center justify-between border-b border-slate-200 pb-2 overflow-x-auto">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setActiveTab('PRODUCTS')}
-            className={`px-5 py-2.5 rounded-2xl text-xs font-heading font-black tracking-wider transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
-              activeTab === 'PRODUCTS'
-                ? 'bg-slate-900 text-white shadow-sm'
-                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-            }`}
-          >
-            <Package className="w-4 h-4" />
-            <span>SHOP ITEMS & INVENTORY ({products.length})</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('ORDERS')}
-            className={`px-5 py-2.5 rounded-2xl text-xs font-heading font-black tracking-wider transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
-              activeTab === 'ORDERS'
-                ? 'bg-slate-900 text-white shadow-sm'
-                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-            }`}
-          >
-            <Clock className="w-4 h-4" />
-            <span>PLAYER ORDERS & UID DELIVERIES ({orders.length})</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('BANNER')}
-            className={`px-5 py-2.5 rounded-2xl text-xs font-heading font-black tracking-wider transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
-              activeTab === 'BANNER'
-                ? 'bg-slate-900 text-white shadow-sm'
-                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-            }`}
-          >
-            <Sparkles className="w-4 h-4 text-amber-500" />
-            <span>SHOP & HOME BANNER</span>
-          </button>
-        </div>
-
-        {activeTab === 'PRODUCTS' && (
-          <button
-            onClick={handleResetDefaults}
-            className="text-[11px] text-slate-400 hover:text-slate-700 font-bold flex items-center gap-1 cursor-pointer"
-            title="Reset to default items"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>Reset Defaults</span>
-          </button>
-        )}
-      </div>
-
-      {/* ══════════ TAB 1: PRODUCTS INVENTORY ══════════ */}
+      {/* 3. TAB 1: PRODUCTS CATALOG */}
       {activeTab === 'PRODUCTS' && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           
+          {/* Filter Bar */}
+          <div className="rounded-2xl border border-slate-800 bg-[#0C101A] p-4 flex flex-col md:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto custom-scrollbar">
+              <span className="text-xs font-bold text-slate-400 flex items-center gap-1.5 mr-1">
+                <Filter className="w-3.5 h-3.5 text-violet-400" />
+                <span>Category:</span>
+              </span>
+
+              {['ALL', 'DIAMONDS', 'PASSES', 'SKINS', 'CRATES', 'VOUCHERS', 'MERCH'].map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setCategoryFilter(cat)}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold transition-colors whitespace-nowrap ${
+                    categoryFilter === cat
+                      ? 'bg-violet-600/20 text-violet-300 border border-violet-500/40'
+                      : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-white'
+                  }`}
+                >
+                  {cat === 'ALL' ? 'All Items' : cat}
+                </button>
+              ))}
+            </div>
+
+            <div className="relative w-full md:w-72">
+              <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 rounded-xl bg-[#07090E] border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-violet-500"
+              />
+            </div>
+          </div>
+
+          {/* Products Grid */}
           {loading ? (
-            <div className="py-20 text-center text-slate-400 font-bold">Loading shop items...</div>
+            <div className="py-20 text-center text-violet-400 font-mono text-xs">
+              LOADING SHOP INVENTORY...
+            </div>
           ) : filteredProducts.length === 0 ? (
-            <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 space-y-4">
-              <Package className="w-12 h-12 text-slate-300 mx-auto" />
-              <div className="text-slate-700 font-bold text-sm">No items in the shop inventory.</div>
+            <div className="rounded-3xl border border-slate-800 bg-[#0C101A] p-16 text-center space-y-3">
+              <Package className="w-12 h-12 text-slate-600 mx-auto" />
+              <p className="font-bold text-slate-300">No Products Found</p>
+              <p className="text-xs text-slate-500">Create a new item or reset to defaults.</p>
               <button
-                onClick={openAddModal}
-                className="px-5 py-2.5 rounded-xl bg-brand-orange text-white text-xs font-bold shadow-md cursor-pointer"
+                onClick={handleResetDefaults}
+                className="px-4 py-2 rounded-xl bg-violet-600/10 border border-violet-500/30 text-violet-300 text-xs font-bold hover:bg-violet-600/20"
               >
-                Add First Product
+                Reset Default Free Fire Packages
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredProducts.map((product) => (
-                <div
-                  key={product.id}
-                  className={`bg-white rounded-3xl border overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between ${
-                    product.isActive ? 'border-slate-200' : 'border-slate-200 opacity-60 bg-slate-50'
-                  }`}
-                >
-                  {/* Top Thumbnail */}
-                  <div className="relative w-full h-40 bg-slate-900 overflow-hidden">
-                    <img
-                      src={product.imageUrl || PRESET_SHOP_IMAGES[0].url}
-                      alt={product.name}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-transparent" />
-                    
-                    {/* Badge */}
-                    {product.badge && (
-                      <span className="absolute top-3 right-3 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-red-600 to-orange-500 text-white text-[10px] font-black uppercase shadow-xs">
-                        {product.badge}
-                      </span>
-                    )}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {filteredProducts.map((p) => {
+                const discount = p.originalPriceBdt && p.originalPriceBdt > p.priceBdt
+                  ? Math.round(((p.originalPriceBdt - p.priceBdt) / p.originalPriceBdt) * 100)
+                  : null;
 
-                    {/* Category */}
-                    <span className="absolute bottom-3 left-3 px-2.5 py-1 rounded-xl bg-black/60 backdrop-blur-md text-white text-[10px] font-bold border border-white/20">
-                      {product.category}
-                    </span>
-                  </div>
-
-                  {/* Body Content */}
-                  <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">
+                return (
+                  <div
+                    key={p.id}
+                    className={`rounded-3xl border transition-all p-5 flex flex-col justify-between space-y-4 relative overflow-hidden ${
+                      p.isActive
+                        ? 'border-slate-800 bg-[#0C101A] hover:border-violet-500/40 hover:shadow-lg hover:shadow-violet-950/20'
+                        : 'border-red-900/30 bg-[#0C101A]/50 opacity-70'
+                    }`}
+                  >
                     <div>
-                      <div className="flex items-center justify-between gap-2">
-                        <h3 className="font-heading font-black text-slate-900 text-base leading-tight">
-                          {product.name}
-                        </h3>
-                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${
-                          product.currencyType === 'COINS'
-                            ? 'bg-amber-100 text-amber-800'
-                            : product.currencyType === 'WALLET'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : 'bg-blue-100 text-blue-800'
-                        }`}>
-                          {product.currencyType}
+                      {/* Top Badges */}
+                      <div className="flex items-center justify-between gap-2 mb-3">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="px-2.5 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/30 text-violet-300 text-[10px] font-bold">
+                            {p.category}
+                          </span>
+                          {p.badge && (
+                            <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-extrabold border border-amber-500/40">
+                              {p.badge}
+                            </span>
+                          )}
+                          {discount && (
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-mono font-bold">
+                              SAVE {discount}%
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleToggleFeatured(p.id)}
+                            className={`p-1.5 rounded-lg border transition-colors ${
+                              p.isFeaturedOnHome
+                                ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+                                : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300'
+                            }`}
+                            title="Toggle Homepage Featured"
+                          >
+                            <Crown className="w-3.5 h-3.5" />
+                          </button>
+
+                          <button
+                            onClick={() => handleToggleProductStatus(p.id)}
+                            className={`p-1.5 rounded-lg border transition-colors ${
+                              p.isActive
+                                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                                : 'bg-red-500/10 border-red-500/30 text-red-400'
+                            }`}
+                            title={p.isActive ? 'Active (Click to Hide)' : 'Hidden (Click to Activate)'}
+                          >
+                            {p.isActive ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Image & Title */}
+                      <div className="flex gap-3.5 items-start">
+                        <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden flex-shrink-0 relative">
+                          <img
+                            src={p.imageUrl || PRESET_SHOP_IMAGES[0].url}
+                            alt={p.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-bold text-sm text-white truncate leading-snug">{p.name}</h3>
+                          <p className="text-xs text-slate-400 line-clamp-2 mt-0.5">{p.description}</p>
+                          
+                          <div className="mt-2 flex items-center gap-2 text-[10px] text-slate-500">
+                            <span className="font-mono">Delivery: <strong className="text-slate-300">{p.deliveryType || 'FF_UID'}</strong></span>
+                            <span>•</span>
+                            <span>Stock: <strong className="text-slate-300">{p.stock !== undefined ? p.stock : 'Unlimited'}</strong></span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom Pricing & Actions */}
+                    <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg font-black text-white font-mono">৳ {p.priceBdt}</span>
+                          {p.originalPriceBdt && p.originalPriceBdt > p.priceBdt && (
+                            <span className="text-xs text-slate-500 line-through font-mono">৳ {p.originalPriceBdt}</span>
+                          )}
+                        </div>
+                        <span className="text-[11px] font-bold text-amber-400 font-mono">
+                          {p.priceCoins} 🪙 Coins
                         </span>
                       </div>
-                      <p className="text-xs text-slate-500 line-clamp-2 mt-1">
-                        {product.description || 'In-game reward item'}
-                      </p>
-                    </div>
-
-                    {/* Pricing Summary */}
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center justify-between text-xs font-bold">
-                      <div className="text-emerald-700">৳ {product.priceBdt} BDT</div>
-                      <div className="text-slate-300">•</div>
-                      <div className="text-amber-600">{product.priceCoins.toLocaleString()} 🪙 Coins</div>
-                    </div>
-
-                    {/* Actions Bar */}
-                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={() => handleToggleActive(product.id)}
-                          className={`p-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
-                            product.isActive
-                              ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                              : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                          }`}
-                          title={product.isActive ? 'Active in Shop (Click to disable)' : 'Disabled in Shop (Click to enable)'}
-                        >
-                          {product.isActive ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                        </button>
-
-                        <button
-                          onClick={() => handleToggleHomeFeatured(product.id)}
-                          className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                            product.isFeaturedOnHome
-                              ? 'bg-amber-50 text-amber-700 border border-amber-300 shadow-xs'
-                              : 'bg-slate-100 text-slate-400 hover:text-slate-700'
-                          }`}
-                          title={product.isFeaturedOnHome ? 'Featured on Homepage (Click to remove)' : 'Show on Homepage'}
-                        >
-                          <Sparkles className={`w-3.5 h-3.5 ${product.isFeaturedOnHome ? 'text-amber-500 fill-amber-500' : ''}`} />
-                          <span className="text-[10px]">
-                            {product.isFeaturedOnHome ? 'On Home' : 'Feature'}
-                          </span>
-                        </button>
-                      </div>
 
                       <div className="flex items-center gap-1.5">
                         <button
-                          onClick={() => openEditModal(product)}
-                          className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
+                          onClick={() => handleOpenEditProduct(p)}
+                          className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1 cursor-pointer"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
                           <span>Edit</span>
                         </button>
+
                         <button
-                          onClick={() => handleDeleteProduct(product.id)}
-                          className="p-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 transition-colors cursor-pointer"
+                          onClick={() => handleDeleteProduct(p.id)}
+                          className="p-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 transition-colors cursor-pointer"
                           title="Delete Product"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -633,446 +805,768 @@ export default function AdminGamingShopPage() {
                     </div>
 
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
         </div>
       )}
 
-      {/* ══════════ TAB 2: USER ORDERS & DELIVERIES ══════════ */}
+      {/* 4. TAB 2: LIVE ORDERS & FULFILLMENT */}
       {activeTab === 'ORDERS' && (
-        <div className="bg-white border border-slate-200/80 rounded-3xl shadow-sm overflow-hidden space-y-4 p-5 sm:p-6">
+        <div className="space-y-4">
           
-          {/* Filter Bar */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-            
-            {/* Status Filter Tabs */}
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {[
-                { id: 'ALL', label: `All Orders (${orders.length})` },
-                { id: 'PENDING', label: `⏳ Pending (${orders.filter(o => o.status === 'PENDING').length})`, color: 'text-amber-700 bg-amber-50 border-amber-200' },
-                { id: 'VERIFIED', label: `✅ Delivered (${orders.filter(o => o.status === 'VERIFIED').length})`, color: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
-                { id: 'REJECTED', label: `❌ Cancelled (${orders.filter(o => o.status === 'REJECTED').length})`, color: 'text-red-700 bg-red-50 border-red-200' },
-              ].map(tab => (
+          {/* Order Filter Bar */}
+          <div className="rounded-2xl border border-slate-800 bg-[#0C101A] p-4 flex flex-col md:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto custom-scrollbar">
+              <span className="text-xs font-bold text-slate-400 mr-1 flex items-center gap-1">
+                <Filter className="w-3.5 h-3.5 text-violet-400" />
+                <span>Status:</span>
+              </span>
+
+              {(['ALL', 'PENDING', 'PROCESSING', 'VERIFIED', 'REJECTED'] as const).map((st) => (
                 <button
-                  key={tab.id}
-                  onClick={() => setOrderStatusFilter(tab.id as any)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
-                    orderStatusFilter === tab.id
-                      ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                      : tab.color || 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                  key={st}
+                  onClick={() => setOrderStatusFilter(st)}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold transition-colors whitespace-nowrap ${
+                    orderStatusFilter === st
+                      ? 'bg-violet-600 text-white'
+                      : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-white'
                   }`}
                 >
-                  {tab.label}
+                  {st === 'ALL' ? 'All Orders' : st === 'VERIFIED' ? 'Delivered' : st}
                 </button>
               ))}
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1 sm:w-64">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Search by player, UID, item..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-xl bg-slate-50 focus:outline-none focus:bg-white focus:border-cyan-500 font-medium"
-                />
-              </div>
-
-              <button
-                onClick={loadData}
-                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer shrink-0"
-              >
-                Refresh
-              </button>
+            <div className="relative w-full md:w-80">
+              <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search by Player, UID, TrxID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 rounded-xl bg-[#07090E] border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-violet-500"
+              />
             </div>
           </div>
 
-          {loading ? (
-            <div className="p-16 text-center text-slate-400">Loading shop orders...</div>
-          ) : filteredOrders.length === 0 ? (
-            <div className="p-16 text-center text-slate-400 space-y-2">
-              <ShoppingBag className="w-10 h-10 text-slate-300 mx-auto" />
-              <div className="font-bold text-sm text-slate-600">No shop orders in this status</div>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[10px]">
-                  <tr>
-                    <th className="px-4 py-3">Player Info</th>
-                    <th className="px-4 py-3">Order Details / UID</th>
-                    <th className="px-4 py-3">Paid With</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3">Date</th>
-                    <th className="px-4 py-3 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {filteredOrders.map((order) => {
-                    const isPending = order.status === 'PENDING';
-                    const isDelivered = order.status === 'VERIFIED';
-                    const isRejected = order.status === 'REJECTED';
+          {/* Orders Table */}
+          <div className="rounded-3xl border border-slate-800 bg-[#0C101A] p-6 shadow-xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <ShoppingBag className="w-5 h-5 text-violet-400" />
+                <h2 className="font-heading font-black text-base text-white">
+                  Shop Top-Up Orders ({filteredOrders.length})
+                </h2>
+              </div>
 
-                    return (
-                      <tr key={order.id} className={`hover:bg-slate-50/50 ${isPending ? 'bg-amber-50/30' : ''}`}>
-                        <td className="px-4 py-3.5">
-                          <div className="font-bold text-slate-900">{order.userName}</div>
-                          <div className="text-[11px] text-slate-500">{order.userEmail}</div>
-                        </td>
-                        <td className="px-4 py-3.5 max-w-xs">
-                          <div className="font-bold text-slate-800 line-clamp-1">{order.notes}</div>
-                          <div className="text-[10px] text-slate-400 font-mono">TrxID: {order.trxId}</div>
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <span className={`px-2.5 py-1 rounded-lg text-[11px] font-black ${
-                            order.method === 'COINS'
-                              ? 'bg-amber-100 text-amber-800 border border-amber-200'
-                              : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                          }`}>
-                            {order.method === 'COINS' ? `${order.amount.toLocaleString()} 🪙 Coins` : `৳ ${order.amount}`}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center gap-1 w-fit border ${
-                            isDelivered
-                              ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
-                              : isRejected
-                              ? 'bg-red-100 text-red-700 border-red-200'
-                              : 'bg-amber-100 text-amber-800 border-amber-300 animate-pulse font-black'
-                          }`}>
-                            {isDelivered && <CheckCircle2 className="w-3 h-3" />}
-                            {isPending ? '⏳ PENDING' : isDelivered ? 'DELIVERED' : 'CANCELLED'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3.5 text-slate-500">
-                          {new Date(order.createdAt).toLocaleDateString()}
-                        </td>
-                        <td className="px-4 py-3.5 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            {isPending ? (
-                              <>
+              <div className="text-xs text-slate-400 font-mono">
+                Real-Time Fulfillment Queue
+              </div>
+            </div>
+
+            {filteredOrders.length === 0 ? (
+              <div className="py-16 text-center text-slate-500 text-xs space-y-2">
+                <ShoppingBag className="w-10 h-10 text-slate-600 mx-auto" />
+                <p className="font-bold text-slate-400">No Orders Found</p>
+                <p>Orders submitted by players from the shop will appear here for instant fulfillment.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-900/80 text-slate-400 uppercase text-[10px] font-bold border-b border-slate-800">
+                    <tr>
+                      <th className="p-3">Date / ID</th>
+                      <th className="p-3">Player Info</th>
+                      <th className="p-3">Free Fire UID</th>
+                      <th className="p-3">Ordered Item</th>
+                      <th className="p-3">Paid Amount</th>
+                      <th className="p-3">Status</th>
+                      <th className="p-3 text-right">Fulfillment Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60 font-sans">
+                    {filteredOrders.map((order) => {
+                      const details = parseOrderDetails(order.notes || '');
+
+                      return (
+                        <tr key={order.id} className="hover:bg-slate-900/40 transition-colors">
+                          
+                          {/* ID & Date */}
+                          <td className="p-3">
+                            <div className="font-mono text-violet-300 font-bold text-[11px]">{order.id}</div>
+                            <div className="text-slate-500 text-[10px] mt-0.5">
+                              {new Date(order.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                            </div>
+                          </td>
+
+                          {/* Player */}
+                          <td className="p-3">
+                            <div className="font-bold text-white">{order.userName}</div>
+                            <div className="text-slate-400 text-[10px]">{order.userEmail}</div>
+                            {details.ign && (
+                              <div className="text-[10px] text-cyan-400 font-mono">IGN: {details.ign}</div>
+                            )}
+                          </td>
+
+                          {/* UID */}
+                          <td className="p-3">
+                            {details.uid ? (
+                              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#07090E] border border-slate-800 text-cyan-300 font-mono font-bold">
+                                <span>{details.uid}</span>
                                 <button
-                                  onClick={() => setDeliverModalOrder(order)}
-                                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-xs transition-all cursor-pointer flex items-center gap-1"
+                                  onClick={() => handleCopy(details.uid, `uid_${order.id}`)}
+                                  className="text-slate-500 hover:text-white"
+                                  title="Copy Player UID"
                                 >
-                                  <Check className="w-3.5 h-3.5" />
-                                  <span>Confirm & Deliver</span>
-                                </button>
-                                <button
-                                  onClick={() => handleRefund(order)}
-                                  className="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
-                                  title="Cancel Order & Refund to User"
-                                >
-                                  Cancel / Refund
-                                </button>
-                              </>
-                            ) : isDelivered ? (
-                              <div className="flex items-center gap-2">
-                                <span className="text-[11px] font-bold text-emerald-600">Delivered ✅</span>
-                                <button
-                                  onClick={() => handleRefund(order)}
-                                  className="px-2 py-1 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg text-[10px] font-bold transition-all cursor-pointer"
-                                  title="Issue Refund"
-                                >
-                                  Refund
+                                  {copiedId === `uid_${order.id}` ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                                 </button>
                               </div>
                             ) : (
-                              <span className="text-[11px] font-bold text-red-500">Refunded ❌</span>
+                              <span className="text-slate-500 font-mono">-</span>
                             )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                          </td>
+
+                          {/* Item */}
+                          <td className="p-3">
+                            <div className="font-bold text-slate-200">{details.itemName}</div>
+                            {details.address && (
+                              <div className="text-[10px] text-amber-300 mt-0.5 line-clamp-1">📍 {details.address}</div>
+                            )}
+                          </td>
+
+                          {/* Price / Method */}
+                          <td className="p-3">
+                            <div className="font-mono font-bold text-white">
+                              {order.method === 'COINS' ? `${order.amount} 🪙 Coins` : `৳ ${order.amount}`}
+                            </div>
+                            <div className="text-[10px] text-slate-500 font-mono">{order.method}</div>
+                          </td>
+
+                          {/* Status */}
+                          <td className="p-3">
+                            <span className={`px-2.5 py-1 rounded-xl text-[10px] font-bold inline-flex items-center gap-1 ${
+                              order.status === 'VERIFIED'
+                                ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30'
+                                : order.status === 'PROCESSING'
+                                ? 'bg-cyan-500/10 text-cyan-300 border border-cyan-500/30'
+                                : order.status === 'REJECTED'
+                                ? 'bg-red-500/10 text-red-300 border border-red-500/30'
+                                : 'bg-amber-500/10 text-amber-300 border border-amber-500/30'
+                            }`}>
+                              {order.status === 'VERIFIED' && <CheckCircle2 className="w-3 h-3" />}
+                              {order.status === 'PROCESSING' && <Clock className="w-3 h-3 animate-spin" />}
+                              <span>{order.status === 'VERIFIED' ? 'DELIVERED' : order.status}</span>
+                            </span>
+                          </td>
+
+                          {/* Actions */}
+                          <td className="p-3 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              {order.status !== 'VERIFIED' && (
+                                <>
+                                  {order.status !== 'PROCESSING' && (
+                                    <button
+                                      onClick={() => handleOpenOrderAction(order, 'PROCESSING')}
+                                      className="px-2.5 py-1 rounded-lg bg-cyan-600/10 hover:bg-cyan-600/20 border border-cyan-500/30 text-cyan-300 text-xs font-bold"
+                                    >
+                                      Process
+                                    </button>
+                                  )}
+
+                                  <button
+                                    onClick={() => handleOpenOrderAction(order, 'DELIVER')}
+                                    className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs"
+                                  >
+                                    Deliver ✅
+                                  </button>
+
+                                  <button
+                                    onClick={() => handleOpenOrderAction(order, 'REFUND')}
+                                    className="px-2.5 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-bold"
+                                    title="Cancel & Auto Refund"
+                                  >
+                                    Refund
+                                  </button>
+                                </>
+                              )}
+
+                              {details.uid && (
+                                <a
+                                  href={`https://wa.me/?text=Hello%20${encodeURIComponent(order.userName)},%20regarding%20your%20top-up%20order%20(${order.id})%20for%20Free%20Fire%20UID:%20${details.uid}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="p-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20"
+                                  title="WhatsApp Chat"
+                                >
+                                  <MessageCircle className="w-3.5 h-3.5" />
+                                </a>
+                              )}
+                            </div>
+                          </td>
+
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+          </div>
+
+        </div>
+      )}
+
+      {/* 5. TAB 3: PROMO COUPONS */}
+      {activeTab === 'COUPONS' && (
+        <div className="space-y-4">
+          <div className="rounded-3xl border border-slate-800 bg-[#0C101A] p-6 shadow-xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div>
+                <h2 className="font-heading font-black text-base text-white">Promo & Discount Coupons</h2>
+                <p className="text-xs text-slate-400">Manage promotional codes that players can apply at checkout.</p>
+              </div>
+
+              <button
+                onClick={() => setIsCouponModalOpen(true)}
+                className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold text-xs flex items-center gap-1.5"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Create Coupon</span>
+              </button>
             </div>
-          )}
+
+            {coupons.length === 0 ? (
+              <div className="py-12 text-center text-slate-500 text-xs">
+                No active coupon codes created yet.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {coupons.map((c) => (
+                  <div
+                    key={c.id}
+                    className="p-4 rounded-2xl border border-slate-800 bg-[#07090E] flex flex-col justify-between space-y-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="px-3 py-1 rounded-xl bg-violet-500/20 border border-violet-500/40 text-violet-300 font-mono font-black text-sm">
+                        {c.code}
+                      </span>
+                      <button
+                        onClick={() => handleToggleCoupon(c.id)}
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                          c.isActive
+                            ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                            : 'bg-red-500/10 text-red-300 border-red-500/30'
+                        }`}
+                      >
+                        {c.isActive ? 'ACTIVE' : 'DISABLED'}
+                      </button>
+                    </div>
+
+                    <div className="text-xs space-y-1">
+                      <div className="text-white font-bold">
+                        Discount: {c.discountPercent ? `${c.discountPercent}% OFF` : `৳ ${c.discountAmountBdt} OFF`}
+                      </div>
+                      <div className="text-slate-400 text-[11px]">
+                        Min Spend: ৳{c.minOrderBdt || 0} • Used: {c.usedCount} / {c.maxUses || '∞'}
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-800/80 flex justify-end">
+                      <button
+                        onClick={() => handleDeleteCoupon(c.id)}
+                        className="text-red-400 hover:text-red-300 text-xs font-bold flex items-center gap-1"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Delete</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
-      {/* ══════════ TAB 3: SHOP BANNER REDIRECT ══════════ */}
+      {/* 6. TAB 4: BANNER CUSTOMIZER */}
       {activeTab === 'BANNER' && (
-        <div className="bg-white border border-slate-200/80 rounded-3xl shadow-sm p-8 sm:p-12 text-center max-w-3xl mx-auto space-y-6">
-          <div className="w-20 h-20 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-4 border border-amber-100">
-            <Sparkles className="w-10 h-10 text-amber-500" />
+        <div className="rounded-3xl border border-slate-800 bg-[#0C101A] p-6 sm:p-8 shadow-xl space-y-6">
+          <div>
+            <h2 className="font-heading font-black text-lg text-white">Storefront Hero Banner Customizer</h2>
+            <p className="text-xs text-slate-400">Configure the main promotional banner shown at the top of the gaming shop.</p>
           </div>
-          <h2 className="text-2xl font-black font-heading text-slate-900">Multiple Shop Banners & Slider Manager</h2>
-          <p className="text-slate-600 text-sm leading-relaxed max-w-xl mx-auto">You can now add <strong>multiple banners</strong> to the shop page to create an auto-sliding carousel. To manage these banners, please use the Main Banners Manager.</p>
-          <div className="pt-6">
-            <a href="/admin/banners" className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-black text-sm uppercase tracking-wider shadow-neon-orange hover:scale-105 active:scale-95 transition-all cursor-pointer">
-              <span>Go To Banners Manager</span>
-              <ArrowRight className="w-5 h-5" />
-            </a>
+
+          {/* Live Preview */}
+          <div className="rounded-3xl border border-violet-500/30 bg-gradient-to-r from-violet-950/60 via-[#0E1322] to-slate-900 p-6 sm:p-8 relative overflow-hidden shadow-2xl">
+            <div className="relative z-10 max-w-xl space-y-3">
+              <span className="px-3 py-1 rounded-full bg-violet-500/20 text-violet-300 font-mono text-[10px] font-bold border border-violet-500/40">
+                {shopBanner.badge || '💎 SPECIAL PROMO'}
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-black text-white font-heading">{shopBanner.title}</h2>
+              <p className="text-xs sm:text-sm text-slate-300">{shopBanner.subtitle}</p>
+              <div className="pt-2">
+                <span className="px-5 py-2.5 rounded-xl bg-violet-600 text-white font-bold text-xs inline-block">
+                  {shopBanner.buttonText || 'SHOP NOW'}
+                </span>
+              </div>
+            </div>
           </div>
-          <p className="text-xs text-slate-400 mt-4">Select <strong>"🛍️ Shop & Home Banner"</strong> from the Placement dropdown to add them to the shop slider.</p>
+
+          {/* Edit Inputs */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            <div>
+              <label className="block text-slate-300 font-bold mb-1">Headline Title *</label>
+              <input
+                type="text"
+                value={shopBanner.title}
+                onChange={(e) => setShopBanner({ ...shopBanner, title: e.target.value })}
+                className="w-full bg-[#07090E] border border-slate-800 rounded-xl p-3 text-white font-bold focus:outline-none focus:border-violet-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-slate-300 font-bold mb-1">Badge Tag</label>
+              <input
+                type="text"
+                value={shopBanner.badge}
+                onChange={(e) => setShopBanner({ ...shopBanner, badge: e.target.value })}
+                className="w-full bg-[#07090E] border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-violet-500"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-slate-300 font-bold mb-1">Subtitle Description</label>
+              <textarea
+                value={shopBanner.subtitle}
+                onChange={(e) => setShopBanner({ ...shopBanner, subtitle: e.target.value })}
+                rows={2}
+                className="w-full bg-[#07090E] border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-violet-500"
+              />
+            </div>
+          </div>
         </div>
       )}
 
-      {/* ── Add / Edit Product Modal ── */}
+      {/* 7. TAB 5: ANALYTICS */}
+      {activeTab === 'ANALYTICS' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="rounded-3xl border border-slate-800 bg-[#0C101A] p-6 shadow-xl space-y-4">
+            <h3 className="font-heading font-black text-base text-white">Payment Method Breakdown</h3>
+            <div className="space-y-3 text-xs">
+              <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <DollarSign className="w-5 h-5 text-emerald-400" />
+                  <span className="font-bold text-white">Wallet Balance (BDT Cash)</span>
+                </div>
+                <span className="font-mono font-bold text-emerald-400 text-sm">৳ {stats.totalCashRevenue.toLocaleString()}</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Coins className="w-5 h-5 text-amber-400" />
+                  <span className="font-bold text-white">BRK Coins System</span>
+                </div>
+                <span className="font-mono font-bold text-amber-400 text-sm">{stats.totalCoinsSpent.toLocaleString()} Coins</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-slate-800 bg-[#0C101A] p-6 shadow-xl space-y-4">
+            <h3 className="font-heading font-black text-base text-white">Fulfillment Completion Rate</h3>
+            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 text-center space-y-2">
+              <div className="text-4xl font-black text-emerald-400 font-mono">
+                {stats.totalOrders > 0 ? Math.round((stats.completedDeliveries / stats.totalOrders) * 100) : 100}%
+              </div>
+              <p className="text-xs text-slate-400">
+                {stats.completedDeliveries} of {stats.totalOrders} total shop orders fulfilled
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 1: ADD / EDIT PRODUCT */}
       {isProductModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 max-w-2xl w-full space-y-6 shadow-2xl text-slate-900 max-h-[90vh] overflow-y-auto">
-            
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-heading font-black text-xl text-slate-900">
-                {editingProduct ? 'EDIT SHOP PRODUCT' : 'ADD NEW SHOP PRODUCT'}
-              </h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-[#0C101A] rounded-3xl p-6 sm:p-8 max-w-2xl w-full border border-slate-800 shadow-2xl space-y-5 my-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div>
+                <h3 className="font-heading font-black text-lg text-white">
+                  {editingProduct ? 'Edit Gaming Product' : 'Add New Gaming Package'}
+                </h3>
+                <p className="text-xs text-slate-400">Configure Free Fire diamonds, pass prices, stock and delivery.</p>
+              </div>
               <button
                 onClick={() => setIsProductModalOpen(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 font-bold"
+                className="text-slate-400 hover:text-white font-bold cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleSaveProduct} className="space-y-4">
-              
-              {/* Name & Category */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 uppercase">Product Title</label>
+            <form onSubmit={handleSaveProduct} className="space-y-4 text-xs">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                <div className="md:col-span-2">
+                  <label className="block text-slate-300 font-bold mb-1">Product Title *</label>
                   <input
                     type="text"
                     required
-                    value={productForm.name}
-                    onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
-                    placeholder="e.g. 520 Free Fire Diamonds"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-bold focus:outline-none focus:border-brand-orange"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="e.g. 530 + 53 Bonus Diamonds"
+                    className="w-full bg-[#07090E] border border-slate-800 rounded-xl p-3 text-white font-bold focus:outline-none focus:border-violet-500"
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 uppercase">Category</label>
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1">Category *</label>
                   <select
-                    value={productForm.category}
-                    onChange={(e) => setProductForm({ ...productForm, category: e.target.value as any })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-bold focus:outline-none focus:border-brand-orange"
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
+                    className="w-full bg-[#07090E] border border-slate-800 rounded-xl p-3 text-white font-bold focus:outline-none focus:border-violet-500"
                   >
-                    <option value="DIAMONDS">💎 Diamonds Pack</option>
+                    <option value="DIAMONDS">💎 Free Fire Diamonds</option>
                     <option value="PASSES">👑 Memberships & Passes</option>
-                    <option value="SKINS">🎁 Skins & Redeem Codes</option>
-                    <option value="TICKETS">🎟️ Tournament Match Tickets</option>
-                    <option value="CRATES">📦 Mystery Boxes</option>
-                    <option value="OTHERS">🛍️ Others</option>
+                    <option value="SKINS">🔫 Gun Skins & Evo Tokens</option>
+                    <option value="CRATES">📦 Crates & Airdrops</option>
+                    <option value="VOUCHERS">🎁 Digital Redeem Vouchers</option>
+                    <option value="MERCH">👕 Esports Merchandise</option>
+                    <option value="OTHERS">✨ Others</option>
                   </select>
                 </div>
-              </div>
 
-              {/* Currency Mode & Prices */}
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
-                <label className="text-xs font-bold text-slate-700 uppercase block">
-                  Payment Currency Mode (ইউজার কীভাবে কিনতে পারবে)
-                </label>
-                
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { id: 'BOTH', label: '🔄 Coin & Taka Both' },
-                    { id: 'COINS', label: '🪙 Coins Only' },
-                    { id: 'WALLET', label: '৳ Taka Only' },
-                  ].map((cur) => (
-                    <button
-                      key={cur.id}
-                      type="button"
-                      onClick={() => setProductForm({ ...productForm, currencyType: cur.id as any })}
-                      className={`p-2.5 rounded-xl border text-xs font-bold text-center transition-all cursor-pointer ${
-                        productForm.currencyType === cur.id
-                          ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                          : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
-                      }`}
-                    >
-                      {cur.label}
-                    </button>
-                  ))}
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1">Delivery Method *</label>
+                  <select
+                    value={formData.deliveryType}
+                    onChange={(e) => setFormData({ ...formData, deliveryType: e.target.value as any })}
+                    className="w-full bg-[#07090E] border border-slate-800 rounded-xl p-3 text-white font-bold focus:outline-none focus:border-violet-500"
+                  >
+                    <option value="FF_UID">🎯 Direct Free Fire UID Top-Up</option>
+                    <option value="REDEEM_CODE">🎟️ Instant Digital Redeem Code</option>
+                    <option value="MANUAL">🛡️ Manual Admin Delivery</option>
+                    <option value="PHYSICAL">📦 Physical Parcel Shipping</option>
+                  </select>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-amber-700 uppercase">Coin Price (🪙 Coins)</label>
-                    <input
-                      type="number"
-                      value={productForm.priceCoins}
-                      onChange={(e) => setProductForm({ ...productForm, priceCoins: Number(e.target.value) })}
-                      placeholder="e.g. 500"
-                      className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 font-bold focus:outline-none focus:border-brand-orange"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-emerald-700 uppercase">Taka Price (৳ BDT)</label>
-                    <input
-                      type="number"
-                      value={productForm.priceBdt}
-                      onChange={(e) => setProductForm({ ...productForm, priceBdt: Number(e.target.value) })}
-                      placeholder="e.g. 80"
-                      className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 font-bold focus:outline-none focus:border-brand-orange"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Diamonds / Bonus / Badge */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 uppercase">Diamonds Count</label>
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1">Sale Price (BDT ৳) *</label>
                   <input
                     type="number"
-                    value={productForm.diamonds || 0}
-                    onChange={(e) => setProductForm({ ...productForm, diamonds: Number(e.target.value) })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold"
+                    min="0"
+                    required
+                    value={formData.priceBdt}
+                    onChange={(e) => setFormData({ ...formData, priceBdt: Number(e.target.value) })}
+                    className="w-full bg-[#07090E] border border-slate-800 rounded-xl p-3 text-white font-mono font-bold focus:outline-none focus:border-violet-500"
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 uppercase">Bonus Diamonds</label>
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1">Original Price (BDT ৳) (For Strikethrough)</label>
                   <input
                     type="number"
-                    value={productForm.bonusDiamonds || 0}
-                    onChange={(e) => setProductForm({ ...productForm, bonusDiamonds: Number(e.target.value) })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold"
+                    min="0"
+                    value={formData.originalPriceBdt}
+                    onChange={(e) => setFormData({ ...formData, originalPriceBdt: Number(e.target.value) })}
+                    placeholder="e.g. 100 (Shows discount)"
+                    className="w-full bg-[#07090E] border border-slate-800 rounded-xl p-3 text-white font-mono focus:outline-none focus:border-violet-500"
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 uppercase">Badge Label</label>
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1">Price in BRK Coins (🪙)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.priceCoins}
+                    onChange={(e) => setFormData({ ...formData, priceCoins: Number(e.target.value) })}
+                    className="w-full bg-[#07090E] border border-slate-800 rounded-xl p-3 text-amber-300 font-mono font-bold focus:outline-none focus:border-violet-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1">Currency Type</label>
+                  <select
+                    value={formData.currencyType}
+                    onChange={(e) => setFormData({ ...formData, currencyType: e.target.value as any })}
+                    className="w-full bg-[#07090E] border border-slate-800 rounded-xl p-3 text-white font-bold focus:outline-none focus:border-violet-500"
+                  >
+                    <option value="BOTH">Both Wallet (৳) & Coins (🪙)</option>
+                    <option value="WALLET">Wallet Cash (৳) Only</option>
+                    <option value="COINS">BRK Coins (🪙) Only</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1">Badge Tag</label>
                   <input
                     type="text"
-                    value={productForm.badge || ''}
-                    onChange={(e) => setProductForm({ ...productForm, badge: e.target.value })}
-                    placeholder="HOT / VIP / BEST"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold uppercase"
+                    value={formData.badge}
+                    onChange={(e) => setFormData({ ...formData, badge: e.target.value })}
+                    placeholder="e.g. HOT, BEST VALUE, 25% OFF"
+                    className="w-full bg-[#07090E] border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-violet-500"
                   />
                 </div>
-              </div>
 
-              {/* Image URL & Preset Selection */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-700 uppercase block">Product Image URL</label>
-                <input
-                  type="text"
-                  value={productForm.imageUrl || ''}
-                  onChange={(e) => setProductForm({ ...productForm, imageUrl: e.target.value })}
-                  placeholder="https://images.unsplash.com/..."
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono"
-                />
-
-                <div className="flex items-center gap-2 overflow-x-auto pt-1">
-                  {PRESET_SHOP_IMAGES.map((img, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => setProductForm({ ...productForm, imageUrl: img.url })}
-                      className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[10px] font-bold text-slate-700 whitespace-nowrap cursor-pointer"
-                    >
-                      {img.name}
-                    </button>
-                  ))}
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1">Stock Quantity (Leave blank for Unlimited)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.stock}
+                    onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                    placeholder="Unlimited"
+                    className="w-full bg-[#07090E] border border-slate-800 rounded-xl p-3 text-white font-mono focus:outline-none focus:border-violet-500"
+                  />
                 </div>
-              </div>
 
-              {/* Description */}
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700 uppercase block">Description</label>
-                <textarea
-                  rows={2}
-                  value={productForm.description || ''}
-                  onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
-                  placeholder="Details regarding delivery and game pack..."
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs focus:outline-none focus:border-brand-orange"
-                />
-              </div>
-
-              {/* Homepage Featured Toggle Box */}
-              <div className="flex items-center justify-between p-4 bg-amber-50/70 border border-amber-200 rounded-2xl">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center">
-                    <Sparkles className="w-4 h-4 text-amber-500 fill-amber-500" />
-                  </div>
-                  <div>
-                    <div className="font-heading font-black text-xs text-amber-950">
-                      Show as Featured Item on Homepage (হোমপেজে দেখান)
-                    </div>
-                    <div className="text-[10px] text-amber-700">
-                      এই অপশন চালু রাখলে আইটেমটি সরাসরি ওয়েবসাইট হোমপেজের শপ সেকশনে শো করবে
-                    </div>
+                <div className="md:col-span-2">
+                  <label className="block text-slate-300 font-bold mb-1">Image URL *</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.imageUrl}
+                    onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                    placeholder="https://..."
+                    className="w-full bg-[#07090E] border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-violet-500"
+                  />
+                  <div className="flex gap-2 mt-2 overflow-x-auto pb-1">
+                    {PRESET_SHOP_IMAGES.map((preset, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, imageUrl: preset.url })}
+                        className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[10px] text-slate-300 hover:text-white whitespace-nowrap"
+                      >
+                        {preset.name}
+                      </button>
+                    ))}
                   </div>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={Boolean(productForm.isFeaturedOnHome)}
-                  onChange={(e) => setProductForm({ ...productForm, isFeaturedOnHome: e.target.checked })}
-                  className="w-5 h-5 rounded accent-amber-500 cursor-pointer"
-                />
+
+                <div className="md:col-span-2">
+                  <label className="block text-slate-300 font-bold mb-1">Product Description</label>
+                  <textarea
+                    rows={2}
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Brief details about delivery, diamond amounts or instructions..."
+                    className="w-full bg-[#07090E] border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-violet-500"
+                  />
+                </div>
+
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              <div className="flex justify-end gap-2 pt-4 border-t border-slate-800">
                 <button
                   type="button"
                   onClick={() => setIsProductModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-bold cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSavingProduct}
-                  className="px-6 py-2 bg-gradient-to-r from-brand-red to-brand-orange text-white rounded-xl text-xs font-bold shadow-md cursor-pointer disabled:opacity-50"
+                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
-                  {isSavingProduct ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Product'}
+                  {isSavingProduct ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  <span>Save Package</span>
                 </button>
               </div>
-
             </form>
-
           </div>
         </div>
       )}
 
-      {/* ── Deliver Modal ── */}
-      {deliverModalOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl border border-slate-200">
-            <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-              <Diamond className="w-5 h-5 text-cyan-500" />
-              Fulfill Shop Order
-            </h3>
-            <p className="text-xs text-slate-600">
-              Order for <strong>{deliverModalOrder.userName}</strong> ({deliverModalOrder.notes})
-            </p>
+      {/* MODAL 2: ORDER FULFILLMENT / ACTION */}
+      {selectedOrder && deliveryAction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#0C101A] rounded-3xl p-6 sm:p-8 max-w-md w-full border border-slate-800 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div>
+                <h3 className="font-heading font-black text-lg text-white">
+                  {deliveryAction === 'DELIVER' && '✅ Mark Order Delivered'}
+                  {deliveryAction === 'PROCESSING' && '⏳ Start Processing Order'}
+                  {deliveryAction === 'REFUND' && '❌ Cancel & Auto-Refund'}
+                </h3>
+                <p className="text-xs text-slate-400">Order ID: {selectedOrder.id}</p>
+              </div>
+              <button
+                onClick={() => { setSelectedOrder(null); setDeliveryAction(null); }}
+                className="text-slate-400 hover:text-white font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
 
-            <form onSubmit={handleDeliver} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700">Voucher / Redeem Code (Optional)</label>
+            <form onSubmit={handleExecuteOrderAction} className="space-y-4 text-xs">
+              <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
+                <div className="text-slate-400">Player: <strong className="text-white">{selectedOrder.userName}</strong></div>
+                <div className="text-slate-400">Item: <strong className="text-white">{parseOrderDetails(selectedOrder.notes || '').itemName}</strong></div>
+                <div className="text-slate-400">Free Fire UID: <strong className="text-cyan-300 font-mono">{parseOrderDetails(selectedOrder.notes || '').uid || 'N/A'}</strong></div>
+              </div>
+
+              {deliveryAction === 'DELIVER' && (
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1">Voucher / Redeem Code (Optional)</label>
+                  <input
+                    type="text"
+                    value={redeemCode}
+                    onChange={(e) => setRedeemCode(e.target.value)}
+                    placeholder="e.g. GA-84920492"
+                    className="w-full bg-[#07090E] border border-slate-800 rounded-xl p-3 text-white font-mono focus:outline-none focus:border-emerald-500"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1">If filled, player will receive this code in their notification.</p>
+                </div>
+              )}
+
+              {deliveryAction === 'REFUND' && (
+                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs">
+                  ⚠️ This will instantly return 100% of the player's payment ({selectedOrder.amount} {selectedOrder.method === 'COINS' ? 'Coins' : 'BDT'}) back to their balance.
+                </div>
+              )}
+
+              <div>
+                <label className="block text-slate-300 font-bold mb-1">Admin Note / Message</label>
                 <input
                   type="text"
-                  placeholder="e.g. FFBD-8910-XQ72 (Leave blank if delivered directly to UID)"
-                  value={redeemCode}
-                  onChange={(e) => setRedeemCode(e.target.value)}
-                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-cyan-500 font-mono"
+                  value={actionNote}
+                  onChange={(e) => setActionNote(e.target.value)}
+                  placeholder={deliveryAction === 'REFUND' ? 'Reason for cancellation (e.g. Invalid UID)' : 'Optional remarks'}
+                  className="w-full bg-[#07090E] border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-violet-500"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2">
+              <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setDeliverModalOrder(null)}
-                  className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold cursor-pointer"
+                  onClick={() => { setSelectedOrder(null); setDeliveryAction(null); }}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-bold cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={isProcessingDelivery}
-                  className="px-5 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl text-xs font-bold shadow flex items-center gap-1.5 cursor-pointer"
+                  disabled={isUpdatingOrder}
+                  className={`flex-1 py-2.5 rounded-xl font-bold text-white flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 ${
+                    deliveryAction === 'DELIVER'
+                      ? 'bg-emerald-600 hover:bg-emerald-700'
+                      : deliveryAction === 'REFUND'
+                      ? 'bg-red-600 hover:bg-red-700'
+                      : 'bg-cyan-600 hover:bg-cyan-700'
+                  }`}
                 >
-                  {isProcessingDelivery ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                  Confirm & Notify Player
+                  {isUpdatingOrder ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  <span>Confirm Action</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3: CREATE COUPON */}
+      {isCouponModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#0C101A] rounded-3xl p-6 sm:p-8 max-w-md w-full border border-slate-800 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div>
+                <h3 className="font-heading font-black text-lg text-white">Create Promo Coupon</h3>
+                <p className="text-xs text-slate-400">Generate discount codes for the shop checkout.</p>
+              </div>
+              <button
+                onClick={() => setIsCouponModalOpen(false)}
+                className="text-slate-400 hover:text-white font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCoupon} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-slate-300 font-bold mb-1">Coupon Code *</label>
+                <input
+                  type="text"
+                  required
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                  placeholder="e.g. DIAMOND20"
+                  className="w-full bg-[#07090E] border border-slate-800 rounded-xl p-3 text-white font-mono font-bold focus:outline-none focus:border-violet-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1">Discount (% Percent)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={discountPercent}
+                    onChange={(e) => setDiscountPercent(e.target.value)}
+                    placeholder="e.g. 15"
+                    className="w-full bg-[#07090E] border border-slate-800 rounded-xl p-3 text-white font-mono focus:outline-none focus:border-violet-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1">Or Flat BDT (৳)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={discountAmountBdt}
+                    onChange={(e) => setDiscountAmountBdt(e.target.value)}
+                    placeholder="e.g. 50"
+                    className="w-full bg-[#07090E] border border-slate-800 rounded-xl p-3 text-white font-mono focus:outline-none focus:border-violet-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1">Min Spend (৳)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={minOrderBdt}
+                    onChange={(e) => setMinOrderBdt(e.target.value)}
+                    className="w-full bg-[#07090E] border border-slate-800 rounded-xl p-3 text-white font-mono focus:outline-none focus:border-violet-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1">Max Usages</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={maxUses}
+                    onChange={(e) => setMaxUses(e.target.value)}
+                    className="w-full bg-[#07090E] border border-slate-800 rounded-xl p-3 text-white font-mono focus:outline-none focus:border-violet-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsCouponModalOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-bold cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingCoupon}
+                  className="flex-1 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 font-bold text-white flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  {isSavingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  <span>Create Coupon</span>
                 </button>
               </div>
             </form>
