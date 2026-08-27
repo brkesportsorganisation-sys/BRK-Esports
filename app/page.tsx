@@ -102,9 +102,6 @@ export default async function HomePage() {
 
           {/* Banner Slider — client component */}
           <HomeBannerSlider />
-
-          {/* Lottery Wheel — client component, loaded lazily */}
-          <HomeClientSection />
         </section>
 
         {/* Featured Tournaments Section */}
@@ -139,6 +136,12 @@ export default async function HomePage() {
               ))}
             </div>
           </div>
+        </section>
+
+        {/* Lucky Spin Wheel Section */}
+        <section className="py-8 bg-slate-50/50 border-b border-slate-200 relative overflow-hidden">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-gradient-to-r from-purple-500/10 via-amber-500/10 to-orange-500/10 rounded-full blur-[100px] pointer-events-none" aria-hidden="true" />
+          <HomeClientSection />
         </section>
 
         {/* Featured Gaming Shop Section */}
