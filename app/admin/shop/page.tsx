@@ -596,39 +596,6 @@ export default function AdminGamingShopPage() {
         </div>
       </div>
 
-      {/* 2. Top Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar">
-        {[
-          { key: 'PRODUCTS', label: `Products Catalog (${products.length})`, icon: Package },
-          { key: 'ORDERS', label: `Fulfillment & Orders (${orders.length})`, icon: ShoppingBag, badge: stats.pendingDeliveries > 0 ? stats.pendingDeliveries : null },
-          { key: 'COUPONS', label: `Promo Coupons (${coupons.length})`, icon: Ticket },
-          { key: 'BANNER', label: 'Shop Banner & Slider', icon: Sparkles },
-          { key: 'ANALYTICS', label: 'Revenue Analytics', icon: TrendingUp },
-        ].map((tab) => {
-          const Icon = tab.icon;
-          const active = activeTab === tab.key;
-
-          return (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key as any)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-                active
-                  ? 'bg-violet-600 text-white shadow-lg shadow-violet-900/30'
-                  : 'bg-[#0C101A] border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-900'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              <span>{tab.label}</span>
-              {tab.badge && (
-                <span className="w-5 h-5 rounded-full bg-amber-500 text-slate-950 font-black text-[10px] flex items-center justify-center animate-bounce">
-                  {tab.badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
 
       {/* 3. TAB 1: PRODUCTS CATALOG */}
       {activeTab === 'PRODUCTS' && (
