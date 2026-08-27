@@ -100,7 +100,7 @@ export default function AdminArenaPage() {
 
   const totalEscrow = duels
     .filter(d => d.status === 'IN_PROGRESS' || d.status === 'OPEN')
-    .reduce((sum, d) => sum + (d.stakeType === 'BDT' ? d.entryFee * (d.status === 'IN_PROGRESS' ? 2 : 1) : 0), 0);
+    .reduce((sum, d) => sum + (d.stakeType === 'BDT' ? (d.entryFee || 0) * (d.status === 'IN_PROGRESS' ? 2 : 1) : 0), 0);
 
   const filteredDuels = duels.filter((d) => {
     const q = searchQuery.toLowerCase();
@@ -214,12 +214,20 @@ export default function AdminArenaPage() {
                         )}
                       </td>
                       <td className="px-4 py-3.5">
-                        <span className="font-bold text-slate-900 block">
-                          Entry: {duel.stakeType === 'COINS' ? `${duel.entryFee} 🪙` : `৳${duel.entryFee}`}
-                        </span>
-                        <span className="text-[11px] text-emerald-600 font-black">
-                          Pot: {duel.stakeType === 'COINS' ? `${duel.prizePool} 🪙` : `৳${duel.prizePool}`}
-                        </span>
+                        {duel.stakeType === 'FREE' || duel.entryFee === 0 ? (
+                          <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
+                            100% FREE MATCH
+                          </span>
+                        ) : (
+                          <>
+                            <span className="font-bold text-slate-900 block">
+                              Entry: {duel.stakeType === 'COINS' ? `${duel.entryFee} 🪙` : `৳${duel.entryFee}`}
+                            </span>
+                            <span className="text-[11px] text-emerald-600 font-black">
+                              Pot: {duel.stakeType === 'COINS' ? `${duel.prizePool} 🪙` : `৳${duel.prizePool}`}
+                            </span>
+                          </>
+                        )}
                       </td>
                       <td className="px-4 py-3.5">
                         {duel.roomId ? (

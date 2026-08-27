@@ -425,25 +425,43 @@ export interface AdminActivityLog {
   createdAt: string;
 }
 
+export interface DuelChatMessage {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderIgn?: string;
+  message: string;
+  isSystem?: boolean;
+  type?: 'TEXT' | 'ROOM_CREDENTIALS' | 'UID_SHARE';
+  data?: any;
+  createdAt: string;
+}
+
 export interface DuelChallenge {
   id: string;
   creatorId: string;
   creatorName: string;
   creatorIgn: string;
   creatorUid: string;
+  creatorAvatar?: string;
+  creatorWhatsApp?: string;
   challengerId?: string;
   challengerName?: string;
   challengerIgn?: string;
   challengerUid?: string;
-  mode: '1v1_CS' | '1v1_SNIPER' | '1v1_DEAGLE' | '2v2_CS' | 'CUSTOM_BERMUDA';
+  challengerAvatar?: string;
+  challengerWhatsApp?: string;
+  mode: '1v1_CS' | '1v1_SNIPER' | '1v1_DEAGLE' | '2v2_CS' | '4v4_CS' | 'CUSTOM_BERMUDA';
   customRules: string;
-  stakeType: 'BDT' | 'COINS';
-  entryFee: number;
-  prizePool: number;
+  roomCardProvider?: 'CREATOR' | 'CHALLENGER' | 'ANY';
+  stakeType?: 'BDT' | 'COINS' | 'FREE';
+  entryFee?: number;
+  prizePool?: number;
   status: 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
   winnerId?: string;
   roomId?: string;
   roomPass?: string;
+  messages?: DuelChatMessage[];
   createdAt: string;
 }
 

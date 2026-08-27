@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, productId, paymentMethod = 'WALLET', playerUid, inGameName, couponCode, shippingAddress } = body;
+    const { userId, productId, paymentMethod = 'WALLET', playerUid, inGameName, couponCode, shippingAddress, phoneNumber } = body;
 
     if (!userId || !productId) {
       return NextResponse.json({ message: 'User ID and Product ID are required.' }, { status: 400 });
@@ -229,6 +229,7 @@ export async function POST(request: NextRequest) {
     const orderId = `shop_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     const effectiveUid = playerUid || user.freeFireUid || 'N/A';
     const effectiveIgn = inGameName || user.inGameName || 'N/A';
+    const phoneNote = phoneNumber ? ` | Phone: ${phoneNumber.trim()}` : '';
     const couponNote = appliedCoupon ? ` | Coupon: ${appliedCoupon} (-৳${discountAmount})` : '';
     const addressNote = shippingAddress ? ` | Address: ${shippingAddress.trim()}` : '';
 
@@ -241,10 +242,28 @@ export async function POST(request: NextRequest) {
       amount: requiredAmount,
       trxId: `SHOP-${Date.now().toString().slice(-6)}`,
       status: 'PENDING',
-      notes: `[Shop Order] ${product.name} | Category: ${product.category} | Method: ${isCoins ? 'COINS' : 'WALLET'} | UID: ${effectiveUid} | IGN: ${effectiveIgn} | Delivery: ${product.deliveryType || 'FF_UID'}${couponNote}${addressNote}`,
+      notes: `[Shop Order] ${product.name} | Category: ${product.category} | Method: ${isCoins ? 'COINS' : 'WALLET'} | UID: ${effectiveUid} | IGN: ${effectiveIgn} | Delivery: ${product.deliveryType || 'FF_UID'}${phoneNote}${couponNote}${addressNote}`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }]);
+
+    // Increment coupon usedCount
+    if (appliedCoupon) {
+      try {
+        const coupons = await getCoupons();
+        const updatedCoupons = coupons.map(c => 
+          c.code.toUpperCase() === appliedCoupon?.toUpperCase() 
+            ? { ...c, usedCount: (c.usedCount || 0) + 1 } 
+            : c
+        );
+        await supabaseAdmin.from('SiteSetting').upsert({
+          id: 'setting_SHOP_PROMO_COUPONS',
+          key: 'SHOP_PROMO_COUPONS',
+          value: JSON.stringify(updatedCoupons),
+          updatedAt: new Date().toISOString(),
+        }, { onConflict: 'key' });
+      } catch {}
+    }
 
     // 1. Send in-app pending notification to player
     try {

@@ -80,18 +80,20 @@ export async function PATCH(request: NextRequest) {
         .eq('id', winnerId)
         .single();
 
-      if (winner) {
+      const prizeAmt = Number(duel.prizePool || 0);
+
+      if (winner && prizeAmt > 0) {
         if (duel.stakeType === 'COINS') {
           await supabaseAdmin
             .from('User')
-            .update({ coinBalance: Number(winner.coinBalance || 0) + duel.prizePool })
+            .update({ coinBalance: Number(winner.coinBalance || 0) + prizeAmt })
             .eq('id', winnerId);
         } else {
           await supabaseAdmin
             .from('User')
             .update({
-              walletBalance: Number(winner.walletBalance || 0) + duel.prizePool,
-              winningBalance: Number(winner.winningBalance || 0) + duel.prizePool,
+              walletBalance: Number(winner.walletBalance || 0) + prizeAmt,
+              winningBalance: Number(winner.winningBalance || 0) + prizeAmt,
             })
             .eq('id', winnerId);
         }
@@ -114,32 +116,37 @@ export async function PATCH(request: NextRequest) {
         await supabaseAdmin.from('Notification').insert([{
           id: notifId,
           userId: winnerId,
-          title: 'Duel Victory! 🏆',
-          message: `Congratulations! You won the 1v1 match and received ৳${duel.prizePool} in your wallet!`,
+          title: 'Custom Match Victory! 🏆',
+          message: prizeAmt > 0
+            ? `Congratulations! You won the match and received ৳${prizeAmt} in your wallet!`
+            : `Congratulations! You won the custom match! GG!`,
           isRead: false,
           createdAt: new Date().toISOString(),
         }]);
       } catch {}
 
-      return NextResponse.json({ success: true, message: `Prize of ৳${duel.prizePool} released to winner.` });
+      return NextResponse.json({ success: true, message: `Match victory recorded for winner.` });
     }
 
     // 2. REFUND BOTH PLAYERS
     if (action === 'REFUND') {
       const refundPlayers = [duel.creatorId, duel.challengerId].filter(Boolean);
+      const refundFee = Number(duel.entryFee || 0);
 
-      for (const pId of refundPlayers) {
-        const { data: p } = await supabaseAdmin
-          .from('User')
-          .select('id, walletBalance, coinBalance')
-          .eq('id', pId)
-          .single();
+      if (refundFee > 0) {
+        for (const pId of refundPlayers) {
+          const { data: p } = await supabaseAdmin
+            .from('User')
+            .select('id, walletBalance, coinBalance')
+            .eq('id', pId)
+            .single();
 
-        if (p) {
-          if (duel.stakeType === 'COINS') {
-            await supabaseAdmin.from('User').update({ coinBalance: Number(p.coinBalance || 0) + duel.entryFee }).eq('id', pId);
-          } else {
-            await supabaseAdmin.from('User').update({ walletBalance: Number(p.walletBalance || 0) + duel.entryFee }).eq('id', pId);
+          if (p) {
+            if (duel.stakeType === 'COINS') {
+              await supabaseAdmin.from('User').update({ coinBalance: Number(p.coinBalance || 0) + refundFee }).eq('id', pId);
+            } else {
+              await supabaseAdmin.from('User').update({ walletBalance: Number(p.walletBalance || 0) + refundFee }).eq('id', pId);
+            }
           }
         }
       }

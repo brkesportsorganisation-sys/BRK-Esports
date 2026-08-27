@@ -62,8 +62,9 @@ export default function GamingShopPage() {
   const [playerUid, setPlayerUid] = useState('');
   const [inGameName, setInGameName] = useState('');
   const [shippingAddress, setShippingAddress] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [couponCode, setCouponCode] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountPercent: number; discountAmountBdt: number } | null>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountPercent?: number; discountAmountBdt?: number; minOrderBdt?: number } | null>(null);
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState('');
   const [isPurchasing, setIsPurchasing] = useState(false);
@@ -120,6 +121,7 @@ export default function GamingShopPage() {
           db.setCurrentUser(data.user);
           if (data.user.freeFireUid) setPlayerUid(data.user.freeFireUid);
           if (data.user.inGameName) setInGameName(data.user.inGameName);
+          if (data.user.phone || data.user.whatsapp) setPhoneNumber(data.user.phone || data.user.whatsapp || '');
         }
       })
       .catch(() => {});
@@ -158,6 +160,19 @@ export default function GamingShopPage() {
     }
   };
 
+  const calcDiscount = () => {
+    if (!appliedCoupon || !selectedProduct) return 0;
+    const base = selectedProduct.priceBdt || 0;
+    if (appliedCoupon.minOrderBdt && base < appliedCoupon.minOrderBdt) return 0;
+    if (appliedCoupon.discountPercent) {
+      return Math.round((base * appliedCoupon.discountPercent) / 100);
+    }
+    if (appliedCoupon.discountAmountBdt) {
+      return Math.min(base, appliedCoupon.discountAmountBdt);
+    }
+    return 0;
+  };
+
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return;
     setCouponLoading(true);
@@ -167,9 +182,14 @@ export default function GamingShopPage() {
       const res = await fetch(`/api/shop?coupon=${encodeURIComponent(couponCode.trim())}`);
       const data = await res.json();
       if (res.ok && data.success && data.coupon) {
+        if (selectedProduct && data.coupon.minOrderBdt && selectedProduct.priceBdt < data.coupon.minOrderBdt) {
+          setCouponError(`Min. spend of ৳${data.coupon.minOrderBdt} required for this coupon.`);
+          setAppliedCoupon(null);
+          return;
+        }
         setAppliedCoupon(data.coupon);
       } else {
-        setCouponError(data.message || 'Invalid coupon code.');
+        setCouponError(data.message || 'Invalid or expired coupon code.');
         setAppliedCoupon(null);
       }
     } catch {
@@ -210,6 +230,7 @@ export default function GamingShopPage() {
           paymentMethod,
           playerUid: playerUid.trim(),
           inGameName: inGameName.trim(),
+          phoneNumber: phoneNumber.trim() || undefined,
           shippingAddress: shippingAddress.trim() || undefined,
           couponCode: appliedCoupon ? appliedCoupon.code : undefined,
         }),
@@ -595,66 +616,153 @@ export default function GamingShopPage() {
                 <p>Items you purchase from the shop will appear here for live tracking.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-slate-600 uppercase text-[10px] font-bold border-b border-slate-200">
-                    <tr>
-                      <th className="p-3">Date</th>
-                      <th className="p-3">Item</th>
-                      <th className="p-3">UID</th>
-                      <th className="p-3">Amount Paid</th>
-                      <th className="p-3">Status</th>
-                      <th className="p-3">Voucher / Code</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {userOrders.map((order) => {
-                      const details = parseOrderDetails(order.notes || '');
+              <div className="space-y-4">
+                
+                {/* ── MOBILE VIEW: Clean, Stacked Cards (NO Horizontal Scroll!) ── */}
+                <div className="grid grid-cols-1 gap-3 md:hidden">
+                  {userOrders.map((order) => {
+                    const details = parseOrderDetails(order.notes || '');
 
-                      return (
-                        <tr key={order.id} className="hover:bg-slate-50">
-                          <td className="p-3 font-mono text-slate-500">
-                            {new Date(order.createdAt).toLocaleDateString([], { dateStyle: 'short' })}
-                          </td>
-                          <td className="p-3 font-bold text-slate-900">{details.itemName}</td>
-                          <td className="p-3 font-mono text-slate-700 font-bold">{details.uid || '-'}</td>
-                          <td className="p-3 font-mono font-bold text-emerald-600">
-                            {order.method === 'COINS' ? `${order.amount} 🪙` : `৳${order.amount}`}
-                          </td>
-                          <td className="p-3">
-                            <span className={`px-2.5 py-1 rounded-xl text-[10px] font-bold inline-flex items-center gap-1 ${
-                              order.status === 'VERIFIED'
-                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                : order.status === 'PROCESSING'
-                                ? 'bg-cyan-50 text-cyan-700 border border-cyan-200'
-                                : order.status === 'REJECTED'
-                                ? 'bg-red-50 text-red-700 border border-red-200'
-                                : 'bg-amber-50 text-amber-700 border border-amber-200'
-                            }`}>
-                              {order.status === 'VERIFIED' ? 'DELIVERED ✅' : order.status}
-                            </span>
-                          </td>
-                          <td className="p-3">
-                            {details.voucherCode ? (
-                              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 text-white font-mono text-xs">
-                                <span>{details.voucherCode}</span>
+                    return (
+                      <div
+                        key={order.id}
+                        className="p-4 rounded-2xl border border-slate-200 bg-slate-50/60 space-y-3 shadow-2xs"
+                      >
+                        {/* Top: Name & Status */}
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <h4 className="font-heading font-black text-sm text-slate-900 leading-tight">
+                              {details.itemName}
+                            </h4>
+                            <p className="text-[10px] text-slate-500 font-mono mt-0.5">
+                              {new Date(order.createdAt).toLocaleDateString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                            </p>
+                          </div>
+
+                          <span className={`px-2.5 py-1 rounded-xl text-[10px] font-bold inline-flex items-center gap-1 flex-shrink-0 ${
+                            order.status === 'VERIFIED'
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                              : order.status === 'PROCESSING'
+                              ? 'bg-cyan-100 text-cyan-800 border border-cyan-300'
+                              : order.status === 'REJECTED'
+                              ? 'bg-red-100 text-red-800 border border-red-300'
+                              : 'bg-amber-100 text-amber-800 border border-amber-300'
+                          }`}>
+                            {order.status === 'VERIFIED' ? 'DELIVERED ✅' : order.status === 'PENDING' ? 'PENDING ⏳' : order.status}
+                          </span>
+                        </div>
+
+                        {/* Middle: UID & Amount */}
+                        <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-200 text-xs">
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 block uppercase">Player UID</span>
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <span className="font-mono font-bold text-slate-900">{details.uid || 'N/A'}</span>
+                              {details.uid && (
                                 <button
-                                  onClick={() => handleCopy(details.voucherCode || '', order.id)}
-                                  className="text-slate-400 hover:text-white"
-                                  title="Copy Code"
+                                  onClick={() => handleCopy(details.uid, `uid_mob_${order.id}`)}
+                                  className="text-slate-400 hover:text-slate-700 p-0.5"
+                                  title="Copy UID"
                                 >
-                                  {copiedOrderId === order.id ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                                  {copiedOrderId === `uid_mob_${order.id}` ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
                                 </button>
-                              </div>
-                            ) : (
-                              <span className="text-slate-400">-</span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="text-right">
+                            <span className="text-[10px] font-bold text-slate-400 block uppercase">Amount Paid</span>
+                            <span className="font-heading font-black text-sm text-emerald-600">
+                              {order.method === 'COINS' ? `${order.amount} 🪙` : `৳${order.amount}`}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Bottom: Voucher Code (if delivered) */}
+                        {details.voucherCode && (
+                          <div className="p-3 rounded-xl bg-slate-900 text-white flex items-center justify-between text-xs">
+                            <div>
+                              <span className="text-[9px] text-slate-400 block uppercase font-bold">Digital Redeem Code</span>
+                              <span className="font-mono font-bold text-emerald-400">{details.voucherCode}</span>
+                            </div>
+
+                            <button
+                              onClick={() => handleCopy(details.voucherCode || '', order.id)}
+                              className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-mono text-xs font-bold flex items-center gap-1"
+                            >
+                              {copiedOrderId === order.id ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                              <span>{copiedOrderId === order.id ? 'Copied' : 'Copy'}</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* ── DESKTOP VIEW: Spacious Table ── */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 text-slate-600 uppercase text-[10px] font-bold border-b border-slate-200">
+                      <tr>
+                        <th className="p-3">Date</th>
+                        <th className="p-3">Item</th>
+                        <th className="p-3">UID</th>
+                        <th className="p-3">Amount Paid</th>
+                        <th className="p-3">Status</th>
+                        <th className="p-3">Voucher / Code</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {userOrders.map((order) => {
+                        const details = parseOrderDetails(order.notes || '');
+
+                        return (
+                          <tr key={order.id} className="hover:bg-slate-50">
+                            <td className="p-3 font-mono text-slate-500 whitespace-nowrap">
+                              {new Date(order.createdAt).toLocaleDateString([], { dateStyle: 'short' })}
+                            </td>
+                            <td className="p-3 font-bold text-slate-900">{details.itemName}</td>
+                            <td className="p-3 font-mono text-slate-700 font-bold">{details.uid || '-'}</td>
+                            <td className="p-3 font-mono font-bold text-emerald-600 whitespace-nowrap">
+                              {order.method === 'COINS' ? `${order.amount} 🪙` : `৳${order.amount}`}
+                            </td>
+                            <td className="p-3 whitespace-nowrap">
+                              <span className={`px-2.5 py-1 rounded-xl text-[10px] font-bold inline-flex items-center gap-1 ${
+                                order.status === 'VERIFIED'
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                  : order.status === 'PROCESSING'
+                                  ? 'bg-cyan-50 text-cyan-700 border border-cyan-200'
+                                  : order.status === 'REJECTED'
+                                  ? 'bg-red-50 text-red-700 border border-red-200'
+                                  : 'bg-amber-50 text-amber-700 border border-amber-200'
+                              }`}>
+                                {order.status === 'VERIFIED' ? 'DELIVERED ✅' : order.status === 'PENDING' ? 'PENDING ⏳' : order.status}
+                              </span>
+                            </td>
+                            <td className="p-3">
+                              {details.voucherCode ? (
+                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 text-white font-mono text-xs">
+                                  <span>{details.voucherCode}</span>
+                                  <button
+                                    onClick={() => handleCopy(details.voucherCode || '', order.id)}
+                                    className="text-slate-400 hover:text-white"
+                                    title="Copy Code"
+                                  >
+                                    {copiedOrderId === order.id ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className="text-slate-400">-</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
               </div>
             )}
           </div>
@@ -784,13 +892,31 @@ export default function GamingShopPage() {
                     <textarea
                       required
                       rows={2}
-                      placeholder="House, Road, City, Phone Number..."
+                      placeholder="House, Road, City, Police Station..."
                       value={shippingAddress}
                       onChange={(e) => setShippingAddress(e.target.value)}
                       className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-brand-orange focus:bg-white"
                     />
                   </div>
                 )}
+
+                {/* Contact Phone / WhatsApp Number Input */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 uppercase block">
+                    Contact / WhatsApp Mobile Number (মোবাইল নম্বর) *
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="e.g. 01847853867"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-900 font-mono font-bold focus:outline-none focus:border-brand-orange focus:bg-white transition-colors"
+                  />
+                  <span className="text-[10px] text-slate-400 block">
+                    অর্ডার ডেলিভারি আপডেট বা কুরিয়ার পার্সেল ট্র্যাকিংয়ের জন্য সচল মোবাইল নম্বর দিন।
+                  </span>
+                </div>
 
                 {/* Promo Coupon Code */}
                 {paymentMethod === 'WALLET' && (
@@ -860,31 +986,47 @@ export default function GamingShopPage() {
                       </button>
                     )}
 
-                    {(selectedProduct.currencyType === 'WALLET' || selectedProduct.currencyType === 'BOTH') && (
-                      <button
-                        type="button"
-                        onClick={() => setPaymentMethod('WALLET')}
-                        className={`p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between ${
-                          paymentMethod === 'WALLET'
-                            ? 'border-emerald-500 bg-emerald-50/60 text-emerald-950 shadow-md ring-2 ring-emerald-400/30'
-                            : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-[10px] font-bold uppercase text-emerald-700 flex items-center gap-1">
-                            <DollarSign className="w-3.5 h-3.5" />
-                            <span>Wallet Cash</span>
-                          </span>
-                          {paymentMethod === 'WALLET' && <Check className="w-4 h-4 text-emerald-600" />}
-                        </div>
-                        <div className="text-base font-heading font-black text-emerald-600">
-                          ৳ {selectedProduct.priceBdt.toLocaleString()}
-                        </div>
-                        <div className="text-[10px] text-slate-500 mt-1">
-                          Your Balance: <strong>৳{(currentUser?.walletBalance || 0).toLocaleString()}</strong>
-                        </div>
-                      </button>
-                    )}
+                    {(selectedProduct.currencyType === 'WALLET' || selectedProduct.currencyType === 'BOTH') && (() => {
+                      const discount = calcDiscount();
+                      const payable = Math.max(1, selectedProduct.priceBdt - discount);
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod('WALLET')}
+                          className={`p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between ${
+                            paymentMethod === 'WALLET'
+                              ? 'border-emerald-500 bg-emerald-50/60 text-emerald-950 shadow-md ring-2 ring-emerald-400/30'
+                              : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[10px] font-bold uppercase text-emerald-700 flex items-center gap-1">
+                              <DollarSign className="w-3.5 h-3.5" />
+                              <span>Wallet Cash</span>
+                            </span>
+                            {paymentMethod === 'WALLET' && <Check className="w-4 h-4 text-emerald-600" />}
+                          </div>
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-base font-heading font-black text-emerald-600">
+                              ৳ {payable.toLocaleString()}
+                            </span>
+                            {discount > 0 && (
+                              <span className="text-slate-400 line-through text-xs font-mono">
+                                ৳{selectedProduct.priceBdt}
+                              </span>
+                            )}
+                          </div>
+                          {discount > 0 && (
+                            <div className="text-[10px] font-bold text-emerald-700 mt-0.5">
+                              🎉 You save ৳{discount} ({appliedCoupon?.code})
+                            </div>
+                          )}
+                          <div className="text-[10px] text-slate-500 mt-1">
+                            Your Balance: <strong>৳{(currentUser?.walletBalance || 0).toLocaleString()}</strong>
+                          </div>
+                        </button>
+                      );
+                    })()}
 
                   </div>
                 </div>
@@ -904,7 +1046,7 @@ export default function GamingShopPage() {
                     className="px-6 py-2.5 bg-gradient-to-r from-red-600 to-orange-500 hover:brightness-110 text-white font-heading font-black text-xs uppercase tracking-wider rounded-xl shadow-md flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                   >
                     {isPurchasing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                    <span>Confirm & Top-Up</span>
+                    <span>Confirm & Buy Now</span>
                   </button>
                 </div>
 

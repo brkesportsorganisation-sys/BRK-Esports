@@ -225,7 +225,11 @@ export default function AdminShell({ children }: AdminShellProps) {
     {
       title: '🛍️ SHOP & COMMERCE',
       links: [
-        { href: '/admin/shop', label: 'Shop Orders & Diamonds', icon: ShoppingBag, colorClass: 'text-cyan-500', badge: pendingShopCount, permission: 'manage_deposits' },
+        { href: '/admin/shop', label: 'Shop Products Catalog (📦)', icon: ShoppingBag, colorClass: 'text-cyan-500', permission: 'manage_deposits' },
+        { href: '/admin/shop/orders', label: 'Order Fulfillment & Delivery (📋)', icon: Package, colorClass: 'text-orange-500', badge: pendingShopCount, permission: 'manage_deposits' },
+        { href: '/admin/coupons', label: 'Promo Coupons (🎟️)', icon: Ticket, colorClass: 'text-pink-500', permission: 'manage_deposits' },
+        { href: '/admin/shop/banners', label: 'Shop Banners & Slider (🖼️)', icon: Sparkles, colorClass: 'text-amber-500', permission: 'manage_settings' },
+        { href: '/admin/shop/analytics', label: 'Shop Revenue Analytics (📊)', icon: BarChart3, colorClass: 'text-violet-500', permission: 'view_financial_reports' },
         { href: '/admin/payments', label: 'Deposit & Revenue Ledger', icon: DollarSign, colorClass: 'text-emerald-500', permission: 'manage_deposits' },
         { href: '/admin/unlocks', label: 'Contact Unlocks (৳)', icon: DollarSign, colorClass: 'text-emerald-600', permission: 'view_financial_reports' },
         { href: '/admin/ads', label: 'Earn Rewards & Lottery', icon: Gift, colorClass: 'text-amber-500', permission: 'manage_watch_earn' },
