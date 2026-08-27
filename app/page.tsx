@@ -7,6 +7,7 @@ import {
   Bell,
   Sparkles,
   ShoppingBag,
+  ShoppingCart,
   Coins,
 } from 'lucide-react';
 import Navbar from '@/components/ui/Navbar';
