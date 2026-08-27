@@ -38,7 +38,7 @@ export default function Footer() {
           <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
             Subscribe to Our Newsletter
           </h2>
-          <p className="text-xs sm:text-sm text-blue-100 max-w-lg mx-auto leading-relaxed">
+          <p className="text-xs sm:text-sm text-white font-medium max-w-lg mx-auto leading-relaxed">
             Get the latest updates on new tournaments, diamond top-up offers and upcoming gaming sales.
           </p>
 
@@ -50,7 +50,7 @@ export default function Footer() {
                 placeholder="Enter your email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-white text-slate-900 text-xs sm:text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-white shadow-md font-medium"
+                className="w-full px-4 py-3 rounded-xl bg-white text-slate-900 text-xs sm:text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-white shadow-md font-medium"
               />
             </div>
             <button
@@ -84,7 +84,7 @@ export default function Footer() {
               </span>
             </Link>
 
-            <p className="text-xs text-slate-400 leading-relaxed max-w-sm">
+            <p className="text-xs text-slate-300 leading-relaxed max-w-sm">
               Your trusted esports tournament & online gaming shop destination in Bangladesh.
             </p>
 
@@ -130,7 +130,7 @@ export default function Footer() {
             <h3 className="font-heading font-bold text-sm text-white tracking-wide">
               Quick Links
             </h3>
-            <ul className="space-y-2 text-xs text-slate-400">
+            <ul className="space-y-2 text-xs text-slate-300">
               <li>
                 <Link href="/faq" className="hover:text-blue-400 transition-colors">
                   About Us
@@ -159,7 +159,7 @@ export default function Footer() {
             <h3 className="font-heading font-bold text-sm text-white tracking-wide">
               My Account
             </h3>
-            <ul className="space-y-2 text-xs text-slate-400">
+            <ul className="space-y-2 text-xs text-slate-300">
               <li>
                 <Link href="/login" className="hover:text-blue-400 transition-colors">
                   Login
@@ -188,7 +188,7 @@ export default function Footer() {
             <h3 className="font-heading font-bold text-sm text-white tracking-wide">
               Contact Us
             </h3>
-            <ul className="space-y-2.5 text-xs text-slate-400">
+            <ul className="space-y-2.5 text-xs text-slate-300">
               <li className="flex items-center gap-2">
                 <MapPin className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
                 <span>Dhaka, Bangladesh</span>
@@ -211,7 +211,7 @@ export default function Footer() {
         </div>
 
         {/* ── 3. Bottom Copyright Bar ── */}
-        <div className="mt-10 pt-6 border-t border-slate-800 text-center text-xs text-slate-500">
+        <div className="mt-10 pt-6 border-t border-slate-800 text-center text-xs text-slate-300">
           <p>© {new Date().getFullYear()} ESPORTS ZONE BD. All rights reserved.</p>
         </div>
 
