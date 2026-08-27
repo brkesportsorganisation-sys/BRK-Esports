@@ -86,6 +86,42 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
+        {/* Global error barrier to suppress cross-origin browser extension / Gemini blob injection */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+(function() {
+  window.addEventListener('error', function(e) {
+    if (e && (
+      (e.message && (e.message.indexOf('blob:') !== -1 || e.message.indexOf('gemini.google.com') !== -1 || e.message.indexOf('Not allowed to load local resource') !== -1)) ||
+      (e.target && e.target.tagName === 'IMG' && e.target.src && e.target.src.indexOf('blob:https://gemini.google.com') !== -1)
+    )) {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      return true;
+    }
+  }, true);
+
+  if (typeof MutationObserver !== 'undefined') {
+    var observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(m) {
+        if (m.addedNodes) {
+          m.addedNodes.forEach(function(node) {
+            if (node.tagName === 'IMG' && node.src && node.src.indexOf('blob:https://gemini.google.com') !== -1) {
+              node.src = '';
+              node.remove();
+            }
+          });
+        }
+      });
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+  }
+})();
+`,
+          }}
+        />
+
         {/* Service Worker registration — non-blocking */}
         <script
           dangerouslySetInnerHTML={{
