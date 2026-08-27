@@ -1,5 +1,5 @@
 import { NextResponse, NextRequest } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { verifyAdminSession, requireAdminRole } from '@/lib/admin-auth';
 import os from 'os';
 
 export const dynamic = 'force-dynamic';
@@ -7,19 +7,10 @@ export const revalidate = 0;
 
 export async function GET(request: NextRequest) {
   try {
-    // 1. Verify Authentication (Service Role or valid admin session)
-    const sessionId = request.cookies.get('admin_session')?.value;
-    if (!sessionId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { data: sessionData } = await supabaseAdmin
-      .from('AdminSession')
-      .select('userId')
-      .eq('id', sessionId)
-      .single();
-
-    if (!sessionData) {
+    // 1. Verify Authentication
+    const token = request.cookies.get('admin_session')?.value;
+    const session = verifyAdminSession(token);
+    if (!requireAdminRole(session, ['SUPER_ADMIN', 'ADMIN', 'MODERATOR', 'OWNER'])) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

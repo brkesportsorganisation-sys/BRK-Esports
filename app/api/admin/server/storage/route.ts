@@ -1,4 +1,5 @@
 import { NextResponse, NextRequest } from 'next/server';
+import { verifyAdminSession, requireAdminRole } from '@/lib/admin-auth';
 import { supabaseAdmin } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
@@ -7,31 +8,20 @@ export const revalidate = 0;
 export async function GET(request: NextRequest) {
   try {
     // 1. Verify Authentication
-    const sessionId = request.cookies.get('admin_session')?.value;
-    if (!sessionId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { data: sessionData } = await supabaseAdmin
-      .from('AdminSession')
-      .select('userId')
-      .eq('id', sessionId)
-      .single();
-
-    if (!sessionData) {
+    const token = request.cookies.get('admin_session')?.value;
+    const session = verifyAdminSession(token);
+    if (!requireAdminRole(session, ['SUPER_ADMIN', 'ADMIN', 'MODERATOR', 'OWNER'])) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // 2. Fetch Buckets
     const { data: buckets, error: bucketError } = await supabaseAdmin.storage.listBuckets();
     
-    if (bucketError || !buckets) {
-      return NextResponse.json({ error: 'Failed to fetch buckets' }, { status: 500 });
-    }
+    const validBuckets = buckets || [];
 
-    // 3. For each bucket, fetch files to calculate stats (limit to 1000 for safety, could be paginated in a real large system but enough for this scope)
+    // 3. For each bucket, fetch files to calculate stats
     const bucketStats = await Promise.all(
-      buckets.map(async (bucket) => {
+      validBuckets.map(async (bucket) => {
         const { data: files, error: fileError } = await supabaseAdmin.storage.from(bucket.name).list('', {
           limit: 5000,
           offset: 0,

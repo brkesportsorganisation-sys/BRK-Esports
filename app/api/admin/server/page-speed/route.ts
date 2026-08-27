@@ -1,5 +1,5 @@
 import { NextResponse, NextRequest } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { verifyAdminSession, requireAdminRole } from '@/lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -7,22 +7,15 @@ export const revalidate = 0;
 export async function GET(request: NextRequest) {
   try {
     // 1. Verify Authentication
-    const sessionId = request.cookies.get('admin_session')?.value;
-    if (!sessionId) {
+    const token = request.cookies.get('admin_session')?.value;
+    const session = verifyAdminSession(token);
+    if (!requireAdminRole(session, ['SUPER_ADMIN', 'ADMIN', 'MODERATOR', 'OWNER'])) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data: sessionData } = await supabaseAdmin
-      .from('AdminSession')
-      .select('userId')
-      .eq('id', sessionId)
-      .single();
-
-    if (!sessionData) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const host = request.headers.get('host');
+    const proto = request.headers.get('x-forwarded-proto') || 'https';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (host ? `${proto}://${host}` : 'https://esportszonebd.online');
     
     // We will measure TTFB for a few key routes
     const routesToTest = [
