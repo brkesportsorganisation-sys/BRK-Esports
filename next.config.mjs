@@ -57,9 +57,18 @@ const nextConfig = {
           },
         ],
       },
-      // Static public assets
+      // Static public assets (images, fonts, icons)
       {
-        source: '/(.*)\\.(png|jpg|jpeg|gif|webp|avif|svg|ico|woff|woff2)',
+        source: '/:all*(png|jpg|jpeg|gif|webp|avif|svg|ico|woff|woff2)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/logo.png',
         headers: [
           {
             key: 'Cache-Control',

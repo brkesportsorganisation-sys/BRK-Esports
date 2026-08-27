@@ -66,23 +66,27 @@ async function fetchShopItems(): Promise<ShopProduct[]> {
   }
 }
 
-async function fetchBanners(): Promise<{ shopBanner: Banner | null }> {
+async function fetchBanners(): Promise<{ banners: Banner[]; shopBanner: Banner | null; settings?: any }> {
   try {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://esportszonebd.online';
     const res = await fetch(`${baseUrl}/api/banners`, {
       next: { revalidate: 300 },
     });
-    if (!res.ok) return { shopBanner: null };
+    if (!res.ok) return { banners: [], shopBanner: null };
     const data = await res.json();
-    return { shopBanner: data.shopBanner || null };
+    return { 
+      banners: data.banners || [], 
+      shopBanner: data.shopBanner || null,
+      settings: data.settings || undefined,
+    };
   } catch {
-    return { shopBanner: null };
+    return { banners: [], shopBanner: null };
   }
 }
 
 export default async function HomePage() {
   // Fetch all data in parallel on the server
-  const [tournaments, announcements, featuredShopItems, { shopBanner }] = await Promise.all([
+  const [tournaments, announcements, featuredShopItems, { banners, shopBanner, settings }] = await Promise.all([
     fetchTournaments(),
     fetchAnnouncements(),
     fetchShopItems(),
@@ -100,8 +104,8 @@ export default async function HomePage() {
         <section className="relative pt-4 pb-4 overflow-hidden border-b border-slate-200 bg-slate-50/50">
           <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-r from-brand-red/10 via-brand-orange/10 to-brand-purple/10 rounded-full blur-[120px] pointer-events-none" aria-hidden="true" />
 
-          {/* Banner Slider — client component */}
-          <HomeBannerSlider />
+          {/* Banner Slider — client component with server preloaded initialData for instant LCP */}
+          <HomeBannerSlider initialData={{ banners, settings }} />
         </section>
 
         {/* Featured Tournaments Section */}

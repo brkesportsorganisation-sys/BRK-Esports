@@ -132,7 +132,8 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
                   src={currentSlide?.imageUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1920&h=1080&fit=crop&q=85'}
                   alt={currentSlide?.title || 'Esports Banner'}
                   fill
-                  priority={currentIndex === 0}
+                  priority={true}
+                  loading="eager"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 70vw, 850px"
                   className="object-cover object-center transition-transform duration-700 group-hover/mainlink:scale-105"
                 />

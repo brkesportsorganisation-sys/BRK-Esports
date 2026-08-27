@@ -114,7 +114,32 @@ export async function listTournamentsFromDb() {
     console.error('Error fetching tournaments from Supabase:', error);
     return [];
   }
-  return (data || []).map(serializeTournament);
+
+  // Calculate 100% REAL verified participant counts directly from Participant table
+  let realCounts: Record<string, number> = {};
+  try {
+    const { data: participants } = await supabaseAdmin
+      .from('Participant')
+      .select('tournamentId, status');
+
+    if (participants && Array.isArray(participants)) {
+      participants.forEach((p: any) => {
+        if (p.tournamentId && p.status !== 'REJECTED' && p.status !== 'CANCELLED') {
+          realCounts[p.tournamentId] = (realCounts[p.tournamentId] || 0) + 1;
+        }
+      });
+    }
+  } catch (err) {
+    console.warn('Failed to query live participant counts:', err);
+  }
+
+  return (data || []).map((record: any) => {
+    const realJoined = realCounts[record.id] !== undefined ? realCounts[record.id] : (Number(record.registeredCount) || 0);
+    return serializeTournament({
+      ...record,
+      registeredCount: realJoined,
+    });
+  });
 }
 
 export async function getTournamentByIdFromDb(id: string) {
@@ -127,7 +152,23 @@ export async function getTournamentByIdFromDb(id: string) {
   if (error || !data) {
     return null;
   }
-  return serializeTournament(data);
+
+  // Get 100% REAL count from Participant table
+  let realJoined = 0;
+  try {
+    const { count } = await supabaseAdmin
+      .from('Participant')
+      .select('*', { count: 'exact', head: true })
+      .eq('tournamentId', id);
+    realJoined = count || 0;
+  } catch {
+    realJoined = Number(data.registeredCount) || 0;
+  }
+
+  return serializeTournament({
+    ...data,
+    registeredCount: realJoined,
+  });
 }
 
 export async function createTournamentInDb(input: Record<string, any>) {
