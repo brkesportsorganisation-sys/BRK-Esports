@@ -50,6 +50,19 @@ export default function ShopBannerSlider({
     };
   }, [handleNext, isHovered, slideInterval, slidesToDisplay.length]);
 
+  if (slidesToDisplay.length === 0) {
+    return (
+      <div className="space-y-4">
+        <div className="relative w-full aspect-[21/9] sm:aspect-[2.8/1] rounded-3xl overflow-hidden shadow-xl border border-slate-800 bg-slate-950 animate-pulse flex items-center justify-center p-6">
+          <div className="flex flex-col items-center gap-2 text-slate-500">
+            <Sparkles className="w-6 h-6 animate-spin text-amber-500/50" />
+            <span className="text-xs font-bold tracking-wider uppercase font-mono text-slate-400">Loading Store Banners...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const currentSlide = slidesToDisplay[currentIndex] || slidesToDisplay[0];
 
   return (

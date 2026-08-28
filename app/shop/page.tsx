@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import Navbar from '@/components/ui/Navbar';
@@ -45,10 +45,7 @@ export default function GamingShopPage() {
   const [products, setProducts] = useState<ShopProduct[]>(DEFAULT_SHOP_PRODUCTS);
   const [userOrders, setUserOrders] = useState<any[]>([]);
   const [activeMainTab, setActiveMainTab] = useState<'STORE' | 'MY_ORDERS'>('STORE');
-  const [shopBanners, setShopBanners] = useState<Banner[]>(() => {
-    const initial = initialBanners.filter(b => b.placement === 'SHOP_BANNER' && b.isActive);
-    return initial.length > 0 ? initial : initialBanners.filter(b => b.placement === 'SHOP_BANNER');
-  });
+  const [shopBanners, setShopBanners] = useState<Banner[]>([]);
   const [slideInterval, setSlideInterval] = useState<number>(4000);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -91,6 +88,39 @@ export default function GamingShopPage() {
     }
   };
 
+  const fetchLatestBanners = useCallback(async () => {
+    try {
+      const res = await fetch('/api/banners', { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        let freshBanners: Banner[] = [];
+
+        if (data.shopBanners && Array.isArray(data.shopBanners) && data.shopBanners.length > 0) {
+          freshBanners = data.shopBanners.filter((b: Banner) => b.isActive);
+        } else if (data.shopBanner && data.shopBanner.isActive) {
+          freshBanners = [data.shopBanner];
+        } else if (data.banners && Array.isArray(data.banners)) {
+          freshBanners = data.banners.filter((b: Banner) => b.placement === 'SHOP_BANNER' && b.isActive);
+        }
+
+        if (freshBanners.length > 0) {
+          setShopBanners(freshBanners);
+          try {
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('ezbd_shop_banners', JSON.stringify(freshBanners));
+            }
+          } catch {}
+        }
+
+        if (data.settings?.autoSlideInterval) {
+          setSlideInterval(data.settings.autoSlideInterval);
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to fetch latest shop banners:', err);
+    }
+  }, []);
+
   useEffect(() => {
     const user = db.getCurrentUser();
     setCurrentUser(user);
@@ -101,15 +131,16 @@ export default function GamingShopPage() {
       setInGameName(user.inGameName);
     }
 
+    // Try reading cached banners from localStorage first
     try {
-      const cachedBanners = db.getBanners();
-      const currentShopBanners = cachedBanners.filter(b => b.placement === 'SHOP_BANNER' && b.isActive);
-      if (currentShopBanners.length > 0) {
-        setShopBanners(currentShopBanners);
-      }
-      const settings = db.getBannerSettings();
-      if (settings?.autoSlideInterval) {
-        setSlideInterval(settings.autoSlideInterval);
+      if (typeof window !== 'undefined') {
+        const localSaved = localStorage.getItem('ezbd_shop_banners');
+        if (localSaved) {
+          const parsed = JSON.parse(localSaved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setShopBanners(parsed);
+          }
+        }
       }
     } catch {}
 
@@ -126,22 +157,9 @@ export default function GamingShopPage() {
       })
       .catch(() => {});
 
-    fetch('/api/banners', { cache: 'no-store' })
-      .then(res => res.json())
-      .then(data => {
-        if (data.shopBanners && Array.isArray(data.shopBanners) && data.shopBanners.length > 0) {
-          setShopBanners(data.shopBanners);
-        } else if (data.shopBanner) {
-          setShopBanners([data.shopBanner]);
-        }
-        if (data.settings?.autoSlideInterval) {
-          setSlideInterval(data.settings.autoSlideInterval);
-        }
-      })
-      .catch(() => {});
-
+    fetchLatestBanners();
     loadShopProducts();
-  }, []);
+  }, [fetchLatestBanners]);
 
   const openPurchaseModal = (product: ShopProduct) => {
     setSelectedProduct(product);

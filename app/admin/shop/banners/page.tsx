@@ -90,7 +90,13 @@ export default function AdminShopBannersPage() {
           : data.shopBanners || [];
 
         if (shopList.length > 0) {
-          setBanners(shopList.sort((a: Banner, b: Banner) => (a.order || 0) - (b.order || 0)));
+          const sorted = shopList.sort((a: Banner, b: Banner) => (a.order || 0) - (b.order || 0));
+          setBanners(sorted);
+          try {
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('ezbd_shop_banners', JSON.stringify(sorted.filter((b: Banner) => b.isActive)));
+            }
+          } catch {}
         } else if (data.shopBanner) {
           setBanners([data.shopBanner]);
         } else {
