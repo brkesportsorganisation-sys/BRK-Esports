@@ -8,6 +8,7 @@ import { Trophy, Users, Clock, Flame, ShieldCheck, Zap, X, Check, FileText, Gift
 import { Tournament, TournamentStatus } from '@/lib/types';
 import { getDynamicTournamentStatus } from '@/lib/tournament-utils';
 import { useLanguage } from '@/lib/language-context';
+import TournamentCountdown from '@/components/tournaments/TournamentCountdown';
 
 interface Participant {
   id?: string;
@@ -134,8 +135,8 @@ export default function TournamentCard({ tournament, priority = false }: Tournam
       <div
         className="bg-white rounded-3xl border border-slate-200/90 shadow-sm hover:shadow-xl hover:border-brand-orange/50 transition-all duration-300 flex flex-col justify-between overflow-hidden relative group"
       >
-        {/* Top Banner Image - Full Size & Uncropped */}
-        <div className="relative w-full aspect-[4/3] min-h-[250px] sm:min-h-[275px] overflow-hidden bg-slate-950">
+        {/* Top Banner Image - 1:1 Aspect Ratio (Square) Full Banner Display */}
+        <div className="relative w-full aspect-square overflow-hidden bg-slate-950">
           <Image
             src={tournament.bannerImage || tournament.banner || tournament.thumbnailImage || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800'}
             alt={tournament.title}
@@ -241,6 +242,9 @@ export default function TournamentCard({ tournament, priority = false }: Tournam
               </div>
             </div>
           </div>
+
+          {/* Live Registration Countdown Timer */}
+          <TournamentCountdown tournament={tournament} variant="card" />
 
           {/* Slots & Progress Bar (Slim) */}
           <div className="space-y-1">

@@ -33,6 +33,7 @@ import {
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import SlotGrid from '@/components/tournaments/SlotGrid';
+import TournamentCountdown from '@/components/tournaments/TournamentCountdown';
 import { useRealtimeTournament } from '@/lib/use-realtime';
 import { getTournamentByIdFromDb } from '@/lib/tournament-store';
 import { getDynamicTournamentStatus } from '@/lib/tournament-utils';
@@ -776,6 +777,9 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-6">
+
+        {/* Live Registration Countdown Banner (Days, Hours, Minutes, Seconds) */}
+        <TournamentCountdown tournament={tournament} variant="hero" />
 
         {/* Tabs - Room ID & Password positioned on the LEFT as the primary tab */}
         <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-2">
