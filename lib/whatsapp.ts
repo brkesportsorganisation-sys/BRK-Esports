@@ -294,39 +294,64 @@ export async function fetchGreenApiChats(apiUrl?: string, instanceId?: string, a
   }
 
   try {
-    const res = await fetch(`${host}/waInstance${activeId}/getChats/${activeToken}`, {
-      method: 'GET',
-    });
+    // Query both getChats (active chat history) AND getContacts (all contacts & groups in account)
+    const [chatsRes, contactsRes] = await Promise.allSettled([
+      fetch(`${host}/waInstance${activeId}/getChats/${activeToken}`),
+      fetch(`${host}/waInstance${activeId}/getContacts/${activeToken}`),
+    ]);
 
-    const data = await res.json().catch(() => ([]));
-    if (!res.ok || !Array.isArray(data)) {
-      return {
-        success: false,
-        message: (data as any)?.message || `Failed to fetch chats from Green-API (${res.status})`,
-        chats: [],
-        groups: [],
-      };
+    let chatsData: any[] = [];
+    if (chatsRes.status === 'fulfilled' && chatsRes.value.ok) {
+      const parsed = await chatsRes.value.json().catch(() => []);
+      if (Array.isArray(parsed)) chatsData = parsed;
+    }
+
+    let contactsData: any[] = [];
+    if (contactsRes.status === 'fulfilled' && contactsRes.value.ok) {
+      const parsed = await contactsRes.value.json().catch(() => []);
+      if (Array.isArray(parsed)) contactsData = parsed;
+    }
+
+    const combinedMap = new Map<string, any>();
+    for (const c of [...chatsData, ...contactsData]) {
+      const id = String(c.id || c.chatId || '');
+      if (!id) continue;
+      if (!combinedMap.has(id)) {
+        combinedMap.set(id, c);
+      } else {
+        const prev = combinedMap.get(id);
+        combinedMap.set(id, {
+          ...prev,
+          ...c,
+          name: c.name || c.contactName || c.subject || c.formattedTitle || prev.name,
+        });
+      }
     }
 
     const groups: WhatsAppTargetGroup[] = [];
     const channels: WhatsAppSourceChannel[] = [];
+    const allCombined = Array.from(combinedMap.values());
 
-    for (const c of data) {
-      const id = String(c.id || '');
-      const name = c.name || (id.includes('@newsletter') ? 'WhatsApp Channel' : 'WhatsApp Group');
+    for (const c of allCombined) {
+      const id = String(c.id || c.chatId || '');
+      const rawName = c.name || c.contactName || c.subject || c.formattedTitle;
+      const isNewsletter = id.endsWith('@newsletter') || id.includes('newsletter') || c.type === 'newsletter' || c.isNewsletter;
+      const isGroup = id.endsWith('@g.us') || id.includes('@g.us') || c.type === 'group' || c.isGroup;
 
-      if (id.endsWith('@newsletter') || id.includes('newsletter') || c.type === 'newsletter' || c.isNewsletter) {
+      const name = rawName || (isNewsletter ? 'WhatsApp Channel' : isGroup ? 'WhatsApp Group' : id);
+
+      if (isNewsletter) {
         channels.push({
           id: `chan_${id.replace(/[^a-zA-Z0-9]/g, '_')}`,
-          name: name || `Channel (${id.slice(0, 10)})`,
+          name: name,
           channelId: id,
           description: 'Followed WhatsApp Channel',
         });
-      } else if (id.endsWith('@g.us') || c.type === 'group' || c.isGroup) {
+      } else if (isGroup) {
         groups.push({
-          id: `grp_${id}`,
-          name: name || 'WhatsApp Group',
-          category: 'TOURNAMENT_MAIN',
+          id: `grp_${id.replace(/[^a-zA-Z0-9]/g, '_')}`,
+          name: name,
+          category: name.toLowerCase().includes('scrim') ? 'SCRIMS_VIP' : name.toLowerCase().includes('tour') ? 'TOURNAMENT_MAIN' : 'GENERAL',
           identifier: id,
           description: 'Synced from Green-API WhatsApp account',
           createdAt: new Date().toISOString(),
@@ -336,8 +361,8 @@ export async function fetchGreenApiChats(apiUrl?: string, instanceId?: string, a
 
     return {
       success: true,
-      totalChats: data.length,
-      chats: data,
+      totalChats: allCombined.length,
+      chats: allCombined,
       groups,
       channels,
     };

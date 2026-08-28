@@ -195,13 +195,7 @@ export default function AdminWhatsAppPage() {
     );
   };
 
-  const toggleFormSelectAllGroups = () => {
-    if (formSelectedGroupIds.length === groups.length) {
-      setFormSelectedGroupIds([]);
-    } else {
-      setFormSelectedGroupIds(groups.map(g => g.identifier || g.id));
-    }
-  };
+  const [scheduleGroupSearch, setScheduleGroupSearch] = useState('');
 
   // 2. Add Group Modal State
   const [groupModalOpen, setGroupModalOpen] = useState(false);
@@ -3542,45 +3536,90 @@ export default function AdminWhatsAppPage() {
 
                     {formTargetGroupMode === 'SELECTED_GROUPS' && (
                       <div className="space-y-2 pt-1 border-t border-slate-200/60">
-                        <div className="flex items-center justify-between text-[11px]">
+                        <div className="flex items-center justify-between text-[11px] gap-2 flex-wrap">
                           <span className="text-slate-500">Select which groups will receive this schedule:</span>
-                          <button
-                            type="button"
-                            onClick={toggleFormSelectAllGroups}
-                            className="font-bold text-emerald-700 hover:underline cursor-pointer"
-                          >
-                            {formSelectedGroupIds.length === groups.length ? 'Deselect All' : `Select All (${groups.length})`}
-                          </button>
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={handleSyncGroups}
+                              disabled={isSyncingGroups}
+                              className="font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                              title="Sync all WhatsApp groups from your linked phone"
+                            >
+                              <RefreshCw className={`w-3 h-3 ${isSyncingGroups ? 'animate-spin' : ''}`} />
+                              <span>{isSyncingGroups ? 'Syncing...' : 'Sync Groups'}</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (formSelectedGroupIds.length === groups.length) {
+                                  setFormSelectedGroupIds([]);
+                                } else {
+                                  setFormSelectedGroupIds(groups.map(g => g.identifier || g.id));
+                                }
+                              }}
+                              className="font-bold text-slate-700 hover:underline cursor-pointer"
+                            >
+                              {formSelectedGroupIds.length === groups.length ? 'Deselect All' : `Select All (${groups.length})`}
+                            </button>
+                          </div>
                         </div>
 
+                        {/* Search Groups input */}
+                        {groups.length > 4 && (
+                          <div className="relative">
+                            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                            <input
+                              type="text"
+                              value={scheduleGroupSearch}
+                              onChange={(e) => setScheduleGroupSearch(e.target.value)}
+                              placeholder="Search groups by name or ID (e.g. Scrim, Deadjone)..."
+                              className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-emerald-500"
+                            />
+                          </div>
+                        )}
+
                         {groups.length === 0 ? (
-                          <p className="text-xs text-slate-400 py-1">No groups found. Please sync groups first.</p>
+                          <div className="p-4 text-center rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs space-y-1.5">
+                            <p className="font-bold">No groups synced yet.</p>
+                            <button
+                              type="button"
+                              onClick={handleSyncGroups}
+                              disabled={isSyncingGroups}
+                              className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold cursor-pointer inline-flex items-center gap-1"
+                            >
+                              <RefreshCw className={`w-3 h-3 ${isSyncingGroups ? 'animate-spin' : ''}`} />
+                              <span>Sync WhatsApp Groups Now</span>
+                            </button>
+                          </div>
                         ) : (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1">
-                            {groups.map((g) => {
-                              const isChecked = formSelectedGroupIds.includes(g.identifier) || formSelectedGroupIds.includes(g.id);
-                              return (
-                                <label
-                                  key={g.id}
-                                  className={`p-2 rounded-xl border cursor-pointer flex items-start gap-2 transition-all text-xs ${
-                                    isChecked
-                                      ? 'bg-white border-emerald-500 shadow-2xs text-slate-900 ring-1 ring-emerald-500/30'
-                                      : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
-                                  }`}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={isChecked}
-                                    onChange={() => toggleFormGroupSelection(g.identifier || g.id)}
-                                    className="mt-0.5 text-emerald-600 rounded focus:ring-emerald-500 cursor-pointer"
-                                  />
-                                  <div className="min-w-0 flex-1">
-                                    <div className="font-bold text-xs truncate">{g.name}</div>
-                                    <div className="text-[10px] text-slate-400 font-mono truncate">{g.identifier}</div>
-                                  </div>
-                                </label>
-                              );
-                            })}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
+                            {groups
+                              .filter(g => !scheduleGroupSearch || g.name.toLowerCase().includes(scheduleGroupSearch.toLowerCase()) || (g.identifier && g.identifier.toLowerCase().includes(scheduleGroupSearch.toLowerCase())))
+                              .map((g) => {
+                                const isChecked = formSelectedGroupIds.includes(g.identifier) || formSelectedGroupIds.includes(g.id);
+                                return (
+                                  <label
+                                    key={g.id}
+                                    className={`p-2 rounded-xl border cursor-pointer flex items-start gap-2 transition-all text-xs ${
+                                      isChecked
+                                        ? 'bg-white border-emerald-500 shadow-2xs text-slate-900 ring-1 ring-emerald-500/30'
+                                        : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                                    }`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      onChange={() => toggleFormGroupSelection(g.identifier || g.id)}
+                                      className="mt-0.5 text-emerald-600 rounded focus:ring-emerald-500 cursor-pointer"
+                                    />
+                                    <div className="min-w-0 flex-1">
+                                      <div className="font-bold text-xs truncate">{g.name}</div>
+                                      <div className="text-[10px] text-slate-400 font-mono truncate">{g.identifier}</div>
+                                    </div>
+                                  </label>
+                                );
+                              })}
                           </div>
                         )}
                       </div>
