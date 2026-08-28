@@ -28,9 +28,9 @@ export const revalidate = 60;
 async function fetchTournaments(): Promise<Tournament[]> {
   try {
     const list = await listTournamentsFromDb();
-    return list && list.length > 0 ? list : initialTournaments;
+    return Array.isArray(list) ? list : [];
   } catch {
-    return initialTournaments;
+    return [];
   }
 }
 
@@ -117,39 +117,41 @@ export default async function HomePage() {
           <HomeBannerSlider initialData={{ banners, settings }} />
         </section>
 
-        {/* Featured Tournaments Section */}
-        <section className="pt-6 pb-12 bg-slate-50/70 border-b border-slate-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full space-y-8">
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-              <div className="space-y-1.5">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-100 border border-orange-300 text-orange-900 text-xs font-black uppercase tracking-wider">
-                  <Flame className="w-3.5 h-3.5 text-orange-700 animate-pulse" aria-hidden="true" />
-                  <span>FEATURED TOURNAMENTS</span>
+        {/* Featured Tournaments Section (Only shown when admin creates real tournaments) */}
+        {displayedTournaments.length > 0 && (
+          <section className="pt-6 pb-12 bg-slate-50/70 border-b border-slate-200">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full space-y-8">
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                <div className="space-y-1.5">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-100 border border-orange-300 text-orange-900 text-xs font-black uppercase tracking-wider">
+                    <Flame className="w-3.5 h-3.5 text-orange-700 animate-pulse" aria-hidden="true" />
+                    <span>FEATURED TOURNAMENTS</span>
+                  </div>
+                  <h2 className="text-2xl sm:text-3xl font-black font-heading text-slate-900 tracking-tight">
+                    Live &amp; Featured Arena Tournaments
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-600 max-w-xl leading-relaxed">
+                    Compete in top esports matches, climb the leaderboard, and claim real bKash &amp; Nagad cash prizes.
+                  </p>
                 </div>
-                <h2 className="text-2xl sm:text-3xl font-black font-heading text-slate-900 tracking-tight">
-                  Live &amp; Featured Arena Tournaments
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-600 max-w-xl leading-relaxed">
-                  Compete in top esports matches, climb the leaderboard, and claim real bKash &amp; Nagad cash prizes.
-                </p>
+
+                <Link
+                  href="/tournaments"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold hover:brightness-110 text-white font-heading font-black text-xs uppercase tracking-wider shadow-neon-orange transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0"
+                >
+                  <span>Explore All Tournaments</span>
+                  <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                </Link>
               </div>
 
-              <Link
-                href="/tournaments"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold hover:brightness-110 text-white font-heading font-black text-xs uppercase tracking-wider shadow-neon-orange transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0"
-              >
-                <span>Explore All Tournaments</span>
-                <ArrowRight className="w-4 h-4" aria-hidden="true" />
-              </Link>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {displayedTournaments.map((tour, idx) => (
+                  <TournamentCard key={tour.id} tournament={tour} priority={idx === 0} />
+                ))}
+              </div>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {displayedTournaments.map((tour, idx) => (
-                <TournamentCard key={tour.id} tournament={tour} priority={idx === 0} />
-              ))}
-            </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         {/* Lucky Spin Wheel Section */}
         <section className="py-8 bg-slate-50/50 border-b border-slate-200 relative overflow-hidden">
