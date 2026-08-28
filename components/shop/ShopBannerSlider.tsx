@@ -147,35 +147,35 @@ export default function ShopBannerSlider({
               type="button"
               onClick={handlePrev}
               aria-label="Previous Banner"
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-black/50 hover:bg-black/85 backdrop-blur-md text-white border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 z-20 cursor-pointer shadow-xl hover:scale-110"
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-black/40 hover:bg-black/80 backdrop-blur-xs text-white border border-white/15 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 z-20 cursor-pointer shadow-md hover:scale-105"
             >
-              <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+              <ChevronLeft className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
             </button>
 
             <button
               type="button"
               onClick={handleNext}
               aria-label="Next Banner"
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-black/50 hover:bg-black/85 backdrop-blur-md text-white border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 z-20 cursor-pointer shadow-xl hover:scale-110"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-black/40 hover:bg-black/80 backdrop-blur-xs text-white border border-white/15 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 z-20 cursor-pointer shadow-md hover:scale-105"
             >
-              <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
+              <ChevronRight className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
             </button>
 
             {/* Slider Pagination Pill Indicators */}
-            <div className="absolute bottom-3 sm:bottom-4 right-4 sm:right-6 z-20 flex items-center bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 shadow-lg">
+            <div className="absolute bottom-2 sm:bottom-3 right-3 sm:right-4 z-20 flex items-center gap-1 bg-black/35 backdrop-blur-xs px-2 py-0.5 rounded-full border border-white/10 shadow-xs">
               {slidesToDisplay.map((_, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => setCurrentIndex(idx)}
                   aria-label={`Go to banner slide ${idx + 1}`}
-                  className="p-1 cursor-pointer flex items-center justify-center focus:outline-none"
+                  className="p-0.5 cursor-pointer flex items-center justify-center focus:outline-none"
                 >
                   <span
                     className={`block transition-all duration-300 rounded-full ${
                       idx === currentIndex
-                        ? 'w-6 h-2 bg-white shadow-md'
-                        : 'w-2 h-2 bg-white/40 hover:bg-white/70'
+                        ? 'w-4 h-1.5 bg-white shadow-xs'
+                        : 'w-1.5 h-1.5 bg-white/40 hover:bg-white/70'
                     }`}
                   />
                 </button>

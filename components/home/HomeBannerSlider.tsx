@@ -163,12 +163,12 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
                     </p>
                   )}
 
-                  <div className="pt-2">
+                  <div className="pt-1">
                     <span
-                      className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-white text-slate-900 font-heading font-black text-xs sm:text-sm shadow-xl transition-all duration-300 group-hover/mainlink:bg-brand-orange group-hover/mainlink:text-white"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-white/95 text-slate-900 font-heading font-black text-[11px] sm:text-xs shadow-md transition-all duration-300 backdrop-blur-xs group-hover/mainlink:bg-brand-orange group-hover/mainlink:text-white"
                     >
                       <span>{currentSlide?.buttonText || 'JOIN TOURNAMENT'}</span>
-                      <ArrowRight className="w-4 h-4 text-brand-orange group-hover/mainlink:text-white group-hover/mainlink:translate-x-1 transition-transform" />
+                      <ArrowRight className="w-3.5 h-3.5 text-brand-orange group-hover/mainlink:text-white group-hover/mainlink:translate-x-0.5 transition-transform" />
                     </span>
                   </div>
                 </div>
@@ -183,38 +183,38 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
                 type="button"
                 onClick={handlePrev}
                 aria-label="Previous Banner"
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/40 hover:bg-black/80 backdrop-blur-md text-white border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 z-20 cursor-pointer shadow-lg hover:scale-110"
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-black/40 hover:bg-black/80 backdrop-blur-xs text-white border border-white/15 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 z-20 cursor-pointer shadow-md hover:scale-105"
               >
-                <ChevronLeft className="w-5 h-5" />
+                <ChevronLeft className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
               </button>
 
               <button
                 type="button"
                 onClick={handleNext}
                 aria-label="Next Banner"
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/40 hover:bg-black/80 backdrop-blur-md text-white border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 z-20 cursor-pointer shadow-lg hover:scale-110"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-black/40 hover:bg-black/80 backdrop-blur-xs text-white border border-white/15 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 z-20 cursor-pointer shadow-md hover:scale-105"
               >
-                <ChevronRight className="w-5 h-5" />
+                <ChevronRight className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
               </button>
             </>
           )}
 
           {/* Slider Pagination Pill Indicators */}
           {slidesToDisplay.length > 1 && (
-            <div className="absolute bottom-3 sm:bottom-5 right-4 sm:right-6 z-20 flex items-center bg-black/40 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/10">
+            <div className="absolute bottom-2 sm:bottom-3 right-3 sm:right-4 z-20 flex items-center gap-1 bg-black/35 backdrop-blur-xs px-2 py-0.5 rounded-full border border-white/10 shadow-xs">
               {slidesToDisplay.map((_, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => setCurrentIndex(idx)}
                   aria-label={`Go to slide ${idx + 1}`}
-                  className="p-2 cursor-pointer flex items-center justify-center focus:outline-none min-w-[36px] min-h-[36px]"
+                  className="p-0.5 cursor-pointer flex items-center justify-center focus:outline-none"
                 >
                   <span
                     className={`block transition-all duration-300 rounded-full ${
                       idx === currentIndex
-                        ? 'w-6 h-2 bg-white shadow-md'
-                        : 'w-2 h-2 bg-white/40 hover:bg-white/70'
+                        ? 'w-4 h-1.5 bg-white shadow-xs'
+                        : 'w-1.5 h-1.5 bg-white/40 hover:bg-white/70'
                     }`}
                   />
                 </button>
