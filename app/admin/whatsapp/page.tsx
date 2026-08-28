@@ -414,12 +414,22 @@ export default function AdminWhatsAppPage() {
     setTimeout(() => setToast(null), 4000);
   };
 
-  const loadData = async (options?: { silent?: boolean } | any) => {
+  const loadData = async (options?: { silent?: boolean; lightOnly?: boolean } | any) => {
     const silent = options?.silent === true;
+    const lightOnly = options?.lightOnly === true;
     if (!silent) setLoading(true);
     try {
-      // Fire cron trigger in background non-blocking
-      fetch('/api/admin/whatsapp/cron', { method: 'POST', credentials: 'include' }).catch(() => {});
+      if (lightOnly) {
+        const schedRes = await fetch('/api/admin/whatsapp/scheduler', { credentials: 'include' }).catch(() => null);
+        if (schedRes && schedRes.ok) {
+          const data = await schedRes.json().catch(() => ({}));
+          setSchedules(data.schedules || []);
+          setGroups(data.groups || []);
+          setLogs(data.logs || []);
+          if (data.stats) setStats(data.stats);
+        }
+        return;
+      }
 
       const results = await Promise.allSettled([
         fetch('/api/admin/whatsapp/scheduler', { credentials: 'include' }),
@@ -548,8 +558,10 @@ export default function AdminWhatsAppPage() {
   useEffect(() => {
     loadData();
     const timer = setInterval(() => {
-      loadData({ silent: true });
-    }, 4000);
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        loadData({ silent: true, lightOnly: true });
+      }
+    }, 25000);
     return () => clearInterval(timer);
   }, []);
 

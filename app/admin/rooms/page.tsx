@@ -126,8 +126,11 @@ export default function AdminRoomsPage() {
   const loadData = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const res = await fetch('/api/admin/rooms', { credentials: 'include' });
-      const data = await res.json();
+      const res = await fetch('/api/admin/rooms', { 
+        credentials: 'include',
+        signal: AbortSignal.timeout(8000),
+      });
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
         setTournaments(data.tournaments || []);
         if (data.stats) setStats(data.stats);

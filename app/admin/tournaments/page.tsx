@@ -242,11 +242,16 @@ export default function AdminTournamentsPage() {
   const loadTournaments = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/admin/tournaments', { credentials: 'include' });
+      const response = await fetch('/api/admin/tournaments', { 
+        credentials: 'include',
+        signal: AbortSignal.timeout(8000),
+      });
       if (response.ok) {
         const payload = await response.json();
         setTournaments(payload.tournaments || []);
       }
+    } catch (err) {
+      console.warn('Failed to load tournaments:', err);
     } finally {
       setLoading(false);
     }

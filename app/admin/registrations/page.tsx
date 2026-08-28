@@ -117,8 +117,11 @@ export default function AdminRegistrationsPage() {
   const loadData = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const res = await fetch('/api/admin/registrations', { credentials: 'include' });
-      const data = await res.json();
+      const res = await fetch('/api/admin/registrations', { 
+        credentials: 'include',
+        signal: AbortSignal.timeout(8000),
+      });
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
         setRegistrations(data.registrations || []);
         setTournaments(data.tournaments || []);
