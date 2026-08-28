@@ -1127,7 +1127,7 @@ export default function AdminWhatsAppPage() {
               <h2 className="text-base sm:text-lg font-black text-white tracking-tight truncate">
                 {zavuStatus?.activeSender?.name || 'ESPORTS ZONE BD WhatsApp'}
               </h2>
-              {loading || zavuStatus === null ? (
+              {zavuStatus === null ? (
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-500/20 text-slate-400 border border-slate-500/30 flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse" />
                   CONNECTING...
