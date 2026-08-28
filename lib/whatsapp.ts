@@ -1,6 +1,6 @@
 import Zavudev from '@zavudev/sdk';
 import { supabaseAdmin } from './supabase';
-import { WhatsAppSchedule, WhatsAppTargetGroup, WhatsAppMessageLog, WhatsAppFrequency, WhatsAppForwarderConfig } from './types';
+import { WhatsAppSchedule, WhatsAppTargetGroup, WhatsAppMessageLog, WhatsAppFrequency, WhatsAppForwarderConfig, WhatsAppSourceChannel } from './types';
 
 /**
  * Normalizes phone numbers to standard E.164 format.
@@ -308,22 +308,38 @@ export async function fetchGreenApiChats(apiUrl?: string, instanceId?: string, a
       };
     }
 
-    const groups: WhatsAppTargetGroup[] = data
-      .filter((c: any) => c.id && c.id.endsWith('@g.us'))
-      .map((g: any) => ({
-        id: `grp_${g.id}`,
-        name: g.name || 'WhatsApp Group',
-        category: 'TOURNAMENT_MAIN',
-        identifier: g.id,
-        description: 'Synced from Green-API WhatsApp account',
-        createdAt: new Date().toISOString(),
-      }));
+    const groups: WhatsAppTargetGroup[] = [];
+    const channels: WhatsAppSourceChannel[] = [];
+
+    for (const c of data) {
+      const id = String(c.id || '');
+      const name = c.name || (id.includes('@newsletter') ? 'WhatsApp Channel' : 'WhatsApp Group');
+
+      if (id.endsWith('@newsletter') || id.includes('newsletter') || c.type === 'newsletter' || c.isNewsletter) {
+        channels.push({
+          id: `chan_${id.replace(/[^a-zA-Z0-9]/g, '_')}`,
+          name: name || `Channel (${id.slice(0, 10)})`,
+          channelId: id,
+          description: 'Followed WhatsApp Channel',
+        });
+      } else if (id.endsWith('@g.us') || c.type === 'group' || c.isGroup) {
+        groups.push({
+          id: `grp_${id}`,
+          name: name || 'WhatsApp Group',
+          category: 'TOURNAMENT_MAIN',
+          identifier: id,
+          description: 'Synced from Green-API WhatsApp account',
+          createdAt: new Date().toISOString(),
+        });
+      }
+    }
 
     return {
       success: true,
       totalChats: data.length,
       chats: data,
       groups,
+      channels,
     };
   } catch (err: any) {
     return {
@@ -331,6 +347,7 @@ export async function fetchGreenApiChats(apiUrl?: string, instanceId?: string, a
       message: err?.message || 'Failed to fetch chats from Green-API',
       chats: [],
       groups: [],
+      channels: [],
     };
   }
 }
@@ -439,14 +456,23 @@ export async function fetchWaapiChats(instanceId?: string, apiKey?: string) {
       : [];
 
     const groups: WhatsAppTargetGroup[] = [];
+    const channels: WhatsAppSourceChannel[] = [];
     const chats: any[] = [];
 
     for (const item of rawList) {
       const idStr = typeof item.id === 'object' ? item.id?._serialized || item.id?.user : String(item.id || '');
+      const isNewsletter = idStr.includes('@newsletter') || item.isNewsletter === true;
       const isGroup = item.isGroup === true || idStr.includes('@g.us');
-      const name = item.name || item.formattedTitle || (isGroup ? 'WhatsApp Group' : idStr);
+      const name = item.name || item.formattedTitle || (isNewsletter ? 'WhatsApp Channel' : isGroup ? 'WhatsApp Group' : idStr);
 
-      if (isGroup && idStr) {
+      if (isNewsletter && idStr) {
+        channels.push({
+          id: `chan_waapi_${idStr.replace(/[^a-zA-Z0-9]/g, '_')}`,
+          name: name,
+          channelId: idStr,
+          description: 'Followed WhatsApp Channel',
+        });
+      } else if (isGroup && idStr) {
         groups.push({
           id: `grp_waapi_${idStr.replace(/[^a-zA-Z0-9]/g, '_')}`,
           name: name,
@@ -462,6 +488,7 @@ export async function fetchWaapiChats(instanceId?: string, apiKey?: string) {
         id: idStr,
         name,
         isGroup,
+        isNewsletter,
         unreadCount: item.unreadCount || 0,
       });
     }
@@ -470,7 +497,9 @@ export async function fetchWaapiChats(instanceId?: string, apiKey?: string) {
       success: true,
       totalChats: rawList.length,
       groupsCount: groups.length,
+      channelsCount: channels.length,
       groups,
+      channels,
       chats,
     };
   } catch (err: any) {
@@ -480,6 +509,7 @@ export async function fetchWaapiChats(instanceId?: string, apiKey?: string) {
       message: err?.message || 'Network error while fetching chats from WaAPI.',
       chats: [],
       groups: [],
+      channels: [],
     };
   }
 }

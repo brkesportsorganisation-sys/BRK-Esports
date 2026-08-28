@@ -347,6 +347,53 @@ export default function AdminWhatsAppPage() {
     }
   };
 
+  const [isSyncingChannels, setIsSyncingChannels] = useState(false);
+
+  const handleSyncChannels = async () => {
+    if (gatewaySettings.provider === 'GREEN_API' && !gatewaySettings.greenApiToken) {
+      showToast('Please paste your Green-API apiTokenInstance in "⚙️ API Config" tab first.', 'error');
+      setActiveTab('SETTINGS');
+      return;
+    }
+    if (gatewaySettings.provider === 'WAAPI' && !gatewaySettings.waapiApiKey) {
+      showToast('Please paste your WaAPI API Token in "⚙️ API Config" tab first.', 'error');
+      setActiveTab('SETTINGS');
+      return;
+    }
+
+    setIsSyncingChannels(true);
+    try {
+      const res = await fetch('/api/admin/whatsapp/sync-channels', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          provider: gatewaySettings.provider,
+          apiUrl: gatewaySettings.greenApiUrl,
+          instanceId: gatewaySettings.provider === 'GREEN_API' ? gatewaySettings.greenApiInstanceId : gatewaySettings.waapiInstanceId,
+          apiKey: gatewaySettings.provider === 'GREEN_API' ? gatewaySettings.greenApiToken : gatewaySettings.waapiApiKey,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast(data.message || 'WhatsApp channels synced successfully!', 'success');
+        if (data.config) {
+          setForwarderConfig(data.config);
+        } else if (data.channels) {
+          setForwarderConfig(prev => ({ ...prev, savedChannels: data.channels }));
+        }
+        await loadData({ silent: true });
+      } else {
+        showToast(data.message || 'Failed to sync channels. Please check your credentials.', 'error');
+      }
+    } catch (err: any) {
+      showToast(err?.message || 'Channel sync failed.', 'error');
+    } finally {
+      setIsSyncingChannels(false);
+    }
+  };
+
   // 5. API Settings State
   const [testPhone, setTestPhone] = useState('');
   const [isSendingTest, setIsSendingTest] = useState(false);
@@ -1736,14 +1783,31 @@ export default function AdminWhatsAppPage() {
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setShowAddChannelForm(!showAddChannelForm)}
-                    className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <PlusCircle className="w-3.5 h-3.5" />
-                    <span>{showAddChannelForm ? 'বন্ধ করুন' : '+ নতুন চ্যানেল যুক্ত করুন'}</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSyncChannels}
+                      disabled={isSyncingChannels}
+                      className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-800 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      title="Fetch followed WhatsApp Channels from Green-API/WaAPI"
+                    >
+                      {isSyncingChannels ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-3.5 h-3.5" />
+                      )}
+                      <span>{isSyncingChannels ? 'সিঙ্ক হচ্ছে...' : '🔄 আমার চ্যানেল সিঙ্ক করুন'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowAddChannelForm(!showAddChannelForm)}
+                      className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <PlusCircle className="w-3.5 h-3.5" />
+                      <span>{showAddChannelForm ? 'বন্ধ করুন' : '+ নতুন চ্যানেল'}</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Inline Add Channel Form */}
@@ -1803,10 +1867,13 @@ export default function AdminWhatsAppPage() {
                 {/* Saved Channels Selector Pills */}
                 {forwarderConfig.savedChannels && forwarderConfig.savedChannels.length > 0 && (
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-2">সেভ করা চ্যানেল নির্বাচন করুন:</label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-[11px] font-bold text-slate-600">আমার ফলো করা ও সেভ করা চ্যানেলসমূহ:</label>
+                      <span className="text-[10px] text-slate-400 font-bold">{forwarderConfig.savedChannels.length} Channels Available</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
                       {forwarderConfig.savedChannels.map((chan) => {
-                        const isSelected = forwarderConfig.sourceChannelId === chan.channelId || forwarderConfig.sourceChannelName === chan.name;
+                        const isSelected = forwarderConfig.sourceChannelId === chan.channelId || (chan.channelId && forwarderConfig.sourceChannelId?.includes(chan.channelId));
                         return (
                           <div
                             key={chan.id}
@@ -1826,7 +1893,7 @@ export default function AdminWhatsAppPage() {
                             <div className="min-w-0">
                               <div className="flex items-center gap-1.5">
                                 <span className="font-bold text-xs text-slate-900 truncate">{chan.name}</span>
-                                {isSelected && <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-600 text-white font-bold">ACTIVE</span>}
+                                {isSelected && <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-600 text-white font-bold shrink-0">SELECTED</span>}
                               </div>
                               <div className="text-[10px] font-mono text-slate-400 truncate mt-0.5">{chan.channelId || 'Link Pending'}</div>
                             </div>
