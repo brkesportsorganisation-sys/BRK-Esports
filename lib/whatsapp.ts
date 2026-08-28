@@ -135,8 +135,18 @@ export async function getWhatsAppSettings(): Promise<WhatsAppSettings> {
 export function formatWaapiChatId(to: string): string {
   if (!to) return '';
   const trimmed = to.trim();
-  if (trimmed.includes('@g.us') || trimmed.includes('@c.us') || trimmed.includes('@s.whatsapp.net')) {
+  if (trimmed.includes('@g.us')) {
+    return trimmed;
+  }
+  if (trimmed.includes('@newsletter') || trimmed.includes('@broadcast')) {
+    return trimmed;
+  }
+  if (trimmed.includes('@c.us') || trimmed.includes('@s.whatsapp.net')) {
     return trimmed.replace('@s.whatsapp.net', '@c.us');
+  }
+  // Detect group identifiers (starts with 120... or formatted as phone-timestamp)
+  if (/^120\d{14,}/.test(trimmed) || /^\d{10,}-\d+/.test(trimmed)) {
+    return `${trimmed}@g.us`;
   }
   const digitsOnly = trimmed.replace(/\D/g, '');
   if (digitsOnly.startsWith('880')) {
@@ -1433,7 +1443,8 @@ export async function executeScheduledJob(schedule: WhatsAppSchedule): Promise<{
   let successCount = 0;
   let failCount = 0;
 
-  for (const r of recipients) {
+  for (let i = 0; i < recipients.length; i++) {
+    const r = recipients[i];
     const personalizedText = formattedMessage
       .replace(/\{PLAYER_NAME\}/g, r.name || 'Player')
       .replace(/\{CAPTAIN_NAME\}/g, r.name || 'Captain');
@@ -1450,6 +1461,12 @@ export async function executeScheduledJob(schedule: WhatsAppSchedule): Promise<{
       successCount++;
     } else {
       failCount++;
+      console.warn(`[executeScheduledJob] Failed to deliver to "${r.name}" (${r.phone}):`, result.message);
+    }
+
+    // Small delay between group messages to prevent gateway rate-limiting
+    if (i < recipients.length - 1) {
+      await new Promise(res => setTimeout(res, 400));
     }
   }
 
