@@ -118,13 +118,13 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
           onMouseLeave={() => setIsHovered(false)}
         >
           {/* Animated Slide Imagery & Content */}
-          <AnimatePresence mode="wait">
+          <AnimatePresence initial={false} mode="wait">
             <motion.div
               key={currentSlide?.id || currentIndex}
-              initial={{ opacity: 0, scale: 1.02 }}
+              initial={false}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.4, ease: 'easeOut' }}
+              transition={{ duration: 0.35, ease: 'easeOut' }}
               className="absolute inset-0 w-full h-full"
             >
               <Link href={currentSlide?.linkUrl || '/tournaments'} className="block w-full h-full relative cursor-pointer group/mainlink">

@@ -912,6 +912,22 @@ export interface WhatsAppTargetGroup {
   createdAt: string;
 }
 
+export interface WhatsAppForwarderConfig {
+  enabled: boolean;
+  sourceChannelId: string; // e.g. "120363xxxxxx@newsletter", WhatsApp channel URL, or group JID
+  sourceChannelName: string; // Display label, e.g. "Official BRK Channel"
+  targetGroupMode: 'ALL_GROUPS' | 'SELECTED_GROUPS';
+  targetGroupIds: string[]; // List of target group identifiers/JIDs
+  prefixHeader?: string; // Optional header prefix added to forwarded messages
+  appendFooter?: string; // Optional footer added to forwarded messages
+  includeMedia: boolean; // Forward attached image/media
+  filterKeywords?: string[]; // Only forward messages matching these keywords (empty = forward all)
+  ignoreKeywords?: string[]; // Ignore messages containing these keywords
+  lastForwardedMsgId?: string;
+  lastForwardedAt?: string;
+  totalForwardedCount: number;
+}
+
 export interface WhatsAppMessageLog {
   id: string;
   scheduleId?: string;
@@ -920,7 +936,7 @@ export interface WhatsAppMessageLog {
   targetName?: string;
   messageText: string;
   imageUrl?: string;
-  triggerType: 'SCHEDULED_AUTOMATION' | 'INSTANT_BROADCAST' | 'ROOM_ALERT' | 'TEST';
+  triggerType: 'SCHEDULED_AUTOMATION' | 'INSTANT_BROADCAST' | 'ROOM_ALERT' | 'TEST' | 'CHANNEL_FORWARD';
   status: 'SENT' | 'FAILED';
   responseId?: string;
   error?: string;

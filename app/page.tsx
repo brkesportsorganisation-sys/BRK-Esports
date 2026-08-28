@@ -15,22 +15,20 @@ import Footer from '@/components/ui/Footer';
 import HomeBannerSlider from '@/components/home/HomeBannerSlider';
 import TournamentCard from '@/components/tournaments/TournamentCard';
 import HomeClientSection from '@/components/home/HomeClientSection';
-import { Tournament, Announcement, ShopProduct, Banner } from '@/lib/types';
-import { initialTournaments } from '@/lib/mock-data';
+import { Tournament, Announcement, ShopProduct, Banner, DEFAULT_SHOP_PRODUCTS } from '@/lib/types';
+import { initialTournaments, initialBanners, initialAnnouncements } from '@/lib/mock-data';
+import { listTournamentsFromDb } from '@/lib/tournament-store';
+import { supabaseAdmin } from '@/lib/supabase';
+import { db } from '@/lib/db';
 
 // Revalidate every 60 seconds (ISR)
 export const revalidate = 60;
 
-// Server-side data fetching helpers
+// Direct Server-side DB Loaders (Instant 0-10ms response, zero HTTP roundtrip delay)
 async function fetchTournaments(): Promise<Tournament[]> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://esportszonebd.online';
-    const res = await fetch(`${baseUrl}/api/tournaments`, {
-      next: { revalidate: 60 },
-    });
-    if (!res.ok) return initialTournaments;
-    const data = await res.json();
-    return data.tournaments?.length > 0 ? data.tournaments : initialTournaments;
+    const list = await listTournamentsFromDb();
+    return list && list.length > 0 ? list : initialTournaments;
   } catch {
     return initialTournaments;
   }
@@ -38,49 +36,60 @@ async function fetchTournaments(): Promise<Tournament[]> {
 
 async function fetchAnnouncements(): Promise<Announcement[]> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://esportszonebd.online';
-    const res = await fetch(`${baseUrl}/api/announcements?category=TOURNAMENT`, {
-      next: { revalidate: 120 },
-    });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.announcements || [];
+    const { data } = await supabaseAdmin
+      .from('Announcement')
+      .select('*')
+      .order('createdAt', { ascending: false });
+    if (data && data.length > 0) return data as Announcement[];
+    return initialAnnouncements;
   } catch {
-    return [];
+    return initialAnnouncements;
   }
 }
 
 async function fetchShopItems(): Promise<ShopProduct[]> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://esportszonebd.online';
-    const res = await fetch(`${baseUrl}/api/shop`, {
-      next: { revalidate: 300 },
-    });
-    if (!res.ok) return [];
-    const data = await res.json();
-    const items: ShopProduct[] = data.products || [];
-    const homeFeatured = items.filter((p) => p.isFeaturedOnHome);
-    return homeFeatured.length > 0 ? homeFeatured.slice(0, 3) : items.slice(0, 3);
+    const { data } = await supabaseAdmin
+      .from('SiteSetting')
+      .select('value')
+      .eq('key', 'GAMING_SHOP_ITEMS')
+      .single();
+
+    if (data?.value) {
+      const parsed = JSON.parse(data.value);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const featured = (parsed as ShopProduct[]).filter((p) => p.isFeaturedOnHome);
+        return featured.length > 0 ? featured.slice(0, 3) : parsed.slice(0, 3);
+      }
+    }
+    return DEFAULT_SHOP_PRODUCTS.slice(0, 3);
   } catch {
-    return [];
+    return DEFAULT_SHOP_PRODUCTS.slice(0, 3);
   }
 }
 
 async function fetchBanners(): Promise<{ banners: Banner[]; shopBanner: Banner | null; settings?: any }> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://esportszonebd.online';
-    const res = await fetch(`${baseUrl}/api/banners`, {
-      next: { revalidate: 300 },
-    });
-    if (!res.ok) return { banners: [], shopBanner: null };
-    const data = await res.json();
-    return { 
-      banners: data.banners || [], 
-      shopBanner: data.shopBanner || null,
-      settings: data.settings || undefined,
+    const { data: dbBanners } = await supabaseAdmin
+      .from('Banner')
+      .select('*')
+      .order('order', { ascending: true });
+
+    const bannersList: Banner[] = dbBanners && dbBanners.length > 0 ? (dbBanners as Banner[]) : initialBanners;
+    const activeBanners = bannersList.filter((b) => b.isActive !== false);
+    const shopBanner = activeBanners.find((b) => b.placement === 'SHOP_BANNER') || null;
+
+    return {
+      banners: activeBanners,
+      shopBanner,
+      settings: { autoSlideInterval: 4000, isEnabled: true, overlayOpacity: 50 },
     };
   } catch {
-    return { banners: [], shopBanner: null };
+    return {
+      banners: initialBanners,
+      shopBanner: null,
+      settings: { autoSlideInterval: 4000, isEnabled: true, overlayOpacity: 50 },
+    };
   }
 }
 

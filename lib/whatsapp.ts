@@ -1,6 +1,6 @@
 import Zavudev from '@zavudev/sdk';
 import { supabaseAdmin } from './supabase';
-import { WhatsAppSchedule, WhatsAppTargetGroup, WhatsAppMessageLog, WhatsAppFrequency } from './types';
+import { WhatsAppSchedule, WhatsAppTargetGroup, WhatsAppMessageLog, WhatsAppFrequency, WhatsAppForwarderConfig } from './types';
 
 /**
  * Normalizes phone numbers to standard E.164 format.
@@ -1455,3 +1455,222 @@ export async function runAllDueWhatsAppSchedules(): Promise<{
 
   return { executedCount, results };
 }
+
+/* ========================================================================= */
+/* ⚡ WHATSAPP CHANNEL TO GROUPS AUTO-FORWARDER / RELAY SYSTEM                */
+/* ========================================================================= */
+
+export const DEFAULT_FORWARDER_CONFIG: WhatsAppForwarderConfig = {
+  enabled: false,
+  sourceChannelId: '',
+  sourceChannelName: 'WhatsApp Channel',
+  targetGroupMode: 'ALL_GROUPS',
+  targetGroupIds: [],
+  prefixHeader: '📢 *[অফিশিয়াল চ্যানেল আপডেট]*\n\n',
+  appendFooter: '',
+  includeMedia: true,
+  filterKeywords: [],
+  ignoreKeywords: [],
+  totalForwardedCount: 0,
+};
+
+/**
+ * Loads the WhatsApp Channel Auto-Forwarder configuration from SiteSetting.
+ */
+export async function getWhatsAppForwarderConfig(): Promise<WhatsAppForwarderConfig> {
+  try {
+    const { data: setting } = await supabaseAdmin
+      .from('SiteSetting')
+      .select('value')
+      .eq('key', 'WHATSAPP_FORWARDER_CONFIG')
+      .maybeSingle();
+
+    if (setting?.value) {
+      const parsed = typeof setting.value === 'string' ? JSON.parse(setting.value) : setting.value;
+      return { ...DEFAULT_FORWARDER_CONFIG, ...parsed };
+    }
+  } catch (err) {
+    console.warn('[WhatsApp Forwarder] Could not load config from SiteSetting:', err);
+  }
+  return DEFAULT_FORWARDER_CONFIG;
+}
+
+/**
+ * Saves the WhatsApp Channel Auto-Forwarder configuration to SiteSetting.
+ */
+export async function saveWhatsAppForwarderConfig(config: WhatsAppForwarderConfig): Promise<boolean> {
+  try {
+    const { error } = await supabaseAdmin
+      .from('SiteSetting')
+      .upsert({
+        id: 'setting_WHATSAPP_FORWARDER_CONFIG',
+        key: 'WHATSAPP_FORWARDER_CONFIG',
+        value: JSON.stringify(config),
+        updatedAt: new Date().toISOString(),
+      }, { onConflict: 'key' });
+
+    if (error) {
+      console.error('[WhatsApp Forwarder] Error upserting SiteSetting:', error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('[WhatsApp Forwarder] Could not save config:', err);
+    return false;
+  }
+}
+
+/**
+ * Relays a message originating from a WhatsApp Channel (or Admin trigger) to all target groups.
+ */
+export async function forwardChannelMessageToGroups({
+  message,
+  imageUrl,
+  sourceChannelId,
+  sourceChannelName,
+  sourceMessageId,
+  forceTargetGroups,
+}: {
+  message: string;
+  imageUrl?: string;
+  sourceChannelId?: string;
+  sourceChannelName?: string;
+  sourceMessageId?: string;
+  forceTargetGroups?: string[];
+}): Promise<{
+  success: boolean;
+  totalTargetGroups: number;
+  deliveredCount: number;
+  failedCount: number;
+  results: Array<{ groupId: string; groupName: string; success: boolean; message: string }>;
+}> {
+  const config = await getWhatsAppForwarderConfig();
+  const allGroups = await getWhatsAppTargetGroups();
+
+  let targetGroups: WhatsAppTargetGroup[] = [];
+
+  if (forceTargetGroups && forceTargetGroups.length > 0) {
+    targetGroups = allGroups.filter(
+      (g) => forceTargetGroups.includes(g.id) || forceTargetGroups.includes(g.identifier)
+    );
+  } else if (config.targetGroupMode === 'SELECTED_GROUPS' && Array.isArray(config.targetGroupIds) && config.targetGroupIds.length > 0) {
+    targetGroups = allGroups.filter(
+      (g) => config.targetGroupIds.includes(g.id) || config.targetGroupIds.includes(g.identifier)
+    );
+  } else {
+    // Default: ALL_GROUPS
+    targetGroups = allGroups;
+  }
+
+  if (targetGroups.length === 0) {
+    return {
+      success: false,
+      totalTargetGroups: 0,
+      deliveredCount: 0,
+      failedCount: 0,
+      results: [],
+    };
+  }
+
+  // Check filter keywords if configured
+  const cleanMessage = (message || '').trim();
+  if (config.filterKeywords && config.filterKeywords.length > 0) {
+    const hasMatch = config.filterKeywords.some((kw) =>
+      cleanMessage.toLowerCase().includes(kw.trim().toLowerCase())
+    );
+    if (!hasMatch) {
+      return {
+        success: true,
+        totalTargetGroups: targetGroups.length,
+        deliveredCount: 0,
+        failedCount: 0,
+        results: [{ groupId: 'none', groupName: 'Filter Skipped', success: true, message: 'Message filtered out by keyword rule' }],
+      };
+    }
+  }
+
+  // Check ignore keywords if configured
+  if (config.ignoreKeywords && config.ignoreKeywords.length > 0) {
+    const shouldIgnore = config.ignoreKeywords.some((kw) =>
+      cleanMessage.toLowerCase().includes(kw.trim().toLowerCase())
+    );
+    if (shouldIgnore) {
+      return {
+        success: true,
+        totalTargetGroups: targetGroups.length,
+        deliveredCount: 0,
+        failedCount: 0,
+        results: [{ groupId: 'none', groupName: 'Ignore Skipped', success: true, message: 'Message ignored by keyword rule' }],
+      };
+    }
+  }
+
+  // Construct formatted broadcast text
+  let finalMessage = cleanMessage;
+  if (config.prefixHeader && config.prefixHeader.trim()) {
+    finalMessage = `${config.prefixHeader.trim()}\n\n${finalMessage}`;
+  }
+  if (config.appendFooter && config.appendFooter.trim()) {
+    finalMessage = `${finalMessage}\n\n${config.appendFooter.trim()}`;
+  }
+
+  const results: Array<{ groupId: string; groupName: string; success: boolean; message: string }> = [];
+  let deliveredCount = 0;
+  let failedCount = 0;
+
+  for (const group of targetGroups) {
+    try {
+      const res = await sendDirectWhatsappMessage({
+        to: group.identifier,
+        text: finalMessage,
+        imageUrl: config.includeMedia ? imageUrl : undefined,
+        targetName: group.name,
+        triggerType: 'CHANNEL_FORWARD',
+      });
+
+      if (res.success) {
+        deliveredCount++;
+        results.push({
+          groupId: group.id,
+          groupName: group.name,
+          success: true,
+          message: res.message || 'Delivered to group',
+        });
+      } else {
+        failedCount++;
+        results.push({
+          groupId: group.id,
+          groupName: group.name,
+          success: false,
+          message: res.message || 'Failed to deliver',
+        });
+      }
+    } catch (err: any) {
+      failedCount++;
+      results.push({
+        groupId: group.id,
+        groupName: group.name,
+        success: false,
+        message: err?.message || 'Dispatch error',
+      });
+    }
+  }
+
+  // Update forwarder execution metadata
+  const updatedConfig: WhatsAppForwarderConfig = {
+    ...config,
+    totalForwardedCount: (config.totalForwardedCount || 0) + (deliveredCount > 0 ? 1 : 0),
+    lastForwardedAt: new Date().toISOString(),
+    lastForwardedMsgId: sourceMessageId || config.lastForwardedMsgId,
+  };
+  await saveWhatsAppForwarderConfig(updatedConfig);
+
+  return {
+    success: deliveredCount > 0,
+    totalTargetGroups: targetGroups.length,
+    deliveredCount,
+    failedCount,
+    results,
+  };
+}
+

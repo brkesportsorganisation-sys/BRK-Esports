@@ -1,24 +1,108 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { getZavuClient, normalizePhoneNumber, addWhatsAppLog, sendDirectWhatsappMessage } from '@/lib/whatsapp';
+import {
+  normalizePhoneNumber,
+  sendDirectWhatsappMessage,
+  getWhatsAppForwarderConfig,
+  forwardChannelMessageToGroups,
+} from '@/lib/whatsapp';
 
 export async function POST(req: NextRequest) {
   try {
     const payload = await req.json();
     console.log('[WhatsApp Webhook Received]', JSON.stringify(payload));
 
-    // Handle incoming message event from Zavu
-    const event = payload?.event || payload?.type;
-    const messageData = payload?.data || payload?.message || payload;
+    // Support Green-API, WaAPI, Zavu, and custom webhook payload formats
+    const typeWebhook = payload?.typeWebhook || payload?.event || payload?.type;
+    const messageData = payload?.messageData || payload?.data?.message || payload?.data || payload?.message || payload;
+    const senderData = payload?.senderData || {};
 
-    const from = messageData?.from || messageData?.sender || messageData?.to;
-    const text = (messageData?.text || messageData?.body || '').trim().toLowerCase();
+    // Extract sender / chat ID
+    const rawFrom =
+      senderData?.chatId ||
+      senderData?.sender ||
+      messageData?.from ||
+      messageData?.chatId ||
+      messageData?.sender ||
+      payload?.from ||
+      '';
 
-    if (!from || !text) {
-      return NextResponse.json({ success: true, message: 'No action needed' });
+    // Extract message content
+    const rawText =
+      messageData?.textMessageData?.textMessage ||
+      messageData?.extendedTextMessageData?.text ||
+      messageData?.body ||
+      messageData?.text ||
+      payload?.text ||
+      payload?.body ||
+      '';
+
+    // Extract attached image / media URL if present
+    const rawImageUrl =
+      messageData?.fileMessageData?.downloadUrl ||
+      messageData?.imageMessageData?.downloadUrl ||
+      messageData?.mediaUrl ||
+      payload?.imageUrl ||
+      '';
+
+    const rawMsgId =
+      payload?.idMessage ||
+      messageData?.id ||
+      messageData?._data?.id?._serialized ||
+      payload?.messageId ||
+      `wh_${Date.now()}`;
+
+    const from = String(rawFrom).trim();
+    const text = String(rawText).trim();
+
+    if (!from || (!text && !rawImageUrl)) {
+      return NextResponse.json({ success: true, message: 'No actionable content in webhook' });
     }
 
-    // Load Bot Config
+    // =========================================================================
+    // ⚡ 1. CHECK CHANNEL AUTO-FORWARDER RELAY
+    // =========================================================================
+    try {
+      const forwarderConfig = await getWhatsAppForwarderConfig();
+
+      if (forwarderConfig && forwarderConfig.enabled && forwarderConfig.sourceChannelId) {
+        const configuredChannel = forwarderConfig.sourceChannelId.trim().toLowerCase();
+        const incomingChat = from.toLowerCase();
+
+        // Match by JID, Newsletter ID, Channel Code or Phone
+        const isChannelMatch =
+          incomingChat === configuredChannel ||
+          incomingChat.includes(configuredChannel) ||
+          configuredChannel.includes(incomingChat) ||
+          (configuredChannel.includes('whatsapp.com/channel/') &&
+            incomingChat.includes(configuredChannel.split('whatsapp.com/channel/')[1]?.replace(/[^a-zA-Z0-9]/g, '')));
+
+        if (isChannelMatch) {
+          console.log(`[WhatsApp Forwarder] New message received from source channel (${from}). Relaying to groups...`);
+          
+          const relayResult = await forwardChannelMessageToGroups({
+            message: text,
+            imageUrl: rawImageUrl || undefined,
+            sourceChannelId: from,
+            sourceChannelName: forwarderConfig.sourceChannelName || 'Source Channel',
+            sourceMessageId: rawMsgId,
+          });
+
+          return NextResponse.json({
+            success: true,
+            forwarded: true,
+            deliveredCount: relayResult.deliveredCount,
+            totalTargetGroups: relayResult.totalTargetGroups,
+          });
+        }
+      }
+    } catch (forwardErr) {
+      console.error('[WhatsApp Webhook Forwarder Error]', forwardErr);
+    }
+
+    // =========================================================================
+    // 💬 2. BOT KEYWORD AUTO-RESPONDER (For direct user DMs)
+    // =========================================================================
     const { data: setting } = await supabaseAdmin
       .from('SiteSetting')
       .select('value')
@@ -35,12 +119,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Check matched keyword rules
+    const lowerText = text.toLowerCase();
     let replyText = '';
     const rules = config.rules || [];
 
     for (const rule of rules) {
       if (!rule.isActive) continue;
-      const matched = (rule.keywords || []).some((kw: string) => text.includes(kw.toLowerCase()));
+      const matched = (rule.keywords || []).some((kw: string) => lowerText.includes(kw.toLowerCase()));
       if (matched) {
         replyText = rule.replyText;
         break;
@@ -70,5 +155,10 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET() {
-  return NextResponse.json({ status: 'WhatsApp Webhook Listener Operational 🟢' });
+  return NextResponse.json({
+    status: 'WhatsApp Webhook Listener Operational 🟢',
+    features: ['Bot Auto-Reply', 'Channel to Group Auto-Forwarder'],
+    timestamp: new Date().toISOString(),
+  });
 }
+
