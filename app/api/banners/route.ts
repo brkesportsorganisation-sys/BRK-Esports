@@ -11,12 +11,12 @@ export const dynamic = 'force-dynamic';
 function sanitizeSqlBanner(b: Banner): Record<string, any> {
   return {
     id: b.id,
-    title: b.title || 'Banner',
+    title: b.title || '',
     subtitle: b.subtitle || '',
     badge: b.badge || b.badgeText || '',
     imageUrl: b.imageUrl || '',
     linkUrl: b.linkUrl || b.link || '/tournaments',
-    buttonText: b.buttonText || 'JOIN TOURNAMENT',
+    buttonText: b.buttonText || '',
     placement: b.placement || 'MAIN_SLIDER',
     order: Number(b.order ?? b.displayOrder ?? 1),
     isActive: b.isActive !== false,
@@ -186,8 +186,8 @@ export async function POST(request: NextRequest) {
     const bannerItem = body.shopBanner || body;
     const { title, subtitle, badge, badgeText, imageUrl, mobileImageUrl, targetDevice, linkUrl, link, buttonText, placement, order, displayOrder, isActive } = bannerItem;
 
-    if (!title || !imageUrl) {
-      return NextResponse.json({ message: 'Headline Title and Desktop Banner Image are required.' }, { status: 400 });
+    if (!imageUrl) {
+      return NextResponse.json({ message: 'Desktop Banner Image is required.' }, { status: 400 });
     }
 
     // Upload base64 images to Supabase Storage if uploaded from device
@@ -216,7 +216,7 @@ export async function POST(request: NextRequest) {
 
     const bannerObj: Banner = {
       id: newBannerId,
-      title: title.trim(),
+      title: (title || '').trim(),
       subtitle: (subtitle || '').trim(),
       badge: (badge || badgeText || '').trim(),
       badgeText: (badgeText || badge || '').trim(),
@@ -225,7 +225,7 @@ export async function POST(request: NextRequest) {
       targetDevice: targetDevice || 'ALL',
       linkUrl: linkUrl || link || (placement === 'SHOP_BANNER' ? '/shop' : '/tournaments'),
       link: link || linkUrl || (placement === 'SHOP_BANNER' ? '/shop' : '/tournaments'),
-      buttonText: buttonText || (placement === 'SHOP_BANNER' ? 'SHOP PACKAGES NOW' : 'JOIN TOURNAMENT'),
+      buttonText: (buttonText || '').trim(),
       placement: (placement as BannerPlacement) || 'SHOP_BANNER',
       order: Number(order ?? displayOrder ?? 1),
       displayOrder: Number(displayOrder ?? order ?? 1),
@@ -355,7 +355,7 @@ export async function PUT(request: NextRequest) {
     const existing = db.getBannerById(id) || initialBanners.find((b) => b.id === id);
     const fullBanner: Banner = {
       id,
-      title: updates.title !== undefined ? updates.title : (existing?.title || 'Banner'),
+      title: updates.title !== undefined ? updates.title : (existing?.title || ''),
       subtitle: updates.subtitle !== undefined ? updates.subtitle : (existing?.subtitle || ''),
       badge: updates.badge !== undefined ? updates.badge : (existing?.badge || ''),
       badgeText: updates.badgeText !== undefined ? updates.badgeText : (existing?.badgeText || updates.badge || existing?.badge || ''),
@@ -364,7 +364,7 @@ export async function PUT(request: NextRequest) {
       targetDevice: (updates.targetDevice || existing?.targetDevice || 'ALL') as 'ALL' | 'DESKTOP' | 'MOBILE',
       linkUrl: updates.linkUrl || updates.link || existing?.linkUrl || '/tournaments',
       link: updates.link || updates.linkUrl || existing?.link || '/tournaments',
-      buttonText: updates.buttonText || existing?.buttonText || 'JOIN TOURNAMENT',
+      buttonText: updates.buttonText !== undefined ? updates.buttonText : (existing?.buttonText || ''),
       placement: (updates.placement || existing?.placement || 'MAIN_SLIDER') as BannerPlacement,
       order: Number(updates.order ?? existing?.order ?? 1),
       isActive: updates.isActive !== undefined ? Boolean(updates.isActive) : (existing?.isActive ?? true),

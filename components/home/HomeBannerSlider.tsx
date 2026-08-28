@@ -138,40 +138,58 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
                   className="object-cover object-center transition-transform duration-700 group-hover/mainlink:scale-105"
                 />
 
-                {/* Rich Esports Cinematic Gradient Overlay (Adjustable Brightness) */}
-                <div className="absolute inset-0 transition-opacity duration-300 pointer-events-none" style={{ opacity: overlayOpacity / 100 }}>
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent"></div>
-                  <div className="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-950/50 to-transparent"></div>
-                </div>
-
-                {/* Banner Text & Action Content */}
-                <div className="absolute inset-0 p-5 sm:p-8 md:p-10 flex flex-col justify-end items-start z-10 space-y-2.5 sm:space-y-3.5 max-w-xl">
-                  {currentSlide?.badge && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-brand-red to-brand-orange text-white text-[10px] sm:text-xs font-black uppercase tracking-wider shadow-lg shadow-red-500/30 animate-pulse">
-                      <Flame className="w-3.5 h-3.5" />
-                      <span>{currentSlide.badge}</span>
-                    </span>
-                  )}
-
-                  <h2 className="font-heading font-black text-2xl sm:text-3xl md:text-4xl text-white leading-tight drop-shadow-md">
-                    {currentSlide?.title || 'ESPORTS TOURNAMENT'}
-                  </h2>
-
-                  {currentSlide?.subtitle && (
-                    <p className="text-xs sm:text-sm text-slate-200 font-medium line-clamp-2 drop-shadow-sm max-w-md">
-                      {currentSlide.subtitle}
-                    </p>
-                  )}
-
-                  <div className="pt-1">
-                    <span
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-white/95 text-slate-900 font-heading font-black text-[11px] sm:text-xs shadow-md transition-all duration-300 backdrop-blur-xs group-hover/mainlink:bg-brand-orange group-hover/mainlink:text-white"
-                    >
-                      <span>{currentSlide?.buttonText || 'JOIN TOURNAMENT'}</span>
-                      <ArrowRight className="w-3.5 h-3.5 text-brand-orange group-hover/mainlink:text-white group-hover/mainlink:translate-x-0.5 transition-transform" />
-                    </span>
+                {/* Rich Esports Cinematic Gradient Overlay (Only visible when banner has overlay text) */}
+                {Boolean(
+                  (currentSlide?.badge && currentSlide.badge.trim() !== '') ||
+                  (currentSlide?.title && currentSlide.title.trim() !== '') ||
+                  (currentSlide?.subtitle && currentSlide.subtitle.trim() !== '') ||
+                  (currentSlide?.buttonText && currentSlide.buttonText.trim() !== '')
+                ) && (
+                  <div className="absolute inset-0 transition-opacity duration-300 pointer-events-none" style={{ opacity: overlayOpacity / 100 }}>
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent"></div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-950/50 to-transparent"></div>
                   </div>
-                </div>
+                )}
+
+                {/* Banner Text & Action Content (Only renders fields that have text) */}
+                {Boolean(
+                  (currentSlide?.badge && currentSlide.badge.trim() !== '') ||
+                  (currentSlide?.title && currentSlide.title.trim() !== '') ||
+                  (currentSlide?.subtitle && currentSlide.subtitle.trim() !== '') ||
+                  (currentSlide?.buttonText && currentSlide.buttonText.trim() !== '')
+                ) && (
+                  <div className="absolute inset-0 p-5 sm:p-8 md:p-10 flex flex-col justify-end items-start z-10 space-y-2.5 sm:space-y-3.5 max-w-xl">
+                    {currentSlide?.badge && currentSlide.badge.trim() !== '' && (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-brand-red to-brand-orange text-white text-[10px] sm:text-xs font-black uppercase tracking-wider shadow-lg shadow-red-500/30 animate-pulse">
+                        <Flame className="w-3.5 h-3.5" />
+                        <span>{currentSlide.badge}</span>
+                      </span>
+                    )}
+
+                    {currentSlide?.title && currentSlide.title.trim() !== '' && (
+                      <h2 className="font-heading font-black text-2xl sm:text-3xl md:text-4xl text-white leading-tight drop-shadow-md">
+                        {currentSlide.title}
+                      </h2>
+                    )}
+
+                    {currentSlide?.subtitle && currentSlide.subtitle.trim() !== '' && (
+                      <p className="text-xs sm:text-sm text-slate-200 font-medium line-clamp-2 drop-shadow-sm max-w-md">
+                        {currentSlide.subtitle}
+                      </p>
+                    )}
+
+                    {currentSlide?.buttonText && currentSlide.buttonText.trim() !== '' && (
+                      <div className="pt-1">
+                        <span
+                          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-white/95 text-slate-900 font-heading font-black text-[11px] sm:text-xs shadow-md transition-all duration-300 backdrop-blur-xs group-hover/mainlink:bg-brand-orange group-hover/mainlink:text-white"
+                        >
+                          <span>{currentSlide.buttonText}</span>
+                          <ArrowRight className="w-3.5 h-3.5 text-brand-orange group-hover/mainlink:text-white group-hover/mainlink:translate-x-0.5 transition-transform" />
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </Link>
             </motion.div>
           </AnimatePresence>
@@ -240,28 +258,42 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
               sizes="(max-width: 1024px) 100vw, 400px"
               className="object-cover group-hover:scale-105 transition-transform duration-500"
             />
-            {/* Gradient Overlay (Adjustable Brightness) */}
-            <div className="absolute inset-0 transition-opacity duration-300 pointer-events-none" style={{ opacity: overlayOpacity / 100 }}>
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/70 to-transparent"></div>
-              <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/40 to-transparent"></div>
-            </div>
+            {/* Gradient Overlay (Only if banner has overlay text) */}
+            {Boolean(
+              (sideTop?.badge && sideTop.badge.trim() !== '') ||
+              (sideTop?.title && sideTop.title.trim() !== '') ||
+              (sideTop?.subtitle && sideTop.subtitle.trim() !== '')
+            ) && (
+              <div className="absolute inset-0 transition-opacity duration-300 pointer-events-none" style={{ opacity: overlayOpacity / 100 }}>
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/70 to-transparent"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/40 to-transparent"></div>
+              </div>
+            )}
 
             {/* Content */}
-            <div className="absolute inset-0 p-5 flex flex-col justify-end items-start z-10 space-y-1.5">
-              {sideTop?.badge && (
-                <span className="px-2.5 py-0.5 rounded-full bg-red-700 text-white text-[9px] font-black uppercase tracking-wider shadow-sm">
-                  {sideTop.badge}
-                </span>
-              )}
-              <h3 className="font-heading font-black text-lg text-white leading-tight group-hover:text-amber-400 transition-colors line-clamp-1">
-                {sideTop?.title || 'CUSTOM ROOMS & DUEL ARENA'}
-              </h3>
-              {sideTop?.subtitle && (
-                <p className="text-[11px] text-slate-200 line-clamp-1 font-medium">
-                  {sideTop.subtitle}
-                </p>
-              )}
-            </div>
+            {Boolean(
+              (sideTop?.badge && sideTop.badge.trim() !== '') ||
+              (sideTop?.title && sideTop.title.trim() !== '') ||
+              (sideTop?.subtitle && sideTop.subtitle.trim() !== '')
+            ) && (
+              <div className="absolute inset-0 p-5 flex flex-col justify-end items-start z-10 space-y-1.5">
+                {sideTop?.badge && sideTop.badge.trim() !== '' && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-red-700 text-white text-[9px] font-black uppercase tracking-wider shadow-sm">
+                    {sideTop.badge}
+                  </span>
+                )}
+                {sideTop?.title && sideTop.title.trim() !== '' && (
+                  <h3 className="font-heading font-black text-lg text-white leading-tight group-hover:text-amber-400 transition-colors line-clamp-1">
+                    {sideTop.title}
+                  </h3>
+                )}
+                {sideTop?.subtitle && sideTop.subtitle.trim() !== '' && (
+                  <p className="text-[11px] text-slate-200 line-clamp-1 font-medium">
+                    {sideTop.subtitle}
+                  </p>
+                )}
+              </div>
+            )}
           </Link>
 
           {/* Bottom Promo Banner */}
@@ -276,28 +308,42 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
               sizes="(max-width: 1024px) 100vw, 400px"
               className="object-cover group-hover:scale-105 transition-transform duration-500"
             />
-            {/* Gradient Overlay (Adjustable Brightness) */}
-            <div className="absolute inset-0 transition-opacity duration-300 pointer-events-none" style={{ opacity: overlayOpacity / 100 }}>
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/70 to-transparent"></div>
-              <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/40 to-transparent"></div>
-            </div>
+            {/* Gradient Overlay (Only if banner has overlay text) */}
+            {Boolean(
+              (sideBottom?.badge && sideBottom.badge.trim() !== '') ||
+              (sideBottom?.title && sideBottom.title.trim() !== '') ||
+              (sideBottom?.subtitle && sideBottom.subtitle.trim() !== '')
+            ) && (
+              <div className="absolute inset-0 transition-opacity duration-300 pointer-events-none" style={{ opacity: overlayOpacity / 100 }}>
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/70 to-transparent"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/40 to-transparent"></div>
+              </div>
+            )}
 
             {/* Content */}
-            <div className="absolute inset-0 p-5 flex flex-col justify-end items-start z-10 space-y-1.5">
-              {sideBottom?.badge && (
-                <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[9px] font-black uppercase tracking-wider shadow-sm">
-                  {sideBottom.badge}
-                </span>
-              )}
-              <h3 className="font-heading font-black text-lg text-white leading-tight group-hover:text-amber-400 transition-colors line-clamp-1">
-                {sideBottom?.title || 'LUCKY WHEEL & REWARDS'}
-              </h3>
-              {sideBottom?.subtitle && (
-                <p className="text-[11px] text-slate-200 line-clamp-1 font-medium">
-                  {sideBottom.subtitle}
-                </p>
-              )}
-            </div>
+            {Boolean(
+              (sideBottom?.badge && sideBottom.badge.trim() !== '') ||
+              (sideBottom?.title && sideBottom.title.trim() !== '') ||
+              (sideBottom?.subtitle && sideBottom.subtitle.trim() !== '')
+            ) && (
+              <div className="absolute inset-0 p-5 flex flex-col justify-end items-start z-10 space-y-1.5">
+                {sideBottom?.badge && sideBottom.badge.trim() !== '' && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[9px] font-black uppercase tracking-wider shadow-sm">
+                    {sideBottom.badge}
+                  </span>
+                )}
+                {sideBottom?.title && sideBottom.title.trim() !== '' && (
+                  <h3 className="font-heading font-black text-lg text-white leading-tight group-hover:text-amber-400 transition-colors line-clamp-1">
+                    {sideBottom.title}
+                  </h3>
+                )}
+                {sideBottom?.subtitle && sideBottom.subtitle.trim() !== '' && (
+                  <p className="text-[11px] text-slate-200 line-clamp-1 font-medium">
+                    {sideBottom.subtitle}
+                  </p>
+                )}
+              </div>
+            )}
           </Link>
 
         </div>

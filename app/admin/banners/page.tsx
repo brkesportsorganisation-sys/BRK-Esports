@@ -1154,13 +1154,17 @@ export default function AdminBannersPage() {
 
               {/* Title */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase">
-                  Banner Main Title *
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 uppercase">
+                    Banner Main Title (Optional)
+                  </label>
+                  <span className="text-[11px] text-slate-400 font-normal">
+                    (খালি রাখলে ব্যানারে কোনো টাইটেল আসবে না)
+                  </span>
+                </div>
                 <input
                   type="text"
-                  required
-                  placeholder="e.g. GRAND FREE FIRE BR SQUAD LEAGUE #42"
+                  placeholder="e.g. GRAND FREE FIRE BR SQUAD LEAGUE (বা খালি রাখুন)"
                   value={modalForm.title}
                   onChange={(e) => setModalForm({ ...modalForm, title: e.target.value })}
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 font-bold focus:outline-none focus:border-brand-orange"
@@ -1171,7 +1175,7 @@ export default function AdminBannersPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase">
-                    Category Tag / Badge
+                    Category Tag / Badge (Optional)
                   </label>
                   <input
                     type="text"
@@ -1184,7 +1188,7 @@ export default function AdminBannersPage() {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase">
-                    Subtitle / Description
+                    Subtitle / Description (Optional)
                   </label>
                   <input
                     type="text"
@@ -1213,12 +1217,17 @@ export default function AdminBannersPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase">
-                    Button Label
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700 uppercase">
+                      Button Label (Optional)
+                    </label>
+                    <span className="text-[11px] text-slate-400 font-normal">
+                      (খালি রাখলে বাটন আসবে না)
+                    </span>
+                  </div>
                   <input
                     type="text"
-                    placeholder="JOIN TOURNAMENT"
+                    placeholder="e.g. JOIN TOURNAMENT (বা খালি রাখুন)"
                     value={modalForm.buttonText}
                     onChange={(e) => setModalForm({ ...modalForm, buttonText: e.target.value })}
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-brand-orange"
