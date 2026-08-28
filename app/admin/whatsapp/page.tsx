@@ -313,6 +313,22 @@ export default function AdminWhatsAppPage() {
     }
   };
 
+  const handleDeleteSavedChannel = (chanId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updatedChannels = (forwarderConfig.savedChannels || []).filter(c => c.id !== chanId);
+    const targetChan = forwarderConfig.savedChannels?.find(c => c.id === chanId);
+    const isCurrentActive = forwarderConfig.sourceChannelName === targetChan?.name || forwarderConfig.sourceChannelId === targetChan?.channelId;
+    const updated: WhatsAppForwarderConfig = {
+      ...forwarderConfig,
+      savedChannels: updatedChannels,
+      sourceChannelName: isCurrentActive ? (updatedChannels[0]?.name || '') : forwarderConfig.sourceChannelName,
+      sourceChannelId: isCurrentActive ? (updatedChannels[0]?.channelId || '') : forwarderConfig.sourceChannelId,
+    };
+    setForwarderConfig(updated);
+    handleSaveForwarder(updated);
+    showToast('চ্যানেলটি লিস্ট থেকে মুছে ফেলা হয়েছে।', 'success');
+  };
+
   const handleManualForwardRelay = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!manualRelayMessage.trim()) {
@@ -1890,14 +1906,24 @@ export default function AdminWhatsAppPage() {
                                 : 'bg-slate-50 border-slate-200 hover:border-emerald-300'
                             }`}
                           >
-                            <div className="min-w-0">
+                            <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-1.5">
                                 <span className="font-bold text-xs text-slate-900 truncate">{chan.name}</span>
                                 {isSelected && <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-600 text-white font-bold shrink-0">SELECTED</span>}
                               </div>
                               <div className="text-[10px] font-mono text-slate-400 truncate mt-0.5">{chan.channelId || 'Link Pending'}</div>
                             </div>
-                            <CheckCircle2 className={`w-4 h-4 shrink-0 ${isSelected ? 'text-emerald-600' : 'text-slate-300'}`} />
+                            <div className="flex items-center gap-1 shrink-0">
+                              <CheckCircle2 className={`w-4 h-4 ${isSelected ? 'text-emerald-600' : 'text-slate-300'}`} />
+                              <button
+                                type="button"
+                                onClick={(e) => handleDeleteSavedChannel(chan.id, e)}
+                                className="p-1 rounded-lg hover:bg-red-100 text-slate-400 hover:text-red-600 transition-colors cursor-pointer"
+                                title="চ্যানেল মুছে ফেলুন"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </div>
                         );
                       })}

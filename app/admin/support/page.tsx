@@ -60,12 +60,17 @@ export default function AdminSupportPage() {
   const [purgeSuccessMsg, setPurgeSuccessMsg] = useState('');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const activeTicketRef = useRef<SupportTicket | null>(null);
+
+  useEffect(() => {
+    activeTicketRef.current = activeTicket;
+  }, [activeTicket]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const fetchTickets = async () => {
+  const fetchTickets = async (isInitial = false) => {
     try {
       const res = await fetch('/api/support?adminAll=true');
       if (res.ok) {
@@ -73,35 +78,49 @@ export default function AdminSupportPage() {
         const list: SupportTicket[] = data.tickets || [];
         setTickets(list);
 
-        // Auto select first ticket if none selected
-        if (!activeTicket && list.length > 0) {
+        // Auto select first ticket if none selected yet
+        if (!activeTicketRef.current && list.length > 0) {
           setActiveTicket(list[0]);
-          fetchMessages(list[0].id);
+          activeTicketRef.current = list[0];
+          fetchMessages(list[0].id, isInitial);
+        } else if (activeTicketRef.current) {
+          // Keep active ticket metadata in sync
+          const currentInList = list.find(t => t.id === activeTicketRef.current?.id);
+          if (currentInList) {
+            setActiveTicket(prev => prev ? { ...prev, ...currentInList } : currentInList);
+          }
         }
       }
     } catch (err) {
       console.warn('Failed to load support tickets:', err);
     } finally {
-      setLoadingTickets(false);
+      if (isInitial) {
+        setLoadingTickets(false);
+      }
     }
   };
 
-  const fetchMessages = async (ticketId: string) => {
-    setLoadingMessages(true);
+  const fetchMessages = async (ticketId: string, showSpinner = false) => {
+    if (showSpinner) {
+      setLoadingMessages(true);
+    }
     try {
       const res = await fetch(`/api/support?ticketId=${ticketId}`);
       if (res.ok) {
         const data = await res.json();
-        setMessages(data.messages || []);
+        const newMsgs = data.messages || [];
+        setMessages(newMsgs);
         if (data.ticket) {
-          setActiveTicket(data.ticket);
+          setActiveTicket(prev => prev?.id === data.ticket.id ? { ...prev, ...data.ticket } : prev);
         }
         setTimeout(scrollToBottom, 100);
       }
     } catch (err) {
       console.warn('Failed to load messages:', err);
     } finally {
-      setLoadingMessages(false);
+      if (showSpinner) {
+        setLoadingMessages(false);
+      }
     }
   };
 
@@ -149,8 +168,8 @@ export default function AdminSupportPage() {
       if (res.ok) {
         setPurgeSuccessMsg(`✅ ${data.message} (${data.deletedCount} messages deleted).`);
         fetchBackupStats();
-        fetchTickets();
-        if (activeTicket) fetchMessages(activeTicket.id);
+        fetchTickets(false);
+        if (activeTicketRef.current) fetchMessages(activeTicketRef.current.id, false);
       } else {
         alert(data.error || 'Failed to purge archived messages.');
       }
@@ -162,31 +181,41 @@ export default function AdminSupportPage() {
   };
 
   useEffect(() => {
-    fetchTickets();
-    const interval = setInterval(fetchTickets, 5000);
+    fetchTickets(true);
+    const interval = setInterval(() => {
+      fetchTickets(false);
+    }, 5000);
     return () => clearInterval(interval);
   }, []);
 
-  // Poll messages for active ticket
+  // Poll messages silently for active ticket
   useEffect(() => {
-    if (!activeTicket) return;
-    const interval = setInterval(() => {
-      fetch(`/api/support?ticketId=${activeTicket.id}`)
-        .then(r => r.json())
-        .then(data => {
-          if (data.messages && data.messages.length !== messages.length) {
-            setMessages(data.messages);
-            scrollToBottom();
-          }
-        })
-        .catch(() => {});
+    if (!activeTicket?.id) return;
+    const ticketId = activeTicket.id;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/support?ticketId=${ticketId}`);
+        if (res.ok) {
+          const data = await res.json();
+          const newMsgs: SupportMessage[] = data.messages || [];
+          setMessages(prev => {
+            if (newMsgs.length !== prev.length || (newMsgs.length > 0 && prev.length > 0 && newMsgs[newMsgs.length - 1].id !== prev[prev.length - 1].id)) {
+              setTimeout(scrollToBottom, 100);
+              return newMsgs;
+            }
+            return prev;
+          });
+        }
+      } catch {}
     }, 3000);
     return () => clearInterval(interval);
-  }, [activeTicket?.id, messages.length]);
+  }, [activeTicket?.id]);
 
   const handleSelectTicket = (ticket: SupportTicket) => {
+    if (activeTicket?.id === ticket.id) return;
     setActiveTicket(ticket);
-    fetchMessages(ticket.id);
+    activeTicketRef.current = ticket;
+    fetchMessages(ticket.id, true);
   };
 
   const handleSendReply = async (e?: React.FormEvent) => {
@@ -286,7 +315,7 @@ export default function AdminSupportPage() {
           </button>
 
           <button
-            onClick={fetchTickets}
+            onClick={() => fetchTickets(false)}
             className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-600 transition-colors cursor-pointer"
           >
             <RefreshCw className="w-3.5 h-3.5" />

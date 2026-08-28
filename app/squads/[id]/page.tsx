@@ -718,27 +718,6 @@ export default function SquadDetailsPage({ params }: { params: Promise<{ id: str
                           </div>
                         </div>
 
-                        {/* Game UID with 1-Click Copy */}
-                        {member.freeFireUid && (
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-slate-500 font-medium flex items-center gap-1">
-                              <Flame className="w-3.5 h-3.5 text-emerald-500" />
-                              <span>Game UID:</span>
-                            </span>
-                            <div className="flex items-center gap-1.5 font-mono">
-                              <strong className="text-emerald-700 font-bold">{member.freeFireUid}</strong>
-                              <button
-                                type="button"
-                                onClick={() => handleCopyText(member.freeFireUid || '', `uid_${member.id}`)}
-                                className="p-1 rounded-md bg-white hover:bg-slate-200 text-slate-600 border border-slate-200 shadow-2xs transition-colors cursor-pointer"
-                                title="Copy Game UID"
-                              >
-                                {copiedKey === `uid_${member.id}` ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                              </button>
-                            </div>
-                          </div>
-                        )}
-
                         <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-200/60">
                           <span className="text-slate-500 font-medium">In-Game Role:</span>
                           <span className="font-black text-orange-600 uppercase">
