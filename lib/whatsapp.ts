@@ -1470,8 +1470,22 @@ export const DEFAULT_FORWARDER_CONFIG: WhatsAppForwarderConfig = {
   enabled: false,
   sourceChannelId: '',
   sourceChannelName: 'WhatsApp Channel',
+  savedChannels: [
+    {
+      id: 'chan_default_1',
+      name: 'ESPORTS ZONE BD Official Channel',
+      channelId: '',
+      description: 'Official verified announcements & notices channel',
+      isDefault: true,
+    }
+  ],
   targetGroupMode: 'ALL_GROUPS',
   targetGroupIds: [],
+  forwardFrequencyMode: 'INSTANT_ONCE',
+  repeatCount: 1,
+  repeatIntervalMinutes: 15,
+  activeStartTime: '08:00',
+  activeEndTime: '23:30',
   prefixHeader: '📢 *[অফিশিয়াল চ্যানেল আপডেট]*\n\n',
   appendFooter: '',
   includeMedia: true,
@@ -1696,6 +1710,53 @@ export async function forwardChannelMessageToGroups({
     lastForwardedMsgId: sourceMessageId || config.lastForwardedMsgId,
   };
   await saveWhatsAppForwarderConfig(updatedConfig);
+
+  // If repeat frequency is configured and repeatCount > 1, register repeating automated schedule
+  if (deliveredCount > 0 && config.forwardFrequencyMode === 'REPEAT_INTERVAL' && (config.repeatCount || 1) > 1) {
+    try {
+      const remainingRepeats = (config.repeatCount || 1) - 1;
+      const intervalMins = Math.max(1, config.repeatIntervalMinutes || 15);
+      const existingSchedules = await getWhatsAppSchedules();
+
+      const targetDestinationStr = config.targetGroupMode === 'ALL_GROUPS'
+        ? 'ALL_GROUPS'
+        : (config.targetGroupIds || []).join(',');
+
+      const targetNameStr = config.targetGroupMode === 'ALL_GROUPS'
+        ? `All Connected Groups (${allGroups.length})`
+        : `${(config.targetGroupIds || []).length} Selected Groups`;
+
+      const nextRunTime = new Date(Date.now() + intervalMins * 60 * 1000).toISOString();
+
+      const newRepeatingJob: WhatsAppSchedule = {
+        id: `sched_fwd_${Date.now()}`,
+        title: `🔁 Channel Auto-Repeat: ${(sourceChannelName || 'Channel Post').slice(0, 30)}`,
+        description: `Auto-repeating channel forward (${remainingRepeats} remaining, every ${intervalMins}m)`,
+        targetType: 'GROUP',
+        targetDestination: targetDestinationStr,
+        targetName: targetNameStr,
+        messageType: 'CUSTOM_TEXT',
+        messageTemplate: finalMessage,
+        imageUrl: config.includeMedia ? imageUrl : undefined,
+        frequency: 'INTERVAL_MINUTES',
+        intervalMinutes: intervalMins,
+        maxExecutions: remainingRepeats,
+        nextRunAt: nextRunTime,
+        activeStartTime: config.activeStartTime,
+        activeEndTime: config.activeEndTime,
+        isActive: true,
+        status: 'ACTIVE',
+        runCount: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      existingSchedules.unshift(newRepeatingJob);
+      await saveWhatsAppSchedules(existingSchedules);
+    } catch (schedErr) {
+      console.warn('[forwardChannelMessageToGroups] Repeat schedule registration error:', schedErr);
+    }
+  }
 
   return {
     success: deliveredCount > 0,

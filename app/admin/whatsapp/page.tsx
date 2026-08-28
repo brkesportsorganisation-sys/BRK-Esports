@@ -236,8 +236,22 @@ export default function AdminWhatsAppPage() {
     enabled: false,
     sourceChannelId: '',
     sourceChannelName: 'Official WhatsApp Channel',
+    savedChannels: [
+      {
+        id: 'chan_official',
+        name: 'ESPORTS ZONE BD Official Channel',
+        channelId: '',
+        description: 'Official verified tournament notices & announcements',
+        isDefault: true,
+      }
+    ],
     targetGroupMode: 'ALL_GROUPS',
     targetGroupIds: [],
+    forwardFrequencyMode: 'INSTANT_ONCE',
+    repeatCount: 1,
+    repeatIntervalMinutes: 15,
+    activeStartTime: '08:00',
+    activeEndTime: '23:30',
     prefixHeader: '📢 *[অফিশিয়াল চ্যানেল আপডেট]*\n\n',
     appendFooter: '',
     includeMedia: true,
@@ -250,6 +264,9 @@ export default function AdminWhatsAppPage() {
   const [manualRelayMessage, setManualRelayMessage] = useState('');
   const [manualRelayImageUrl, setManualRelayImageUrl] = useState('');
   const [forwarderSearchQuery, setForwarderSearchQuery] = useState('');
+  const [newChannelName, setNewChannelName] = useState('');
+  const [newChannelId, setNewChannelId] = useState('');
+  const [showAddChannelForm, setShowAddChannelForm] = useState(false);
 
   const toggleForwarderGroupSelection = (identifier: string) => {
     setForwarderConfig(prev => {
@@ -1668,12 +1685,14 @@ export default function AdminWhatsAppPage() {
             </div>
 
             <div className="p-4 bg-white border border-[#E2E8F0] rounded-2xl shadow-xs space-y-1">
-              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">টার্গেট গ্রুপ মোড</div>
-              <div className="text-lg font-black text-slate-900 truncate">
-                {forwarderConfig.targetGroupMode === 'ALL_GROUPS' ? 'সব গ্রুপে' : `${forwarderConfig.targetGroupIds?.length || 0}টি নির্দিষ্ট গ্রুপে`}
+              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">পুনরাবৃত্তি ও ফ্রিকোয়েন্সি</div>
+              <div className="text-base font-black text-blue-700 truncate">
+                {forwarderConfig.forwardFrequencyMode === 'REPEAT_INTERVAL' 
+                  ? `🔁 ${forwarderConfig.repeatCount || 1} বার (প্রতি ${forwarderConfig.repeatIntervalMinutes || 15}মি.)` 
+                  : '⚡ তাৎক্ষণিক ১ বার'}
               </div>
               <div className="text-[11px] text-slate-500 font-medium">
-                {forwarderConfig.targetGroupMode === 'ALL_GROUPS' ? `মোট ${groups.length} গ্রুপ` : 'কাস্টম নির্বাচন'}
+                {forwarderConfig.forwardFrequencyMode === 'REPEAT_INTERVAL' ? `সময়: ${forwarderConfig.activeStartTime || '08:00'} - ${forwarderConfig.activeEndTime || '23:30'}` : 'Instant 1-Shot Forward'}
               </div>
             </div>
 
@@ -1683,17 +1702,17 @@ export default function AdminWhatsAppPage() {
                 {forwarderConfig.sourceChannelName || 'Not Set'}
               </div>
               <div className="text-[10px] text-slate-400 font-mono truncate">
-                {forwarderConfig.sourceChannelId || 'No Channel Configured'}
+                {forwarderConfig.sourceChannelId || 'All Channels (*)'}
               </div>
             </div>
 
             <div className="p-4 bg-white border border-[#E2E8F0] rounded-2xl shadow-xs space-y-1">
-              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">সর্বশেষ ফরোয়ার্ড</div>
+              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">প্রাপক গ্রুপসমূহ</div>
               <div className="text-sm font-black text-slate-900 truncate">
-                {forwarderConfig.lastForwardedAt ? new Date(forwarderConfig.lastForwardedAt).toLocaleTimeString('en-US', { timeZone: 'Asia/Dhaka', hour: '2-digit', minute: '2-digit' }) : 'Never'}
+                {forwarderConfig.targetGroupMode === 'ALL_GROUPS' ? `সব ${groups.length}টি গ্রুপ` : `${forwarderConfig.targetGroupIds?.length || 0}টি নির্বাচিত গ্রুপ`}
               </div>
-              <div className="text-[10px] text-slate-400 font-mono">
-                {forwarderConfig.lastForwardedAt ? new Date(forwarderConfig.lastForwardedAt).toLocaleDateString('en-GB') : 'No dispatches'}
+              <div className="text-[10px] text-slate-400 font-mono truncate">
+                {forwarderConfig.lastForwardedAt ? `সর্বশেষ: ${new Date(forwarderConfig.lastForwardedAt).toLocaleTimeString('en-US', { timeZone: 'Asia/Dhaka', hour: '2-digit', minute: '2-digit' })}` : 'No recent dispatches'}
               </div>
             </div>
           </div>
@@ -1704,7 +1723,7 @@ export default function AdminWhatsAppPage() {
             {/* LEFT COLUMN: CHANNEL & TARGET GROUPS CONFIGURATION (7 COLS) */}
             <div className="lg:col-span-7 space-y-6">
 
-              {/* Card A: Source Channel Setup */}
+              {/* Card A: Source Channel Setup & Selection */}
               <div className="bg-white border border-[#E2E8F0] rounded-[24px] p-6 space-y-4 shadow-sm">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <div className="flex items-center gap-2.5">
@@ -1712,22 +1731,123 @@ export default function AdminWhatsAppPage() {
                       <Link2 className="w-4 h-4" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-slate-900 text-sm">১. উৎস চ্যানেল নির্বাচন (Source Channel)</h4>
-                      <p className="text-[11px] text-slate-500">যে WhatsApp চ্যানেল থেকে বার্তাগুলো কপি/ফরোয়ার্ড হবে</p>
+                      <h4 className="font-bold text-slate-900 text-sm">১. উৎস চ্যানেল নির্বাচন (Source Channel Selection)</h4>
+                      <p className="text-[11px] text-slate-500">যে WhatsApp চ্যানেল(গুলো) থেকে বার্তাগুলো অটো-ফরওয়ার্ড হবে</p>
                     </div>
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowAddChannelForm(!showAddChannelForm)}
+                    className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <PlusCircle className="w-3.5 h-3.5" />
+                    <span>{showAddChannelForm ? 'বন্ধ করুন' : '+ নতুন চ্যানেল যুক্ত করুন'}</span>
+                  </button>
                 </div>
 
-                <div className="space-y-3">
+                {/* Inline Add Channel Form */}
+                {showAddChannelForm && (
+                  <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl space-y-3 animate-fadeIn">
+                    <h5 className="text-xs font-bold text-emerald-950">➕ নতুন চ্যানেল লিস্টে যুক্ত করুন:</h5>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <input
+                        type="text"
+                        placeholder="চ্যানেলের নাম (e.g. Scrims Updates)"
+                        value={newChannelName}
+                        onChange={(e) => setNewChannelName(e.target.value)}
+                        className="p-2.5 rounded-xl bg-white border border-emerald-300 text-xs text-slate-900 focus:outline-none"
+                      />
+                      <input
+                        type="text"
+                        placeholder="চ্যানেল লিংক বা JID (e.g. 120363xxx@newsletter)"
+                        value={newChannelId}
+                        onChange={(e) => setNewChannelId(e.target.value)}
+                        className="p-2.5 rounded-xl bg-white border border-emerald-300 text-xs font-mono text-slate-900 focus:outline-none"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!newChannelName.trim() || !newChannelId.trim()) {
+                          showToast('Please enter both Channel Name and Channel ID/Link.', 'error');
+                          return;
+                        }
+                        const newChan = {
+                          id: `chan_${Date.now()}`,
+                          name: newChannelName.trim(),
+                          channelId: newChannelId.trim(),
+                          description: 'Custom added channel',
+                        };
+                        const updatedChannels = [...(forwarderConfig.savedChannels || []), newChan];
+                        const updated = {
+                          ...forwarderConfig,
+                          savedChannels: updatedChannels,
+                          sourceChannelName: newChan.name,
+                          sourceChannelId: newChan.channelId,
+                        };
+                        setForwarderConfig(updated);
+                        setNewChannelName('');
+                        setNewChannelId('');
+                        setShowAddChannelForm(false);
+                        handleSaveForwarder(updated);
+                        showToast(`Channel "${newChan.name}" added and selected!`, 'success');
+                      }}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold cursor-pointer"
+                    >
+                      চ্যানেল সেভ ও সিলেক্ট করুন
+                    </button>
+                  </div>
+                )}
+
+                {/* Saved Channels Selector Pills */}
+                {forwarderConfig.savedChannels && forwarderConfig.savedChannels.length > 0 && (
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-2">সেভ করা চ্যানেল নির্বাচন করুন:</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {forwarderConfig.savedChannels.map((chan) => {
+                        const isSelected = forwarderConfig.sourceChannelId === chan.channelId || forwarderConfig.sourceChannelName === chan.name;
+                        return (
+                          <div
+                            key={chan.id}
+                            onClick={() => {
+                              setForwarderConfig({
+                                ...forwarderConfig,
+                                sourceChannelName: chan.name,
+                                sourceChannelId: chan.channelId,
+                              });
+                            }}
+                            className={`p-3 rounded-xl border flex items-center justify-between gap-2 cursor-pointer transition-all ${
+                              isSelected
+                                ? 'bg-emerald-50 border-emerald-500 shadow-xs'
+                                : 'bg-slate-50 border-slate-200 hover:border-emerald-300'
+                            }`}
+                          >
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-bold text-xs text-slate-900 truncate">{chan.name}</span>
+                                {isSelected && <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-600 text-white font-bold">ACTIVE</span>}
+                              </div>
+                              <div className="text-[10px] font-mono text-slate-400 truncate mt-0.5">{chan.channelId || 'Link Pending'}</div>
+                            </div>
+                            <CheckCircle2 className={`w-4 h-4 shrink-0 ${isSelected ? 'text-emerald-600' : 'text-slate-300'}`} />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-3 pt-1">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      চ্যানেল নাম / লেবেল (Channel Title) *
+                      সক্রিয় চ্যানেল নাম / লেবেল (Active Channel Title) *
                     </label>
                     <input
                       type="text"
                       value={forwarderConfig.sourceChannelName}
                       onChange={(e) => setForwarderConfig({ ...forwarderConfig, sourceChannelName: e.target.value })}
-                      placeholder="e.g. BRK Esports Official Channel"
+                      placeholder="e.g. ESPORTS ZONE BD Official Channel"
                       className="w-full p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-xs text-slate-900 focus:outline-none focus:border-emerald-600 font-medium"
                     />
                   </div>
@@ -1740,17 +1860,177 @@ export default function AdminWhatsAppPage() {
                       type="text"
                       value={forwarderConfig.sourceChannelId}
                       onChange={(e) => setForwarderConfig({ ...forwarderConfig, sourceChannelId: e.target.value })}
-                      placeholder="https://whatsapp.com/channel/0029Va... অথবা 120363xxxxxx@newsletter"
+                      placeholder="https://whatsapp.com/channel/0029Va... অথবা 120363xxxxxx@newsletter (সব চ্যানেল হলে * দিন)"
                       className="w-full p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-mono text-slate-900 focus:outline-none focus:border-emerald-600"
                     />
                     <p className="text-[10px] text-slate-400 mt-1">
-                      💡 আপনি আপনার WhatsApp চ্যানেলের লিঙ্ক পেস্ট করতে পারেন (যেমন: <code>https://whatsapp.com/channel/...</code>) অথবা Green-API/WaAPI চ্যানেল JID (<code>@newsletter</code>)।
+                      💡 আপনি আপনার WhatsApp চ্যানেলের লিঙ্ক (<code>https://whatsapp.com/channel/...</code>), JID (<code>@newsletter</code>) অথবা সব চ্যানেল মনিটর করতে <code>*</code> দিতে পারেন।
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Card B: Target Groups Setup */}
+              {/* Card B: Frequency & Repetition Controls (কতবার এবং কতক্ষণ পর পর ফরওয়ার্ড হবে) */}
+              <div className="bg-white border border-[#E2E8F0] rounded-[24px] p-6 space-y-4 shadow-sm">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                      <Repeat className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-900 text-sm">২. ফরোয়ার্ড পুনরাবৃত্তি ও বিরতি (Frequency & Repetition)</h4>
+                      <p className="text-[11px] text-slate-500">মেসেজটি মোট কতবার এবং কতক্ষণ পর পর গ্রুপগুলোতে পাঠাতে চান নির্ধারণ করুন</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Timing Mode: Instant Once vs Auto-Repeat */}
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setForwarderConfig({ ...forwarderConfig, forwardFrequencyMode: 'INSTANT_ONCE', repeatCount: 1 })}
+                    className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                      forwarderConfig.forwardFrequencyMode === 'INSTANT_ONCE'
+                        ? 'bg-blue-50 border-blue-500 text-blue-950 font-bold shadow-xs'
+                        : 'bg-[#F8FAFC] border-slate-200 text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-bold">⚡ শুধু ১ বার (Instant Once)</span>
+                      {forwarderConfig.forwardFrequencyMode === 'INSTANT_ONCE' && <CheckCircle2 className="w-4 h-4 text-blue-600" />}
+                    </div>
+                    <p className="text-[10px] text-slate-500">চ্যানেলে পোস্ট হওয়ামাত্র সাথে সাথে একবারই ফরওয়ার্ড হবে</p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setForwarderConfig({ ...forwarderConfig, forwardFrequencyMode: 'REPEAT_INTERVAL', repeatCount: Math.max(2, forwarderConfig.repeatCount || 3) })}
+                    className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                      forwarderConfig.forwardFrequencyMode === 'REPEAT_INTERVAL'
+                        ? 'bg-blue-50 border-blue-500 text-blue-950 font-bold shadow-xs'
+                        : 'bg-[#F8FAFC] border-slate-200 text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-bold">🔁 একাধিকবার অটো-রিপিট (Auto-Repeat)</span>
+                      {forwarderConfig.forwardFrequencyMode === 'REPEAT_INTERVAL' && <CheckCircle2 className="w-4 h-4 text-blue-600" />}
+                    </div>
+                    <p className="text-[10px] text-slate-500">নির্দিষ্ট সময় পর পর মেসেজটি স্বয়ংক্রিয় রিমাইন্ডার হিসেবে বারবার যাবে</p>
+                  </button>
+                </div>
+
+                {/* Sub-controls when Auto-Repeat is active */}
+                {forwarderConfig.forwardFrequencyMode === 'REPEAT_INTERVAL' && (
+                  <div className="space-y-4 pt-2 border-t border-slate-100">
+                    {/* Repeat Count (কতবার পাঠাবে) */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-bold text-slate-800">
+                          🎯 মোট কতবার ফরোয়ার্ড পাঠাবে (Total Repeat Count):
+                        </label>
+                        <span className="text-xs font-black text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
+                          {forwarderConfig.repeatCount || 1} বার (Executions)
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-5 gap-2 text-xs">
+                        {[2, 3, 5, 10].map((num) => (
+                          <button
+                            key={num}
+                            type="button"
+                            onClick={() => setForwarderConfig({ ...forwarderConfig, repeatCount: num })}
+                            className={`py-2 rounded-xl border font-bold transition-all cursor-pointer ${
+                              forwarderConfig.repeatCount === num
+                                ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                                : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                            }`}
+                          >
+                            {num} বার
+                          </button>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const customVal = prompt('মোট কতবার ফরওয়ার্ড করতে চান লিখুন (সংখ্যা):', String(forwarderConfig.repeatCount || 3));
+                            if (customVal && Number(customVal) > 0) {
+                              setForwarderConfig({ ...forwarderConfig, repeatCount: Number(customVal) });
+                            }
+                          }}
+                          className={`py-2 rounded-xl border font-bold transition-all cursor-pointer ${
+                            ![2, 3, 5, 10].includes(forwarderConfig.repeatCount || 0)
+                              ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                              : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                          }`}
+                        >
+                          কাস্টম ({forwarderConfig.repeatCount || 1})
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Interval Delay (কতক্ষণ পর পর যাবে) */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-bold text-slate-800">
+                          ⏱️ কতক্ষণ পর পর ফরোয়ার্ড যাবে (Interval Delay):
+                        </label>
+                        <span className="text-xs font-black text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                          প্রতি {forwarderConfig.repeatIntervalMinutes || 15} মিনিট পর পর
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-xs">
+                        {[
+                          { label: '৫ মিনিট', mins: 5 },
+                          { label: '১০ মিনিট', mins: 10 },
+                          { label: '১৫ মিনিট', mins: 15 },
+                          { label: '৩০ মিনিট', mins: 30 },
+                          { label: '১ ঘণ্টা', mins: 60 },
+                          { label: '২ ঘণ্টা', mins: 120 },
+                        ].map((item) => (
+                          <button
+                            key={item.mins}
+                            type="button"
+                            onClick={() => setForwarderConfig({ ...forwarderConfig, repeatIntervalMinutes: item.mins })}
+                            className={`py-2 rounded-xl border font-bold transition-all cursor-pointer ${
+                              forwarderConfig.repeatIntervalMinutes === item.mins
+                                ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                                : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                            }`}
+                          >
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Active Window Hours */}
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          শুরুর সময় (Active Start Time)
+                        </label>
+                        <input
+                          type="time"
+                          value={forwarderConfig.activeStartTime || '08:00'}
+                          onChange={(e) => setForwarderConfig({ ...forwarderConfig, activeStartTime: e.target.value })}
+                          className="w-full p-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-800 focus:outline-none focus:border-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          শেষের সময় (Active End Time)
+                        </label>
+                        <input
+                          type="time"
+                          value={forwarderConfig.activeEndTime || '23:30'}
+                          onChange={(e) => setForwarderConfig({ ...forwarderConfig, activeEndTime: e.target.value })}
+                          className="w-full p-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-800 focus:outline-none focus:border-blue-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Card C: Target Groups Setup */}
               <div className="bg-white border border-[#E2E8F0] rounded-[24px] p-6 space-y-4 shadow-sm">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <div className="flex items-center gap-2.5">
@@ -1758,7 +2038,7 @@ export default function AdminWhatsAppPage() {
                       <Users className="w-4 h-4" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-slate-900 text-sm">২. প্রাপক WhatsApp গ্রুপসমূহ (Destination Groups)</h4>
+                      <h4 className="font-bold text-slate-900 text-sm">৩. প্রাপক WhatsApp গ্রুপসমূহ (Destination Groups)</h4>
                       <p className="text-[11px] text-slate-500">কোন কোন গ্রুপে চ্যানেলের মেসেজ ফরোয়ার্ড হবে নির্বাচন করুন</p>
                     </div>
                   </div>
@@ -1864,14 +2144,14 @@ export default function AdminWhatsAppPage() {
                 )}
               </div>
 
-              {/* Card C: Message Styling & Customization */}
+              {/* Card D: Message Styling & Customization */}
               <div className="bg-white border border-[#E2E8F0] rounded-[24px] p-6 space-y-4 shadow-sm">
                 <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
-                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
                     <Sparkles className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-slate-900 text-sm">৩. মেসেজ ফরম্যাট ও হেডার/ফুটার কাস্টমাইজেশন</h4>
+                    <h4 className="font-bold text-slate-900 text-sm">৪. মেসেজ ফরম্যাট ও হেডার/ফুটার কাস্টমাইজেশন</h4>
                     <p className="text-[11px] text-slate-500">ফরোয়ার্ড করা মেসেজের শুরুতে বা শেষে স্বয়ংক্রিয় টেক্সট যুক্ত করুন</p>
                   </div>
                 </div>

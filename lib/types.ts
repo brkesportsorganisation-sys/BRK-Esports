@@ -917,12 +917,29 @@ export interface WhatsAppTargetGroup {
   createdAt: string;
 }
 
+export interface WhatsAppSourceChannel {
+  id: string;
+  name: string;
+  channelId: string; // JID (@newsletter), URL, or invite code
+  description?: string;
+  isDefault?: boolean;
+}
+
 export interface WhatsAppForwarderConfig {
   enabled: boolean;
   sourceChannelId: string; // e.g. "120363xxxxxx@newsletter", WhatsApp channel URL, or group JID
   sourceChannelName: string; // Display label, e.g. "Official BRK Channel"
+  savedChannels?: WhatsAppSourceChannel[]; // Available source channels to select from
   targetGroupMode: 'ALL_GROUPS' | 'SELECTED_GROUPS';
   targetGroupIds: string[]; // List of target group identifiers/JIDs
+  
+  // Frequency & Repeat Timing Controls
+  forwardFrequencyMode: 'INSTANT_ONCE' | 'REPEAT_INTERVAL'; // Send once instantly vs auto-repeat at intervals
+  repeatCount: number; // 1 = once, 2 = 2 times, 3 = 3 times, 5 = 5 times, 0 = unlimited
+  repeatIntervalMinutes: number; // Interval in minutes (e.g. 5, 10, 15, 30, 60 mins)
+  activeStartTime?: string; // e.g. "09:00"
+  activeEndTime?: string; // e.g. "23:00"
+
   prefixHeader?: string; // Optional header prefix added to forwarded messages
   appendFooter?: string; // Optional footer added to forwarded messages
   includeMedia: boolean; // Forward attached image/media
