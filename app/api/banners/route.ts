@@ -115,6 +115,87 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
+    // 1. Support saving shop banner from /admin/shop/banners
+    if (body.shopBanner || body.shopBanners) {
+      const bannerItem = body.shopBanner || (Array.isArray(body.shopBanners) ? body.shopBanners[0] : null);
+      if (!bannerItem) {
+        return NextResponse.json({ message: 'Shop banner data is required.' }, { status: 400 });
+      }
+
+      let finalImageUrl = bannerItem.imageUrl || '';
+      if (typeof finalImageUrl === 'string' && finalImageUrl.startsWith('data:image/')) {
+        try {
+          const uploadedUrl = await saveBase64Image(finalImageUrl, 'banner');
+          if (uploadedUrl) {
+            finalImageUrl = uploadedUrl;
+          }
+        } catch (uploadErr) {
+          console.error('[POST /api/banners] Base64 upload failed:', uploadErr);
+        }
+      }
+
+      const bannerId = bannerItem.id || 'shop_banner_hero';
+      const now = new Date().toISOString();
+      const shopBannerObj: Banner = {
+        id: bannerId,
+        title: (bannerItem.title || 'OFFICIAL GAMING TOP-UP & DIAMOND SHOP').trim(),
+        subtitle: (bannerItem.subtitle || '').trim(),
+        badge: (bannerItem.badge || bannerItem.badgeText || '').trim(),
+        badgeText: (bannerItem.badgeText || bannerItem.badge || '').trim(),
+        imageUrl: finalImageUrl,
+        linkUrl: bannerItem.linkUrl || bannerItem.link || '/shop',
+        link: bannerItem.link || bannerItem.linkUrl || '/shop',
+        buttonText: bannerItem.buttonText || 'SHOP PACKAGES NOW',
+        placement: 'SHOP_BANNER',
+        order: Number(bannerItem.order || bannerItem.displayOrder || 1),
+        displayOrder: Number(bannerItem.displayOrder || bannerItem.order || 1),
+        isActive: bannerItem.isActive ?? true,
+        createdAt: bannerItem.createdAt || now,
+        updatedAt: now,
+      };
+
+      // Save to in-memory db
+      db.updateBanner(bannerId, shopBannerObj);
+
+      // Save to Supabase Banner table
+      try {
+        await supabaseAdmin
+          .from('Banner')
+          .upsert(shopBannerObj, { onConflict: 'id' });
+      } catch (dbErr) {
+        console.warn('[POST /api/banners] Shop banner upsert error:', dbErr);
+      }
+
+      // Also save slide settings if passed
+      if (body.settings?.autoSlideInterval) {
+        try {
+          await supabaseAdmin
+            .from('SiteSetting')
+            .upsert([
+              {
+                id: 'setting_shop_banner_slide_speed',
+                key: 'shop_banner_slide_speed',
+                value: String(body.settings.autoSlideInterval),
+                updatedAt: now,
+              },
+              {
+                id: 'setting_banner_slide_speed',
+                key: 'banner_slide_speed',
+                value: String(body.settings.autoSlideInterval),
+                updatedAt: now,
+              }
+            ], { onConflict: 'key' });
+        } catch {}
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: 'Shop banner saved successfully!',
+        shopBanner: shopBannerObj,
+        banner: shopBannerObj,
+      });
+    }
+
     if (body.action === 'UPDATE_SETTINGS') {
       const { autoSlideInterval, isEnabled, overlayOpacity } = body;
       const updated = db.updateBannerSettings({ autoSlideInterval, isEnabled, overlayOpacity });
