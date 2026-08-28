@@ -18,7 +18,45 @@ export async function GET() {
   try {
     const settings = await getWhatsAppSettings();
 
-    // 1. WaAPI Status Check
+    // 1. Green-API Status Check
+    if (settings.provider === 'GREEN_API' && settings.greenApiToken) {
+      const host = (settings.greenApiUrl || 'https://7107.api.greenapi.com').replace(/\/+$/, '');
+      const instId = settings.greenApiInstanceId || '710722716896';
+      try {
+        const res = await fetch(`${host}/waInstance${instId}/getStateInstance/${settings.greenApiToken}`);
+        const json = await res.json().catch(() => ({}));
+        const stateInstance = json.stateInstance || '';
+        const isConnected = stateInstance === 'authorized';
+
+        return NextResponse.json({
+          connected: isConnected,
+          provider: 'GREEN_API',
+          statusText: stateInstance.toUpperCase() || (isConnected ? 'AUTHORIZED' : 'NOT_AUTHORIZED'),
+          account: {
+            projectName: 'BRK ESPORTS ORG (Green-API)',
+            teamName: 'Green-API WhatsApp Bot',
+            instanceId: instId,
+          },
+          senders: [
+            {
+              id: `green_${instId}`,
+              name: 'Green-API Bot',
+              phoneNumber: '+880 WhatsApp Bot',
+              isDefault: true,
+            },
+          ],
+          activeSender: {
+            id: `green_${instId}`,
+            name: 'Green-API Bot',
+            phoneNumber: '+880 WhatsApp Bot',
+          },
+        });
+      } catch (err: any) {
+        console.warn('[Green-API Status Check Error]', err?.message);
+      }
+    }
+
+    // 2. WaAPI Status Check
     if (settings.provider === 'WAAPI' && settings.waapiApiKey) {
       const instId = settings.waapiInstanceId || '102791';
       try {
