@@ -49,6 +49,7 @@ import {
   Link2,
 } from 'lucide-react';
 import { WhatsAppSchedule, WhatsAppTargetGroup, WhatsAppMessageLog, WhatsAppFrequency, WhatsAppTargetType, WhatsAppForwarderConfig } from '@/lib/types';
+import ImageUploadInput from '@/components/ui/ImageUploadInput';
 
 interface WhatsAppContact {
   id: string;
@@ -2954,34 +2955,19 @@ export default function AdminWhatsAppPage() {
               )}
 
               <div>
-                <label className="block text-slate-700 font-bold mb-1.5 flex items-center justify-between">
-                  <span>🖼️ Attach Picture / Banner URL (ছবি / ব্যানার - Optional)</span>
-                  {broadcastImageUrl && (
-                    <button
-                      type="button"
-                      onClick={() => setBroadcastImageUrl('')}
-                      className="text-[11px] text-red-500 hover:underline cursor-pointer"
-                    >
-                      Clear Image
-                    </button>
-                  )}
-                </label>
-                <input
-                  type="url"
+                <ImageUploadInput
+                  label="Attach Picture / Banner (ছবি / ব্যানার আপলোড বা লিঙ্ক - Optional)"
                   value={broadcastImageUrl}
-                  onChange={(e) => setBroadcastImageUrl(e.target.value)}
-                  placeholder="https://example.com/tournament_poster.jpg"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-mono text-slate-900 focus:outline-none focus:border-emerald-600"
+                  onChange={(val) => setBroadcastImageUrl(val)}
+                  placeholder="https://example.com/tournament_poster.jpg or upload from device"
+                  theme="light"
+                  maxWidth={1200}
+                  maxHeight={800}
+                  helperText="ডিভাইস থেকে ব্যানার/পোস্টার আপলোড করুন অথবা সরাসরি ইমেজ লিঙ্ক দিন"
+                  presets={[
+                    { label: 'Sample Gaming Banner', url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=60' }
+                  ]}
                 />
-                <div className="flex gap-2 mt-1.5 flex-wrap">
-                  <button
-                    type="button"
-                    onClick={() => setBroadcastImageUrl('https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=60')}
-                    className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold cursor-pointer"
-                  >
-                    + Sample Gaming Banner
-                  </button>
-                </div>
               </div>
 
               <div>
@@ -3768,30 +3754,16 @@ export default function AdminWhatsAppPage() {
                 )}
                 {/* Optional Schedule Image / Banner */}
                 <div className="space-y-1.5">
-                  <label className="block text-slate-700 font-bold text-xs flex items-center justify-between">
-                    <span>🖼️ Attach Picture / Banner (ছবি / ব্যানার লিঙ্ক - Optional)</span>
-                    {formImageUrl && (
-                      <button
-                        type="button"
-                        onClick={() => setFormImageUrl('')}
-                        className="text-[11px] text-red-500 hover:underline cursor-pointer"
-                      >
-                        Clear Image
-                      </button>
-                    )}
-                  </label>
-                  <input
-                    type="url"
+                  <ImageUploadInput
+                    label="Attach Picture / Banner (ছবি / ব্যানার আপলোড বা লিঙ্ক - Optional)"
                     value={formImageUrl}
-                    onChange={(e) => setFormImageUrl(e.target.value)}
-                    placeholder="https://example.com/banner.jpg"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white"
+                    onChange={(val) => setFormImageUrl(val)}
+                    placeholder="https://example.com/banner.jpg or upload from device"
+                    theme="light"
+                    maxWidth={1200}
+                    maxHeight={800}
+                    helperText="সরাসরি মোবাইল/পিসি থেকে ছবি আপলোড করতে পারবেন অথবা ছবির URL দিতে পারবেন।"
                   />
-                  {formImageUrl && (
-                    <div className="rounded-xl overflow-hidden mt-2 max-h-32 border border-slate-200 bg-slate-100">
-                      <img src={formImageUrl} alt="Schedule Banner Preview" className="w-full h-28 object-cover" />
-                    </div>
-                  )}
                 </div>
               </div>
 
