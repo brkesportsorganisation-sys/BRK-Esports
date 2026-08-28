@@ -1,10 +1,11 @@
 import { Tournament, TournamentStatus } from '@/lib/types';
 
 export function getDynamicTournamentStatus(tournament: Partial<Tournament>): TournamentStatus {
-  // If explicitly marked as PENDING, DRAFT, FINISHED, or CANCELLED, always honor it
+  // If explicitly marked as PENDING, DRAFT, RUNNING, FINISHED, or CANCELLED, always honor it
   if (
     tournament.status === 'PENDING' ||
     tournament.status === 'DRAFT' ||
+    tournament.status === 'RUNNING' ||
     tournament.status === 'FINISHED' ||
     tournament.status === 'CANCELLED'
   ) {
@@ -21,15 +22,20 @@ export function getDynamicTournamentStatus(tournament: Partial<Tournament>): Tou
   const endTimeStr = tournament.tournamentEnd;
   const endTime = endTimeStr ? new Date(endTimeStr).getTime() : (startTime > 0 ? startTime + 2 * 60 * 60 * 1000 : 0);
 
-  if (startTime === 0) return tournament.status || 'UPCOMING';
-
   const now = Date.now();
 
-  if (now < startTime) {
-    return 'UPCOMING';
-  } else if (now >= startTime && (endTime === 0 || now < endTime)) {
+  if (startTime > 0 && now >= startTime && (endTime === 0 || now < endTime)) {
     return 'LIVE';
-  } else {
+  }
+  if (endTime > 0 && now >= endTime) {
     return 'FINISHED';
   }
+
+  if (tournament.status === 'UPCOMING') {
+    return 'UPCOMING';
+  }
+
+  if (startTime === 0) return tournament.status || 'RUNNING';
+
+  return 'RUNNING';
 }

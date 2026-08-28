@@ -10,7 +10,7 @@ import 'react-quill-new/dist/quill.snow.css';
 
 const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false });
 
-const statusOptions: Array<'ALL' | TournamentStatus> = ['ALL', 'PENDING', 'DRAFT', 'UPCOMING', 'LIVE', 'FINISHED', 'CANCELLED'];
+const statusOptions: Array<'ALL' | TournamentStatus> = ['ALL', 'RUNNING', 'UPCOMING', 'PENDING', 'LIVE', 'FINISHED', 'CANCELLED'];
 
 const toLocalISO = (dateString?: string | Date | null) => {
   if (!dateString) return '';
@@ -843,25 +843,28 @@ export default function AdminTournamentsPage() {
                         const newStatus = e.target.value as TournamentStatus;
                         void handleQuickAction(item.id, {
                           status: newStatus,
-                          isPublished: newStatus !== 'PENDING' && newStatus !== 'DRAFT',
+                          isPublished: newStatus !== 'DRAFT',
                         });
                       }}
                       className={`px-2.5 py-1.5 rounded-xl text-[10px] font-black uppercase border outline-none cursor-pointer transition-all ${
-                        item.status === 'PENDING' || item.status === 'DRAFT'
-                          ? 'bg-amber-950/70 border-amber-600/80 text-amber-300'
+                        item.status === 'RUNNING'
+                          ? 'bg-emerald-950/70 border-emerald-500 text-emerald-300'
                           : item.status === 'UPCOMING'
                           ? 'bg-blue-950/70 border-blue-600/80 text-blue-300'
+                          : item.status === 'PENDING' || item.status === 'DRAFT'
+                          ? 'bg-amber-950/70 border-amber-600/80 text-amber-300'
                           : item.status === 'LIVE'
                           ? 'bg-red-950/70 border-red-600/80 text-red-300 animate-pulse'
                           : item.status === 'FINISHED'
-                          ? 'bg-emerald-950/70 border-emerald-600/80 text-emerald-300'
+                          ? 'bg-slate-900 border-slate-700 text-slate-400'
                           : 'bg-slate-800 border-slate-700 text-slate-400'
                       }`}
                     >
-                      <option value="PENDING" className="bg-slate-900 text-amber-400 font-bold">🟡 PENDING</option>
+                      <option value="RUNNING" className="bg-slate-900 text-emerald-400 font-bold">🟢 RUNNING</option>
                       <option value="UPCOMING" className="bg-slate-900 text-blue-400 font-bold">🔵 UPCOMING</option>
+                      <option value="PENDING" className="bg-slate-900 text-amber-400 font-bold">🟡 PENDING</option>
                       <option value="LIVE" className="bg-slate-900 text-red-400 font-bold">🔴 LIVE</option>
-                      <option value="FINISHED" className="bg-slate-900 text-emerald-400 font-bold">🟢 FINISHED</option>
+                      <option value="FINISHED" className="bg-slate-900 text-slate-400 font-bold">🏁 FINISHED</option>
                       <option value="CANCELLED" className="bg-slate-900 text-slate-400 font-bold">⚪ CANCELLED</option>
                     </select>
                   </td>
@@ -1258,14 +1261,15 @@ export default function AdminTournamentsPage() {
                       onChange={(event) => setForm((prev) => ({ ...prev, status: event.target.value as TournamentStatus }))} 
                       className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-3 text-slate-900 font-bold shadow-sm focus:border-red-300 focus:ring-1 focus:ring-red-300 outline-none cursor-pointer"
                     >
-                      <option value="PENDING">🟡 PENDING (পেন্ডিং / ড্রাফট - পাবলিক হোমপেজে দেখবে না)</option>
-                      <option value="UPCOMING">🔵 UPCOMING (আপকামিং - লাইভ রেজিস্ট্রেশন চালু)</option>
+                      <option value="PENDING">🟡 PENDING (পেন্ডিং - সব জায়গায় দেখাবে, রেজিস্ট্রেশন বন্ধ)</option>
+                      <option value="UPCOMING">🔵 UPCOMING (আপকামিং - সব জায়গায় দেখাবে, রেজিস্ট্রেশন বন্ধ)</option>
+                      <option value="RUNNING">🟢 RUNNING (চলমান - লাইভ রেজিস্ট্রেশন চালু ও জয়েন করা যাবে)</option>
                       <option value="LIVE">🔴 LIVE (লাইভ - ম্যাচ চলমান)</option>
-                      <option value="FINISHED">🟢 FINISHED (সমাপ্ত / ফিনিশড - ম্যাচ শেষ)</option>
+                      <option value="FINISHED">🏁 FINISHED (সমাপ্ত / ফিনিশড - ম্যাচ শেষ)</option>
                       <option value="CANCELLED">⚪ CANCELLED (বাতিল করা হয়েছে)</option>
                     </select>
                     <p className="mt-1 text-xs text-slate-500">
-                      💡 আপনি সরাসরি যে কোনো সময় ট্যুরনামেন্টকে <strong>PENDING</strong>, <strong>UPCOMING</strong> অথবা <strong>FINISHED</strong> এ পরিবর্তন করতে পারেন।
+                      💡 আপনি সরাসরি যে কোনো সময় ট্যুরনামেন্টকে <strong>PENDING</strong>, <strong>UPCOMING</strong>, <strong>RUNNING</strong> অথবা <strong>FINISHED</strong> এ পরিবর্তন করতে পারেন।
                     </p>
                   </div>
                   <div className="flex items-center justify-between rounded-2xl border border-slate-300 bg-white p-4 shadow-sm">

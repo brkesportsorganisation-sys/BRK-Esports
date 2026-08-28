@@ -58,13 +58,14 @@ async function fetchShopItems(): Promise<ShopProduct[]> {
     if (data?.value) {
       const parsed = JSON.parse(data.value);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        const featured = (parsed as ShopProduct[]).filter((p) => p.isFeaturedOnHome);
-        return featured.length > 0 ? featured.slice(0, 3) : parsed.slice(0, 3);
+        // ONLY return products that admin explicitly selected/marked for homepage
+        const featured = (parsed as ShopProduct[]).filter((p) => p.isFeaturedOnHome && p.isActive !== false);
+        return featured;
       }
     }
-    return DEFAULT_SHOP_PRODUCTS.slice(0, 3);
+    return [];
   } catch {
-    return DEFAULT_SHOP_PRODUCTS.slice(0, 3);
+    return [];
   }
 }
 
@@ -103,7 +104,7 @@ export default async function HomePage() {
   ]);
 
   const displayedTournaments = tournaments
-    .filter((t) => t.status !== 'PENDING' && t.status !== 'DRAFT' && t.isPublished !== false)
+    .filter((t) => t.status !== 'DRAFT' && t.isPublished !== false)
     .slice(0, 2);
 
   return (
@@ -155,119 +156,6 @@ export default async function HomePage() {
           </section>
         )}
 
-        {/* Lucky Spin Wheel Section */}
-        <section className="py-8 bg-slate-50/50 border-b border-slate-200 relative overflow-hidden">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-gradient-to-r from-purple-500/10 via-amber-500/10 to-orange-500/10 rounded-full blur-[100px] pointer-events-none" aria-hidden="true" />
-          <HomeClientSection />
-        </section>
-
-        {/* Featured Gaming Shop Section */}
-        {featuredShopItems.length > 0 && (
-          <section className="py-12 bg-white border-b border-slate-200 relative overflow-hidden">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full space-y-8 relative z-10">
-              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-                <div className="space-y-1.5">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 border border-amber-300 text-amber-900 text-xs font-black uppercase tracking-wider">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-700" aria-hidden="true" />
-                    <span>EZBD OFFICIAL GAMING SHOP</span>
-                  </div>
-                  <h2 className="text-2xl sm:text-3xl font-black font-heading text-slate-900 tracking-tight">
-                    Free Fire Diamonds &amp; Coin Rewards Hub
-                  </h2>
-                  <p className="text-xs sm:text-sm text-slate-600 max-w-xl leading-relaxed">
-                    Use your tournament winnings or EZBD Coins to buy official Free Fire Diamonds, Weekly Passes, and Exclusive items with instant UID delivery!
-                  </p>
-                </div>
-
-                <Link
-                  href="/shop"
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 hover:brightness-110 text-white font-heading font-black text-xs uppercase tracking-wider shadow-md transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0"
-                >
-                  <ShoppingBag className="w-4 h-4" aria-hidden="true" />
-                  <span>Visit Full Shop</span>
-                  <ArrowRight className="w-4 h-4" aria-hidden="true" />
-                </Link>
-              </div>
-
-              {/* Featured Products Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {featuredShopItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="bg-[#F8FAFC] rounded-3xl overflow-hidden border border-slate-200 hover:border-amber-400/80 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between group relative"
-                  >
-                    <div className="relative h-44 w-full overflow-hidden bg-slate-900">
-                      <Image
-                        src={item.imageUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=500'}
-                        alt={item.name}
-                        fill
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 360px"
-                        className="object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" aria-hidden="true" />
-
-                      {item.badge && (
-                        <span className="absolute top-3.5 right-3.5 z-10 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 text-[10px] font-black uppercase shadow-md">
-                          {item.badge}
-                        </span>
-                      )}
-
-                      <div className="absolute bottom-3 left-3.5 z-10 flex items-center gap-2">
-                        <span className="w-7 h-7 rounded-lg bg-black/60 backdrop-blur-md border border-white/20 text-white flex items-center justify-center text-sm shadow-xs">
-                          {item.icon || '💎'}
-                        </span>
-                        <span className="text-[11px] font-bold text-white uppercase font-heading drop-shadow-sm">
-                          {item.category}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                      <div className="space-y-1.5">
-                        <h3 className="font-heading font-black text-base text-slate-900 group-hover:text-brand-orange transition-colors line-clamp-1">
-                          {item.name}
-                        </h3>
-                        <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
-                          {item.description || 'Instant Free Fire game delivery directly to player UID.'}
-                        </p>
-                      </div>
-
-                      <div className="bg-white border border-slate-200 rounded-2xl p-3 space-y-1.5">
-                        {(item.currencyType === 'WALLET' || item.currencyType === 'BOTH') && (
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-slate-600 font-semibold">Cash / Wallet:</span>
-                            <strong className="text-emerald-700 font-black text-sm">৳ {item.priceBdt} BDT</strong>
-                          </div>
-                        )}
-
-                        {(item.currencyType === 'COINS' || item.currencyType === 'BOTH') && (
-                          <div className={`flex items-center justify-between text-xs ${item.currencyType === 'BOTH' ? 'border-t border-slate-100 pt-1.5' : ''}`}>
-                            <span className="text-slate-600 font-semibold flex items-center gap-1">
-                              <Coins className="w-3.5 h-3.5 text-amber-600" aria-hidden="true" />
-                              <span>Or Pay With Coins:</span>
-                            </span>
-                            <strong className="text-amber-800 font-black text-sm">
-                              {item.priceCoins.toLocaleString()} 🪙
-                            </strong>
-                          </div>
-                        )}
-                      </div>
-
-                      <Link
-                        href="/shop"
-                        className="w-full py-3 rounded-xl bg-gradient-to-r from-slate-900 to-slate-800 hover:from-brand-red hover:to-brand-orange text-white font-heading font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-xs group-hover:shadow-md cursor-pointer"
-                      >
-                        <ShoppingCart className="w-4 h-4" aria-hidden="true" />
-                        <span>Buy / Redeem Now</span>
-                      </Link>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
-
         {/* Recent Announcements Section */}
         {announcements.length > 0 && (
           <section className="py-12 bg-white border-b border-slate-200">
@@ -308,6 +196,12 @@ export default async function HomePage() {
             </div>
           </section>
         )}
+
+        {/* Lucky Spin Wheel Section (Moved to the very bottom) */}
+        <section className="py-8 bg-slate-50/50 border-b border-slate-200 relative overflow-hidden">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-gradient-to-r from-purple-500/10 via-amber-500/10 to-orange-500/10 rounded-full blur-[100px] pointer-events-none" aria-hidden="true" />
+          <HomeClientSection />
+        </section>
       </main>
 
       <Footer />

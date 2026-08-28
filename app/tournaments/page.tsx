@@ -180,8 +180,8 @@ export default function TournamentsPage() {
   };
 
   const filteredTournaments = tournaments.filter((t) => {
-    // Hide unpublished, pending, or draft tournaments from public list
-    if (t.status === 'PENDING' || t.status === 'DRAFT' || t.isPublished === false) {
+    // Hide draft or unpublished tournaments from public list
+    if (t.status === 'DRAFT' || t.isPublished === false) {
       return false;
     }
 
@@ -377,7 +377,9 @@ export default function TournamentsPage() {
                     className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-2.5 py-2.5 text-[11px] sm:text-xs font-semibold text-slate-800 focus:outline-none focus:border-brand-orange focus:bg-white cursor-pointer"
                   >
                     <option value="ALL">⚡ All Status</option>
-                    <option value="UPCOMING">🕒 Upcoming</option>
+                    <option value="RUNNING">🟢 Running (Registration Open)</option>
+                    <option value="UPCOMING">🔵 Upcoming</option>
+                    <option value="PENDING">🟡 Pending</option>
                     <option value="LIVE">🔴 Live</option>
                     <option value="FINISHED">✅ Finished / Ended</option>
                   </select>

@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { getTournamentByIdFromDb } from '@/lib/tournament-store';
 import { getSquads } from '@/lib/squads';
 import { db } from '@/lib/db';
+import { getDynamicTournamentStatus } from '@/lib/tournament-utils';
 
 function generateId(prefix: string): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -96,6 +97,16 @@ export async function POST(
     const tournament = await getTournamentByIdFromDb(tournamentId);
     if (!tournament) {
       return NextResponse.json({ message: 'Tournament not found.' }, { status: 404 });
+    }
+    const dynStatus = getDynamicTournamentStatus(tournament);
+    if (dynStatus === 'PENDING') {
+      return NextResponse.json({ message: 'Registration is pending for this tournament.' }, { status: 400 });
+    }
+    if (dynStatus === 'UPCOMING') {
+      return NextResponse.json({ message: 'Registration has not started yet (Upcoming match).' }, { status: 400 });
+    }
+    if (dynStatus === 'LIVE' || dynStatus === 'FINISHED' || dynStatus === 'CANCELLED') {
+      return NextResponse.json({ message: 'Registration is closed for this tournament.' }, { status: 400 });
     }
     if (!tournament.registrationOpen) {
       return NextResponse.json({ message: 'Registration is closed for this tournament.' }, { status: 400 });

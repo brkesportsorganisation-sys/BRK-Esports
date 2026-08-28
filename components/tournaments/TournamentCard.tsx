@@ -163,6 +163,18 @@ export default function TournamentCard({ tournament, priority = false }: Tournam
                 <span className="px-2 py-0.5 rounded-full bg-red-500 text-white font-black text-[9px] uppercase animate-pulse shadow-xs">
                   🔴 LIVE
                 </span>
+              ) : currentStatus === 'PENDING' ? (
+                <span className="px-2 py-0.5 rounded-full bg-amber-500 text-white font-black text-[9px] uppercase shadow-xs">
+                  🟡 PENDING
+                </span>
+              ) : currentStatus === 'UPCOMING' ? (
+                <span className="px-2 py-0.5 rounded-full bg-blue-500 text-white font-black text-[9px] uppercase shadow-xs">
+                  🔵 UPCOMING
+                </span>
+              ) : currentStatus === 'FINISHED' ? (
+                <span className="px-2 py-0.5 rounded-full bg-slate-700 text-white font-black text-[9px] uppercase shadow-xs">
+                  🏁 FINISHED
+                </span>
               ) : (tournament.isGiveaway || tournament.requiresFullSquad || tournament.title?.toLowerCase().includes('giveaway')) ? (
                 <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-[9px] uppercase shadow-xs flex items-center gap-1">
                   🎁 4P SQUAD
@@ -171,7 +183,11 @@ export default function TournamentCard({ tournament, priority = false }: Tournam
                 <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-white font-bold text-[9px] uppercase shadow-xs">
                   🎁 FREE
                 </span>
-              ) : null}
+              ) : (
+                <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white font-black text-[9px] uppercase shadow-xs">
+                  🟢 RUNNING
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -281,6 +297,33 @@ export default function TournamentCard({ tournament, priority = false }: Tournam
             >
               <span>⛔ FULL</span>
             </button>
+          ) : currentStatus === 'PENDING' ? (
+            <Link href={`/tournaments/${tournament.id}`} className="block w-full">
+              <button className="w-full py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-800 border border-amber-300 font-heading font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                <Clock className="w-3.5 h-3.5 text-amber-600" />
+                <span>PENDING</span>
+              </button>
+            </Link>
+          ) : currentStatus === 'UPCOMING' ? (
+            <Link href={`/tournaments/${tournament.id}`} className="block w-full">
+              <button className="w-full py-2.5 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-800 border border-blue-300 font-heading font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                <Clock className="w-3.5 h-3.5 text-blue-600" />
+                <span>UPCOMING</span>
+              </button>
+            </Link>
+          ) : currentStatus === 'FINISHED' ? (
+            <button
+              disabled
+              className="w-full py-2.5 rounded-xl bg-slate-100 text-slate-400 font-heading font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-not-allowed border border-slate-200 shadow-2xs"
+            >
+              <span>🏁 FINISHED</span>
+            </button>
+          ) : isLive ? (
+            <Link href={`/tournaments/${tournament.id}`} className="block w-full">
+              <button className="w-full py-2.5 rounded-xl bg-red-600 text-white font-heading font-black text-xs uppercase tracking-wider shadow-md hover:bg-red-700 transition-all flex items-center justify-center gap-1.5 cursor-pointer animate-pulse">
+                <span>🔴 MATCH LIVE</span>
+              </button>
+            </Link>
           ) : (
             <Link href={`/tournaments/${tournament.id}`} className="block w-full">
               <button className="w-full py-2.5 rounded-xl bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold hover:brightness-110 text-white font-heading font-black text-xs uppercase tracking-wider shadow-neon-orange transition-all hover:scale-[1.01] active:scale-[0.98] flex items-center justify-center gap-1.5 cursor-pointer">

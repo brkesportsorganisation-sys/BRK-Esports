@@ -467,6 +467,19 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
   };
 
   const openJoinModal = () => {
+    if (currentStatus === 'PENDING') {
+      showToast('⚠️ এই ট্যুরনামেন্টের রেজিস্ট্রেশন পেন্ডিং রয়েছে।');
+      return;
+    }
+    if (currentStatus === 'UPCOMING') {
+      showToast('🕒 এই ট্যুরনামেন্টের রেজিস্ট্রেশন শীঘ্রই শুরু হবে (Upcoming)।');
+      return;
+    }
+    if (currentStatus === 'LIVE' || currentStatus === 'FINISHED' || currentStatus === 'CANCELLED' || isFinished) {
+      showToast('⚠️ এই ট্যুরনামেন্টের রেজিস্ট্রেশন বন্ধ রয়েছে।');
+      return;
+    }
+
     let user = currentUser;
     if (!user) {
       user = db.getCurrentUser();
@@ -699,18 +712,22 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                   <ShieldCheck className="w-3.5 h-3.5" /> 4P OFFICIAL SQUAD MUST
                 </span>
               )}
-              <span className="px-3 py-1 rounded-lg bg-black/60 backdrop-blur-md border border-white/20 text-xs font-bold text-brand-gold uppercase flex items-center gap-2">
+              <span className="px-3 py-1 rounded-lg bg-black/60 backdrop-blur-md border border-white/20 text-xs font-bold uppercase flex items-center gap-2">
                 {currentStatus === 'LIVE' ? (
                   <span className="flex items-center gap-1 text-brand-red animate-pulse">
                     <span className="w-2 h-2 rounded-full bg-brand-red animate-ping"></span>🔴 LIVE NOW
                   </span>
+                ) : currentStatus === 'PENDING' ? (
+                  <span className="text-amber-400 font-bold">🟡 PENDING</span>
                 ) : currentStatus === 'UPCOMING' ? (
                   <>
-                    <span className="text-brand-orange">UPCOMING</span>
-                    {countdown && <span className="text-xs text-white bg-black/50 px-2 py-0.5 rounded border border-brand-orange/30 shadow-neon-orange">Starts In: {countdown}</span>}
+                    <span className="text-blue-400 font-bold">🔵 UPCOMING</span>
+                    {countdown && <span className="text-xs text-white bg-black/50 px-2 py-0.5 rounded border border-blue-400/30 shadow-xs">Starts In: {countdown}</span>}
                   </>
+                ) : currentStatus === 'FINISHED' ? (
+                  <span className="text-slate-400 font-bold">🏁 FINISHED</span>
                 ) : (
-                  currentStatus
+                  <span className="text-emerald-400 font-bold">🟢 RUNNING (OPEN)</span>
                 )}
               </span>
             </div>
@@ -731,6 +748,16 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
             ) : isFinished ? (
               <button className="px-7 py-3.5 sm:px-8 sm:py-4 rounded-2xl bg-slate-200 text-slate-500 font-heading font-bold text-sm sm:text-base cursor-not-allowed">
                 FINISHED
+              </button>
+            ) : currentStatus === 'PENDING' ? (
+              <button disabled className="px-7 py-3.5 sm:px-8 sm:py-4 rounded-2xl bg-amber-100 text-amber-800 border border-amber-300 font-heading font-black text-sm sm:text-base cursor-not-allowed flex items-center space-x-2">
+                <Clock className="w-5 h-5 text-amber-600" />
+                <span>REGISTRATION PENDING</span>
+              </button>
+            ) : currentStatus === 'UPCOMING' ? (
+              <button disabled className="px-7 py-3.5 sm:px-8 sm:py-4 rounded-2xl bg-blue-100 text-blue-800 border border-blue-300 font-heading font-black text-sm sm:text-base cursor-not-allowed flex items-center space-x-2">
+                <Clock className="w-5 h-5 text-blue-600" />
+                <span>UPCOMING (COMING SOON)</span>
               </button>
             ) : isFull ? (
               <button className="px-7 py-3.5 sm:px-8 sm:py-4 rounded-2xl bg-slate-200 text-slate-500 font-heading font-bold text-sm sm:text-base cursor-not-allowed">SLOTS FULL</button>

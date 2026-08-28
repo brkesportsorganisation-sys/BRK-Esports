@@ -677,8 +677,13 @@ export default function AdminGamingShopPage() {
                           <span className="px-2.5 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/30 text-violet-300 text-[10px] font-bold">
                             {p.category}
                           </span>
+                          {p.isFeaturedOnHome && (
+                            <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/40 flex items-center gap-1">
+                              ⭐ HOMEPAGE
+                            </span>
+                          )}
                           {p.badge && (
-                            <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-extrabold border border-amber-500/40">
+                            <span className="px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 text-[10px] font-extrabold border border-violet-500/40">
                               {p.badge}
                             </span>
                           )}
@@ -692,14 +697,15 @@ export default function AdminGamingShopPage() {
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => handleToggleFeatured(p.id)}
-                            className={`p-1.5 rounded-lg border transition-colors ${
+                            className={`px-2 py-1 rounded-lg border text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
                               p.isFeaturedOnHome
-                                ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
-                                : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300'
+                                ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 shadow-xs'
+                                : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700'
                             }`}
-                            title="Toggle Homepage Featured"
+                            title={p.isFeaturedOnHome ? 'Featured on Homepage (Click to Remove)' : 'Click to Show on Homepage'}
                           >
-                            <Crown className="w-3.5 h-3.5" />
+                            <Crown className="w-3.5 h-3.5 text-amber-400" />
+                            <span className="text-[10px] hidden sm:inline">{p.isFeaturedOnHome ? 'On Home' : 'Feature'}</span>
                           </button>
 
                           <button
@@ -1315,6 +1321,28 @@ export default function AdminGamingShopPage() {
                     placeholder="Brief details about delivery, diamond amounts or instructions..."
                     className="w-full bg-[#07090E] border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-violet-500"
                   />
+                </div>
+
+                {/* SHOW ON HOMEPAGE TOGGLE */}
+                <div className="md:col-span-2 p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-transparent border border-amber-500/30 flex items-center justify-between gap-4">
+                  <div className="space-y-0.5">
+                    <div className="text-sm font-bold text-amber-300 flex items-center gap-1.5">
+                      <Crown className="w-4 h-4 text-amber-400" />
+                      <span>Show on Homepage (হোমপেজে দেখান)</span>
+                    </div>
+                    <p className="text-xs text-slate-400">
+                      এটি চালু রাখলে শুধুমাত্র নির্বাচিত এই প্রোডাক্টটি হোমপেজের শপ সেকশনে সরাসরি প্রদর্শিত হবে।
+                    </p>
+                  </div>
+                  <label className="relative inline-flex cursor-pointer items-center shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(formData.isFeaturedOnHome)}
+                      onChange={(e) => setFormData({ ...formData, isFeaturedOnHome: e.target.checked })}
+                      className="peer sr-only"
+                    />
+                    <div className="peer h-6 w-11 rounded-full bg-slate-800 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-600 after:bg-white after:transition-all after:content-[''] peer-checked:bg-amber-500 peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+                  </label>
                 </div>
 
               </div>
