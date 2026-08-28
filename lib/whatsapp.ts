@@ -13,8 +13,14 @@ import { WhatsAppSchedule, WhatsAppTargetGroup, WhatsAppMessageLog, WhatsAppFreq
 export function normalizePhoneNumber(rawPhone: string): string {
   if (!rawPhone) return '';
   const trimmed = rawPhone.trim();
-  // Preserve WhatsApp Group JIDs (e.g. 120363028392819283@g.us, @broadcast)
-  if (trimmed.includes('@g.us') || trimmed.includes('@broadcast') || trimmed.includes('@s.whatsapp.net')) {
+  // Preserve WhatsApp Group JIDs & Channel JIDs (e.g. 120363028392819283@g.us, 120363294829384920@newsletter, @broadcast, @s.whatsapp.net)
+  if (
+    trimmed.includes('@g.us') || 
+    trimmed.includes('@newsletter') || 
+    trimmed.includes('@broadcast') || 
+    trimmed.includes('@s.whatsapp.net') ||
+    trimmed.includes('@temp')
+  ) {
     return trimmed;
   }
   // Preserve WhatsApp Group & Channel Links
@@ -1553,13 +1559,39 @@ export async function forwardChannelMessageToGroups({
     targetGroups = allGroups.filter(
       (g) => forceTargetGroups.includes(g.id) || forceTargetGroups.includes(g.identifier)
     );
+    // If not found in allGroups, construct ad-hoc target groups:
+    if (targetGroups.length === 0) {
+      targetGroups = forceTargetGroups.map((id, idx) => ({
+        id: `adhoc_${idx}`,
+        name: id.includes('@g.us') ? `WhatsApp Group (${id.split('@')[0]})` : `Group (${id})`,
+        category: 'CUSTOM' as const,
+        identifier: id,
+        createdAt: new Date().toISOString(),
+      }));
+    }
   } else if (config.targetGroupMode === 'SELECTED_GROUPS' && Array.isArray(config.targetGroupIds) && config.targetGroupIds.length > 0) {
     targetGroups = allGroups.filter(
       (g) => config.targetGroupIds.includes(g.id) || config.targetGroupIds.includes(g.identifier)
     );
+    // If some selected group IDs are raw JIDs or not in allGroups, include them directly:
+    const matchedSet = new Set(targetGroups.map(g => g.id).concat(targetGroups.map(g => g.identifier)));
+    for (const gid of config.targetGroupIds) {
+      if (!matchedSet.has(gid)) {
+        targetGroups.push({
+          id: `custom_grp_${gid}`,
+          name: gid.includes('@g.us') ? `WhatsApp Group (${gid.split('@')[0]})` : `Group (${gid})`,
+          category: 'CUSTOM' as const,
+          identifier: gid,
+          createdAt: new Date().toISOString(),
+        });
+      }
+    }
   } else {
     // Default: ALL_GROUPS
-    targetGroups = allGroups;
+    targetGroups = allGroups.filter(g => g.identifier && g.identifier !== 'TOURNAMENT_CAPTAINS');
+    if (targetGroups.length === 0) {
+      targetGroups = allGroups;
+    }
   }
 
   if (targetGroups.length === 0) {

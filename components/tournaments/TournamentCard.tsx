@@ -134,8 +134,8 @@ export default function TournamentCard({ tournament, priority = false }: Tournam
       <div
         className="bg-white rounded-3xl border border-slate-200/90 shadow-sm hover:shadow-xl hover:border-brand-orange/50 transition-all duration-300 flex flex-col justify-between overflow-hidden relative group"
       >
-        {/* Top Banner Image (Proportional 16:9 widescreen hero banner like homepage) */}
-        <div className="relative w-full aspect-[16/9] min-h-[195px] sm:min-h-[220px] md:min-h-[235px] overflow-hidden bg-slate-900">
+        {/* Top Banner Image - Crystal Clear Visibility */}
+        <div className="relative w-full aspect-[16/10] sm:aspect-[16/9] min-h-[220px] sm:min-h-[240px] overflow-hidden bg-slate-950">
           <Image
             src={tournament.bannerImage || tournament.banner || tournament.thumbnailImage || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800'}
             alt={tournament.title}
@@ -144,11 +144,12 @@ export default function TournamentCard({ tournament, priority = false }: Tournam
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 600px"
             className="object-cover object-center group-hover:scale-105 transition-transform duration-500"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent" />
+          {/* Subtle top shade only for badges */}
+          <div className="absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-black/60 to-transparent pointer-events-none" />
 
           {/* Top Tag & Game Badges */}
           <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 z-10">
-            <span className="px-2.5 py-1 rounded-lg bg-slate-900/90 backdrop-blur-md text-cyan-400 font-mono text-[11px] font-bold tracking-wider border border-white/10 shadow-xs">
+            <span className="px-2.5 py-1 rounded-lg bg-slate-900/90 backdrop-blur-md text-cyan-400 font-mono text-[11px] font-bold tracking-wider border border-white/15 shadow-sm">
               #{shortId}
             </span>
 
@@ -159,34 +160,41 @@ export default function TournamentCard({ tournament, priority = false }: Tournam
               </span>
 
               {isLive ? (
-                <span className="px-2 py-0.5 rounded-full bg-red-500 text-white font-black text-[10px] uppercase animate-pulse shadow-xs">
+                <span className="px-2.5 py-1 rounded-full bg-red-500 text-white font-black text-[10px] uppercase animate-pulse shadow-sm">
                   🔴 LIVE
                 </span>
               ) : (tournament.isGiveaway || tournament.requiresFullSquad || tournament.title?.toLowerCase().includes('giveaway')) ? (
-                <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-[10px] uppercase shadow-xs flex items-center gap-1">
+                <span className="px-2.5 py-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-[10px] uppercase shadow-sm flex items-center gap-1">
                   🎁 4P SQUAD
                 </span>
               ) : isFree ? (
-                <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-white font-bold text-[10px] uppercase shadow-xs">
+                <span className="px-2.5 py-1 rounded-full bg-emerald-500 text-white font-bold text-[10px] uppercase shadow-sm">
                   🎁 FREE
                 </span>
               ) : null}
             </div>
           </div>
-
-          {/* Title & Date/Time on Banner */}
-          <div className="absolute bottom-3 left-4 right-4 text-white z-10 space-y-0.5" suppressHydrationWarning>
-            <h3 className="font-heading font-black text-base sm:text-lg text-white group-hover:text-brand-orange transition-colors truncate drop-shadow-sm">
-              {tournament.title} {formattedDate && <span className="text-xs font-mono text-slate-300 font-normal">({formattedDate})</span>}
-            </h3>
-            <p className="text-xs font-semibold text-slate-300 truncate drop-shadow-sm">
-              {tournament.format?.replace('_', ' ') || 'Battle Royale'} {formattedTime && `• ${formattedTime}`}
-            </p>
-          </div>
         </div>
 
         {/* Card Body */}
-        <div className="p-4 sm:p-5 space-y-4 flex-1 flex flex-col justify-between">
+        <div className="p-4 sm:p-5 space-y-3.5 flex-1 flex flex-col justify-between">
+          {/* Tournament Title & Schedule Info (Clear & Legible) */}
+          <div className="space-y-1" suppressHydrationWarning>
+            <h3 className="font-heading font-black text-base sm:text-lg text-slate-900 group-hover:text-brand-orange transition-colors line-clamp-1">
+              {tournament.title}
+            </h3>
+            <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+              <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-bold text-[11px]">
+                {tournament.format?.replace('_', ' ') || 'Battle Royale'}
+              </span>
+              {(formattedTime || formattedDate) && (
+                <span className="flex items-center gap-1 text-slate-600 font-mono text-[11px]">
+                  <Clock className="w-3.5 h-3.5 text-brand-orange shrink-0" />
+                  <span>{formattedTime} {formattedDate && `(${formattedDate})`}</span>
+                </span>
+              )}
+            </div>
+          </div>
 
         {/* 3-Column Metrics Panel: PRIZE | MODE | ENTRY */}
         <div className="grid grid-cols-3 gap-2 p-3 bg-[#F8FAFC] rounded-2xl border border-slate-200/80 text-center">

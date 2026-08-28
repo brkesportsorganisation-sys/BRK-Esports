@@ -21,20 +21,27 @@ export async function POST(req: NextRequest) {
     const rawFrom =
       senderData?.chatId ||
       senderData?.sender ||
-      messageData?.from ||
       messageData?.chatId ||
+      messageData?.from ||
       messageData?.sender ||
+      payload?.chatId ||
       payload?.from ||
+      payload?.recipient ||
       '';
 
-    // Extract message content
+    // Extract message content & caption
     const rawText =
+      messageData?.fileMessageData?.caption ||
+      messageData?.imageMessageData?.caption ||
       messageData?.textMessageData?.textMessage ||
       messageData?.extendedTextMessageData?.text ||
       messageData?.body ||
       messageData?.text ||
+      messageData?.caption ||
+      payload?.caption ||
       payload?.text ||
       payload?.body ||
+      payload?.message ||
       '';
 
     // Extract attached image / media URL if present
@@ -43,6 +50,8 @@ export async function POST(req: NextRequest) {
       messageData?.imageMessageData?.downloadUrl ||
       messageData?.mediaUrl ||
       payload?.imageUrl ||
+      payload?.urlFile ||
+      payload?.downloadUrl ||
       '';
 
     const rawMsgId =
@@ -65,17 +74,26 @@ export async function POST(req: NextRequest) {
     try {
       const forwarderConfig = await getWhatsAppForwarderConfig();
 
-      if (forwarderConfig && forwarderConfig.enabled && forwarderConfig.sourceChannelId) {
-        const configuredChannel = forwarderConfig.sourceChannelId.trim().toLowerCase();
+      if (forwarderConfig && forwarderConfig.enabled) {
+        const configuredChannel = (forwarderConfig.sourceChannelId || '').trim().toLowerCase();
         const incomingChat = from.toLowerCase();
 
-        // Match by JID, Newsletter ID, Channel Code or Phone
+        // Extract invite code if user entered full URL like https://whatsapp.com/channel/0029Vb3h...
+        const channelInviteCode = configuredChannel.includes('whatsapp.com/channel/')
+          ? configuredChannel.split('whatsapp.com/channel/')[1]?.replace(/[^a-zA-Z0-9]/g, '')
+          : '';
+
+        // Match if incoming chat is a newsletter/channel or matches user's channel identifier/name:
         const isChannelMatch =
+          !configuredChannel ||
+          configuredChannel === '*' ||
+          configuredChannel === 'all' ||
           incomingChat === configuredChannel ||
           incomingChat.includes(configuredChannel) ||
           configuredChannel.includes(incomingChat) ||
-          (configuredChannel.includes('whatsapp.com/channel/') &&
-            incomingChat.includes(configuredChannel.split('whatsapp.com/channel/')[1]?.replace(/[^a-zA-Z0-9]/g, '')));
+          incomingChat.includes('@newsletter') ||
+          (channelInviteCode && incomingChat.includes(channelInviteCode)) ||
+          (forwarderConfig.sourceChannelName && incomingChat.includes(forwarderConfig.sourceChannelName.toLowerCase()));
 
         if (isChannelMatch) {
           console.log(`[WhatsApp Forwarder] New message received from source channel (${from}). Relaying to groups...`);
@@ -93,6 +111,7 @@ export async function POST(req: NextRequest) {
             forwarded: true,
             deliveredCount: relayResult.deliveredCount,
             totalTargetGroups: relayResult.totalTargetGroups,
+            results: relayResult.results,
           });
         }
       }

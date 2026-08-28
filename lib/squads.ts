@@ -210,20 +210,61 @@ export async function getSquadByInviteToken(token: string): Promise<Squad | null
 export async function getUserSquads(userId: string): Promise<Squad[]> {
   if (!userId) return [];
   const squads = await getSquads();
+  
+  // Also get user profile for name/account matching
+  let userName = '';
+  let userInGameName = '';
+  let userAccountNumber = '';
+  let userUid = '';
+  try {
+    const { data: dbUser } = await supabaseAdmin
+      .from('User')
+      .select('id, name, inGameName, accountNumber, freeFireUid, email')
+      .eq('id', userId)
+      .maybeSingle();
+    if (dbUser) {
+      userName = (dbUser.name || '').trim().toLowerCase();
+      userInGameName = (dbUser.inGameName || '').trim().toLowerCase();
+      userAccountNumber = (dbUser.accountNumber || '').trim().toUpperCase();
+      userUid = (dbUser.freeFireUid || '').trim();
+    }
+  } catch {}
+
+  const isUserMember = (m: any) => {
+    if (!m) return false;
+    if (m.userId === userId || m.id === userId) return true;
+    if (userAccountNumber && m.accountNumber && m.accountNumber.toUpperCase() === userAccountNumber) return true;
+    if (userUid && m.freeFireUid && m.freeFireUid === userUid) return true;
+    if (userInGameName && m.userName && m.userName.toLowerCase() === userInGameName) return true;
+    if (userName && m.userName && m.userName.toLowerCase() === userName) return true;
+    return false;
+  };
+
+  const isUserLeader = (s: Squad) => {
+    if (s.leaderId === userId || s.createdBy === userId) return true;
+    if (userInGameName && s.leaderName && s.leaderName.toLowerCase() === userInGameName) return true;
+    if (userName && s.leaderName && s.leaderName.toLowerCase() === userName) return true;
+    return false;
+  };
+
   const found = squads.filter(s => 
     !s.isDisbanded && 
-    Array.isArray(s.members) && 
-    s.members.some(m => m.userId === userId && m.status === 'ACTIVE')
+    (
+      isUserLeader(s) ||
+      (Array.isArray(s.members) && s.members.some(m => isUserMember(m) && (m.status === 'ACTIVE' || !m.status)))
+    )
   );
 
   if (found.length > 0) return found;
 
   // Query Supabase `Team` and `TeamMember` tables directly if not cached
   try {
-    const { data: legacyCaptainTeams } = await supabaseAdmin
+    let teamQuery = supabaseAdmin
       .from('Team')
       .select('id')
-      .eq('captainId', userId);
+      .or(`captainId.eq.${userId}${userName ? `,captainName.ilike.%${userName}%` : ''}`);
+
+    const { data: legacyCaptainTeams } = await teamQuery;
 
     const { data: legacyMemberships } = await supabaseAdmin
       .from('TeamMember')

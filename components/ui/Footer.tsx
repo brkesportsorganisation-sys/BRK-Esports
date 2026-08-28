@@ -16,60 +16,9 @@ import {
 } from 'lucide-react';
 
 export default function Footer() {
-  const [email, setEmail] = useState('');
-  const [subscribed, setSubscribed] = useState(false);
-
-  const handleSubscribe = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email.trim()) {
-      setSubscribed(true);
-      setTimeout(() => {
-        setEmail('');
-      }, 3000);
-    }
-  };
-
   return (
     <footer className="w-full bg-[#0D1527] text-white mt-12 relative overflow-hidden font-sans">
-      
-      {/* ── 1. Top Newsletter Banner (Vibrant Royal Blue Card) ── */}
-      <div className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 py-8 sm:py-10 px-4 sm:px-6 lg:px-8 border-b border-blue-500/20">
-        <div className="max-w-4xl mx-auto text-center space-y-4">
-          <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-            Subscribe to Our Newsletter
-          </h2>
-          <p className="text-xs sm:text-sm text-white font-medium max-w-lg mx-auto leading-relaxed">
-            Get the latest updates on new tournaments, diamond top-up offers and upcoming gaming sales.
-          </p>
-
-          <form onSubmit={handleSubscribe} className="max-w-md mx-auto flex items-center gap-2 pt-1">
-            <div className="relative flex-1">
-              <input
-                type="email"
-                required
-                placeholder="Enter your email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-white text-slate-900 text-xs sm:text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-white shadow-md font-medium"
-              />
-            </div>
-            <button
-              type="submit"
-              className="px-6 py-3 rounded-xl bg-slate-950 hover:bg-slate-900 text-white text-xs sm:text-sm font-black transition-all shadow-md hover:scale-105 active:scale-95 cursor-pointer flex-shrink-0"
-            >
-              {subscribed ? (
-                <span className="flex items-center gap-1 text-emerald-400">
-                  <Check className="w-4 h-4" /> Subscribed
-                </span>
-              ) : (
-                'Subscribe'
-              )}
-            </button>
-          </form>
-        </div>
-      </div>
-
-      {/* ── 2. Main Footer Content ── */}
+      {/* ── Main Footer Content ── */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-20 sm:pb-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
           
@@ -195,8 +144,8 @@ export default function Footer() {
               </li>
               <li className="flex items-center gap-2">
                 <Mail className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
-                <a href="mailto:support@esportszonebd.com" className="hover:text-blue-400 transition-colors">
-                  support@esportszonebd.com
+                <a href="mailto:support@esportszonebd.online" className="hover:text-blue-400 transition-colors">
+                  support@esportszonebd.online
                 </a>
               </li>
               <li className="flex items-center gap-2">

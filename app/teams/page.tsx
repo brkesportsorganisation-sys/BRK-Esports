@@ -65,25 +65,56 @@ export default function SquadTeamsHubPage() {
     { name: '🛡️ Apex Shield', url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200' },
   ];
 
+  const resolveIsMySquad = (squad: Squad, user: User | null): boolean => {
+    if (!user) return false;
+    if (squad.leaderId === user.id || squad.createdBy === user.id) return true;
+    if (user.name && squad.leaderName && squad.leaderName.toLowerCase() === user.name.toLowerCase()) return true;
+    if (user.inGameName && squad.leaderName && squad.leaderName.toLowerCase() === user.inGameName.toLowerCase()) return true;
+    if (Array.isArray(squad.members)) {
+      return squad.members.some(m => 
+        m.userId === user.id ||
+        (user.accountNumber && m.accountNumber && m.accountNumber.toUpperCase() === user.accountNumber.toUpperCase()) ||
+        (user.freeFireUid && m.freeFireUid === user.freeFireUid) ||
+        (user.inGameName && m.userName && m.userName.toLowerCase() === user.inGameName.toLowerCase()) ||
+        (user.name && m.userName && m.userName.toLowerCase() === user.name.toLowerCase())
+      );
+    }
+    return false;
+  };
+
   const loadData = async (user?: User | null) => {
     setLoading(true);
     try {
-      const activeUser = user || currentUser;
+      const activeUser = user !== undefined ? user : currentUser;
       const [allRes, userRes, invRes] = await Promise.all([
         fetch('/api/squads'),
         activeUser?.id ? fetch(`/api/squads?userId=${activeUser.id}`) : Promise.resolve(null),
         activeUser?.id ? fetch(`/api/user/squad-invites?userId=${activeUser.id}`) : Promise.resolve(null),
       ]);
 
+      let loadedAllSquads: Squad[] = [];
       if (allRes.ok) {
         const d = await allRes.json();
-        setAllSquads(d.squads || []);
+        loadedAllSquads = d.squads || [];
+        setAllSquads(loadedAllSquads);
       }
 
+      let loadedMySquads: Squad[] = [];
       if (userRes && userRes.ok) {
         const ud = await userRes.json();
-        setMySquads(ud.squads || []);
+        loadedMySquads = ud.squads || [];
       }
+
+      // Merge client-matched squads from allSquads to ensure 100% reliable detection
+      if (activeUser && loadedAllSquads.length > 0) {
+        for (const s of loadedAllSquads) {
+          if (resolveIsMySquad(s, activeUser) && !loadedMySquads.some(ms => ms.id === s.id)) {
+            loadedMySquads.push(s);
+          }
+        }
+      }
+
+      setMySquads(loadedMySquads);
 
       if (invRes && invRes.ok) {
         const idData = await invRes.json();
@@ -383,9 +414,20 @@ export default function SquadTeamsHubPage() {
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {mySquads.map((squad) => {
-                  const myMembership = squad.members?.find(m => m.userId === currentUser?.id);
-                  const isLeader = myMembership?.isLeader || squad.leaderId === currentUser?.id;
-                  const activeMembers = (squad.members || []).filter(m => m.status === 'ACTIVE');
+                  const myMembership = squad.members?.find(m => 
+                    m.userId === currentUser?.id || 
+                    (currentUser?.accountNumber && m.accountNumber === currentUser.accountNumber) ||
+                    (currentUser?.name && m.userName?.toLowerCase() === currentUser.name.toLowerCase()) ||
+                    (currentUser?.inGameName && m.userName?.toLowerCase() === currentUser.inGameName.toLowerCase())
+                  );
+                  const isLeader = Boolean(
+                    myMembership?.isLeader || 
+                    squad.leaderId === currentUser?.id || 
+                    squad.createdBy === currentUser?.id ||
+                    (currentUser?.name && squad.leaderName?.toLowerCase() === currentUser.name.toLowerCase()) ||
+                    (currentUser?.inGameName && squad.leaderName?.toLowerCase() === currentUser.inGameName.toLowerCase())
+                  );
+                  const activeMembers = (squad.members || []).filter(m => m.status === 'ACTIVE' || !m.status);
 
                   return (
                     <div
@@ -505,8 +547,8 @@ export default function SquadTeamsHubPage() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredExploreSquads.map((squad) => {
-                  const activeMembers = (squad.members || []).filter(m => m.status === 'ACTIVE');
-                  const isMySquad = mySquads.some(ms => ms.id === squad.id);
+                  const activeMembers = (squad.members || []).filter(m => m.status === 'ACTIVE' || !m.status);
+                  const isMySquad = mySquads.some(ms => ms.id === squad.id) || resolveIsMySquad(squad, currentUser);
 
                   return (
                     <div

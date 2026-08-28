@@ -61,7 +61,7 @@ export default function ContactPage() {
           </a>
 
           <a
-            href="mailto:support@blackrock.esports"
+            href="mailto:support@esportszonebd.online"
             className="block group cursor-pointer"
           >
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-red-500 transition-all text-center space-y-3">
@@ -69,7 +69,7 @@ export default function ContactPage() {
                 <Mail className="w-6 h-6" />
               </div>
               <h3 className="font-heading font-bold text-lg text-slate-900 group-hover:text-brand-red transition-colors">Email Support</h3>
-              <p className="text-xs font-mono font-bold text-slate-700">support@blackrock.esports</p>
+              <p className="text-xs font-mono font-bold text-slate-700">support@esportszonebd.online</p>
               <p className="text-[11px] text-slate-600 font-medium">Official business & sponsorship</p>
             </div>
           </a>

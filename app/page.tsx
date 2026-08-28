@@ -187,20 +187,6 @@ export default async function HomePage() {
                 </Link>
               </div>
 
-              {/* Shop Banner */}
-              <Link
-                href={shopBanner?.linkUrl || '/shop'}
-                className="group relative block w-full rounded-3xl overflow-hidden border border-slate-800 hover:border-amber-400 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-0.5 cursor-pointer bg-slate-950 text-white"
-              >
-                <div className="relative w-full overflow-hidden bg-slate-950">
-                  <img
-                    src={shopBanner?.imageUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=75'}
-                    alt={shopBanner?.title || 'Gaming Shop'}
-                    className="w-full h-auto max-h-[360px] object-cover group-hover:scale-[1.01] transition-transform duration-700"
-                  />
-                </div>
-              </Link>
-
               {/* Featured Products Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {featuredShopItems.map((item) => (
