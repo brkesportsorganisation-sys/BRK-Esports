@@ -27,10 +27,8 @@ export async function GET() {
   }
 
   try {
-    // Run any due schedules
-    try {
-      await runAllDueWhatsAppSchedules();
-    } catch {}
+    // Run any due schedules in background non-blocking
+    void runAllDueWhatsAppSchedules().catch(() => {});
 
     const [schedules, groups, logs] = await Promise.all([
       getWhatsAppSchedules(),
