@@ -36,7 +36,7 @@ import SlotGrid from '@/components/tournaments/SlotGrid';
 import { useRealtimeTournament } from '@/lib/use-realtime';
 import { getTournamentByIdFromDb } from '@/lib/tournament-store';
 import { getDynamicTournamentStatus } from '@/lib/tournament-utils';
-import { Tournament, User as UserType } from '@/lib/types';
+import { Tournament, User as UserType, TournamentStatus } from '@/lib/types';
 import { db } from '@/lib/db';
 
 /* ──────────────────────────────────────────────
@@ -145,14 +145,14 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [loading, setLoading] = useState(true);
   // Dynamic status
-  const [currentStatus, setCurrentStatus] = useState<'DRAFT' | 'UPCOMING' | 'LIVE' | 'FINISHED' | 'CANCELLED'>('DRAFT');
+  const [currentStatus, setCurrentStatus] = useState<TournamentStatus>('PENDING');
   const [countdown, setCountdown] = useState<string>('');
 
   useEffect(() => {
     if (!tournament) return;
     
-    if (tournament.status === 'CANCELLED' || tournament.status === 'DRAFT' || tournament.isPaused) {
-      setCurrentStatus(tournament.isPaused ? 'DRAFT' : tournament.status);
+    if (tournament.status === 'CANCELLED' || tournament.status === 'DRAFT' || tournament.status === 'PENDING' || tournament.status === 'FINISHED' || tournament.isPaused) {
+      setCurrentStatus(tournament.isPaused ? 'PENDING' : tournament.status);
       return;
     }
 

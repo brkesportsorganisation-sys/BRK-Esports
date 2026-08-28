@@ -180,6 +180,11 @@ export default function TournamentsPage() {
   };
 
   const filteredTournaments = tournaments.filter((t) => {
+    // Hide unpublished, pending, or draft tournaments from public list
+    if (t.status === 'PENDING' || t.status === 'DRAFT' || t.isPublished === false) {
+      return false;
+    }
+
     // Search
     if (searchQuery && !t.title.toLowerCase().includes(searchQuery.toLowerCase()) && !(t.gameName || '').toLowerCase().includes(searchQuery.toLowerCase())) {
       return false;
@@ -229,8 +234,14 @@ export default function TournamentsPage() {
       if (selectedFormat === 'BRAWL' && !tTitle.includes('brawl')) return false;
       if (selectedFormat === 'MP_RANKED' && !tTitle.includes('mp') && !tTitle.includes('multiplayer')) return false;
     }
-    // Status
-    if (selectedStatus !== 'ALL' && t.status !== selectedStatus) return false;
+    // Status Filter
+    if (selectedStatus !== 'ALL') {
+      if (selectedStatus === 'FINISHED' || selectedStatus === 'COMPLETED') {
+        if (t.status !== 'FINISHED' && (t as any).status !== 'COMPLETED') return false;
+      } else if (t.status !== selectedStatus) {
+        return false;
+      }
+    }
     // Type
     if (selectedType === 'FREE' && t.entryFee !== 0) return false;
     if (selectedType === 'PAID' && t.entryFee === 0) return false;
@@ -368,7 +379,7 @@ export default function TournamentsPage() {
                     <option value="ALL">⚡ All Status</option>
                     <option value="UPCOMING">🕒 Upcoming</option>
                     <option value="LIVE">🔴 Live</option>
-                    <option value="COMPLETED">✅ Ended</option>
+                    <option value="FINISHED">✅ Finished / Ended</option>
                   </select>
                 </div>
 

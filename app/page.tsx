@@ -102,7 +102,9 @@ export default async function HomePage() {
     fetchBanners(),
   ]);
 
-  const displayedTournaments = tournaments.slice(0, 2);
+  const displayedTournaments = tournaments
+    .filter((t) => t.status !== 'PENDING' && t.status !== 'DRAFT' && t.isPublished !== false)
+    .slice(0, 2);
 
   return (
     <div className="flex flex-col font-body w-full">

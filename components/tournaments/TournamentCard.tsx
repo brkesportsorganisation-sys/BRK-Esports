@@ -134,8 +134,8 @@ export default function TournamentCard({ tournament, priority = false }: Tournam
       <div
         className="bg-white rounded-3xl border border-slate-200/90 shadow-sm hover:shadow-xl hover:border-brand-orange/50 transition-all duration-300 flex flex-col justify-between overflow-hidden relative group"
       >
-        {/* Top Banner Image - Crystal Clear Visibility */}
-        <div className="relative w-full aspect-[16/10] sm:aspect-[16/9] min-h-[220px] sm:min-h-[240px] overflow-hidden bg-slate-950">
+        {/* Top Banner Image - Full Size & Uncropped */}
+        <div className="relative w-full aspect-[4/3] min-h-[250px] sm:min-h-[275px] overflow-hidden bg-slate-950">
           <Image
             src={tournament.bannerImage || tournament.banner || tournament.thumbnailImage || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800'}
             alt={tournament.title}
@@ -144,31 +144,31 @@ export default function TournamentCard({ tournament, priority = false }: Tournam
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 600px"
             className="object-cover object-center group-hover:scale-105 transition-transform duration-500"
           />
-          {/* Subtle top shade only for badges */}
-          <div className="absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-black/60 to-transparent pointer-events-none" />
+          {/* Subtle top shade for badges */}
+          <div className="absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-black/60 to-transparent pointer-events-none" />
 
           {/* Top Tag & Game Badges */}
-          <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 z-10">
-            <span className="px-2.5 py-1 rounded-lg bg-slate-900/90 backdrop-blur-md text-cyan-400 font-mono text-[11px] font-bold tracking-wider border border-white/15 shadow-sm">
+          <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between gap-2 z-10">
+            <span className="px-2 py-0.5 rounded-md bg-slate-900/90 backdrop-blur-md text-cyan-400 font-mono text-[10px] font-bold tracking-wider border border-white/15 shadow-xs">
               #{shortId}
             </span>
 
             <div className="flex items-center gap-1.5">
-              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black border backdrop-blur-md ${gameInfo.color}`}>
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black border backdrop-blur-md ${gameInfo.color}`}>
                 <span className="text-xs">{gameInfo.icon}</span>
                 <span>{tournament.gameName || gameInfo.name}</span>
               </span>
 
               {isLive ? (
-                <span className="px-2.5 py-1 rounded-full bg-red-500 text-white font-black text-[10px] uppercase animate-pulse shadow-sm">
+                <span className="px-2 py-0.5 rounded-full bg-red-500 text-white font-black text-[9px] uppercase animate-pulse shadow-xs">
                   🔴 LIVE
                 </span>
               ) : (tournament.isGiveaway || tournament.requiresFullSquad || tournament.title?.toLowerCase().includes('giveaway')) ? (
-                <span className="px-2.5 py-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-[10px] uppercase shadow-sm flex items-center gap-1">
+                <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-[9px] uppercase shadow-xs flex items-center gap-1">
                   🎁 4P SQUAD
                 </span>
               ) : isFree ? (
-                <span className="px-2.5 py-1 rounded-full bg-emerald-500 text-white font-bold text-[10px] uppercase shadow-sm">
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-white font-bold text-[9px] uppercase shadow-xs">
                   🎁 FREE
                 </span>
               ) : null}
@@ -176,119 +176,119 @@ export default function TournamentCard({ tournament, priority = false }: Tournam
           </div>
         </div>
 
-        {/* Card Body */}
-        <div className="p-4 sm:p-5 space-y-3.5 flex-1 flex flex-col justify-between">
-          {/* Tournament Title & Schedule Info (Clear & Legible) */}
-          <div className="space-y-1" suppressHydrationWarning>
-            <h3 className="font-heading font-black text-base sm:text-lg text-slate-900 group-hover:text-brand-orange transition-colors line-clamp-1">
+        {/* Card Body - Ultra Compact & Slim Layout */}
+        <div className="p-3 sm:p-3.5 space-y-2.5 flex-1 flex flex-col justify-between">
+          {/* Tournament Title & Schedule Info */}
+          <div className="space-y-0.5" suppressHydrationWarning>
+            <h3 className="font-heading font-black text-sm sm:text-base text-slate-900 group-hover:text-brand-orange transition-colors line-clamp-1">
               {tournament.title}
             </h3>
-            <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-              <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-bold text-[11px]">
+            <div className="flex items-center gap-2 text-[11px] font-semibold text-slate-500">
+              <span className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 font-bold text-[10px]">
                 {tournament.format?.replace('_', ' ') || 'Battle Royale'}
               </span>
               {(formattedTime || formattedDate) && (
-                <span className="flex items-center gap-1 text-slate-600 font-mono text-[11px]">
-                  <Clock className="w-3.5 h-3.5 text-brand-orange shrink-0" />
+                <span className="flex items-center gap-1 text-slate-600 font-mono text-[10px]">
+                  <Clock className="w-3 h-3 text-brand-orange shrink-0" />
                   <span>{formattedTime} {formattedDate && `(${formattedDate})`}</span>
                 </span>
               )}
             </div>
           </div>
 
-        {/* 3-Column Metrics Panel: PRIZE | MODE | ENTRY */}
-        <div className="grid grid-cols-3 gap-2 p-3 bg-[#F8FAFC] rounded-2xl border border-slate-200/80 text-center">
-          <div className="space-y-0.5">
-            <div className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">PRIZE</div>
-            <div className="font-heading font-black text-sm sm:text-base text-emerald-700 leading-tight truncate">
-              ৳{(tournament.prizePool || 0).toLocaleString()}
+          {/* 3-Column Metrics Panel: PRIZE | MODE | ENTRY (Compact) */}
+          <div className="grid grid-cols-3 gap-1.5 p-2 bg-[#F8FAFC] rounded-xl border border-slate-200/80 text-center">
+            <div className="space-y-0.2">
+              <div className="text-[9px] font-bold text-slate-600 uppercase tracking-wider">PRIZE</div>
+              <div className="font-heading font-black text-xs sm:text-sm text-emerald-700 leading-tight truncate">
+                ৳{(tournament.prizePool || 0).toLocaleString()}
+              </div>
+            </div>
+
+            <div className="space-y-0.2 border-x border-slate-200/80 px-0.5">
+              <div className="text-[9px] font-bold text-slate-600 uppercase tracking-wider">MODE</div>
+              <div className="font-heading font-black text-xs sm:text-sm text-slate-950 leading-tight uppercase truncate">
+                {tournament.mode || 'SQUAD'}
+              </div>
+            </div>
+
+            <div className="space-y-0.2">
+              <div className="text-[9px] font-bold text-slate-600 uppercase tracking-wider">ENTRY</div>
+              <div className="font-heading font-black text-xs sm:text-sm text-orange-900 leading-tight truncate">
+                {isFree ? (
+                  <span className="text-emerald-700">FREE</span>
+                ) : tournament.entryFeeType === 'COINS' ? (
+                  <span>{tournament.coinEntryFee || (tournament.entryFee * 10)} 🪙</span>
+                ) : (
+                  <span>৳{tournament.entryFee}</span>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="space-y-0.5 border-x border-slate-200/80 px-1">
-            <div className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">MODE</div>
-            <div className="font-heading font-black text-sm sm:text-base text-slate-950 leading-tight uppercase truncate">
-              {tournament.mode || 'SQUAD'}
+          {/* Slots & Progress Bar (Slim) */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-[11px] font-bold text-slate-700">
+              <span>Joined: <strong className="text-slate-950 font-black">{registeredCount}</strong></span>
+              <span>Slots: <strong className="text-slate-950 font-black">{maxSlots}</strong></span>
+            </div>
+
+            <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden border border-slate-200/80">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${isFull
+                    ? 'bg-red-500'
+                    : percentFilled > 75
+                      ? 'bg-gradient-to-r from-amber-500 to-red-500'
+                      : 'bg-gradient-to-r from-cyan-500 via-brand-orange to-brand-red'
+                  }`}
+                style={{ width: `${percentFilled}%` }}
+              />
             </div>
           </div>
 
-          <div className="space-y-0.5">
-            <div className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">ENTRY</div>
-            <div className="font-heading font-black text-sm sm:text-base text-orange-900 leading-tight truncate">
-              {isFree ? (
-                <span className="text-emerald-700">FREE</span>
-              ) : tournament.entryFeeType === 'COINS' ? (
-                <span>{tournament.coinEntryFee || (tournament.entryFee * 10)} 🪙</span>
-              ) : (
-                <span>৳{tournament.entryFee}</span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Slots & Progress Bar */}
-        <div className="space-y-1.5 pt-0.5">
-          <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-            <span>Joined: <strong className="text-slate-950 font-black">{registeredCount}</strong></span>
-            <span>Slots: <strong className="text-slate-950 font-black">{maxSlots}</strong></span>
-          </div>
-
-          <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden border border-slate-200/80 p-0.5">
-            <div
-              className={`h-full rounded-full transition-all duration-500 ${isFull
-                  ? 'bg-red-500'
-                  : percentFilled > 75
-                    ? 'bg-gradient-to-r from-amber-500 to-red-500'
-                    : 'bg-gradient-to-r from-cyan-500 via-brand-orange to-brand-red'
-                }`}
-              style={{ width: `${percentFilled}%` }}
-            />
-          </div>
-        </div>
-
-        {/* 3 Quick-Action Buttons Row: SLOTS | RULES | PRIZE */}
-        <div className="grid grid-cols-3 gap-2">
-          <button
-            type="button"
-            onClick={handleOpenSlots}
-            className="py-2 px-2.5 rounded-xl bg-slate-100 hover:bg-slate-200/90 text-slate-800 font-heading font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1 cursor-pointer"
-          >
-            <span>SLOTS</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveModal('RULES')}
-            className="py-2 px-2.5 rounded-xl bg-slate-100 hover:bg-slate-200/90 text-slate-800 font-heading font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1 cursor-pointer"
-          >
-            <span>RULES</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveModal('PRIZE')}
-            className="py-2 px-2.5 rounded-xl bg-slate-100 hover:bg-slate-200/90 text-slate-800 font-heading font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1 cursor-pointer"
-          >
-            <span>PRIZE</span>
-          </button>
-        </div>
-
-        {/* Primary Bottom Action Button */}
-        {isFull ? (
-          <button
-            disabled
-            className="w-full py-3 rounded-2xl bg-slate-100 text-slate-400 font-heading font-black text-sm uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-not-allowed border border-slate-200 shadow-2xs"
-          >
-            <span>⛔ FULL</span>
-          </button>
-        ) : (
-          <Link href={`/tournaments/${tournament.id}`} className="block w-full">
-            <button className="w-full py-3 rounded-2xl bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold hover:brightness-110 text-white font-heading font-black text-sm uppercase tracking-wider shadow-neon-orange transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5 cursor-pointer">
-              <Zap className="w-4 h-4 fill-white animate-pulse" />
-              <span>JOIN NOW</span>
+          {/* 3 Quick-Action Buttons Row: SLOTS | RULES | PRIZE (Compact) */}
+          <div className="grid grid-cols-3 gap-1.5">
+            <button
+              type="button"
+              onClick={handleOpenSlots}
+              className="py-1.5 px-2 rounded-lg bg-slate-100 hover:bg-slate-200/90 text-slate-800 font-heading font-black text-[10px] uppercase tracking-wider transition-all flex items-center justify-center gap-1 cursor-pointer"
+            >
+              <span>SLOTS</span>
             </button>
-          </Link>
-        )}
+
+            <button
+              type="button"
+              onClick={() => setActiveModal('RULES')}
+              className="py-1.5 px-2 rounded-lg bg-slate-100 hover:bg-slate-200/90 text-slate-800 font-heading font-black text-[10px] uppercase tracking-wider transition-all flex items-center justify-center gap-1 cursor-pointer"
+            >
+              <span>RULES</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveModal('PRIZE')}
+              className="py-1.5 px-2 rounded-lg bg-slate-100 hover:bg-slate-200/90 text-slate-800 font-heading font-black text-[10px] uppercase tracking-wider transition-all flex items-center justify-center gap-1 cursor-pointer"
+            >
+              <span>PRIZE</span>
+            </button>
+          </div>
+
+          {/* Primary Bottom Action Button */}
+          {isFull ? (
+            <button
+              disabled
+              className="w-full py-2.5 rounded-xl bg-slate-100 text-slate-400 font-heading font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-not-allowed border border-slate-200 shadow-2xs"
+            >
+              <span>⛔ FULL</span>
+            </button>
+          ) : (
+            <Link href={`/tournaments/${tournament.id}`} className="block w-full">
+              <button className="w-full py-2.5 rounded-xl bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold hover:brightness-110 text-white font-heading font-black text-xs uppercase tracking-wider shadow-neon-orange transition-all hover:scale-[1.01] active:scale-[0.98] flex items-center justify-center gap-1.5 cursor-pointer">
+                <Zap className="w-3.5 h-3.5 fill-white animate-pulse" />
+                <span>JOIN NOW</span>
+              </button>
+            </Link>
+          )}
         </div>
       </div>
 
