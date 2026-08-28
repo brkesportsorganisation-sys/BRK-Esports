@@ -1323,34 +1323,54 @@ export async function executeScheduledJob(schedule: WhatsAppSchedule): Promise<{
 
   if (schedule.targetType === 'GROUP' || schedule.targetType === 'COMMUNITY') {
     const allGroups = await getWhatsAppTargetGroups();
+    const seenIdentifiers = new Set<string>();
 
     if (schedule.targetDestination === 'ALL_GROUPS') {
       for (const g of allGroups) {
-        if (g.identifier) {
+        const ident = g.identifier?.trim();
+        // Skip WhatsApp invite links - they cannot receive messages, only @g.us JIDs can
+        if (
+          ident &&
+          !seenIdentifiers.has(ident) &&
+          !ident.includes('chat.whatsapp.com/') &&
+          !ident.includes('whatsapp.com/channel/')
+        ) {
+          seenIdentifiers.add(ident);
           recipients.push({
-            phone: g.identifier,
+            phone: ident,
             name: g.name || 'WhatsApp Group',
           });
+        } else if (ident && (ident.includes('chat.whatsapp.com/') || ident.includes('whatsapp.com/channel/'))) {
+          console.warn(`[executeScheduledJob] Skipping group "${g.name}" — identifier is a group invite link, not a JID. Please update to @g.us format.`);
         }
       }
     } else if (schedule.targetDestination.includes(',')) {
       const ids = schedule.targetDestination.split(',').map(s => s.trim()).filter(Boolean);
       for (const id of ids) {
         const matched = allGroups.find(g => g.id === id || g.identifier === id || g.name === id);
-        const identifier = matched ? matched.identifier : id;
+        const identifier = (matched ? matched.identifier : id)?.trim();
         const resolvedName = matched ? matched.name : (schedule.targetName || 'WhatsApp Group');
-        if (identifier) {
+        // Skip invite links and duplicates
+        if (
+          identifier &&
+          !seenIdentifiers.has(identifier) &&
+          !identifier.includes('chat.whatsapp.com/') &&
+          !identifier.includes('whatsapp.com/channel/')
+        ) {
+          seenIdentifiers.add(identifier);
           recipients.push({
             phone: identifier,
             name: resolvedName,
           });
+        } else if (identifier && (identifier.includes('chat.whatsapp.com/') || identifier.includes('whatsapp.com/channel/'))) {
+          console.warn(`[executeScheduledJob] Skipping group "${resolvedName}" — identifier is a group invite link, not a JID. Please update to @g.us format.`);
         }
       }
     } else {
       const matched = allGroups.find(
         g => g.id === schedule.targetDestination || g.identifier === schedule.targetDestination || g.name === schedule.targetName
       );
-      const identifier = matched ? matched.identifier : schedule.targetDestination;
+      const identifier = (matched ? matched.identifier : schedule.targetDestination)?.trim();
       const resolvedName = matched ? matched.name : (schedule.targetName || 'WhatsApp Group');
 
       if (identifier === 'TOURNAMENT_CAPTAINS' || identifier === 'ALL_REGISTERED') {
@@ -1372,11 +1392,17 @@ export async function executeScheduledJob(schedule: WhatsAppSchedule): Promise<{
         } catch (err) {
           console.warn('[executeScheduledJob] could not fetch registrations:', err);
         }
-      } else if (identifier) {
+      } else if (
+        identifier &&
+        !identifier.includes('chat.whatsapp.com/') &&
+        !identifier.includes('whatsapp.com/channel/')
+      ) {
         recipients.push({
           phone: identifier,
           name: resolvedName,
         });
+      } else if (identifier) {
+        console.warn(`[executeScheduledJob] Skipping group "${resolvedName}" — identifier is a group invite link, not a JID. Please update to @g.us format.`);
       }
     }
   } else if (schedule.targetType === 'TOURNAMENT_CAPTAINS' || schedule.targetType === 'ALL_REGISTERED') {

@@ -28,6 +28,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Invalid phone number format.' }, { status: 400 });
     }
 
+    // WhatsApp group invite links cannot receive messages - only @g.us JIDs work
+    if (
+      formattedPhone.includes('chat.whatsapp.com/') ||
+      formattedPhone.includes('whatsapp.com/channel/')
+    ) {
+      return NextResponse.json({
+        success: false,
+        message: '⚠️ WhatsApp group invite link দিয়ে message পাঠানো যায় না। Group JID (@g.us format, যেমন: 120363028392819283@g.us) ব্যবহার করুন। Groups tab থেকে group sync করে JID পান।',
+      }, { status: 400 });
+    }
+
     const res = await sendDirectWhatsappMessage({
       to: formattedPhone,
       text: message.trim(),

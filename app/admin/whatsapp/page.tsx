@@ -821,10 +821,30 @@ export default function AdminWhatsAppPage() {
           showToast('Please select at least one WhatsApp group for this schedule.', 'error');
           return;
         }
-        finalTargetDestination = formSelectedGroupIds.join(',');
-        finalTargetName = formSelectedGroupIds.length === groups.length
+        // Resolve actual identifiers from selected IDs and filter out invite links
+        const resolvedIds: string[] = [];
+        const inviteLinkGroups: string[] = [];
+        for (const selId of formSelectedGroupIds) {
+          const matched = groups.find(g => g.id === selId || g.identifier === selId);
+          const ident = matched?.identifier || selId;
+          if (ident.includes('chat.whatsapp.com/') || ident.includes('whatsapp.com/channel/')) {
+            inviteLinkGroups.push(matched?.name || selId);
+          } else if (ident) {
+            resolvedIds.push(ident);
+          }
+        }
+        if (inviteLinkGroups.length > 0) {
+          showToast(`⚠️ ${inviteLinkGroups.length}টি group-এ শুধু invite link আছে (JID নেই): ${inviteLinkGroups.slice(0, 2).join(', ')}... Groups tab থেকে "Sync Groups" করুন।`, 'error');
+          if (resolvedIds.length === 0) return;
+        }
+        if (resolvedIds.length === 0) {
+          showToast('কোনো valid group JID পাওয়া যায়নি। Groups sync করুন।', 'error');
+          return;
+        }
+        finalTargetDestination = resolvedIds.join(',');
+        finalTargetName = resolvedIds.length === groups.length
           ? `All Connected Groups (${groups.length})`
-          : `${formSelectedGroupIds.length} Selected Groups`;
+          : `${resolvedIds.length} Selected Groups`;
       }
     }
 
@@ -1047,8 +1067,23 @@ export default function AdminWhatsAppPage() {
 
         let sentSuccess = 0;
         let sentFailed = 0;
+        let skippedInviteLinks = 0;
 
         for (const grp of targetList) {
+          // Skip WhatsApp invite links - can't send messages to them
+          if (
+            grp.identifier?.includes('chat.whatsapp.com/') ||
+            grp.identifier?.includes('whatsapp.com/channel/')
+          ) {
+            skippedInviteLinks++;
+            continue;
+          }
+
+          if (!grp.identifier?.trim()) {
+            sentFailed++;
+            continue;
+          }
+
           try {
             const res = await fetch('/api/admin/whatsapp/direct-send', {
               method: 'POST',
@@ -1073,12 +1108,17 @@ export default function AdminWhatsAppPage() {
           }
         }
 
+        if (skippedInviteLinks > 0 && sentSuccess === 0 && sentFailed === 0) {
+          showToast(`⚠️ ${skippedInviteLinks}টি group-এ invite link আছে, JID নেই। Groups tab থেকে "Sync Groups" করুন।`, 'error');
+          return;
+        }
+
         if (sentSuccess > 0) {
-          showToast(`✅ Broadcast delivered to ${sentSuccess} WhatsApp group(s)!${sentFailed > 0 ? ` (${sentFailed} failed)` : ''}`, 'success');
+          showToast(`✅ Broadcast delivered to ${sentSuccess} WhatsApp group(s)!${sentFailed > 0 ? ` (${sentFailed} failed)` : ''}${skippedInviteLinks > 0 ? ` (${skippedInviteLinks} skipped - invite link)` : ''}`, 'success');
           setBroadcastMessage('');
           await loadData();
         } else {
-          showToast(`❌ Failed to deliver to ${sentFailed} group(s).`, 'error');
+          showToast(`❌ Failed to deliver to ${sentFailed} group(s).${skippedInviteLinks > 0 ? ` ${skippedInviteLinks} group(s) skipped (invite link - sync needed).` : ''}`, 'error');
         }
       }
     } catch (err: any) {
@@ -3918,15 +3958,34 @@ export default function AdminWhatsAppPage() {
               </div>
 
               <div>
-                <label className="block text-slate-700 font-bold mb-1">WhatsApp Group Invite Link / JID / Phone *</label>
+                <label className="block text-slate-700 font-bold mb-1">
+                  ⚠️ WhatsApp Group JID (Required for messaging)
+                </label>
                 <input
                   type="text"
                   required
                   value={groupIdentifier}
                   onChange={(e) => setGroupIdentifier(e.target.value)}
-                  placeholder="https://chat.whatsapp.com/xxxxxxxxx or phone"
+                  placeholder="120363028392819283@g.us (Group JID format)"
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono font-bold text-emerald-700 focus:outline-none focus:border-emerald-600 focus:bg-white"
                 />
+                {groupIdentifier && (groupIdentifier.includes('chat.whatsapp.com/') || groupIdentifier.includes('whatsapp.com/channel/')) ? (
+                  <p className="mt-1.5 text-xs text-red-600 font-semibold bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                    ❌ Invite link দিয়ে message পাঠানো যায় না! Groups tab → "🔄 Sync Groups" করুন — তাহলে automatically @g.us JID পাবেন।
+                  </p>
+                ) : groupIdentifier && groupIdentifier.includes('@g.us') ? (
+                  <p className="mt-1.5 text-xs text-emerald-700 font-semibold bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+                    ✅ Valid Group JID — এই format এ message পাঠানো যাবে।
+                  </p>
+                ) : groupIdentifier ? (
+                  <p className="mt-1.5 text-xs text-amber-700 font-semibold bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                    ℹ️ Phone number format — Individual DM এর জন্য ঠিক আছে। Group broadcast এর জন্য @g.us JID দরকার।
+                  </p>
+                ) : (
+                  <p className="mt-1 text-xs text-slate-500">
+                    Group JID পেতে: Settings → Groups → "🔄 Sync Groups" বাটন চাপুন।
+                  </p>
+                )}
               </div>
 
               <div>
