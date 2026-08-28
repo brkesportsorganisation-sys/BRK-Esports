@@ -187,6 +187,8 @@ export interface Banner {
   badge?: string;
   badgeText?: string;
   imageUrl: string;
+  mobileImageUrl?: string;
+  targetDevice?: 'ALL' | 'DESKTOP' | 'MOBILE';
   linkUrl?: string;
   link?: string;
   buttonText?: string;

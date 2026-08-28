@@ -24,6 +24,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Layers,
+  Monitor,
+  Smartphone,
+  Laptop,
   X
 } from 'lucide-react';
 import { Banner } from '@/lib/types';
@@ -36,6 +39,8 @@ const DEFAULT_SHOP_BANNER: Banner = {
   badgeText: '🔥 HOT DEALS & OFFERS',
   badge: '🔥 HOT DEALS & OFFERS',
   imageUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200',
+  mobileImageUrl: '',
+  targetDevice: 'ALL',
   placement: 'SHOP_BANNER',
   link: '/shop',
   linkUrl: '/shop',
@@ -53,7 +58,8 @@ export default function AdminShopBannersPage() {
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
 
-  // Live Preview Slider State
+  // Live Preview Slider State & Device Switcher
+  const [previewDevice, setPreviewDevice] = useState<'DESKTOP' | 'MOBILE'>('DESKTOP');
   const [previewIndex, setPreviewIndex] = useState(0);
   const [isPreviewHovered, setIsPreviewHovered] = useState(false);
   const previewTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -68,6 +74,8 @@ export default function AdminShopBannersPage() {
     subtitle: '',
     badgeText: '',
     imageUrl: '',
+    mobileImageUrl: '',
+    targetDevice: 'ALL' as 'ALL' | 'DESKTOP' | 'MOBILE',
     linkUrl: '/shop',
     buttonText: 'SHOP PACKAGES NOW',
     order: 1,
@@ -119,8 +127,13 @@ export default function AdminShopBannersPage() {
     loadBanners();
   }, []);
 
-  // Auto-slide live preview
-  const activeSlides = banners.filter((b) => b.isActive && b.imageUrl);
+  // Auto-slide live preview filtered by device view
+  const activeSlides = banners.filter((b) => {
+    if (!b.isActive || !b.imageUrl) return false;
+    if (previewDevice === 'MOBILE' && b.targetDevice === 'DESKTOP') return false;
+    if (previewDevice === 'DESKTOP' && b.targetDevice === 'MOBILE') return false;
+    return true;
+  });
   const previewSlides = activeSlides.length > 0 ? activeSlides : banners;
 
   const handleNextPreview = useCallback(() => {
@@ -153,6 +166,8 @@ export default function AdminShopBannersPage() {
       subtitle: '',
       badgeText: '🔥 HOT DEALS & OFFERS',
       imageUrl: '',
+      mobileImageUrl: '',
+      targetDevice: 'ALL',
       linkUrl: '/shop',
       buttonText: 'SHOP PACKAGES NOW',
       order: banners.length + 1,
@@ -169,6 +184,8 @@ export default function AdminShopBannersPage() {
       subtitle: banner.subtitle || '',
       badgeText: banner.badgeText || banner.badge || '',
       imageUrl: banner.imageUrl || '',
+      mobileImageUrl: banner.mobileImageUrl || '',
+      targetDevice: banner.targetDevice || 'ALL',
       linkUrl: banner.linkUrl || banner.link || '/shop',
       buttonText: banner.buttonText || 'SHOP PACKAGES NOW',
       order: banner.order || 1,
@@ -181,7 +198,7 @@ export default function AdminShopBannersPage() {
   const handleSaveModal = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!modalForm.title.trim() || !modalForm.imageUrl.trim()) {
-      showToast('Headline Title and Banner Image are required.', 'error');
+      showToast('Headline Title and Desktop Banner Image are required.', 'error');
       return;
     }
 
@@ -200,6 +217,8 @@ export default function AdminShopBannersPage() {
             badge: modalForm.badgeText.trim(),
             badgeText: modalForm.badgeText.trim(),
             imageUrl: modalForm.imageUrl.trim(),
+            mobileImageUrl: modalForm.mobileImageUrl.trim() || null,
+            targetDevice: modalForm.targetDevice,
             linkUrl: modalForm.linkUrl.trim() || '/shop',
             link: modalForm.linkUrl.trim() || '/shop',
             buttonText: modalForm.buttonText.trim(),
@@ -229,6 +248,8 @@ export default function AdminShopBannersPage() {
             badge: modalForm.badgeText.trim(),
             badgeText: modalForm.badgeText.trim(),
             imageUrl: modalForm.imageUrl.trim(),
+            mobileImageUrl: modalForm.mobileImageUrl.trim() || null,
+            targetDevice: modalForm.targetDevice,
             linkUrl: modalForm.linkUrl.trim() || '/shop',
             link: modalForm.linkUrl.trim() || '/shop',
             buttonText: modalForm.buttonText.trim(),
@@ -331,6 +352,14 @@ export default function AdminShopBannersPage() {
 
   const currentPreviewSlide = previewSlides[previewIndex] || previewSlides[0];
 
+  const getPreviewImage = (banner?: Banner) => {
+    if (!banner) return 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200';
+    if (previewDevice === 'MOBILE' && banner.mobileImageUrl) {
+      return banner.mobileImageUrl;
+    }
+    return banner.imageUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200';
+  };
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12 font-sans">
 
@@ -356,13 +385,13 @@ export default function AdminShopBannersPage() {
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-                <span>Storefront Multi-Banner Slider Manager</span>
+                <span>Storefront Banners & Device Manager</span>
                 <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
                   {banners.length} {banners.length === 1 ? 'Banner' : 'Banners'}
                 </span>
               </h1>
               <p className="text-xs text-slate-500 mt-0.5">
-                Manage multiple promotional hero banners, auto-slide speed, and call-to-action buttons for the official gaming shop.
+                Set separate banner images and targeting for Mobile & PC devices with auto-slide carousel support.
               </p>
             </div>
           </div>
@@ -396,95 +425,132 @@ export default function AdminShopBannersPage() {
         </div>
       </div>
 
-      {/* 2. Live Interactive Multi-Banner Preview Card */}
+      {/* 2. Live Interactive Multi-Banner Preview Card with Device Switcher */}
       <div className="space-y-2">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <span className="text-xs font-bold text-slate-700 uppercase flex items-center gap-1.5">
             <Eye className="w-4 h-4 text-orange-500" />
-            <span>Live Multi-Banner Carousel Preview ({previewSlides.length} Slides • Auto-sliding every {slideInterval / 1000}s)</span>
+            <span>Live Interactive Preview ({previewSlides.length} Slides • {slideInterval / 1000}s interval)</span>
           </span>
-          <span className="text-[11px] font-mono text-slate-500 font-bold">
-            Slide {previewIndex + 1} of {previewSlides.length}
-          </span>
+
+          {/* Device Preview Mode Switcher */}
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold">
+            <button
+              type="button"
+              onClick={() => {
+                setPreviewDevice('DESKTOP');
+                setPreviewIndex(0);
+              }}
+              className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
+                previewDevice === 'DESKTOP'
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              <Monitor className="w-3.5 h-3.5 text-blue-600" />
+              <span>PC / Desktop View</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setPreviewDevice('MOBILE');
+                setPreviewIndex(0);
+              }}
+              className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
+                previewDevice === 'MOBILE'
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Mobile View</span>
+            </button>
+          </div>
         </div>
 
-        <div
-          className="relative w-full rounded-3xl overflow-hidden shadow-xl border border-slate-800 bg-slate-950 p-6 sm:p-10 min-h-[240px] flex flex-col justify-between group"
-          onMouseEnter={() => setIsPreviewHovered(true)}
-          onMouseLeave={() => setIsPreviewHovered(false)}
-        >
-          <div 
-            className="absolute inset-0 bg-cover bg-center opacity-45 blur-xs scale-105 transition-all duration-700"
-            style={{ backgroundImage: `url(${currentPreviewSlide?.imageUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200'})` }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/80 to-transparent" />
+        {/* Carousel Container */}
+        <div className={`mx-auto transition-all duration-300 ${previewDevice === 'MOBILE' ? 'max-w-sm' : 'w-full'}`}>
+          <div
+            className={`relative w-full rounded-3xl overflow-hidden shadow-xl border border-slate-800 bg-slate-950 p-6 sm:p-8 flex flex-col justify-between group ${
+              previewDevice === 'MOBILE' ? 'min-h-[300px]' : 'min-h-[240px]'
+            }`}
+            onMouseEnter={() => setIsPreviewHovered(true)}
+            onMouseLeave={() => setIsPreviewHovered(false)}
+          >
+            <div 
+              className="absolute inset-0 bg-cover bg-center opacity-45 blur-xs scale-105 transition-all duration-700"
+              style={{ backgroundImage: `url(${getPreviewImage(currentPreviewSlide)})` }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/80 to-transparent" />
 
-          <div className="relative z-10 space-y-3 max-w-xl">
-            {(currentPreviewSlide?.badgeText || currentPreviewSlide?.badge) && (
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-red-600 to-orange-500 text-white font-mono text-[10px] font-black tracking-wider uppercase shadow-md">
-                {currentPreviewSlide.badgeText || currentPreviewSlide.badge}
-              </span>
-            )}
+            <div className="relative z-10 space-y-2.5 max-w-xl">
+              <div className="flex items-center gap-2 flex-wrap">
+                {(currentPreviewSlide?.badgeText || currentPreviewSlide?.badge) && (
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-red-600 to-orange-500 text-white font-mono text-[10px] font-black tracking-wider uppercase shadow-md">
+                    {currentPreviewSlide.badgeText || currentPreviewSlide.badge}
+                  </span>
+                )}
+                <span className="px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-md text-[10px] font-mono text-slate-300 border border-white/10">
+                  {currentPreviewSlide?.targetDevice === 'MOBILE' ? '📱 Mobile Only' : currentPreviewSlide?.targetDevice === 'DESKTOP' ? '🖥️ Desktop Only' : '🌐 All Devices'}
+                </span>
+              </div>
 
-            <h2 className="font-heading font-black text-xl sm:text-3xl text-white tracking-tight leading-tight">
-              {currentPreviewSlide?.title || 'OFFICIAL GAMING TOP-UP & DIAMOND SHOP'}
-            </h2>
+              <h2 className="font-heading font-black text-xl sm:text-2xl text-white tracking-tight leading-tight">
+                {currentPreviewSlide?.title || 'OFFICIAL GAMING TOP-UP & DIAMOND SHOP'}
+              </h2>
 
-            <p className="text-xs text-slate-300 line-clamp-2">
-              {currentPreviewSlide?.subtitle || 'Instant Delivery • 100% Player UID Safe • Dual Wallet & Coin Balance Payments'}
-            </p>
-          </div>
-
-          <div className="relative z-10 pt-4 flex items-center justify-between flex-wrap gap-3">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-orange-500 text-white font-heading font-black text-xs uppercase tracking-wider shadow-lg flex items-center gap-2"
-              >
-                <span>{currentPreviewSlide?.buttonText || 'Shop Packages Now'}</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-              <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">
-                Link: <code>{currentPreviewSlide?.linkUrl || currentPreviewSlide?.link || '/shop'}</code>
-              </span>
+              <p className="text-xs text-slate-300 line-clamp-2">
+                {currentPreviewSlide?.subtitle || 'Instant Delivery • 100% Player UID Safe • Dual Wallet & Coin Balance Payments'}
+              </p>
             </div>
 
-            {/* Pagination Indicators */}
+            <div className="relative z-10 pt-4 flex items-center justify-between flex-wrap gap-2">
+              <button
+                type="button"
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-red-600 to-orange-500 text-white font-heading font-black text-xs uppercase tracking-wider shadow-lg flex items-center gap-1.5"
+              >
+                <span>{currentPreviewSlide?.buttonText || 'Shop Now'}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+
+              {/* Pagination Indicators */}
+              {previewSlides.length > 1 && (
+                <div className="flex items-center gap-1 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10">
+                  {previewSlides.map((_, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setPreviewIndex(idx)}
+                      className={`h-2 rounded-full transition-all cursor-pointer ${
+                        idx === previewIndex ? 'w-5 bg-orange-500' : 'w-2 bg-white/40 hover:bg-white/70'
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Left & Right Preview Arrows */}
             {previewSlides.length > 1 && (
-              <div className="flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
-                {previewSlides.map((_, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setPreviewIndex(idx)}
-                    className={`h-2 rounded-full transition-all cursor-pointer ${
-                      idx === previewIndex ? 'w-6 bg-orange-500' : 'w-2 bg-white/40 hover:bg-white/70'
-                    }`}
-                  />
-                ))}
-              </div>
+              <>
+                <button
+                  type="button"
+                  onClick={handlePrevPreview}
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/60 hover:bg-black/90 text-white border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-20 cursor-pointer shadow-lg hover:scale-110"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNextPreview}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/60 hover:bg-black/90 text-white border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-20 cursor-pointer shadow-lg hover:scale-110"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </>
             )}
           </div>
-
-          {/* Left & Right Preview Arrows */}
-          {previewSlides.length > 1 && (
-            <>
-              <button
-                type="button"
-                onClick={handlePrevPreview}
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-black/90 text-white border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-20 cursor-pointer shadow-lg hover:scale-110"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <button
-                type="button"
-                onClick={handleNextPreview}
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-black/90 text-white border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-20 cursor-pointer shadow-lg hover:scale-110"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </>
-          )}
         </div>
       </div>
 
@@ -495,8 +561,8 @@ export default function AdminShopBannersPage() {
             <Sliders className="w-5 h-5" />
           </div>
           <div>
-            <h4 className="font-bold text-slate-900 text-sm">Slider Transition & Auto-Slide Speed</h4>
-            <p className="text-[11px] text-slate-500">Set how many seconds each banner stays before sliding to the next one.</p>
+            <h4 className="font-bold text-slate-900 text-sm">Slider Auto-Slide Speed</h4>
+            <p className="text-[11px] text-slate-500">Configures how frequently banners transition to the next slide.</p>
           </div>
         </div>
 
@@ -580,6 +646,13 @@ export default function AdminShopBannersPage() {
                     </span>
                   </div>
 
+                  {/* Device Target Badge */}
+                  <div className="absolute bottom-3 right-3">
+                    <span className="px-2 py-0.5 rounded-md bg-black/75 backdrop-blur-md text-white font-mono text-[9px] font-bold border border-white/20">
+                      {banner.targetDevice === 'MOBILE' ? '📱 Mobile Only' : banner.targetDevice === 'DESKTOP' ? '🖥️ Desktop Only' : '🌐 All Devices'}
+                    </span>
+                  </div>
+
                   {/* Badge Label Overlay */}
                   {(banner.badgeText || banner.badge) && (
                     <div className="absolute bottom-3 left-3">
@@ -598,6 +671,13 @@ export default function AdminShopBannersPage() {
                   <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
                     {banner.subtitle || 'No subtitle provided'}
                   </p>
+
+                  {banner.mobileImageUrl && (
+                    <div className="flex items-center gap-2 pt-1 text-[11px] text-emerald-700 font-bold">
+                      <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Dedicated Mobile Image Set</span>
+                    </div>
+                  )}
 
                   <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 font-mono">
                     <span className="truncate max-w-[150px]">Button: <strong>{banner.buttonText || 'Shop Now'}</strong></span>
@@ -665,7 +745,7 @@ export default function AdminShopBannersPage() {
                     {editingBanner ? 'Edit Shop Banner' : 'Add New Shop Banner'}
                   </h3>
                   <p className="text-xs text-slate-500">
-                    {editingBanner ? 'Update the details for this storefront carousel slide.' : 'Create a new promotional banner slide for the user shop.'}
+                    Set separate images for Desktop (PC) and Mobile devices.
                   </p>
                 </div>
               </div>
@@ -696,14 +776,16 @@ export default function AdminShopBannersPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="font-bold text-slate-700 uppercase">Badge Tag Label</label>
-                  <input
-                    type="text"
-                    value={modalForm.badgeText}
-                    onChange={(e) => setModalForm({ ...modalForm, badgeText: e.target.value })}
-                    placeholder="e.g. 🔥 LIMITED TIME OFFER"
+                  <label className="font-bold text-slate-700 uppercase">Target Device</label>
+                  <select
+                    value={modalForm.targetDevice}
+                    onChange={(e) => setModalForm({ ...modalForm, targetDevice: e.target.value as any })}
                     className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-slate-900 font-bold focus:outline-none focus:border-orange-500 focus:bg-white"
-                  />
+                  >
+                    <option value="ALL">🌐 All Devices (PC & Mobile)</option>
+                    <option value="DESKTOP">🖥️ Desktop / PC Only</option>
+                    <option value="MOBILE">📱 Mobile Only</option>
+                  </select>
                 </div>
 
                 <div className="space-y-1">
@@ -713,6 +795,17 @@ export default function AdminShopBannersPage() {
                     min={1}
                     value={modalForm.order}
                     onChange={(e) => setModalForm({ ...modalForm, order: Number(e.target.value) })}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-slate-900 font-bold focus:outline-none focus:border-orange-500 focus:bg-white"
+                  />
+                </div>
+
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="font-bold text-slate-700 uppercase">Badge Tag Label</label>
+                  <input
+                    type="text"
+                    value={modalForm.badgeText}
+                    onChange={(e) => setModalForm({ ...modalForm, badgeText: e.target.value })}
+                    placeholder="e.g. 🔥 LIMITED TIME OFFER"
                     className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-slate-900 font-bold focus:outline-none focus:border-orange-500 focus:bg-white"
                   />
                 </div>
@@ -728,16 +821,28 @@ export default function AdminShopBannersPage() {
                   />
                 </div>
 
-                {/* Banner Image Upload */}
+                {/* PC / Desktop Banner Image Upload */}
                 <div className="space-y-1 sm:col-span-2">
                   <ImageUploadInput
-                    label="Banner 16:9 Image *"
+                    label="🖥️ PC / Desktop 16:9 Banner Image *"
                     theme="light"
                     required
                     value={modalForm.imageUrl}
                     onChange={(val) => setModalForm({ ...modalForm, imageUrl: val })}
-                    placeholder="https://... or upload from device"
-                    helperText="Recommended size: 1920x1080 (16:9) • Auto-compressed for high-speed loading"
+                    placeholder="https://... or upload from PC"
+                    helperText="Recommended Desktop Resolution: 1920x1080 (16:9) • Auto-compressed"
+                  />
+                </div>
+
+                {/* Dedicated Mobile Banner Image Upload */}
+                <div className="space-y-1 sm:col-span-2">
+                  <ImageUploadInput
+                    label="📱 Mobile Dedicated Banner Image (Optional)"
+                    theme="light"
+                    value={modalForm.mobileImageUrl}
+                    onChange={(val) => setModalForm({ ...modalForm, mobileImageUrl: val })}
+                    placeholder="https://... or upload mobile banner"
+                    helperText="Mobile-optimized banner (e.g., vertical or compact crop). If left blank, Desktop image will be used automatically on mobile."
                   />
                 </div>
 

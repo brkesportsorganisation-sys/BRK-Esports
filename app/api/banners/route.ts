@@ -134,6 +134,18 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      let finalMobileImageUrl = bannerItem.mobileImageUrl || '';
+      if (typeof finalMobileImageUrl === 'string' && finalMobileImageUrl.startsWith('data:image/')) {
+        try {
+          const uploadedUrl = await saveBase64Image(finalMobileImageUrl, 'banner_mobile');
+          if (uploadedUrl) {
+            finalMobileImageUrl = uploadedUrl;
+          }
+        } catch (uploadErr) {
+          console.error('[POST /api/banners] Mobile base64 upload failed:', uploadErr);
+        }
+      }
+
       const bannerId = bannerItem.id || 'shop_banner_hero';
       const now = new Date().toISOString();
       const shopBannerObj: Banner = {
@@ -143,6 +155,8 @@ export async function POST(request: NextRequest) {
         badge: (bannerItem.badge || bannerItem.badgeText || '').trim(),
         badgeText: (bannerItem.badgeText || bannerItem.badge || '').trim(),
         imageUrl: finalImageUrl,
+        mobileImageUrl: finalMobileImageUrl || undefined,
+        targetDevice: bannerItem.targetDevice || 'ALL',
         linkUrl: bannerItem.linkUrl || bannerItem.link || '/shop',
         link: bannerItem.link || bannerItem.linkUrl || '/shop',
         buttonText: bannerItem.buttonText || 'SHOP PACKAGES NOW',
@@ -222,7 +236,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, settings: updated });
     }
 
-    const { title, subtitle, badge, imageUrl, linkUrl, buttonText, placement, order, isActive } = body;
+    const { title, subtitle, badge, imageUrl, mobileImageUrl, targetDevice, linkUrl, buttonText, placement, order, isActive } = body;
 
     if (!title || !imageUrl) {
       return NextResponse.json({ message: 'Title and image URL are required.' }, { status: 400 });
@@ -241,6 +255,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    let finalMobileImageUrl = mobileImageUrl || '';
+    if (typeof finalMobileImageUrl === 'string' && finalMobileImageUrl.startsWith('data:image/')) {
+      try {
+        const uploadedUrl = await saveBase64Image(finalMobileImageUrl, 'banner_mobile');
+        if (uploadedUrl) {
+          finalMobileImageUrl = uploadedUrl;
+        }
+      } catch (uploadErr) {
+        console.error('[POST /api/banners] Mobile base64 upload failed:', uploadErr);
+      }
+    }
+
     const newBannerId = `banner_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     const now = new Date().toISOString();
 
@@ -250,6 +276,8 @@ export async function POST(request: NextRequest) {
       subtitle: (subtitle || '').trim(),
       badge: (badge || '').trim(),
       imageUrl: finalImageUrl,
+      mobileImageUrl: finalMobileImageUrl || undefined,
+      targetDevice: targetDevice || 'ALL',
       linkUrl: linkUrl || '/tournaments',
       buttonText: buttonText || 'JOIN TOURNAMENT',
       placement: (placement as BannerPlacement) || 'MAIN_SLIDER',
@@ -303,6 +331,17 @@ export async function PUT(request: NextRequest) {
       }
     }
 
+    if (typeof updates.mobileImageUrl === 'string' && updates.mobileImageUrl.startsWith('data:image/')) {
+      try {
+        const uploadedUrl = await saveBase64Image(updates.mobileImageUrl, 'banner_mobile');
+        if (uploadedUrl) {
+          updates.mobileImageUrl = uploadedUrl;
+        }
+      } catch (uploadErr) {
+        console.error('[PUT /api/banners] Mobile base64 upload failed:', uploadErr);
+      }
+    }
+
     const now = new Date().toISOString();
     const updatePayload = {
       ...updates,
@@ -333,6 +372,8 @@ export async function PUT(request: NextRequest) {
         subtitle: updates.subtitle !== undefined ? updates.subtitle : (existing?.subtitle || ''),
         badge: updates.badge !== undefined ? updates.badge : (existing?.badge || ''),
         imageUrl: updates.imageUrl || existing?.imageUrl || '',
+        mobileImageUrl: updates.mobileImageUrl !== undefined ? updates.mobileImageUrl : existing?.mobileImageUrl,
+        targetDevice: (updates.targetDevice || existing?.targetDevice || 'ALL') as 'ALL' | 'DESKTOP' | 'MOBILE',
         linkUrl: updates.linkUrl || existing?.linkUrl || '/tournaments',
         buttonText: updates.buttonText || existing?.buttonText || 'JOIN TOURNAMENT',
         placement: (updates.placement || existing?.placement || 'MAIN_SLIDER') as BannerPlacement,

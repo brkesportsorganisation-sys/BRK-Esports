@@ -22,9 +22,22 @@ export default function ShopBannerSlider({
 }: ShopBannerSliderProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const activeSlides = banners.filter((b) => b.isActive && b.imageUrl);
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  const activeSlides = banners.filter((b) => {
+    if (!b.isActive || !b.imageUrl) return false;
+    if (b.targetDevice === 'DESKTOP' && isMobile) return false;
+    if (b.targetDevice === 'MOBILE' && !isMobile) return false;
+    return true;
+  });
   const slidesToDisplay = activeSlides.length > 0 ? activeSlides : banners;
 
   const handleNext = useCallback(() => {
@@ -86,18 +99,28 @@ export default function ShopBannerSlider({
               >
                 {currentSlide.linkUrl && currentSlide.linkUrl !== '#' && currentSlide.linkUrl !== '/shop' ? (
                   <Link href={currentSlide.linkUrl} className="block w-full cursor-pointer">
-                    <img
-                      src={currentSlide.imageUrl}
-                      alt={currentSlide.title || 'Shop Banner'}
-                      className="w-full h-auto block rounded-3xl transition-transform duration-500 group-hover:scale-[1.006]"
-                    />
+                    <picture className="w-full h-auto block">
+                      {currentSlide.mobileImageUrl && (
+                        <source media="(max-width: 640px)" srcSet={currentSlide.mobileImageUrl} />
+                      )}
+                      <img
+                        src={isMobile && currentSlide.mobileImageUrl ? currentSlide.mobileImageUrl : currentSlide.imageUrl}
+                        alt={currentSlide.title || 'Shop Banner'}
+                        className="w-full h-auto block rounded-3xl transition-transform duration-500 group-hover:scale-[1.006]"
+                      />
+                    </picture>
                   </Link>
                 ) : (
-                  <img
-                    src={currentSlide.imageUrl}
-                    alt={currentSlide.title || 'Shop Banner'}
-                    className="w-full h-auto block rounded-3xl"
-                  />
+                  <picture className="w-full h-auto block">
+                    {currentSlide.mobileImageUrl && (
+                      <source media="(max-width: 640px)" srcSet={currentSlide.mobileImageUrl} />
+                    )}
+                    <img
+                      src={isMobile && currentSlide.mobileImageUrl ? currentSlide.mobileImageUrl : currentSlide.imageUrl}
+                      alt={currentSlide.title || 'Shop Banner'}
+                      className="w-full h-auto block rounded-3xl"
+                    />
+                  </picture>
                 )}
               </motion.div>
             </AnimatePresence>
