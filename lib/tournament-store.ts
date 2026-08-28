@@ -96,6 +96,9 @@ function serializeTournament(record: Record<string, any>): Tournament {
     allowCoinEntry: record.allowCoinEntry !== undefined ? Boolean(record.allowCoinEntry) : true,
     coinEntryFee: record.coinEntryFee !== undefined && record.coinEntryFee !== null && record.coinEntryFee !== '' ? Number(record.coinEntryFee) : undefined,
     entryFeeType: record.entryFeeType || (record.allowCoinEntry === false ? 'CASH' : (Number(record.entryFee || 0) === 0 ? 'FREE' : 'BOTH')),
+    isGiveaway: Boolean(record.isGiveaway || record.requiresFullSquad || (typeof record.title === 'string' && record.title.toLowerCase().includes('giveaway'))),
+    requiresFullSquad: Boolean(record.requiresFullSquad || record.isGiveaway || (typeof record.title === 'string' && record.title.toLowerCase().includes('giveaway'))),
+    minSquadMembers: record.minSquadMembers ? Number(record.minSquadMembers) : 4,
     bannerImage: record.bannerImage ? String(record.bannerImage) : undefined,
     thumbnailImage: record.thumbnailImage ? String(record.thumbnailImage) : undefined,
     logoImage: record.logoImage ? String(record.logoImage) : undefined,
@@ -223,6 +226,8 @@ export async function createTournamentInDb(input: Record<string, any>) {
     allowCoinEntry: input.allowCoinEntry !== undefined ? Boolean(input.allowCoinEntry) : true,
     coinEntryFee: input.coinEntryFee !== undefined && input.coinEntryFee !== null && input.coinEntryFee !== '' ? Number(input.coinEntryFee) : null,
     entryFeeType: input.entryFeeType || 'BOTH',
+    isGiveaway: Boolean(input.isGiveaway || input.requiresFullSquad),
+    requiresFullSquad: Boolean(input.requiresFullSquad || input.isGiveaway),
     communityEnabled: Boolean(input.community?.enabled ?? input.communityEnabled),
     communityAccessType: String(input.community?.accessType || input.communityAccessType || 'WHATSAPP'),
     communityInviteLink: input.community?.inviteLink || input.communityInviteLink || null,
@@ -239,10 +244,12 @@ export async function createTournamentInDb(input: Record<string, any>) {
     .select()
     .single();
 
-  // Graceful fallback if database schema does not yet have prizeDistribution column
-  if (error && (error.message?.includes('prizeDistribution') || error.message?.includes('schema cache'))) {
+  // Graceful fallback if database schema does not yet have prizeDistribution/isGiveaway column
+  if (error && (error.message?.includes('prizeDistribution') || error.message?.includes('isGiveaway') || error.message?.includes('requiresFullSquad') || error.message?.includes('schema cache'))) {
     const fallbackPayload = { ...payload };
     delete (fallbackPayload as any).prizeDistribution;
+    delete (fallbackPayload as any).isGiveaway;
+    delete (fallbackPayload as any).requiresFullSquad;
     const retry = await supabaseAdmin
       .from('Tournament')
       .insert([fallbackPayload])
@@ -306,6 +313,10 @@ export async function updateTournamentInDb(id: string, input: Record<string, any
   if (input.allowCoinEntry !== undefined) updateData.allowCoinEntry = Boolean(input.allowCoinEntry);
   if (input.coinEntryFee !== undefined) updateData.coinEntryFee = input.coinEntryFee !== null && input.coinEntryFee !== '' ? Number(input.coinEntryFee) : null;
   if (input.entryFeeType !== undefined) updateData.entryFeeType = input.entryFeeType;
+  if (input.isGiveaway !== undefined || input.requiresFullSquad !== undefined) {
+    updateData.isGiveaway = Boolean(input.isGiveaway || input.requiresFullSquad);
+    updateData.requiresFullSquad = Boolean(input.requiresFullSquad || input.isGiveaway);
+  }
 
   if (input.community !== undefined || input.communityEnabled !== undefined) {
     updateData.communityEnabled = Boolean(input.community?.enabled ?? input.communityEnabled);
@@ -339,10 +350,12 @@ export async function updateTournamentInDb(id: string, input: Record<string, any
     .select()
     .single();
 
-  // Graceful fallback if database schema does not yet have prizeDistribution column
-  if (error && (error.message?.includes('prizeDistribution') || error.message?.includes('schema cache'))) {
+  // Graceful fallback if database schema does not yet have prizeDistribution/isGiveaway column
+  if (error && (error.message?.includes('prizeDistribution') || error.message?.includes('isGiveaway') || error.message?.includes('requiresFullSquad') || error.message?.includes('schema cache'))) {
     const fallbackUpdateData = { ...updateData };
     delete fallbackUpdateData.prizeDistribution;
+    delete fallbackUpdateData.isGiveaway;
+    delete fallbackUpdateData.requiresFullSquad;
     const retry = await supabaseAdmin
       .from('Tournament')
       .update(fallbackUpdateData)

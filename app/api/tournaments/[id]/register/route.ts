@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { getTournamentByIdFromDb } from '@/lib/tournament-store';
+import { getSquads } from '@/lib/squads';
 import { db } from '@/lib/db';
 
 function generateId(prefix: string): string {
@@ -101,6 +102,33 @@ export async function POST(
     }
     if (tournament.registeredCount >= tournament.maxTeams) {
       return NextResponse.json({ message: 'This tournament is full. No more slots available.' }, { status: 400 });
+    }
+
+    // Giveaway & Full Squad Verification
+    const isGiveawayTournament = Boolean(tournament.isGiveaway || tournament.requiresFullSquad || (tournament.title && tournament.title.toLowerCase().includes('giveaway')));
+    if (isGiveawayTournament) {
+      const allSquads = await getSquads();
+      const userSquad = allSquads.find((s: any) => 
+        (s.name?.trim().toLowerCase() === squadName.trim().toLowerCase() || s.id === body.squadId) &&
+        (s.leaderId === userId || (s.members || []).some((m: any) => m.userId === userId && m.status === 'ACTIVE'))
+      );
+
+      if (!userSquad) {
+        return NextResponse.json({
+          message: 'This Giveaway tournament strictly requires an official registered squad. Please create an official squad from the Teams menu first.',
+          code: 'SQUAD_NOT_FOUND',
+          errors: { squadName: 'No official registered squad found with this name. Create a squad from Teams first.' }
+        }, { status: 422 });
+      }
+
+      const activeMembers = (userSquad.members || []).filter((m: any) => m.status === 'ACTIVE');
+      if (activeMembers.length < 4) {
+        return NextResponse.json({
+          message: `Your squad "${userSquad.name}" only has ${activeMembers.length}/4 active players. Giveaway tournaments strictly require a full squad of at least 4 active members.`,
+          code: 'INCOMPLETE_SQUAD',
+          errors: { squadName: `Squad requires minimum 4 active members (currently has ${activeMembers.length}). Invite more players from Teams menu.` }
+        }, { status: 422 });
+      }
     }
 
     // Fetch user or auto-create in Supabase

@@ -139,6 +139,9 @@ export interface Tournament {
   registrationEnd?: string | Date;
   timeZone?: string;
   isPaused?: boolean;
+  isGiveaway?: boolean;
+  requiresFullSquad?: boolean;
+  minSquadMembers?: number;
   session?: string;
   serialOrder?: number;
   createdAt?: string;

@@ -162,6 +162,10 @@ export default function TournamentCard({ tournament, priority = false }: Tournam
                 <span className="px-2 py-0.5 rounded-full bg-red-500 text-white font-black text-[10px] uppercase animate-pulse shadow-xs">
                   🔴 LIVE
                 </span>
+              ) : (tournament.isGiveaway || tournament.requiresFullSquad || tournament.title?.toLowerCase().includes('giveaway')) ? (
+                <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-[10px] uppercase shadow-xs flex items-center gap-1">
+                  🎁 4P SQUAD
+                </span>
               ) : isFree ? (
                 <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-white font-bold text-[10px] uppercase shadow-xs">
                   🎁 FREE

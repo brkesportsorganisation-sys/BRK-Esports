@@ -123,6 +123,8 @@ export async function POST(request: NextRequest) {
       allowCoinEntry: body.allowCoinEntry !== false,
       coinEntryFee: body.coinEntryFee !== undefined && body.coinEntryFee !== '' ? Number(body.coinEntryFee) : undefined,
       entryFeeType: body.entryFeeType || 'BOTH',
+      isGiveaway: Boolean(body.isGiveaway || body.requiresFullSquad),
+      requiresFullSquad: Boolean(body.requiresFullSquad || body.isGiveaway),
       community: body.community || undefined,
       communityEnabled: Boolean(body.community?.enabled),
       communityAccessType: body.community?.accessType || 'WHATSAPP',

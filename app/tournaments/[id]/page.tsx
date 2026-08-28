@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect, use, useMemo } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -25,6 +25,10 @@ import {
   Gamepad2,
   Phone,
   Zap,
+  Sparkles,
+  Award,
+  ArrowRight,
+  HelpCircle,
 } from 'lucide-react';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
@@ -85,6 +89,9 @@ function FieldInput({
   placeholder = '',
   type = 'text',
   mono = false,
+  disabled = false,
+  readOnly = false,
+  badge = '',
 }: {
   label: string;
   value: string;
@@ -94,19 +101,35 @@ function FieldInput({
   placeholder?: string;
   type?: string;
   mono?: boolean;
+  disabled?: boolean;
+  readOnly?: boolean;
+  badge?: string;
 }) {
   return (
-    <div className="w-full">
-      <label className="block text-[11px] font-bold text-slate-700 mb-1 uppercase tracking-wider truncate">
-        {label} {required && <span className="text-brand-red">*</span>}
-      </label>
+    <div className="w-full min-w-0">
+      <div className="flex items-center justify-between gap-1 mb-1">
+        <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider truncate">
+          {label} {required && <span className="text-brand-red">*</span>}
+        </label>
+        {badge && (
+          <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 font-bold shrink-0">
+            {badge}
+          </span>
+        )}
+      </div>
       <input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className={`w-full px-3 py-1.5 sm:py-2 rounded-xl border text-xs sm:text-sm text-slate-900 placeholder-slate-400 bg-white focus:outline-none transition-colors ${
-          error ? 'border-red-500 bg-red-50/50' : 'border-slate-200 focus:border-brand-orange'
+        disabled={disabled}
+        readOnly={readOnly}
+        className={`w-full px-3 py-1.5 sm:py-2 rounded-xl border text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none transition-colors ${
+          disabled || readOnly
+            ? 'bg-slate-100 border-slate-200 text-slate-700 cursor-not-allowed font-medium'
+            : error
+            ? 'border-red-500 bg-red-50/50'
+            : 'border-slate-200 bg-white focus:border-brand-orange'
         } ${mono ? 'font-mono font-semibold' : ''}`}
       />
       {error && <p className="mt-0.5 text-[10px] text-red-500 font-semibold leading-tight">{error}</p>}
@@ -189,6 +212,7 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
   const [myRegistrations, setMyRegistrations] = useState<any[]>([]);
   const [selectedRegistration, setSelectedRegistration] = useState<any | null>(null);
   const [userSquads, setUserSquads] = useState<any[]>([]);
+  const [selectedSquadId, setSelectedSquadId] = useState<string>('');
 
   // Toast
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -198,23 +222,46 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  const applySquadRoster = (selectedSquad: any) => {
-    const activeMembers = (selectedSquad.members || []).filter((m: any) => m.status === 'ACTIVE');
-    const igl = activeMembers.find((m: any) => m.isLeader || m.inGameRole === 'IGL') || activeMembers[0];
-    const players = activeMembers.filter((m: any) => m.id !== igl?.id);
+  const isGiveawayTournament = Boolean(
+    tournament?.isGiveaway || 
+    tournament?.requiresFullSquad || 
+    (tournament?.title && tournament.title.toLowerCase().includes('giveaway'))
+  );
 
+  const eligibleSquads = useMemo(() => {
+    return userSquads.filter(s => ((s.members || []).filter((m: any) => m.status === 'ACTIVE')).length >= 4);
+  }, [userSquads]);
+
+  const selectedSquad = useMemo(() => {
+    return userSquads.find(s => s.id === selectedSquadId) || (eligibleSquads.length > 0 ? eligibleSquads[0] : userSquads[0]) || null;
+  }, [userSquads, selectedSquadId, eligibleSquads]);
+
+  const selectedSquadActiveCount = useMemo(() => {
+    if (!selectedSquad) return 0;
+    return (selectedSquad.members || []).filter((m: any) => m.status === 'ACTIVE').length;
+  }, [selectedSquad]);
+
+  const isSelectedSquadEligible = selectedSquadActiveCount >= 4;
+
+  const applySquadRoster = (squad: any) => {
+    if (!squad) return;
+    const activeMembers = (squad.members || []).filter((m: any) => m.status === 'ACTIVE');
+    const igl = activeMembers.find((m: any) => m.isLeader || m.inGameRole === 'IGL') || activeMembers[0];
+    const nonIgl = activeMembers.filter((m: any) => m.id !== igl?.id);
+
+    setSelectedSquadId(squad.id);
     setForm(prev => ({
       ...prev,
-      squadName: selectedSquad.name,
+      squadName: squad.name,
       iglName: igl?.userName || currentUser?.inGameName || currentUser?.name || '',
-      player1Name: players[0]?.userName || '',
-      player2Name: players[1]?.userName || '',
-      player3Name: players[2]?.userName || '',
-      player4Name: players[3]?.userName || '',
-      backupPlayerName: players[4]?.userName || '',
+      player1Name: igl?.userName || currentUser?.inGameName || currentUser?.name || '',
+      player2Name: nonIgl[0]?.userName || '',
+      player3Name: nonIgl[1]?.userName || '',
+      player4Name: nonIgl[2]?.userName || '',
+      backupPlayerName: nonIgl[3]?.userName || '',
       captainWhatsApp: currentUser?.phone || currentUser?.whatsApp || prev.captainWhatsApp || '',
     }));
-    showToast(`Auto-filled roster from squad [${selectedSquad.tag}] ${selectedSquad.name}!`);
+    showToast(`Auto-filled roster from squad [${squad.tag}] ${squad.name}!`);
   };
 
   useEffect(() => {
@@ -432,16 +479,42 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
       setPaymentMethod('WALLET');
     }
 
-    setForm({
-      squadName: '',
-      iglName: user?.inGameName || user?.name || '',
-      player1Name: user?.inGameName || user?.name || '',
-      player2Name: '',
-      player3Name: '',
-      player4Name: '',
-      backupPlayerName: '',
-      captainWhatsApp: user?.phone || '',
-    });
+    if (isGiveawayTournament) {
+      if (eligibleSquads.length > 0) {
+        applySquadRoster(eligibleSquads[0]);
+      } else if (userSquads.length > 0) {
+        applySquadRoster(userSquads[0]);
+      } else {
+        setSelectedSquadId('');
+        setForm({
+          squadName: '',
+          iglName: user?.inGameName || user?.name || '',
+          player1Name: user?.inGameName || user?.name || '',
+          player2Name: '',
+          player3Name: '',
+          player4Name: '',
+          backupPlayerName: '',
+          captainWhatsApp: user?.phone || '',
+        });
+      }
+    } else {
+      if (userSquads.length > 0) {
+        applySquadRoster(userSquads[0]);
+      } else {
+        setSelectedSquadId('');
+        setForm({
+          squadName: '',
+          iglName: user?.inGameName || user?.name || '',
+          player1Name: user?.inGameName || user?.name || '',
+          player2Name: '',
+          player3Name: '',
+          player4Name: '',
+          backupPlayerName: '',
+          captainWhatsApp: user?.phone || '',
+        });
+      }
+    }
+
     setFieldErrors({});
     setSubmitError('');
     setSuccessData(null);
@@ -621,6 +694,11 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
               </span>
               <span className="px-3 py-1 rounded-lg bg-brand-red text-white text-xs font-bold uppercase">{tournament.mode}</span>
               <span className="px-3 py-1 rounded-lg bg-brand-purple text-white text-xs font-bold uppercase shadow-neon-cyan">{tournament.format.replace('_', ' ')}</span>
+              {isGiveawayTournament && (
+                <span className="px-3 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-black uppercase shadow-neon-orange flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5" /> 4P OFFICIAL SQUAD MUST
+                </span>
+              )}
               <span className="px-3 py-1 rounded-lg bg-black/60 backdrop-blur-md border border-white/20 text-xs font-bold text-brand-gold uppercase flex items-center gap-2">
                 {currentStatus === 'LIVE' ? (
                   <span className="flex items-center gap-1 text-brand-red animate-pulse">
@@ -1095,48 +1173,225 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                     )}
                   </div>
 
-                  {/* ── SECTION 2: Squad Information (Compact 2-Column Grid) ── */}
-                  <div className="rounded-xl sm:rounded-2xl border border-slate-200 bg-slate-50 p-2.5 sm:p-3 space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <h4 className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-brand-orange flex items-center gap-1.5">
-                        <Users className="w-3.5 h-3.5" /> Squad Information
-                      </h4>
+                  {/* ── SECTION 2: Squad Information ── */}
+                  {isGiveawayTournament ? (
+                    /* ════════════ GIVEAWAY / 4-PLAYER SQUAD SPECIAL SECTION ════════════ */
+                    <div className="space-y-3">
+                      {/* Scenario 1: User has NO official squad */}
+                      {userSquads.length === 0 ? (
+                        <div className="rounded-2xl border-2 border-amber-400/80 bg-gradient-to-b from-amber-500/10 via-amber-500/5 to-transparent p-4 sm:p-5 space-y-4">
+                          <div className="flex items-start gap-3">
+                            <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-400 flex items-center justify-center shrink-0">
+                              <ShieldCheck className="w-6 h-6 text-amber-600" />
+                            </div>
+                            <div>
+                              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500 text-white font-black text-[10px] uppercase tracking-wider mb-1">
+                                🎁 Giveaway Special Requirement
+                              </div>
+                              <h4 className="font-heading font-black text-base sm:text-lg text-slate-900 leading-tight">
+                                ফুল ৪ জন প্লেয়ারের অফিশিয়াল স্কোয়াড প্রয়োজন
+                              </h4>
+                              <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                                এই গিভওয়ে টুর্নামেন্টে রেজিস্ট্রেশন করার জন্য ওয়েবসাইটে আপনার একটি অফিশিয়াল স্কোয়াড (কমপক্ষে ৪ জন অ্যাক্টিভ মেম্বার) থাকতে হবে।
+                              </p>
+                            </div>
+                          </div>
 
-                      {userSquads.length > 0 && (
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[10px] text-amber-700 font-bold flex items-center gap-0.5">
-                            <Zap className="w-3 h-3 text-amber-500" /> Auto-Fill:
-                          </span>
-                          <select
-                            onChange={(e) => {
-                              const sel = userSquads.find(s => s.id === e.target.value);
-                              if (sel) applySquadRoster(sel);
-                            }}
-                            className="bg-white border border-amber-300 text-[10px] sm:text-xs text-slate-900 font-bold rounded-lg px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-2xs max-w-[130px] sm:max-w-[180px] truncate"
-                          >
-                            <option value="">Select Squad...</option>
-                            {userSquads.map(s => (
-                              <option key={s.id} value={s.id}>[{s.tag}] {s.name}</option>
-                            ))}
-                          </select>
+                          {/* Step by Step instructions */}
+                          <div className="space-y-2.5 bg-white rounded-2xl p-3.5 border border-amber-200/80 shadow-xs">
+                            <div className="text-[11px] font-black uppercase text-amber-800 tracking-wider flex items-center gap-1.5">
+                              <Sparkles className="w-3.5 h-3.5 text-amber-500" /> কীভাবে স্কোয়াড তৈরি ও টিম রেডি করবেন:
+                            </div>
+                            <div className="space-y-2 text-xs text-slate-700">
+                              <div className="flex items-start gap-2">
+                                <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-800 font-bold text-[11px] flex items-center justify-center shrink-0 mt-0.5">১</span>
+                                <span>নিচের <strong>"Create Official Squad"</strong> বাটনে ক্লিক করে টিম পেইজে যান।</span>
+                              </div>
+                              <div className="flex items-start gap-2">
+                                <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-800 font-bold text-[11px] flex items-center justify-center shrink-0 mt-0.5">২</span>
+                                <span>স্কোয়াডের নাম (Squad Name) ও ট্যাগ (Tag) দিয়ে আপনার স্কোয়াড তৈরি করুন।</span>
+                              </div>
+                              <div className="flex items-start gap-2">
+                                <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-800 font-bold text-[11px] flex items-center justify-center shrink-0 mt-0.5">৩</span>
+                                <span>স্কোয়াডের ইনভাইট কোড দিয়ে আপনার বাকি ৩ জন সতীর্থকে (Teammates) যুক্ত করুন (মোট ৪ জন সক্রিয় সদস্য)।</span>
+                              </div>
+                              <div className="flex items-start gap-2">
+                                <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-800 font-bold text-[11px] flex items-center justify-center shrink-0 mt-0.5">৪</span>
+                                <span>৪ জন সক্রিয় মেম্বার পূর্ণ হলে এখানে এসে স্কোয়াড সিলেক্ট করলেই ৪ জন প্লেয়ারের নাম অটোমেটিক বসে যাবে এবং স্লট কনফার্ম করতে পারবেন!</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Action Button */}
+                          <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                            <Link
+                              href="/teams"
+                              onClick={closeJoinModal}
+                              className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-brand-red text-white font-heading font-black text-xs sm:text-sm text-center shadow-md hover:brightness-110 transition-all flex items-center justify-center gap-2"
+                            >
+                              <Users className="w-4 h-4" />
+                              <span>👉 Create Official Squad Now</span>
+                            </Link>
+                          </div>
+                        </div>
+                      ) : !isSelectedSquadEligible && eligibleSquads.length === 0 ? (
+                        /* Scenario 2: User HAS squad(s) but NONE have 4 members */
+                        <div className="rounded-2xl border-2 border-amber-400 bg-amber-50/90 p-4 space-y-3.5">
+                          <div className="flex items-start gap-2.5">
+                            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                            <div>
+                              <div className="font-heading font-black text-sm text-amber-950">
+                                স্কোয়াডে সদস্য সংখ্যা অপূর্ণ (Incomplete Squad)
+                              </div>
+                              <div className="text-xs text-amber-800 mt-0.5">
+                                গিভওয়ে টুর্নামেন্টে অংশ নিতে স্কোয়াডে ন্যূনতম ৪ জন সক্রিয় প্লেয়ার থাকা আবশ্যক।
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="bg-white rounded-xl p-3 border border-amber-200 space-y-3">
+                            <div className="flex items-center justify-between gap-2 text-xs">
+                              <span className="font-bold text-slate-700 shrink-0">Select Squad:</span>
+                              <select
+                                value={selectedSquad?.id || ''}
+                                onChange={(e) => {
+                                  const sel = userSquads.find(s => s.id === e.target.value);
+                                  if (sel) applySquadRoster(sel);
+                                }}
+                                className="bg-amber-50 border border-amber-300 text-xs font-bold text-slate-900 rounded-lg px-2 py-1 outline-none max-w-[200px] truncate"
+                              >
+                                {userSquads.map(s => {
+                                  const count = (s.members || []).filter((m: any) => m.status === 'ACTIVE').length;
+                                  return (
+                                    <option key={s.id} value={s.id}>
+                                      [{s.tag}] {s.name} ({count}/4 Members)
+                                    </option>
+                                  );
+                                })}
+                              </select>
+                            </div>
+
+                            {selectedSquad && (
+                              <div>
+                                <div className="flex items-center justify-between text-[11px] font-bold text-slate-600 mb-1">
+                                  <span>Active Squad Roster</span>
+                                  <span className="text-amber-700 font-extrabold">{selectedSquadActiveCount} / 4 Players</span>
+                                </div>
+                                <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-amber-500 transition-all duration-300 rounded-full"
+                                    style={{ width: `${Math.min(100, (selectedSquadActiveCount / 4) * 100)}%` }}
+                                  />
+                                </div>
+                                <div className="text-[11px] text-amber-700 font-bold mt-1.5 flex items-center gap-1">
+                                  ⚠️ আরও <strong>{Math.max(0, 4 - selectedSquadActiveCount)}</strong> জন প্লেয়ারকে স্কোয়াডে যুক্ত করতে হবে।
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex gap-2">
+                            <Link
+                              href="/teams"
+                              onClick={closeJoinModal}
+                              className="flex-1 py-2.5 px-3 rounded-xl bg-amber-600 text-white font-bold text-xs text-center hover:bg-amber-700 transition-all flex items-center justify-center gap-1.5"
+                            >
+                              <Users className="w-3.5 h-3.5" />
+                              <span>👥 Invite Members to Squad</span>
+                            </Link>
+                          </div>
+                        </div>
+                      ) : (
+                        /* Scenario 3: User has an eligible 4+ member squad */
+                        <div className="rounded-xl sm:rounded-2xl border border-emerald-300 bg-emerald-50/50 p-3 sm:p-4 space-y-3">
+                          <div className="flex items-center justify-between gap-2 flex-wrap pb-2 border-b border-emerald-200/80">
+                            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800">
+                              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                              <span>Verified Squad (4 Active Players)</span>
+                            </div>
+
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] text-emerald-800 font-bold">Selected Squad:</span>
+                              <select
+                                value={selectedSquad?.id || ''}
+                                onChange={(e) => {
+                                  const sel = userSquads.find(s => s.id === e.target.value);
+                                  if (sel) applySquadRoster(sel);
+                                }}
+                                className="bg-white border border-emerald-400 text-xs text-emerald-950 font-bold rounded-lg px-2 py-1 outline-none shadow-2xs max-w-[180px] truncate"
+                              >
+                                {userSquads.map(s => {
+                                  const count = (s.members || []).filter((m: any) => m.status === 'ACTIVE').length;
+                                  return (
+                                    <option key={s.id} value={s.id}>
+                                      [{s.tag}] {s.name} ({count >= 4 ? '✅ 4 Players Ready' : `${count}/4 Members`})
+                                    </option>
+                                  );
+                                })}
+                              </select>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+                            <FieldInput label="Squad Name" value={form.squadName} onChange={setField('squadName')} readOnly badge="VERIFIED" />
+                            <FieldInput label="WhatsApp Number" value={form.captainWhatsApp} onChange={setField('captainWhatsApp')} error={fieldErrors.captainWhatsApp} placeholder="017xxxxxxxx" type="tel" />
+
+                            <FieldInput label="IGL (Leader)" value={form.iglName} onChange={setField('iglName')} readOnly badge="LOCKED" />
+                            <FieldInput label="Backup Player" value={form.backupPlayerName} onChange={setField('backupPlayerName')} placeholder="Optional" required={false} />
+
+                            <FieldInput label="Player 1" value={form.player1Name} onChange={setField('player1Name')} readOnly badge="ROSTER" />
+                            <FieldInput label="Player 2" value={form.player2Name} onChange={setField('player2Name')} readOnly badge="ROSTER" />
+
+                            <FieldInput label="Player 3" value={form.player3Name} onChange={setField('player3Name')} readOnly badge="ROSTER" />
+                            <FieldInput label="Player 4" value={form.player4Name} onChange={setField('player4Name')} readOnly badge="ROSTER" />
+                          </div>
                         </div>
                       )}
                     </div>
+                  ) : (
+                    /* ════════════ STANDARD TOURNAMENT SQUAD SECTION ════════════ */
+                    <div className="rounded-xl sm:rounded-2xl border border-slate-200 bg-slate-50 p-2.5 sm:p-3 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <h4 className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-brand-orange flex items-center gap-1.5">
+                          <Users className="w-3.5 h-3.5" /> Squad Information
+                        </h4>
 
-                    <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
-                      <FieldInput label="Squad Name" value={form.squadName} onChange={setField('squadName')} error={fieldErrors.squadName} placeholder="e.g. Apex Predators" />
-                      <FieldInput label="WhatsApp Number" value={form.captainWhatsApp} onChange={setField('captainWhatsApp')} error={fieldErrors.captainWhatsApp} placeholder="017xxxxxxxx" type="tel" />
-                      
-                      <FieldInput label="IGL Name" value={form.iglName} onChange={setField('iglName')} error={fieldErrors.iglName} placeholder="In-Game Leader" />
-                      <FieldInput label="Backup Player" value={form.backupPlayerName} onChange={setField('backupPlayerName')} error={fieldErrors.backupPlayerName} placeholder="Optional" required={false} />
-                      
-                      <FieldInput label="Player 1 Name" value={form.player1Name} onChange={setField('player1Name')} error={fieldErrors.player1Name} placeholder="Player 1 IGN" />
-                      <FieldInput label="Player 2 Name" value={form.player2Name} onChange={setField('player2Name')} error={fieldErrors.player2Name} placeholder="Player 2 IGN" />
-                      
-                      <FieldInput label="Player 3 Name" value={form.player3Name} onChange={setField('player3Name')} error={fieldErrors.player3Name} placeholder="Player 3 IGN" />
-                      <FieldInput label="Player 4 Name" value={form.player4Name} onChange={setField('player4Name')} error={fieldErrors.player4Name} placeholder="Player 4 IGN" />
+                        {userSquads.length > 0 && (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] text-amber-700 font-bold flex items-center gap-0.5">
+                              <Zap className="w-3 h-3 text-amber-500" /> Auto-Fill:
+                            </span>
+                            <select
+                              onChange={(e) => {
+                                const sel = userSquads.find(s => s.id === e.target.value);
+                                if (sel) applySquadRoster(sel);
+                              }}
+                              className="bg-white border border-amber-300 text-[10px] sm:text-xs text-slate-900 font-bold rounded-lg px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-2xs max-w-[130px] sm:max-w-[180px] truncate"
+                            >
+                              <option value="">Select Squad...</option>
+                              {userSquads.map(s => (
+                                <option key={s.id} value={s.id}>[{s.tag}] {s.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+                        <FieldInput label="Squad Name" value={form.squadName} onChange={setField('squadName')} error={fieldErrors.squadName} placeholder="e.g. Apex Predators" />
+                        <FieldInput label="WhatsApp Number" value={form.captainWhatsApp} onChange={setField('captainWhatsApp')} error={fieldErrors.captainWhatsApp} placeholder="017xxxxxxxx" type="tel" />
+                        
+                        <FieldInput label="IGL Name" value={form.iglName} onChange={setField('iglName')} error={fieldErrors.iglName} placeholder="In-Game Leader" />
+                        <FieldInput label="Backup Player" value={form.backupPlayerName} onChange={setField('backupPlayerName')} error={fieldErrors.backupPlayerName} placeholder="Optional" required={false} />
+                        
+                        <FieldInput label="Player 1 Name" value={form.player1Name} onChange={setField('player1Name')} error={fieldErrors.player1Name} placeholder="Player 1 IGN" />
+                        <FieldInput label="Player 2 Name" value={form.player2Name} onChange={setField('player2Name')} error={fieldErrors.player2Name} placeholder="Player 2 IGN" />
+                        
+                        <FieldInput label="Player 3 Name" value={form.player3Name} onChange={setField('player3Name')} error={fieldErrors.player3Name} placeholder="Player 3 IGN" />
+                        <FieldInput label="Player 4 Name" value={form.player4Name} onChange={setField('player4Name')} error={fieldErrors.player4Name} placeholder="Player 4 IGN" />
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Global submit error */}
                   {submitError && (
@@ -1158,7 +1413,7 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                     </button>
                     <button
                       type="submit"
-                      disabled={isSubmitting || !hasSufficientBalance}
+                      disabled={isSubmitting || !hasSufficientBalance || (isGiveawayTournament && !isSelectedSquadEligible)}
                       className="flex-[2] py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold text-white font-heading font-black text-xs sm:text-sm shadow-neon-red hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
                     >
                       {isSubmitting ? (
@@ -1166,6 +1421,8 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
                           Registering…
                         </>
+                      ) : isGiveawayTournament ? (
+                        'CONFIRM GIVEAWAY REGISTRATION (🎁 0 ৳)'
                       ) : isFree ? (
                         'CONFIRM FREE REGISTRATION (🎁 0 ৳)'
                       ) : paymentMethod === 'COINS' ? (

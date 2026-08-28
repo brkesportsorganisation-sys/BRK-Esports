@@ -96,49 +96,49 @@ export default function ImageUploadInput({
   };
 
   return (
-    <div className={`space-y-2 text-xs ${className}`}>
+    <div className={`space-y-2 text-xs w-full min-w-0 ${className}`}>
       {/* Label and Mode Switcher */}
-      <div className="flex items-center justify-between">
-        <label className={`font-bold flex items-center gap-1.5 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
-          <ImageIcon className="w-3.5 h-3.5 text-brand-orange" />
-          <span>{label}</span>
-          {required && <span className="text-red-500">*</span>}
+      <div className="flex items-center justify-between gap-2 flex-wrap min-w-0">
+        <label className={`font-bold flex items-center gap-1.5 min-w-0 truncate ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+          <ImageIcon className="w-3.5 h-3.5 text-brand-orange shrink-0" />
+          <span className="truncate">{label}</span>
+          {required && <span className="text-red-500 shrink-0">*</span>}
         </label>
 
         {/* Mode Toggle Buttons */}
-        <div className={`flex items-center p-0.5 rounded-lg border ${
+        <div className={`inline-flex items-center p-0.5 rounded-lg border shrink-0 ${
           isDark ? 'bg-slate-900 border-slate-800' : 'bg-slate-100 border-slate-200'
         }`}>
           <button
             type="button"
             onClick={() => setActiveMode('UPLOAD')}
-            className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase transition-all flex items-center gap-1 cursor-pointer ${
+            className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase transition-all flex items-center gap-1 cursor-pointer shrink-0 ${
               activeMode === 'UPLOAD'
                 ? isDark
                   ? 'bg-brand-orange text-white shadow-xs'
-                  : 'bg-white text-brand-orange shadow-xs font-bold'
+                  : 'bg-white text-brand-orange shadow-xs font-black'
                 : isDark
                 ? 'text-slate-400 hover:text-white'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <UploadCloud className="w-3 h-3" />
+            <UploadCloud className="w-3 h-3 shrink-0" />
             <span>Device Upload</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveMode('URL')}
-            className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase transition-all flex items-center gap-1 cursor-pointer ${
+            className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase transition-all flex items-center gap-1 cursor-pointer shrink-0 ${
               activeMode === 'URL'
                 ? isDark
                   ? 'bg-brand-orange text-white shadow-xs'
-                  : 'bg-white text-brand-orange shadow-xs font-bold'
+                  : 'bg-white text-brand-orange shadow-xs font-black'
                 : isDark
                 ? 'text-slate-400 hover:text-white'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <LinkIcon className="w-3 h-3" />
+            <LinkIcon className="w-3 h-3 shrink-0" />
             <span>Image URL</span>
           </button>
         </div>

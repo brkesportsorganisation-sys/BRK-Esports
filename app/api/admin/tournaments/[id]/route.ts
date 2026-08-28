@@ -104,6 +104,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       ...(body.allowCoinEntry !== undefined ? { allowCoinEntry: Boolean(body.allowCoinEntry) } : {}),
       ...(body.coinEntryFee !== undefined ? { coinEntryFee: body.coinEntryFee !== null && body.coinEntryFee !== '' ? Number(body.coinEntryFee) : null } : {}),
       ...(body.entryFeeType !== undefined ? { entryFeeType: body.entryFeeType } : {}),
+      ...(body.isGiveaway !== undefined || body.requiresFullSquad !== undefined ? { 
+        isGiveaway: Boolean(body.isGiveaway || body.requiresFullSquad),
+        requiresFullSquad: Boolean(body.requiresFullSquad || body.isGiveaway),
+      } : {}),
       ...(body.community !== undefined || body.communityEnabled !== undefined ? { communityEnabled: Boolean(body.community?.enabled ?? body.communityEnabled) } : {}),
       ...(body.community !== undefined || body.communityAccessType !== undefined ? { communityAccessType: body.community?.accessType || body.communityAccessType || 'WHATSAPP' } : {}),
       ...(body.community !== undefined || body.communityInviteLink !== undefined ? { communityInviteLink: body.community?.inviteLink || body.communityInviteLink || undefined } : {}),

@@ -59,6 +59,8 @@ interface TournamentFormState {
   allowCoinEntry: boolean;
   coinEntryFee: number;
   entryFeeType: 'CASH' | 'COINS' | 'BOTH' | 'FREE';
+  isGiveaway: boolean;
+  requiresFullSquad: boolean;
   communityEnabled: boolean;
   communityAccessType: CommunityAccessType;
   communityInviteLink: string;
@@ -112,6 +114,8 @@ const defaultForm: TournamentFormState = {
   allowCoinEntry: true,
   coinEntryFee: 1000,
   entryFeeType: 'BOTH',
+  isGiveaway: false,
+  requiresFullSquad: false,
   communityEnabled: false,
   communityAccessType: 'WHATSAPP' as const,
   communityInviteLink: '',
@@ -457,6 +461,8 @@ export default function AdminTournamentsPage() {
       allowCoinEntry: item.allowCoinEntry !== false,
       coinEntryFee: item.coinEntryFee !== undefined && item.coinEntryFee !== null ? Number(item.coinEntryFee) : (item.entryFee ? item.entryFee * 10 : 1000),
       entryFeeType: item.entryFeeType || (item.allowCoinEntry === false ? 'CASH' : (item.entryFee === 0 ? 'FREE' : 'BOTH')),
+      isGiveaway: Boolean(item.isGiveaway || item.requiresFullSquad),
+      requiresFullSquad: Boolean(item.requiresFullSquad || item.isGiveaway),
       communityEnabled: item.community?.enabled || false,
       communityAccessType: item.community?.accessType || 'WHATSAPP',
       communityInviteLink: item.community?.inviteLink || '',
@@ -584,6 +590,8 @@ export default function AdminTournamentsPage() {
       showOnHomepage: form.showOnHomepage,
       registrationOpen: form.registrationOpen,
       liveMatchToggle: form.liveMatchToggle,
+      isGiveaway: Boolean(form.isGiveaway || form.requiresFullSquad),
+      requiresFullSquad: Boolean(form.requiresFullSquad || form.isGiveaway),
       community: {
         enabled: form.communityEnabled,
         accessType: form.communityAccessType,
@@ -1277,21 +1285,25 @@ export default function AdminTournamentsPage() {
                   helperText="High-res 16:9 banner • Auto-compressed to lightweight WebP"
                 />
 
-                <div className="grid gap-4 md:grid-cols-2">
-                  <ImageUploadInput
-                    label="Thumbnail Image"
-                    theme="light"
-                    value={form.thumbnailImage}
-                    onChange={(val) => setForm((prev) => ({ ...prev, thumbnailImage: val }))}
-                    placeholder="https://... or upload thumbnail"
-                  />
-                  <ImageUploadInput
-                    label="Logo Image"
-                    theme="light"
-                    value={form.logoImage}
-                    onChange={(val) => setForm((prev) => ({ ...prev, logoImage: val }))}
-                    placeholder="https://... or upload logo"
-                  />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="min-w-0">
+                    <ImageUploadInput
+                      label="Thumbnail Image"
+                      theme="light"
+                      value={form.thumbnailImage}
+                      onChange={(val) => setForm((prev) => ({ ...prev, thumbnailImage: val }))}
+                      placeholder="https://... or upload thumbnail"
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <ImageUploadInput
+                      label="Logo Image"
+                      theme="light"
+                      value={form.logoImage}
+                      onChange={(val) => setForm((prev) => ({ ...prev, logoImage: val }))}
+                      placeholder="https://... or upload logo"
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -1370,6 +1382,29 @@ export default function AdminTournamentsPage() {
                     </div>
                   ) : null}
                 </div>
+                {/* Special Giveaway / Squad Mode Toggle */}
+                <div className="rounded-2xl border border-amber-300 bg-amber-50/70 p-4 shadow-sm space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-bold text-amber-950 flex items-center gap-1.5">
+                        <span>🎁 Giveaway Tournament (Requires Full 4-Player Official Squad)</span>
+                      </div>
+                      <div className="text-xs text-amber-800/80 mt-0.5">
+                        When enabled, players must have an official registered squad with at least 4 active members (IGL + 3 Players) to register.
+                      </div>
+                    </div>
+                    <label className="relative inline-flex cursor-pointer items-center shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={form.isGiveaway || form.requiresFullSquad}
+                        onChange={(event) => setForm((prev) => ({ ...prev, isGiveaway: event.target.checked, requiresFullSquad: event.target.checked }))}
+                        className="peer sr-only"
+                      />
+                      <div className="peer h-6 w-11 rounded-full bg-slate-300 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-amber-500 peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+                    </label>
+                  </div>
+                </div>
+
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-sm cursor-pointer hover:border-red-200"><span>Featured</span><input type="checkbox" className="h-4 w-4 accent-red-500 rounded border-slate-300" checked={form.isFeatured} onChange={(event) => setForm((prev) => ({ ...prev, isFeatured: event.target.checked }))} /></label>
                   <label className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-sm cursor-pointer hover:border-red-200"><span>Published</span><input type="checkbox" className="h-4 w-4 accent-red-500 rounded border-slate-300" checked={form.isPublished} onChange={(event) => setForm((prev) => ({ ...prev, isPublished: event.target.checked }))} /></label>
