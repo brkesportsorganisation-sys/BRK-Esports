@@ -27,17 +27,13 @@ export async function GET() {
   }
 
   try {
-    // Run any due schedules immediately
-    try {
-      await runAllDueWhatsAppSchedules();
-    } catch (dueErr) {
-      console.warn('[Scheduler Auto-Run Error]', dueErr);
-    }
+    // Non-blocking background runner
+    void runAllDueWhatsAppSchedules().catch(() => {});
 
     const [schedules, groups, logs] = await Promise.all([
-      getWhatsAppSchedules(),
-      getWhatsAppTargetGroups(),
-      getWhatsAppLogs(),
+      getWhatsAppSchedules().catch(() => []),
+      getWhatsAppTargetGroups().catch(() => []),
+      getWhatsAppLogs().catch(() => []),
     ]);
 
     const activeCount = schedules.filter(s => s.status === 'ACTIVE' && s.isActive).length;

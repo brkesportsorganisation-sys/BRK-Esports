@@ -181,6 +181,7 @@ export async function sendGreenApiMessage({
       headers: {
         'Content-Type': 'application/json',
       },
+      signal: AbortSignal.timeout(4500),
       body: JSON.stringify({
         chatId: targetChatId,
         message,
@@ -248,6 +249,7 @@ export async function sendGreenApiFile({
       headers: {
         'Content-Type': 'application/json',
       },
+      signal: AbortSignal.timeout(5000),
       body: JSON.stringify({
         chatId: targetChatId,
         urlFile,
@@ -296,8 +298,8 @@ export async function fetchGreenApiChats(apiUrl?: string, instanceId?: string, a
   try {
     // Query both getChats (active chat history) AND getContacts (all contacts & groups in account)
     const [chatsRes, contactsRes] = await Promise.allSettled([
-      fetch(`${host}/waInstance${activeId}/getChats/${activeToken}`),
-      fetch(`${host}/waInstance${activeId}/getContacts/${activeToken}`),
+      fetch(`${host}/waInstance${activeId}/getChats/${activeToken}`, { signal: AbortSignal.timeout(4000) }),
+      fetch(`${host}/waInstance${activeId}/getContacts/${activeToken}`, { signal: AbortSignal.timeout(4000) }),
     ]);
 
     let chatsData: any[] = [];

@@ -417,36 +417,39 @@ export default function AdminWhatsAppPage() {
   const loadData = async (options?: { silent?: boolean; lightOnly?: boolean } | any) => {
     const silent = options?.silent === true;
     const lightOnly = options?.lightOnly === true;
-    if (!silent) setLoading(true);
+    if (!silent && schedules.length === 0) setLoading(true);
     try {
       if (lightOnly) {
-        const schedRes = await fetch('/api/admin/whatsapp/scheduler', { credentials: 'include' }).catch(() => null);
+        const schedRes = await fetch('/api/admin/whatsapp/scheduler', { 
+          credentials: 'include',
+          signal: AbortSignal.timeout(5000),
+        }).catch(() => null);
         if (schedRes && schedRes.ok) {
           const data = await schedRes.json().catch(() => ({}));
-          setSchedules(data.schedules || []);
-          setGroups(data.groups || []);
-          setLogs(data.logs || []);
+          if (Array.isArray(data.schedules)) setSchedules(data.schedules);
+          if (Array.isArray(data.groups)) setGroups(data.groups);
+          if (Array.isArray(data.logs)) setLogs(data.logs);
           if (data.stats) setStats(data.stats);
         }
         return;
       }
 
       const results = await Promise.allSettled([
-        fetch('/api/admin/whatsapp/scheduler', { credentials: 'include' }),
-        fetch('/api/admin/whatsapp/bot', { credentials: 'include' }),
-        fetch('/api/admin/whatsapp/status', { credentials: 'include' }),
-        fetch('/api/admin/whatsapp/contacts', { credentials: 'include' }),
-        fetch('/api/admin/whatsapp/settings', { credentials: 'include' }),
-        fetch('/api/admin/whatsapp/forwarder', { credentials: 'include' }),
+        fetch('/api/admin/whatsapp/scheduler', { credentials: 'include', signal: AbortSignal.timeout(5000) }),
+        fetch('/api/admin/whatsapp/bot', { credentials: 'include', signal: AbortSignal.timeout(5000) }),
+        fetch('/api/admin/whatsapp/status', { credentials: 'include', signal: AbortSignal.timeout(4000) }),
+        fetch('/api/admin/whatsapp/contacts', { credentials: 'include', signal: AbortSignal.timeout(5000) }),
+        fetch('/api/admin/whatsapp/settings', { credentials: 'include', signal: AbortSignal.timeout(5000) }),
+        fetch('/api/admin/whatsapp/forwarder', { credentials: 'include', signal: AbortSignal.timeout(5000) }),
       ]);
 
       const [schedResult, botResult, statusResult, contactsResult, settingsResult, forwarderResult] = results;
 
       if (schedResult.status === 'fulfilled' && schedResult.value.ok) {
         const data = await schedResult.value.json().catch(() => ({}));
-        setSchedules(data.schedules || []);
-        setGroups(data.groups || []);
-        setLogs(data.logs || []);
+        if (Array.isArray(data.schedules)) setSchedules(data.schedules);
+        if (Array.isArray(data.groups)) setGroups(data.groups);
+        if (Array.isArray(data.logs)) setLogs(data.logs);
         if (data.stats) setStats(data.stats);
 
         if (data.groups && data.groups.length > 0) {
