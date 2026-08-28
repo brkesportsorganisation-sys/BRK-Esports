@@ -683,7 +683,7 @@ export async function sendDirectWhatsappMessage({
   imageUrl?: string;
   mediaUrl?: string;
   targetName?: string;
-  triggerType?: 'SCHEDULED_AUTOMATION' | 'INSTANT_BROADCAST' | 'ROOM_ALERT' | 'TEST';
+  triggerType?: 'SCHEDULED_AUTOMATION' | 'INSTANT_BROADCAST' | 'ROOM_ALERT' | 'TEST' | 'CHANNEL_FORWARD';
 }) {
   const formattedTo = normalizePhoneNumber(to);
   if (!formattedTo || formattedTo.length < 5) {
