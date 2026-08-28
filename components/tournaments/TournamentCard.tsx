@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, Users, Clock, Flame, ShieldCheck, Zap, X, Check, FileText, Gift, Award, Coins } from 'lucide-react';
 import { Tournament, TournamentStatus } from '@/lib/types';
-import { getDynamicTournamentStatus } from '@/lib/tournament-utils';
+import { getDynamicTournamentStatus, parsePrizeDistribution } from '@/lib/tournament-utils';
 import { useLanguage } from '@/lib/language-context';
 import TournamentCountdown from '@/components/tournaments/TournamentCountdown';
 
@@ -78,8 +78,10 @@ export default function TournamentCard({ tournament, priority = false }: Tournam
   const thirdPrize = tournament.thirdPrize || Math.round((tournament.prizePool || 0) * 0.2) || 0;
   const perKillPrize = tournament.perKillPrize || 0;
 
-  const prizeTiers = (tournament.prizeDistribution && tournament.prizeDistribution.length > 0)
-    ? tournament.prizeDistribution
+  const dynamicTiers = parsePrizeDistribution(tournament.prizeDistribution, tournament.rules);
+
+  const prizeTiers = (dynamicTiers && dynamicTiers.length > 0)
+    ? dynamicTiers
     : [
         { rank: 1, label: '1st Place (Champion)', prize: firstPrize },
         ...(secondPrize > 0 ? [{ rank: 2, label: '2nd Place (Runner-up)', prize: secondPrize }] : []),

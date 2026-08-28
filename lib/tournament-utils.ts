@@ -1,4 +1,4 @@
-import { Tournament, TournamentStatus } from '@/lib/types';
+import { Tournament, TournamentStatus, PrizeTier } from '@/lib/types';
 
 export function getDynamicTournamentStatus(tournament: Partial<Tournament>): TournamentStatus {
   // If explicitly marked as PENDING, DRAFT, RUNNING, FINISHED, or CANCELLED, always honor it
@@ -38,4 +38,30 @@ export function getDynamicTournamentStatus(tournament: Partial<Tournament>): Tou
   if (startTime === 0) return tournament.status || 'RUNNING';
 
   return 'RUNNING';
+}
+
+export function parsePrizeDistribution(value: unknown, fallbackRules?: string): PrizeTier[] {
+  if (Array.isArray(value) && value.length > 0) return value;
+  if (typeof value === 'string' && value.trim()) {
+    try {
+      let parsed = JSON.parse(value);
+      if (typeof parsed === 'string') {
+        try { parsed = JSON.parse(parsed); } catch {}
+      }
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch {}
+  }
+  if (typeof fallbackRules === 'string' && fallbackRules.includes('<!-- PRIZES:')) {
+    try {
+      const match = fallbackRules.match(/<!-- PRIZES:([\s\S]*?)-->/);
+      if (match && match[1]) {
+        let parsed = JSON.parse(match[1]);
+        if (typeof parsed === 'string') {
+          try { parsed = JSON.parse(parsed); } catch {}
+        }
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+  }
+  return [];
 }

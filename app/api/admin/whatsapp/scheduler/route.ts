@@ -27,8 +27,12 @@ export async function GET() {
   }
 
   try {
-    // Run any due schedules in background non-blocking
-    void runAllDueWhatsAppSchedules().catch(() => {});
+    // Run any due schedules immediately
+    try {
+      await runAllDueWhatsAppSchedules();
+    } catch (dueErr) {
+      console.warn('[Scheduler Auto-Run Error]', dueErr);
+    }
 
     const [schedules, groups, logs] = await Promise.all([
       getWhatsAppSchedules(),
@@ -122,14 +126,14 @@ export async function POST(req: NextRequest) {
       scheduledTime: schedule.scheduledTime || '20:00',
       scheduledDate: schedule.scheduledDate || undefined,
       activeDays: schedule.activeDays || ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'],
-      activeStartTime: schedule.activeStartTime || '09:00',
-      activeEndTime: schedule.activeEndTime || '23:00',
+      activeStartTime: schedule.activeStartTime || '00:00',
+      activeEndTime: schedule.activeEndTime || '23:59',
       isActive: schedule.isActive !== false,
       status: schedule.isActive !== false ? 'ACTIVE' : 'PAUSED',
       runCount: 0,
       nextRunAt: (schedule.frequency === 'DAILY' || schedule.frequency === 'ONCE')
         ? calculateNextRunTime(schedule)
-        : new Date().toISOString(), // Immediate first run for intervals!
+        : new Date().toISOString(), // Immediate first run for intervals
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -137,17 +141,28 @@ export async function POST(req: NextRequest) {
     schedules.unshift(newSchedule);
     await saveWhatsAppSchedules(schedules);
 
-    // Asynchronously trigger runner so immediate jobs fire instantly
-    setTimeout(() => {
-      runAllDueWhatsAppSchedules().catch((err) => console.warn('[Scheduler Auto-Run]', err));
-    }, 100);
+    // If interval or immediate execution is requested, dispatch the first run immediately!
+    let firstExecResult: any = null;
+    if (schedule.frequency !== 'DAILY' && schedule.frequency !== 'ONCE') {
+      try {
+        firstExecResult = await executeScheduledJob(newSchedule);
+      } catch (err: any) {
+        console.warn('[First Schedule Run Error]', err?.message);
+      }
+    }
+
+    const updatedSchedules = await getWhatsAppSchedules();
+    const finalSchedule = updatedSchedules.find(s => s.id === newId) || newSchedule;
 
     await logAdminAction(session?.sub || session?.email || 'admin', 'CREATE_WHATSAPP_SCHEDULE', `Created schedule: ${newSchedule.title} (Limit: ${maxExecutions || 'Unlimited'})`);
 
     return NextResponse.json({
       success: true,
-      message: 'Automated WhatsApp schedule created successfully!',
-      schedule: newSchedule,
+      message: firstExecResult?.success
+        ? `Schedule created & 1st message dispatched instantly to ${firstExecResult.sentCount || 1} target(s)!`
+        : 'Automated WhatsApp schedule created successfully!',
+      schedule: finalSchedule,
+      firstExecution: firstExecResult,
     });
 
   } catch (error: any) {

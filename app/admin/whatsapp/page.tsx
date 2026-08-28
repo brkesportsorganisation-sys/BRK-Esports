@@ -178,8 +178,8 @@ export default function AdminWhatsAppPage() {
   const [formMaxExecutions, setFormMaxExecutions] = useState('0'); // 0 = unlimited
   const [formScheduledTime, setFormScheduledTime] = useState('20:45');
   const [formScheduledDate, setFormScheduledDate] = useState('');
-  const [formActiveStartTime, setFormActiveStartTime] = useState('09:00');
-  const [formActiveEndTime, setFormActiveEndTime] = useState('23:00');
+  const [formActiveStartTime, setFormActiveStartTime] = useState('00:00');
+  const [formActiveEndTime, setFormActiveEndTime] = useState('23:59');
   const [formMessageTemplate, setFormMessageTemplate] = useState('');
   const [formImageUrl, setFormImageUrl] = useState('');
   const [formUseSequence, setFormUseSequence] = useState(false);
@@ -2514,7 +2514,7 @@ export default function AdminWhatsAppPage() {
               </button>
             </div>
 
-            {loading ? (
+            {loading && schedules.length === 0 ? (
               <div className="p-16 text-center text-slate-400 text-xs">Loading schedules...</div>
             ) : schedules.length === 0 ? (
               <div className="p-12 text-center space-y-3">

@@ -2,15 +2,30 @@ import { supabaseAdmin, supabase } from '@/lib/supabase';
 import type { Tournament, TournamentCommunityConfig, TournamentStatus, CommunityAccessType, CommunityUnlockMode, PrizeTier } from '@/lib/types';
 import { getDynamicTournamentStatus } from '@/lib/tournament-utils';
 
-function parsePrizeDistribution(value: unknown): PrizeTier[] {
-  if (Array.isArray(value)) return value;
-  if (typeof value === 'string') {
+function parsePrizeDistribution(value: unknown, fallbackRules?: string): PrizeTier[] {
+  if (Array.isArray(value) && value.length > 0) return value;
+  if (typeof value === 'string' && value.trim()) {
     try {
-      const parsed = JSON.parse(value);
-      if (Array.isArray(parsed)) return parsed;
-    } catch {
-      return [];
-    }
+      let parsed = JSON.parse(value);
+      if (typeof parsed === 'string') {
+        try {
+          parsed = JSON.parse(parsed);
+        } catch {}
+      }
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch {}
+  }
+  if (typeof fallbackRules === 'string' && fallbackRules.includes('<!-- PRIZES:')) {
+    try {
+      const match = fallbackRules.match(/<!-- PRIZES:([\s\S]*?)-->/);
+      if (match && match[1]) {
+        let parsed = JSON.parse(match[1]);
+        if (typeof parsed === 'string') {
+          try { parsed = JSON.parse(parsed); } catch {}
+        }
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
   }
   return [];
 }
@@ -42,6 +57,9 @@ function buildCommunityConfig(record: Record<string, unknown>): TournamentCommun
 }
 
 function serializeTournament(record: Record<string, any>): Tournament {
+  const rules = String(record.rules || '');
+  const prizeDist = parsePrizeDistribution(record.prizeDistribution, rules);
+
   return {
     id: String(record.id),
     title: String(record.title || ''),
@@ -65,7 +83,7 @@ function serializeTournament(record: Record<string, any>): Tournament {
     secondPrize: Number(record.secondPrize || 0),
     thirdPrize: Number(record.thirdPrize || 0),
     perKillPrize: Number(record.perKillPrize || 0),
-    prizeDistribution: parsePrizeDistribution(record.prizeDistribution),
+    prizeDistribution: prizeDist,
     maxTeams: Number(record.maxTeams || 0),
     registeredCount: Number(record.registeredCount || 0),
     matchTime: new Date(record.matchTime).toISOString(),
@@ -216,8 +234,9 @@ export async function createTournamentInDb(input: Record<string, any>) {
     isPaused: Boolean(input.isPaused),
     status: input.status || 'DRAFT',
     roomId: input.roomId ? String(input.roomId) : null,
-    roomPassword: input.roomPassword ? String(input.roomPassword) : null,
-    rules: input.rules ? String(input.rules) : 'Standard tournament rules apply.',
+    rules: input.prizeDistribution && input.prizeDistribution.length > 0
+      ? `${(input.rules ? String(input.rules).replace(/<!-- PRIZES:[\s\S]*?-->/g, '').trim() : 'Standard tournament rules apply.')}\n<!-- PRIZES:${JSON.stringify(input.prizeDistribution)} -->`
+      : (input.rules ? String(input.rules) : 'Standard tournament rules apply.'),
     isPublished: Boolean(input.isPublished),
     isFeatured: Boolean(input.isFeatured),
     showOnHomepage: Boolean(input.showOnHomepage),
@@ -304,7 +323,15 @@ export async function updateTournamentInDb(id: string, input: Record<string, any
   if (input.roomPassword !== undefined) updateData.roomPassword = input.roomPassword ? String(input.roomPassword) : null;
   if (input.roomEnabled !== undefined) updateData.roomEnabled = Boolean(input.roomEnabled);
   if (input.roomReleaseTime !== undefined) updateData.roomReleaseTime = input.roomReleaseTime ? new Date(input.roomReleaseTime).toISOString() : null;
-  if (input.rules !== undefined) updateData.rules = String(input.rules);
+  if (input.rules !== undefined || input.prizeDistribution !== undefined) {
+    const rawRules = input.rules !== undefined ? String(input.rules) : '';
+    const cleanRules = rawRules.replace(/<!-- PRIZES:[\s\S]*?-->/g, '').trim();
+    if (input.prizeDistribution && input.prizeDistribution.length > 0) {
+      updateData.rules = `${cleanRules || 'Standard tournament rules apply.'}\n<!-- PRIZES:${JSON.stringify(input.prizeDistribution)} -->`;
+    } else if (input.rules !== undefined) {
+      updateData.rules = cleanRules || 'Standard tournament rules apply.';
+    }
+  }
   if (input.isPublished !== undefined) updateData.isPublished = Boolean(input.isPublished);
   if (input.isFeatured !== undefined) updateData.isFeatured = Boolean(input.isFeatured);
   if (input.showOnHomepage !== undefined) updateData.showOnHomepage = Boolean(input.showOnHomepage);
