@@ -461,27 +461,21 @@ export default function TournamentsPage() {
 
         {/* Tournaments Grid */}
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4 md:gap-6 animate-pulse">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-xs">
-                <div className="w-full aspect-square bg-slate-200" />
-                <div className="p-5 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="h-4 bg-slate-200 rounded w-1/3" />
-                    <div className="h-4 bg-slate-200 rounded w-1/4" />
-                  </div>
-                  <div className="h-6 bg-slate-200 rounded w-4/5" />
-                  <div className="grid grid-cols-2 gap-2 pt-2">
-                    <div className="h-10 bg-slate-100 rounded-xl" />
-                    <div className="h-10 bg-slate-100 rounded-xl" />
-                  </div>
-                  <div className="h-10 bg-slate-200 rounded-xl mt-2" />
+              <div key={i} className="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-xs">
+                <div className="w-full aspect-[4/3] bg-slate-200" />
+                <div className="p-3 space-y-2.5">
+                  <div className="h-4 bg-slate-200 rounded w-3/4" />
+                  <div className="h-3 bg-slate-200 rounded w-1/2" />
+                  <div className="h-7 bg-slate-100 rounded-lg" />
+                  <div className="h-8 bg-slate-200 rounded-lg mt-2" />
                 </div>
               </div>
             ))}
           </div>
         ) : filteredTournaments.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4 md:gap-6">
             {filteredTournaments.map((t) => (
               <TournamentCard key={t.id} tournament={t} />
             ))}
