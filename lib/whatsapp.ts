@@ -799,21 +799,13 @@ export async function sendDirectWhatsappMessage({
       error: greenRes.success ? undefined : greenRes.message,
     });
 
-    if (greenRes.success) {
+    if (greenRes.success || formattedTo.includes('@g.us') || formattedTo.includes('@newsletter')) {
       return greenRes;
     }
-
-    // If Green-API failed for a group destination, fall through to WaAPI
-    if (!formattedTo.includes('@g.us') && !formattedTo.includes('@newsletter')) {
-      // For individual numbers: Green-API failed, stop here (log already written)
-      return greenRes;
-    }
-    // For groups/channels: fall through to WaAPI below as fallback
   }
 
-  // 2. Send via WaAPI if configured (or as fallback from Green-API for group destinations)
-  const canUseWaapi = settings.waapiApiKey && (settings.provider === 'WAAPI' || (settings.provider === 'GREEN_API' && (formattedTo.includes('@g.us') || formattedTo.includes('@newsletter'))));
-  if (canUseWaapi) {
+  // 2. Send via WaAPI if configured
+  if (settings.provider === 'WAAPI' && settings.waapiApiKey) {
     const waapiRes = await sendWaapiMessage({
       chatId: formattedTo,
       message: activeImageUrl ? `${text}\n\n🖼️ Media: ${activeImageUrl}` : text,
