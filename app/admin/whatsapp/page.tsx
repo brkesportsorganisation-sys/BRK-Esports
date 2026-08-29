@@ -1071,7 +1071,8 @@ export default function AdminWhatsAppPage() {
         let sentFailed = 0;
         let skippedInviteLinks = 0;
 
-        for (const grp of targetList) {
+        for (let i = 0; i < targetList.length; i++) {
+          const grp = targetList[i];
           // Skip WhatsApp invite links - can't send messages to them
           if (
             grp.identifier?.includes('chat.whatsapp.com/') ||
@@ -1107,6 +1108,11 @@ export default function AdminWhatsAppPage() {
             }
           } catch {
             sentFailed++;
+          }
+
+          // Delay between group sends to prevent Green-API gateway rate-limiting
+          if (i < targetList.length - 1) {
+            await new Promise((resolve) => setTimeout(resolve, 1500));
           }
         }
 

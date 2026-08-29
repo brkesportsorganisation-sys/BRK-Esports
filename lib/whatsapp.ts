@@ -207,7 +207,7 @@ export async function sendGreenApiMessage({
       headers: {
         'Content-Type': 'application/json',
       },
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(20000),
       body: JSON.stringify({
         chatId: targetChatId,
         message,
@@ -275,7 +275,7 @@ export async function sendGreenApiFile({
       headers: {
         'Content-Type': 'application/json',
       },
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(25000),
       body: JSON.stringify({
         chatId: targetChatId,
         urlFile,
@@ -954,7 +954,8 @@ export async function broadcastRoomDetails({
   let successCount = 0;
   let failCount = 0;
 
-  for (const recipient of recipients) {
+  for (let i = 0; i < recipients.length; i++) {
+    const recipient = recipients[i];
     const res = await sendRoomDetailsToPlayer({
       playerPhone: recipient.phone,
       playerName: recipient.name || 'Captain',
@@ -975,6 +976,10 @@ export async function broadcastRoomDetails({
       name: recipient.name,
       ...res,
     });
+
+    if (i < recipients.length - 1) {
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+    }
   }
 
   return {
@@ -1836,10 +1841,29 @@ export async function forwardChannelMessageToGroups({
   let deliveredCount = 0;
   let failedCount = 0;
 
-  for (const group of targetGroups) {
+  for (let i = 0; i < targetGroups.length; i++) {
+    const group = targetGroups[i];
+    const ident = (group.identifier || '').trim();
+
+    if (!ident) {
+      failedCount++;
+      continue;
+    }
+
+    if (ident.includes('chat.whatsapp.com/') || ident.includes('whatsapp.com/channel/')) {
+      failedCount++;
+      results.push({
+        groupId: group.id,
+        groupName: group.name,
+        success: false,
+        message: 'Skipped - group identifier is an invite link instead of @g.us JID',
+      });
+      continue;
+    }
+
     try {
       const res = await sendDirectWhatsappMessage({
-        to: group.identifier,
+        to: ident,
         text: finalMessage,
         imageUrl: config.includeMedia ? imageUrl : undefined,
         targetName: group.name,
@@ -1871,6 +1895,11 @@ export async function forwardChannelMessageToGroups({
         success: false,
         message: err?.message || 'Dispatch error',
       });
+    }
+
+    // Delay between each group message to prevent Green-API gateway rate-limiting
+    if (i < targetGroups.length - 1) {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
     }
   }
 
