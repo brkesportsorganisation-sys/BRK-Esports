@@ -138,7 +138,7 @@ export default function AIAssistantWidget() {
           }
         }
       } catch {}
-    }, 3500);
+    }, 15000);
 
     return () => clearInterval(interval);
   }, [isOpen, currentUser?.id]);

@@ -34,7 +34,9 @@ export default function AdminChampionsPage() {
 
   const fetchAdminData = async () => {
     try {
-      const res = await fetch('/api/admin/champions');
+      const res = await fetch('/api/admin/champions', {
+        signal: AbortSignal.timeout(4000),
+      });
       if (res.ok) {
         const data = await res.json();
         if (data.config) setConfig(data.config);

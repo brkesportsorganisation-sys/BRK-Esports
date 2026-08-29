@@ -30,7 +30,21 @@ export async function getEmailSettings(): Promise<EmailSettings> {
   try {
     const { data: settings } = await supabaseAdmin
       .from('SiteSetting')
-      .select('key, value');
+      .select('key, value')
+      .in('key', [
+        'SMTP_USER',
+        'SMTP_PASS',
+        'SMTP_HOST',
+        'SMTP_PORT',
+        'SMTP_SECURE',
+        'EMAIL_PROVIDER',
+        'RESEND_API_KEY',
+        'WELCOME_EMAIL_ENABLED',
+        'WELCOME_EMAIL_FROM',
+        'SMTP_FROM',
+        'WELCOME_EMAIL_SUBJECT',
+        'WELCOME_EMAIL_BODY',
+      ]);
 
     const map = (settings || []).reduce((acc: Record<string, string>, item: any) => {
       acc[item.key] = item.value;

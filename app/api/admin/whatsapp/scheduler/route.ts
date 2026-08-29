@@ -251,6 +251,13 @@ export async function DELETE(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const scheduleId = searchParams.get('id');
     const groupId = searchParams.get('groupId');
+    const isClearLogs = searchParams.get('clearLogs') === 'true';
+
+    if (isClearLogs) {
+      const { clearWhatsAppLogs } = await import('@/lib/whatsapp');
+      await clearWhatsAppLogs();
+      return NextResponse.json({ success: true, message: 'All WhatsApp logs cleared successfully' });
+    }
 
     if (groupId) {
       const groups = await getWhatsAppTargetGroups();

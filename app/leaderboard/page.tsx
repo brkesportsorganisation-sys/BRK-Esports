@@ -47,7 +47,7 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     loadLeaderboard();
-    const interval = setInterval(loadLeaderboard, 6000);
+    const interval = setInterval(loadLeaderboard, 30000);
     return () => clearInterval(interval);
   }, []);
 

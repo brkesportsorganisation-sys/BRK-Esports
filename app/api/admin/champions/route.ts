@@ -7,37 +7,33 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const config = await getChampionsConfig();
-
-    // Also fetch top registered users for convenient admin autofill
-    let users: any[] = [];
-    try {
-      const { data: supaUsers } = await supabaseAdmin
+    const [configResult, usersResult, teamsResult] = await Promise.allSettled([
+      getChampionsConfig(),
+      supabaseAdmin
         .from('User')
         .select('id, name, inGameName, freeFireUid, avatar, earnings, totalWins, totalKills')
         .neq('role', 'VENDOR')
         .order('earnings', { ascending: false })
-        .limit(30);
+        .limit(30),
+      supabaseAdmin
+        .from('Team')
+        .select('id, name, tag, logo, captainName, wins')
+        .limit(30),
+    ]);
 
-      if (supaUsers && supaUsers.length > 0) {
-        users = supaUsers;
-      }
-    } catch {
+    const config = configResult.status === 'fulfilled' ? configResult.value : DEFAULT_CHAMPIONS_CONFIG;
+
+    let users: any[] = [];
+    if (usersResult.status === 'fulfilled' && usersResult.value?.data) {
+      users = usersResult.value.data;
+    } else {
       users = db.getUsers().filter(u => u.role !== 'VENDOR').slice(0, 30);
     }
 
-    // Also fetch squads from Team or SiteSetting
     let squads: any[] = [];
-    try {
-      const { data: supaTeams } = await supabaseAdmin
-        .from('Team')
-        .select('id, name, tag, logo, captainName, wins')
-        .limit(30);
-
-      if (supaTeams && supaTeams.length > 0) {
-        squads = supaTeams;
-      }
-    } catch {}
+    if (teamsResult.status === 'fulfilled' && teamsResult.value?.data) {
+      squads = teamsResult.value.data;
+    }
 
     return NextResponse.json({
       success: true,
@@ -47,7 +43,12 @@ export async function GET() {
     });
   } catch (error: any) {
     console.error('[GET /api/admin/champions] Error:', error);
-    return NextResponse.json({ error: error?.message || 'Failed to fetch admin champions.' }, { status: 500 });
+    return NextResponse.json({ 
+      success: true,
+      config: DEFAULT_CHAMPIONS_CONFIG,
+      availableUsers: db.getUsers().filter(u => u.role !== 'VENDOR').slice(0, 30),
+      availableSquads: [],
+    });
   }
 }
 

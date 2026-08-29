@@ -123,7 +123,7 @@ export default function ArenaPage() {
 
     loadDuels();
     loadBanner();
-    const interval = setInterval(loadDuels, 5000);
+    const interval = setInterval(loadDuels, 20000);
     return () => clearInterval(interval);
   }, []);
 

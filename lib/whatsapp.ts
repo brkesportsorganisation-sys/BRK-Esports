@@ -83,7 +83,19 @@ export async function getWhatsAppSettings(): Promise<WhatsAppSettings> {
   try {
     const { data: settings } = await supabaseAdmin
       .from('SiteSetting')
-      .select('key, value');
+      .select('key, value')
+      .in('key', [
+        'GREEN_API_URL',
+        'GREEN_API_INSTANCE_ID',
+        'GREEN_API_TOKEN',
+        'WAAPI_API_KEY',
+        'WAAPI_INSTANCE_ID',
+        'ZAVU_API_KEY',
+        'WHATSAPP_API_KEY',
+        'WHATSAPP_PROVIDER',
+        'WHATSAPP_ENABLED',
+        'WHATSAPP_ROOM_TEMPLATE',
+      ]);
 
     const map = (settings || []).reduce((acc: Record<string, string>, item: any) => {
       acc[item.key] = item.value;
@@ -1123,18 +1135,27 @@ export async function getWhatsAppLogs(): Promise<WhatsAppMessageLog[]> {
 }
 
 /**
- * Records a new WhatsApp message log.
+ * Records a new WhatsApp message log with lightweight footprint.
+ * Truncates text and keeps max 15 items to prevent database bloat.
  */
 export async function addWhatsAppLog(log: Omit<WhatsAppMessageLog, 'id' | 'sentAt'>): Promise<void> {
   try {
     const existing = await getWhatsAppLogs();
+    
+    // Sanitize image URL (never save base64 blobs into log JSON)
+    const cleanImageUrl = log.imageUrl && log.imageUrl.startsWith('http') ? log.imageUrl : undefined;
+
     const newLog: WhatsAppMessageLog = {
-      id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       sentAt: new Date().toISOString(),
       ...log,
+      messageText: (log.messageText || '').slice(0, 120), // Truncate to 120 chars
+      imageUrl: cleanImageUrl,
+      error: log.error ? String(log.error).slice(0, 100) : undefined,
     };
 
-    const updated = [newLog, ...existing].slice(0, 100);
+    // Keep only last 15 logs max
+    const updated = [newLog, ...existing].slice(0, 15);
 
     await supabaseAdmin
       .from('SiteSetting')
@@ -1146,6 +1167,27 @@ export async function addWhatsAppLog(log: Omit<WhatsAppMessageLog, 'id' | 'sentA
       }, { onConflict: 'key' });
   } catch (err) {
     console.warn('[addWhatsAppLog] failed to write log:', err);
+  }
+}
+
+/**
+ * Clears all stored WhatsApp message logs from database.
+ */
+export async function clearWhatsAppLogs(): Promise<boolean> {
+  try {
+    const { error } = await supabaseAdmin
+      .from('SiteSetting')
+      .upsert({
+        id: 'setting_WHATSAPP_MESSAGE_LOGS',
+        key: 'WHATSAPP_MESSAGE_LOGS',
+        value: JSON.stringify([]),
+        updatedAt: new Date().toISOString(),
+      }, { onConflict: 'key' });
+
+    return !error;
+  } catch (err) {
+    console.error('[clearWhatsAppLogs] error:', err);
+    return false;
   }
 }
 

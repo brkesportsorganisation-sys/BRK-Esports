@@ -4,11 +4,24 @@ import { supabaseAdmin } from '@/lib/supabase';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+const EXCLUDED_HEAVY_KEYS = [
+  'WHATSAPP_MESSAGE_LOGS',
+  'WHATSAPP_AUTOMATION_SCHEDULES',
+  'WHATSAPP_TARGET_GROUPS',
+  'WHATSAPP_FORWARDER_CONFIG',
+  'PUSH_SUBSCRIPTIONS',
+  'ARENA_DUELS',
+  'SQUADS',
+  'CHAMPIONS',
+  'SHOP_ORDERS',
+];
+
 export async function GET() {
   try {
     const { data: settings, error } = await supabaseAdmin
       .from('SiteSetting')
-      .select('key, value');
+      .select('key, value')
+      .not('key', 'in', `(${EXCLUDED_HEAVY_KEYS.join(',')})`);
 
     if (error) {
       console.warn('[GET /api/settings] Supabase warning:', error.message);
@@ -24,9 +37,7 @@ export async function GET() {
       { settings: settingsMap },
       {
         headers: {
-          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-          Pragma: 'no-cache',
-          Expires: '0',
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
         },
       }
     );

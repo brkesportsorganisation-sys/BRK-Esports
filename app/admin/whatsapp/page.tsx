@@ -3184,12 +3184,39 @@ export default function AdminWhatsAppPage() {
               <h2 className="text-base sm:text-lg font-bold text-[#0F172A]">WhatsApp Dispatch Logs</h2>
               <p className="text-xs text-slate-500">Live records of all automated schedules and player DMs.</p>
             </div>
-            <button
-              onClick={() => loadData(false)}
-              className="p-2 rounded-xl bg-[#F8FAFC] border border-slate-200 text-slate-600 hover:bg-slate-100 cursor-pointer"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-2">
+              {logs.length > 0 && (
+                <button
+                  onClick={async () => {
+                    if (confirm('আপনি কি নিশ্চিত যে সমস্ত WhatsApp লগ মুছে ফেলতে চান?')) {
+                      try {
+                        const res = await fetch('/api/admin/whatsapp/scheduler?clearLogs=true', {
+                          method: 'DELETE',
+                          credentials: 'include',
+                        });
+                        if (res.ok) {
+                          setLogs([]);
+                          showToast('সমস্ত লগ সফলভাবে মুছে ফেলা হয়েছে!', 'success');
+                        }
+                      } catch {
+                        showToast('লগ মুছতে সমস্যা হয়েছে।', 'error');
+                      }
+                    }
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Clear Logs</span>
+                </button>
+              )}
+              <button
+                onClick={() => loadData(false)}
+                className="p-2 rounded-xl bg-[#F8FAFC] border border-slate-200 text-slate-600 hover:bg-slate-100 cursor-pointer"
+                title="Refresh Logs"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           {logs.length === 0 ? (
