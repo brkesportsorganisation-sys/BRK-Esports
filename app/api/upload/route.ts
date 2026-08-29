@@ -29,13 +29,13 @@ export async function POST(req: NextRequest) {
     const safeExt = allowedExts.includes(ext) ? ext : 'jpg';
 
     // Unique filename to prevent collisions
-    const fileName = `uploads/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${safeExt}`;
+    const fileName = `whatsapp-banners/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${safeExt}`;
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
     const { data, error } = await supabaseAdmin.storage
-      .from('media')
+      .from('tournament-images')
       .upload(fileName, buffer, {
         contentType: file.type,
         upsert: false,
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
 
     // Get the public URL
     const { data: publicData } = supabaseAdmin.storage
-      .from('media')
+      .from('tournament-images')
       .getPublicUrl(data.path);
 
     const publicUrl = publicData?.publicUrl;
