@@ -957,27 +957,47 @@ export default function AdminWhatsAppPage() {
 
   const handleDeleteSchedule = async (id: string) => {
     if (!confirm('Are you sure you want to delete this automated WhatsApp schedule?')) return;
+    
+    // Optimistic instant UI update (disappears in 0ms)
+    setSchedules(prev => prev.filter(s => s.id !== id));
+    setStats(prev => ({ ...prev, totalSchedules: Math.max(0, prev.totalSchedules - 1) }));
+    showToast('Schedule deleted successfully.', 'success');
+
     try {
-      const res = await fetch(`/api/admin/whatsapp/scheduler?id=${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        showToast('Schedule deleted.', 'success');
-        await loadData();
+      const res = await fetch(`/api/admin/whatsapp/scheduler?id=${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        showToast('Server failed to delete schedule.', 'error');
+        await loadData({ silent: true, lightOnly: true });
       }
     } catch {
-      showToast('Failed to delete schedule.', 'error');
+      showToast('Network error deleting schedule.', 'error');
+      await loadData({ silent: true, lightOnly: true });
     }
   };
 
   const handleDeleteGroup = async (groupId: string) => {
     if (!confirm('Remove this WhatsApp group?')) return;
+    
+    // Optimistic instant UI update
+    setGroups(prev => prev.filter(g => g.id !== groupId && g.identifier !== groupId));
+    setStats(prev => ({ ...prev, totalGroups: Math.max(0, prev.totalGroups - 1) }));
+    showToast('Group removed.', 'success');
+
     try {
-      const res = await fetch(`/api/admin/whatsapp/scheduler?groupId=${groupId}`, { method: 'DELETE' });
-      if (res.ok) {
-        showToast('Group removed.', 'success');
-        await loadData();
+      const res = await fetch(`/api/admin/whatsapp/scheduler?groupId=${groupId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        showToast('Failed to remove group from server.', 'error');
+        await loadData({ silent: true, lightOnly: true });
       }
     } catch {
       showToast('Failed to remove group.', 'error');
+      await loadData({ silent: true, lightOnly: true });
     }
   };
 
