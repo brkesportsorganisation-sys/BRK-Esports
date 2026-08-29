@@ -769,16 +769,41 @@ export async function sendDirectWhatsappMessage({
   // 1. Send via Green-API (Developer Free & Production) if configured
   if (settings.provider === 'GREEN_API' && settings.greenApiToken) {
     let greenRes: any;
-    if (activeImageUrl) {
+
+    // Validate image URL: must be an absolute public URL (not localhost, relative, or blob)
+    const isValidPublicImageUrl = activeImageUrl &&
+      /^https?:\/\//i.test(activeImageUrl) &&
+      !activeImageUrl.includes('localhost') &&
+      !activeImageUrl.includes('127.0.0.1') &&
+      !activeImageUrl.startsWith('blob:') &&
+      !activeImageUrl.startsWith('/');
+
+    if (isValidPublicImageUrl) {
       greenRes = await sendGreenApiFile({
         chatId: formattedTo,
-        urlFile: activeImageUrl,
+        urlFile: activeImageUrl!,
         caption: text,
         apiUrl: settings.greenApiUrl,
         instanceId: settings.greenApiInstanceId,
         apiToken: settings.greenApiToken,
       });
+
+      // If image send failed (e.g., error 466 = inaccessible URL), fallback to text-only
+      if (!greenRes.success) {
+        console.warn(`[Green-API] Image send failed (${greenRes.message}). Falling back to text-only...`);
+        greenRes = await sendGreenApiMessage({
+          chatId: formattedTo,
+          message: text,
+          apiUrl: settings.greenApiUrl,
+          instanceId: settings.greenApiInstanceId,
+          apiToken: settings.greenApiToken,
+        });
+      }
     } else {
+      // No image or invalid URL — send text only
+      if (activeImageUrl && !isValidPublicImageUrl) {
+        console.warn(`[Green-API] Skipping image send — URL is not a public absolute URL: ${activeImageUrl}`);
+      }
       greenRes = await sendGreenApiMessage({
         chatId: formattedTo,
         message: text,

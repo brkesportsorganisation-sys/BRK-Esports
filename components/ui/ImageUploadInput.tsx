@@ -61,6 +61,29 @@ export default function ImageUploadInput({
     try {
       const result = await compressImageFile(file, { maxWidth, maxHeight, quality });
       setCompressionInfo(result);
+
+      // Try to upload to server and get a public HTTPS URL (required for WhatsApp/Green-API)
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        const uploadRes = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+          credentials: 'include',
+        });
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json().catch(() => ({}));
+          const publicUrl = uploadData?.url || uploadData?.publicUrl || uploadData?.path;
+          if (publicUrl && /^https?:\/\//i.test(publicUrl)) {
+            onChange(publicUrl);
+            return;
+          }
+        }
+      } catch {
+        // Upload failed — fall back to base64 dataUrl below
+      }
+
+      // Fallback: use base64 dataUrl (works for preview, but NOT for WhatsApp/Green-API)
       onChange(result.dataUrl);
     } catch (err: any) {
       alert(err?.message || 'Failed to compress and load image.');

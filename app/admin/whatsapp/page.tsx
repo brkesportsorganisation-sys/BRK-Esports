@@ -3873,6 +3873,16 @@ export default function AdminWhatsAppPage() {
                     maxHeight={800}
                     helperText="সরাসরি মোবাইল/পিসি থেকে ছবি আপলোড করতে পারবেন অথবা ছবির URL দিতে পারবেন।"
                   />
+                  {formImageUrl && formImageUrl.startsWith('data:') && (
+                    <div className="flex items-start gap-2 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-[10px] text-amber-800 font-medium">
+                      <span className="shrink-0 mt-0.5">⚠️</span>
+                      <span>
+                        এই ছবির URL (base64) WhatsApp গ্রুপে পাঠানো যাবে না — Green-API publicly accessible URL দরকার।
+                        পরিবর্তে <strong>Image URL</strong> ট্যাবে একটি public https:// link দিন (যেমন: Imgur, ImgBB, বা আপনার website-এর ছবির লিঙ্ক)।
+                        <br />Schedule image ছাড়াই text message সঠিকভাবে পাঠানো হবে।
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
