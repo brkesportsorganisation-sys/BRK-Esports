@@ -92,7 +92,7 @@ export default function SlotGrid({
   };
 
   // Generate slots mapping
-  const totalSlots = Math.min(48, maxTeams || 12);
+  const totalSlots = Number(maxTeams) > 0 ? Number(maxTeams) : 12;
   const allSlots = useMemo(() => {
     return Array.from({ length: totalSlots }, (_, i) => {
       const slotNum = i + 1;
