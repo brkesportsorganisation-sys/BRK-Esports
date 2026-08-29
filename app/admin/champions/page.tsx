@@ -235,15 +235,6 @@ export default function AdminChampionsPage() {
     });
   };
 
-  if (loading) {
-    return (
-      <div className="p-8 text-center text-xs text-slate-500 font-bold space-y-2">
-        <RefreshCw className="w-6 h-6 animate-spin mx-auto text-brand-orange" />
-        <span>Loading Hall of Champions management...</span>
-      </div>
-    );
-  }
-
   const top1 = config.topPodiums?.find(p => p.rank === 1) || DEFAULT_CHAMPIONS_CONFIG.topPodiums[0];
   const top2 = config.topPodiums?.find(p => p.rank === 2) || DEFAULT_CHAMPIONS_CONFIG.topPodiums[1];
   const top3 = config.topPodiums?.find(p => p.rank === 3) || DEFAULT_CHAMPIONS_CONFIG.topPodiums[2];
