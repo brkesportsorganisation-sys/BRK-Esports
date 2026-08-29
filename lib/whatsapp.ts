@@ -191,7 +191,7 @@ export async function sendGreenApiMessage({
       headers: {
         'Content-Type': 'application/json',
       },
-      signal: AbortSignal.timeout(4500),
+      signal: AbortSignal.timeout(8000),
       body: JSON.stringify({
         chatId: targetChatId,
         message,
@@ -1491,8 +1491,9 @@ export async function executeScheduledJob(schedule: WhatsAppSchedule): Promise<{
     }
 
     // Small delay between group messages to prevent gateway rate-limiting
+    // Green-API free tier needs at least 1-2 seconds between requests
     if (i < recipients.length - 1) {
-      await new Promise(res => setTimeout(res, 400));
+      await new Promise(res => setTimeout(res, 1500));
     }
   }
 

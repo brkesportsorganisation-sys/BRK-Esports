@@ -3215,7 +3215,9 @@ export default function AdminWhatsAppPage() {
           ) : (
             <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1 custom-scrollbar">
               {logs.map((log) => (
-                <div key={log.id} className="p-3.5 rounded-xl bg-[#F8FAFC] border border-slate-200 text-xs space-y-1">
+                <div key={log.id} className={`p-3.5 rounded-xl border text-xs space-y-1 ${
+                  log.status === 'SENT' ? 'bg-[#F8FAFC] border-slate-200' : 'bg-red-50/50 border-red-200'
+                }`}>
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-bold text-slate-900 truncate">{log.targetName || log.targetDestination}</span>
                     <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold shrink-0 ${
@@ -3224,7 +3226,12 @@ export default function AdminWhatsAppPage() {
                       {log.status}
                     </span>
                   </div>
-                  <p className="text-slate-700 text-[11px]">{log.messageText}</p>
+                  <p className="text-slate-700 text-[11px] line-clamp-2">{log.messageText}</p>
+                  {log.status === 'FAILED' && log.error && (
+                    <p className="text-red-600 text-[10px] font-medium bg-red-100 rounded-lg px-2 py-1 mt-1">
+                      ⚠️ {log.error}
+                    </p>
+                  )}
                   <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono pt-1">
                     <span>{log.triggerType}</span>
                     <span>{new Date(log.sentAt).toLocaleString()}</span>
