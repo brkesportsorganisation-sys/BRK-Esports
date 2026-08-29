@@ -52,37 +52,60 @@ export async function POST(req: NextRequest) {
     }
 
     const currentGroups = await getWhatsAppTargetGroups();
-    const existingIds = new Set(currentGroups.map(g => g.identifier));
+    const existingByIdentifier = new Map(currentGroups.map(g => [g.identifier, g]));
 
     let addedCount = 0;
+    let fixedCount = 0;
     const merged = [...currentGroups];
 
-    for (const g of fetchedGroups) {
-      if (!existingIds.has(g.identifier)) {
-        existingIds.add(g.identifier);
-        merged.push(g);
-        addedCount++;
-      } else {
+    for (const fetchedGroup of fetchedGroups) {
+      const jid = fetchedGroup.identifier; // This is a real @g.us JID
+      
+      if (existingByIdentifier.has(jid)) {
         // Update existing group name / member count
-        const idx = merged.findIndex(mg => mg.identifier === g.identifier);
+        const idx = merged.findIndex(mg => mg.identifier === jid);
         if (idx !== -1) {
           merged[idx] = {
             ...merged[idx],
-            name: g.name,
-            memberCount: g.memberCount || merged[idx].memberCount,
+            name: fetchedGroup.name || merged[idx].name,
+            memberCount: fetchedGroup.memberCount || merged[idx].memberCount,
           };
+        }
+      } else {
+        // Check if any existing group has an invite link but same name → fix it with real JID
+        const matchByName = merged.findIndex(mg =>
+          (mg.identifier.includes('chat.whatsapp.com/') || mg.identifier.includes('whatsapp.com/channel/')) &&
+          mg.name.toLowerCase().trim() === fetchedGroup.name.toLowerCase().trim()
+        );
+
+        if (matchByName !== -1) {
+          // Replace invite link with real @g.us JID
+          merged[matchByName] = {
+            ...merged[matchByName],
+            identifier: jid,
+            name: fetchedGroup.name || merged[matchByName].name,
+            memberCount: fetchedGroup.memberCount || merged[matchByName].memberCount,
+          };
+          fixedCount++;
+        } else {
+          // Genuinely new group — add it
+          merged.push(fetchedGroup);
+          addedCount++;
         }
       }
     }
 
     await saveWhatsAppTargetGroups(merged);
 
+    const fixedMsg = fixedCount > 0 ? ` (${fixedCount}টি group-এর invite link → @g.us JID-এ আপডেট হয়েছে!)` : '';
+
     return NextResponse.json({
       success: true,
-      message: `Successfully synced ${fetchedGroups.length} WhatsApp groups (${addedCount} newly added)!`,
+      message: `Successfully synced ${fetchedGroups.length} WhatsApp groups (${addedCount} নতুন added)${fixedMsg}`,
       groups: merged,
       syncedCount: fetchedGroups.length,
       newlyAddedCount: addedCount,
+      fixedCount,
     });
   } catch (error: any) {
     console.error('[POST /api/admin/whatsapp/sync-groups]', error);
