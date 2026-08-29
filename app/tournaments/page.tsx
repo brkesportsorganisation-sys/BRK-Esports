@@ -461,21 +461,21 @@ export default function TournamentsPage() {
 
         {/* Tournaments Grid */}
         {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4 md:gap-6 animate-pulse">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
+          <div className="grid grid-cols-1 gap-4 sm:gap-6 max-w-xl mx-auto w-full animate-pulse">
+            {[1, 2, 3, 4].map((i) => (
               <div key={i} className="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-xs">
-                <div className="w-full aspect-[4/3] bg-slate-200" />
-                <div className="p-3 space-y-2.5">
-                  <div className="h-4 bg-slate-200 rounded w-3/4" />
-                  <div className="h-3 bg-slate-200 rounded w-1/2" />
-                  <div className="h-7 bg-slate-100 rounded-lg" />
-                  <div className="h-8 bg-slate-200 rounded-lg mt-2" />
+                <div className="w-full aspect-[16/9] bg-slate-200" />
+                <div className="p-3.5 sm:p-4 space-y-3">
+                  <div className="h-5 bg-slate-200 rounded w-3/4" />
+                  <div className="h-3.5 bg-slate-200 rounded w-1/2" />
+                  <div className="h-8 bg-slate-100 rounded-lg" />
+                  <div className="h-10 bg-slate-200 rounded-xl mt-2" />
                 </div>
               </div>
             ))}
           </div>
         ) : filteredTournaments.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4 md:gap-6">
+          <div className="grid grid-cols-1 gap-4 sm:gap-6 max-w-xl mx-auto w-full">
             {filteredTournaments.map((t) => (
               <TournamentCard key={t.id} tournament={t} />
             ))}
