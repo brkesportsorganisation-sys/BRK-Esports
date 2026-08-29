@@ -104,12 +104,16 @@ export async function getWhatsAppSettings(): Promise<WhatsAppSettings> {
     console.warn('[WhatsApp] Could not fetch settings from database:', err);
   }
 
+  const defaultGreenToken = 'ea0c3d51fd1249bca407bb087266747fb099a650643b4d399d';
+  const defaultWaapiKey = 'FTjbix0MFIKsJWCiyLGcttqX0y1Hft8hy1abEXmEb33b91dd';
+  const defaultZavuKey = 'zv_live_057a6574405452d25b0141112a8cd4ec8b2401215f9aa27e';
+
   const greenApiUrl = dbGreenUrl || process.env.GREEN_API_URL || 'https://7107.api.greenapi.com';
   const greenApiInstanceId = dbGreenInstance || process.env.GREEN_API_INSTANCE_ID || '710722716896';
-  const greenApiToken = dbGreenToken || process.env.GREEN_API_TOKEN || '';
-  const waapiApiKey = dbWaapiKey || process.env.WAAPI_API_KEY || '';
+  const greenApiToken = dbGreenToken || process.env.GREEN_API_TOKEN || defaultGreenToken;
+  const waapiApiKey = dbWaapiKey || process.env.WAAPI_API_KEY || defaultWaapiKey;
   const waapiInstanceId = dbWaapiInstance || process.env.WAAPI_INSTANCE_ID || '102791';
-  const zavuApiKey = dbApiKey || process.env.ZAVU_API_KEY || process.env.ZAVUDEV_API_KEY || '';
+  const zavuApiKey = dbApiKey || process.env.ZAVU_API_KEY || process.env.ZAVUDEV_API_KEY || defaultZavuKey;
 
   const provider: 'GREEN_API' | 'WAAPI' | 'ZAVU' = 
     (dbProvider as any) || (greenApiToken ? 'GREEN_API' : waapiApiKey ? 'WAAPI' : 'ZAVU');

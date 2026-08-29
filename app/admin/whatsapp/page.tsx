@@ -122,10 +122,13 @@ export default function AdminWhatsAppPage() {
     provider: 'GREEN_API',
     greenApiUrl: 'https://7107.api.greenapi.com',
     greenApiInstanceId: '710722716896',
-    greenApiToken: '',
-    waapiApiKey: '',
+    greenApiToken: 'ea0c3d51fd1249bca407bb087266747fb099a650643b4d399d',
+    greenApiTokenFull: 'ea0c3d51fd1249bca407bb087266747fb099a650643b4d399d',
+    waapiApiKey: 'FTjbix0MFIKsJWCiyLGcttqX0y1Hft8hy1abEXmEb33b91dd',
+    waapiApiKeyFull: 'FTjbix0MFIKsJWCiyLGcttqX0y1Hft8hy1abEXmEb33b91dd',
     waapiInstanceId: '102791',
-    zavuApiKey: '',
+    zavuApiKey: 'zv_live_057a6574405452d25b0141112a8cd4ec8b2401215f9aa27e',
+    zavuApiKeyFull: 'zv_live_057a6574405452d25b0141112a8cd4ec8b2401215f9aa27e',
     isEnabled: true,
   });
 
@@ -361,17 +364,6 @@ export default function AdminWhatsAppPage() {
   const [isSyncingChannels, setIsSyncingChannels] = useState(false);
 
   const handleSyncChannels = async () => {
-    if (gatewaySettings.provider === 'GREEN_API' && !gatewaySettings.greenApiToken) {
-      showToast('Please paste your Green-API apiTokenInstance in "⚙️ API Config" tab first.', 'error');
-      setActiveTab('SETTINGS');
-      return;
-    }
-    if (gatewaySettings.provider === 'WAAPI' && !gatewaySettings.waapiApiKey) {
-      showToast('Please paste your WaAPI API Token in "⚙️ API Config" tab first.', 'error');
-      setActiveTab('SETTINGS');
-      return;
-    }
-
     setIsSyncingChannels(true);
     try {
       const res = await fetch('/api/admin/whatsapp/sync-channels', {
@@ -382,7 +374,7 @@ export default function AdminWhatsAppPage() {
           provider: gatewaySettings.provider,
           apiUrl: gatewaySettings.greenApiUrl,
           instanceId: gatewaySettings.provider === 'GREEN_API' ? gatewaySettings.greenApiInstanceId : gatewaySettings.waapiInstanceId,
-          apiKey: gatewaySettings.provider === 'GREEN_API' ? gatewaySettings.greenApiToken : gatewaySettings.waapiApiKey,
+          apiKey: (gatewaySettings.provider === 'GREEN_API' ? gatewaySettings.greenApiToken : gatewaySettings.waapiApiKey) || undefined,
         }),
       });
 
@@ -730,16 +722,6 @@ export default function AdminWhatsAppPage() {
   };
 
   const handleSyncGroups = async () => {
-    if (gatewaySettings.provider === 'GREEN_API' && !gatewaySettings.greenApiToken) {
-      showToast('Please paste your Green-API apiTokenInstance in "⚙️ API Config" tab first.', 'error');
-      setActiveTab('SETTINGS');
-      return;
-    }
-    if (gatewaySettings.provider === 'WAAPI' && !gatewaySettings.waapiApiKey) {
-      showToast('Please paste your WaAPI API Token in "⚙️ API Config" tab first.', 'error');
-      setActiveTab('SETTINGS');
-      return;
-    }
     setIsSyncingGroups(true);
     try {
       const res = await fetch('/api/admin/whatsapp/sync-groups', {
@@ -750,7 +732,7 @@ export default function AdminWhatsAppPage() {
           provider: gatewaySettings.provider,
           apiUrl: gatewaySettings.greenApiUrl,
           instanceId: gatewaySettings.provider === 'GREEN_API' ? gatewaySettings.greenApiInstanceId : gatewaySettings.waapiInstanceId,
-          apiKey: gatewaySettings.provider === 'GREEN_API' ? gatewaySettings.greenApiToken : gatewaySettings.waapiApiKey,
+          apiKey: (gatewaySettings.provider === 'GREEN_API' ? gatewaySettings.greenApiToken : gatewaySettings.waapiApiKey) || undefined,
         }),
       });
       const data = await res.json();
