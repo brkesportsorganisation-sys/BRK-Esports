@@ -461,10 +461,10 @@ export default function TournamentsPage() {
 
         {/* Tournaments Grid */}
         {loading ? (
-          <div className="grid grid-cols-1 gap-4 sm:gap-6 max-w-xl mx-auto w-full animate-pulse">
+          <div className="grid grid-cols-1 gap-4 sm:gap-6 max-w-md mx-auto w-full animate-pulse">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-xs">
-                <div className="w-full aspect-[16/9] bg-slate-200" />
+                <div className="w-full aspect-square bg-slate-200" />
                 <div className="p-3.5 sm:p-4 space-y-3">
                   <div className="h-5 bg-slate-200 rounded w-3/4" />
                   <div className="h-3.5 bg-slate-200 rounded w-1/2" />
@@ -475,7 +475,7 @@ export default function TournamentsPage() {
             ))}
           </div>
         ) : filteredTournaments.length > 0 ? (
-          <div className="grid grid-cols-1 gap-4 sm:gap-6 max-w-xl mx-auto w-full">
+          <div className="grid grid-cols-1 gap-4 sm:gap-6 max-w-md mx-auto w-full">
             {filteredTournaments.map((t) => (
               <TournamentCard key={t.id} tournament={t} />
             ))}

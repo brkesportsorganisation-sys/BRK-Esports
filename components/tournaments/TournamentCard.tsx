@@ -137,14 +137,14 @@ export default function TournamentCard({ tournament, priority = false }: Tournam
       <div
         className="bg-white rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md hover:border-brand-orange/40 transition-all duration-300 flex flex-col justify-between overflow-hidden relative group"
       >
-        {/* Top Banner Image - Widescreen Aspect Ratio */}
-        <div className="relative w-full aspect-[16/9] sm:aspect-[21/9] overflow-hidden bg-slate-950">
+        {/* Top Banner Image - 1:1 Square Aspect Ratio */}
+        <div className="relative w-full aspect-square overflow-hidden bg-slate-950">
           <Image
             src={tournament.bannerImage || tournament.banner || tournament.thumbnailImage || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800'}
             alt={tournament.title}
             fill
             priority={priority}
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 800px, 1200px"
+            sizes="(max-width: 640px) 100vw, 450px"
             className="object-cover object-center group-hover:scale-105 transition-transform duration-500"
           />
           {/* Subtle top shade for badges */}

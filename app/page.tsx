@@ -147,7 +147,7 @@ export default async function HomePage() {
                 </Link>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:gap-6 max-w-xl mx-auto w-full">
+              <div className="grid grid-cols-1 gap-4 sm:gap-6 max-w-md mx-auto w-full">
                 {displayedTournaments.map((tour, idx) => (
                   <TournamentCard key={tour.id} tournament={tour} priority={idx === 0} />
                 ))}
