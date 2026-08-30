@@ -74,8 +74,8 @@ export interface WhatsAppSettings {
  */
 export async function getWhatsAppSettings(): Promise<WhatsAppSettings> {
   let dbProvider: 'DIRECT_QR' | 'NODE_BOT' | 'GREEN_API' | 'WAAPI' | 'ZAVU' = 'NODE_BOT';
-  let dbNodeBotUrl = process.env.WHATSAPP_BOT_URL || 'https://your-render-app.onrender.com';
-  let dbNodeBotSecret = process.env.WHATSAPP_BOT_SECRET || 'super_secret_key_here';
+  let dbNodeBotUrl = process.env.WHATSAPP_BOT_URL || 'https://ezbd.onrender.com';
+  let dbNodeBotSecret = process.env.WHATSAPP_BOT_SECRET || 'blackrock_secret_bot_key_2026';
   let isEnabled = true;
   let defaultTemplate = `🎮 {TOURNAMENT_NAME} 🎮\n\nআপনার ম্যাচের রুম ডিটেইলস:\n🔹 Room ID: {ROOM_ID}\n🔹 Password: {ROOM_PASS}\n\nদ্রুত গেমে জয়েন করুন!`;
 
