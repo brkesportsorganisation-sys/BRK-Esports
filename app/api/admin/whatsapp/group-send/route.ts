@@ -63,11 +63,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Resolve destination if a saved group ID was passed
+    // Resolve destination if a saved group ID or name was passed
     const groups = await getWhatsAppTargetGroups();
-    const matchedGroup = groups.find(g => g.id === rawDestination || g.identifier === rawDestination);
-    const resolvedDestination = matchedGroup ? matchedGroup.identifier : rawDestination;
+    const cleanRaw = rawDestination.trim().toLowerCase();
+    const matchedGroup = groups.find(
+      g => g.id === rawDestination || 
+           g.identifier === rawDestination || 
+           g.name?.toLowerCase() === cleanRaw ||
+           (g.name && cleanRaw.includes(g.name.toLowerCase()))
+    );
+
+    let resolvedDestination = matchedGroup?.identifier || rawDestination;
     const resolvedName = groupName || matchedGroup?.name || 'WhatsApp Group';
+
+    // If resolved destination looks like an internal DB ID (e.g. grp_120363426443362477_g_us)
+    if (resolvedDestination.startsWith('grp_') && resolvedDestination.includes('_g_us')) {
+      const extracted = resolvedDestination.replace('grp_', '').replace('_g_us', '@g.us');
+      resolvedDestination = extracted;
+    }
 
     const messageText = typeof message === 'string' ? message.trim() : '';
 

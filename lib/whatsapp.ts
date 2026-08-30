@@ -1520,7 +1520,10 @@ export async function executeScheduledJob(schedule: WhatsAppSchedule): Promise<{
         const matched = allGroups.find(
           g => g.id === schedule.targetDestination || g.identifier === schedule.targetDestination || g.name === schedule.targetName
         );
-        const identifier = (matched ? matched.identifier : schedule.targetDestination)?.trim();
+        let identifier = (matched ? matched.identifier : schedule.targetDestination)?.trim();
+        if (identifier && identifier.startsWith('grp_') && identifier.includes('_g_us')) {
+          identifier = identifier.replace('grp_', '').replace('_g_us', '@g.us');
+        }
         const resolvedName = matched ? matched.name : (schedule.targetName || 'WhatsApp Group');
 
         if (identifier === 'TOURNAMENT_CAPTAINS' || identifier === 'ALL_REGISTERED') {
