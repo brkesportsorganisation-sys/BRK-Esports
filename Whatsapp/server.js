@@ -23,7 +23,7 @@ const TARGET_GROUPS = (process.env.TARGET_GROUPS || '')
   .filter(Boolean);
 
 const SOURCE_CHANNEL_JID = process.env.SOURCE_CHANNEL_JID;
-const API_SECRET = process.env.API_SECRET;
+const API_SECRET = process.env.API_SECRET || 'blackrock_secret_bot_key_2026';
 
 let sock;
 let isConnected = false;
