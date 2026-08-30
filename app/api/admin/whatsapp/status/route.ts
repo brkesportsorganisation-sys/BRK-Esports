@@ -19,9 +19,11 @@ export async function GET() {
     const settings = await getWhatsAppSettings();
 
     // 1. Node Bot Status Check
-    if (settings.provider === 'NODE_BOT' && settings.nodeBotUrl) {
+    const nodeBotUrl = settings.nodeBotUrl || process.env.WHATSAPP_BOT_URL || '';
+    if (settings.provider === 'NODE_BOT' && nodeBotUrl) {
       try {
-        const host = settings.nodeBotUrl.replace(/\/+$/, '');
+        const host = nodeBotUrl.replace(/\/+$/, '');
+
         const res = await fetch(`${host}/`, {
           signal: AbortSignal.timeout(5000),
         });

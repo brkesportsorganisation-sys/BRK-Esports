@@ -2,9 +2,10 @@
   "crons": [
     {
       "path": "/api/admin/whatsapp/cron",
-      "schedule": "0 18 * * *"
+      "schedule": "* * * * *"
     }
   ],
+
   "trailingSlash": false,
   "cleanUrls": true,
   "headers": [

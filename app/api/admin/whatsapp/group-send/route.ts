@@ -122,7 +122,8 @@ export async function POST(req: NextRequest) {
       await logAdminAction(
         session?.sub || session?.email || 'admin',
         'CREATE_GROUP_SCHEDULE',
-        `Created group schedule for ${resolvedName} (Every ${intervalMinutes}m, Max ${maxExecutions || 'Unlimited'} sends)`
+        `Created group schedule for ${resolvedName} (Every ${intervalMinutes}m, Max ${maxExecutions || 'Unlimited'} sends)`,
+        'WHATSAPP'
       );
 
       return NextResponse.json({
@@ -155,8 +156,8 @@ export async function POST(req: NextRequest) {
     await logAdminAction(
       session?.sub || session?.email || 'admin',
       'SEND_GROUP_WHATSAPP',
-      'WHATSAPP',
-      `Sent direct message to group: ${resolvedName} (${resolvedDestination})`
+      `Sent direct message to group: ${resolvedName} (${resolvedDestination})`,
+      'WHATSAPP'
     );
 
     return NextResponse.json({

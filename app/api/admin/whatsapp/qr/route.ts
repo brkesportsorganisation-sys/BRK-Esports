@@ -23,8 +23,8 @@ export async function GET() {
   try {
     const settings = await getWhatsAppSettings();
     const provider = settings.provider || 'NODE_BOT';
-    const nodeBotUrl = settings.nodeBotUrl || 'https://ezbd.onrender.com';
-    const nodeBotSecret = settings.nodeBotSecret || 'blackrock_secret_bot_key_2026';
+    const nodeBotUrl = settings.nodeBotUrl || process.env.WHATSAPP_BOT_URL || '';
+    const nodeBotSecret = settings.nodeBotSecret || process.env.WHATSAPP_BOT_SECRET || '';
 
     // 1. Node Bot QR Check
     if (provider === 'NODE_BOT' && nodeBotUrl && nodeBotSecret) {
@@ -34,7 +34,16 @@ export async function GET() {
         signal: AbortSignal.timeout(8000),
       }).catch(() => null);
 
-      const qrData = res?.ok ? await res.json().catch(() => ({})) : {};
+      if (!res) {
+        return NextResponse.json({
+          success: false,
+          status: 'OFFLINE',
+          provider: 'NODE_BOT',
+          message: 'Node Bot (Render) is unreachable. It may be sleeping — wait 30s and refresh.',
+        });
+      }
+
+      const qrData = res.ok ? await res.json().catch(() => ({})) : {};
 
       if (qrData?.status === 'CONNECTED') {
         return NextResponse.json({
@@ -83,7 +92,7 @@ export async function GET() {
 
 /**
  * POST /api/admin/whatsapp/qr
- * Controls QR session actions (LOGOUT, REBOOT, SYNC_GROUPS).
+ * Controls QR session actions: REBOOT (reconnect), LOGOUT (clear session).
  */
 export async function POST(req: NextRequest) {
   const session = await getSession();
@@ -92,10 +101,61 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    return NextResponse.json({ message: 'Reboot/Logout must be done from Render dashboard for Node Bot.' }, { status: 400 });
+    const body = await req.json().catch(() => ({}));
+    const { action } = body;
+    const settings = await getWhatsAppSettings();
+    const nodeBotUrl = settings.nodeBotUrl || process.env.WHATSAPP_BOT_URL || '';
+    const nodeBotSecret = settings.nodeBotSecret || process.env.WHATSAPP_BOT_SECRET || '';
+
+    if (settings.provider !== 'NODE_BOT' || !nodeBotUrl) {
+      return NextResponse.json({
+        message: 'QR control actions are only available in NODE_BOT mode.',
+      }, { status: 400 });
+    }
+
+    if (action === 'REBOOT') {
+      // Hit the health endpoint to wake the bot (Render free tier wake-up)
+      const host = nodeBotUrl.replace(/\/+$/, '');
+      const wakeRes = await fetch(`${host}/`, {
+        signal: AbortSignal.timeout(30000),
+      }).catch(() => null);
+
+      const isAlive = wakeRes?.ok;
+
+      await logAdminAction(
+        session?.sub || session?.email || 'admin',
+        'WHATSAPP_BOT_REBOOT',
+        'WHATSAPP',
+        `Attempted to wake/reboot Node Bot. Response: ${isAlive ? 'alive' : 'no response'}`
+      );
+
+      return NextResponse.json({
+        success: isAlive,
+        message: isAlive
+          ? '✅ Node Bot is awake! Refresh the QR status in a few seconds.'
+          : '⚠️ Bot did not respond within 30s. It may be restarting. Try again in 1 minute.',
+      });
+    }
+
+    if (action === 'LOGOUT') {
+      // We cannot directly delete baileys_auth_info/ from here.
+      // Instruct admin to do it manually.
+      await logAdminAction(
+        session?.sub || session?.email || 'admin',
+        'WHATSAPP_BOT_LOGOUT',
+        'WHATSAPP',
+        'Admin triggered WhatsApp logout instruction'
+      );
+
+      return NextResponse.json({
+        success: true,
+        message: '⚠️ To fully logout: Go to your Render dashboard → your WhatsApp service → Shell → run: rm -rf baileys_auth_info/ && node server.js to re-scan a fresh QR code.',
+      });
+    }
+
+    return NextResponse.json({ message: `Unknown action: ${action}` }, { status: 400 });
   } catch (error: any) {
     console.error('[POST /api/admin/whatsapp/qr]', error);
     return NextResponse.json({ success: false, message: error?.message || 'QR action failed' }, { status: 500 });
   }
 }
-

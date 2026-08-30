@@ -1,117 +1,132 @@
-# Blackrock Esports — WhatsApp Channel-to-Group Forwarder & Scheduler
+# Blackrock Esports — WhatsApp Bot Backend
 
-Forwards messages from a WhatsApp Channel into 5 target groups, and lets your Vercel
-frontend/admin panel schedule messages to be sent later.
+Channel-to-Group auto-forwarder + Scheduled messenger + Auto-reply bot for Blackrock Esports.
 
-⚠️ **Important:** This uses Baileys, an **unofficial** WhatsApp Web automation library —
-not the official WhatsApp Business API. Using it risks the connected number being banned
-by WhatsApp, especially with bulk/automated sending. Recommendations:
-- Use a **separate/spare number**, not your main personal or business number.
-- Keep the 1.5s delay between sends (already in the code) — don't remove it.
-- Don't scale this to sending hundreds of messages per minute.
+⚠️ **Important:** This uses Baileys — an **unofficial** WhatsApp Web library. Use a **spare number**, not your main number.
 
 ---
 
-## Step 1 — Set up MongoDB Atlas (free)
+## Architecture Overview
 
-1. Go to https://www.mongodb.com/cloud/atlas/register and create a free account.
-2. Create a free **M0 cluster**.
-3. Under "Database Access," create a user with a username/password.
-4. Under "Network Access," allow access from anywhere (`0.0.0.0/0`) — needed since Render's IP isn't static.
-5. Click "Connect" → "Drivers" → copy the connection string. It looks like:
-   `mongodb+srv://<username>:<password>@cluster0.xxx.mongodb.net/?retryWrites=true&w=majority`
-6. Add a database name to the end, e.g. `.../whatsapp_bot?retryWrites=true...`
-
-## Step 2 — Install dependencies locally
-
-```bash
-cd wa-bot-backend
-npm install
+```
+Vercel (Next.js Admin Panel)
+    │
+    │  HTTP API calls (x-api-secret header)
+    ▼
+Render (Node.js + Baileys) ←──── WhatsApp Web QR Session
+    │
+    ▼
+MongoDB Atlas (whatsapp_automation database)
 ```
 
-## Step 3 — Create your `.env` file
+---
 
-Copy `.env.example` to `.env` and fill in:
-- `MONGO_URI` — from Step 1.
-- `API_SECRET` — make up any long random string; your frontend will send this in a header to prove it's allowed to schedule messages.
-- Leave `TARGET_GROUPS` and `SOURCE_CHANNEL_JID` as placeholders for now — you'll fill them in Step 5.
+## Step 1 — MongoDB Atlas Setup
 
-## Step 4 — First run & connect WhatsApp
+1. Go to https://www.mongodb.com/cloud/atlas/register — create free M0 cluster
+2. Database Access → create user with password
+3. Network Access → add `0.0.0.0/0` (needed since Render IP isn't static)
+4. Connect → Drivers → copy connection string
+5. Your URI format: `mongodb+srv://<user>:<pass>@cluster0.xxx.mongodb.net/whatsapp_automation?retryWrites=true&w=majority`
+
+---
+
+## Step 2 — Local Setup
 
 ```bash
+cd Whatsapp
+npm install
+cp .env.example .env
+# Fill in your .env values
 node server.js
 ```
 
-A QR code will print in your terminal. On your **spare WhatsApp number**:
-`WhatsApp → Settings → Linked Devices → Link a Device` → scan the QR code.
+A QR code appears in terminal. On your **spare WhatsApp number**:
+`WhatsApp → Settings → Linked Devices → Link a Device` → scan QR
 
-Once connected you'll see `✅ WhatsApp successfully connected!`. This creates a
-`baileys_auth_info/` folder holding your session — **never commit this folder to git**
-(it's already in `.gitignore`).
+Once connected: `✅ WhatsApp successfully connected!`
 
-## Step 5 — Get your Group JIDs and Channel JID
+---
 
-Stop the server (Ctrl+C), then run:
+## Step 3 — Get Group & Channel JIDs
 
+After connecting, run:
 ```bash
 node get-group-ids.js
 ```
 
-This prints every group you're in with its JID, like:
+This prints all groups with JIDs like:
 ```
 Blackrock Tournament Updates  →  120363012345678901@g.us
 ```
 
-Copy the 5 group JIDs you want into `TARGET_GROUPS` in `.env` (comma-separated, no spaces).
-
-For the **channel** JID (the source you're forwarding *from*), channel JIDs end in
-`@newsletter` — the easiest way to get this is to send a test message referencing the
-channel while your bot is logged/connected and check the console log, since Baileys
-doesn't currently expose a simple "list my channels" call the way it does for groups.
-If you get stuck here, share what you see in the console and I'll help you pin it down.
-
-## Step 6 — Deploy to Render
-
-1. Push this project to a **private** GitHub repo (make sure `.env` and `baileys_auth_info/` are NOT included — check `.gitignore`).
-2. On https://render.com → New → Web Service → connect your repo.
-3. Build command: `npm install`
-4. Start command: `npm start`
-5. Add all your `.env` values under Render's "Environment" tab (Render doesn't read your local `.env` file).
-6. Deploy. Watch the logs — you'll need to scan the QR code again in Render's log output for this deployed instance (session isn't shared from your local run).
-
-**Keep-alive:** Render's free tier sleeps after 15 minutes of inactivity, which will
-disconnect WhatsApp. Set up a free ping service like https://cron-job.org to hit your
-Render URL (e.g. `https://your-app.onrender.com/`) every 5 minutes.
-
-## Step 7 — Connect your Vercel frontend
-
-From your Next.js API route or admin panel action, call:
-
-```javascript
-await fetch('https://your-app.onrender.com/api/schedule-message', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'x-api-secret': process.env.WA_BOT_API_SECRET, // same value as API_SECRET on Render
-  },
-  body: JSON.stringify({
-    message: 'Tournament starts in 30 minutes!',
-    sendAt: '2026-08-30T18:00:00.000Z', // ISO timestamp
-  }),
-});
-```
-
-Store `WA_BOT_API_SECRET` in your Vercel project's environment variables — never expose
-it in client-side code, only call this from a server-side API route.
+Or use the Admin Panel → WhatsApp → Sync Groups button (calls `/api/get-groups`).
 
 ---
 
-## Known Limitations / Next Steps
+## Step 4 — Deploy to Render
 
-- Session is stored on Render's local disk (`baileys_auth_info/`) — if Render restarts
-  the container's filesystem in a way that wipes it (shouldn't normally happen on a
-  paid/persistent instance, but can on some free-tier redeploys), you'll need to re-scan
-  the QR code. For full resilience later, the session data can be moved into MongoDB
-  instead of the filesystem — let me know if you want that version.
-- No retry/alerting if WhatsApp disconnects and doesn't reconnect — consider adding an
-  email/Telegram alert to yourself for production use.
+1. Push `Whatsapp/` folder to a **private** GitHub repo
+   - Make sure `.gitignore` excludes `.env` and `baileys_auth_info/`
+2. Render → New → Web Service → connect your repo
+3. **Build command:** `npm install`
+4. **Start command:** `npm start`
+5. Set these **Environment Variables** in Render:
+
+| Variable | Value |
+|----------|-------|
+| `MONGO_URI` | Your MongoDB Atlas URI |
+| `API_SECRET` | A long random secret (must match `WHATSAPP_BOT_SECRET` on Vercel) |
+| `ALLOWED_ORIGIN` | Your Vercel URL (e.g. `https://brkesports.vercel.app`) |
+| `TARGET_GROUPS` | Comma-separated group JIDs (can set later via Sync) |
+| `SOURCE_CHANNEL_JID` | Your channel JID ending in `@newsletter` |
+
+6. Deploy → watch logs → scan QR code in Render log output
+
+---
+
+## Step 5 — Keep Render Alive (Free Tier)
+
+Render free tier sleeps after 15 minutes. Set up https://cron-job.org to ping your Render URL every **5 minutes**:
+```
+https://your-app.onrender.com/
+```
+
+Or your Vercel cron (already configured at `* * * * *`) will also hit the WhatsApp cron endpoint which keeps Render awake as a side effect.
+
+---
+
+## Step 6 — Connect Vercel Frontend
+
+Set these in **Vercel Dashboard → Settings → Environment Variables**:
+
+| Variable | Value |
+|----------|-------|
+| `WHATSAPP_BOT_URL` | Your Render URL (e.g. `https://ezbd.onrender.com`) |
+| `WHATSAPP_BOT_SECRET` | Same as `API_SECRET` on Render |
+| `MONGODB_URI` | Your MongoDB Atlas URI |
+| `CRON_SECRET` | Any random string for cron security |
+
+---
+
+## API Endpoints (All require `x-api-secret` header)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/` | Health check (no auth needed) |
+| `GET` | `/api/qr` | Get QR code or CONNECTED status |
+| `POST` | `/api/schedule-message` | Schedule or send immediate message |
+| `GET` | `/api/scheduled-messages` | List scheduled messages |
+| `POST` | `/api/send-direct` | Send to individual phone or group JID |
+| `GET` | `/api/get-groups` | List all connected WhatsApp groups |
+| `GET` | `/api/get-channels` | List followed WhatsApp channels |
+| `GET` | `/api/bot-config` | Get auto-reply bot config |
+| `POST` | `/api/bot-config` | Save auto-reply bot config |
+
+---
+
+## Known Limitations
+
+- Session stored in `baileys_auth_info/` on Render filesystem — restart may require re-scan
+- Baileys channel listing is limited; channels detected from message events
+- WhatsApp rate limits: keep 1.5s+ delay between messages (already configured)

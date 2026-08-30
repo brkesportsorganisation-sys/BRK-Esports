@@ -891,13 +891,32 @@ export async function sendDirectWhatsappMessage({
   // Send via Node Bot API
   if (settings.provider === 'NODE_BOT' && settings.nodeBotUrl && settings.nodeBotSecret) {
     try {
-      const payload = {
-        message: activeImageUrl ? `${text}\n\n🖼️ Media: ${activeImageUrl}` : text,
-        sendAt: new Date().toISOString(), // Send immediately
-        groupJids: [formattedTo],
-      };
+      const isGroupOrChannel =
+        formattedTo.includes('@g.us') ||
+        formattedTo.includes('@newsletter') ||
+        formattedTo.includes('@broadcast');
 
-      const res = await fetch(`${settings.nodeBotUrl}/api/schedule-message`, {
+      let endpoint: string;
+      let payload: Record<string, unknown>;
+
+      if (isGroupOrChannel) {
+        // Groups: use schedule-message with immediate sendAt
+        endpoint = '/api/schedule-message';
+        payload = {
+          message: activeImageUrl ? `${text}\n\n🖼️ Media: ${activeImageUrl}` : text,
+          sendAt: new Date().toISOString(),
+          groupJids: [formattedTo],
+        };
+      } else {
+        // Individual phone: use send-direct
+        endpoint = '/api/send-direct';
+        payload = {
+          to: formattedTo,
+          message: activeImageUrl ? `${text}\n\n🖼️ Media: ${activeImageUrl}` : text,
+        };
+      }
+
+      const res = await fetch(`${settings.nodeBotUrl}${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -916,10 +935,10 @@ export async function sendDirectWhatsappMessage({
           status: 'SENT',
           responseId: 'node_bot_queued',
         });
-        return { success: true, message: `Queued to Node Bot for ${formattedTo}` };
+        return { success: true, message: `Sent via Node Bot to ${formattedTo}` };
       } else {
         const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to queue message to Node Bot');
+        throw new Error(errorData.error || `Node Bot returned ${res.status}`);
       }
     } catch (err: any) {
       console.warn(`[Node Bot] Dispatch failed: ${err.message}`);
@@ -934,6 +953,7 @@ export async function sendDirectWhatsappMessage({
       return { success: false, message: err.message, error: err };
     }
   }
+
 
   // 3. DIRECT_QR fallback for simple wa.me links
   return { 
