@@ -99,11 +99,11 @@ export async function getWhatsAppSettings(): Promise<WhatsAppSettings> {
   }
 
   return {
-    provider: dbProvider,
-    nodeBotUrl: dbNodeBotUrl,
-    nodeBotSecret: dbNodeBotSecret,
-    isEnabled,
-    defaultTemplate,
+    provider: dbProvider || 'NODE_BOT',
+    nodeBotUrl: dbNodeBotUrl || 'https://ezbd.onrender.com',
+    nodeBotSecret: dbNodeBotSecret || 'blackrock_secret_bot_key_2026',
+    isEnabled: isEnabled ?? true,
+    defaultTemplate: defaultTemplate,
   };
 }
 

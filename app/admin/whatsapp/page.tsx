@@ -124,8 +124,8 @@ export default function AdminWhatsAppPage() {
     isEnabled: boolean;
   }>({
     provider: 'NODE_BOT',
-    nodeBotUrl: 'https://your-render-app.onrender.com',
-    nodeBotSecret: 'super_secret_key_here',
+    nodeBotUrl: 'https://ezbd.onrender.com',
+    nodeBotSecret: 'blackrock_secret_bot_key_2026',
     isEnabled: true,
   });
 
@@ -486,8 +486,8 @@ export default function AdminWhatsAppPage() {
         if (setJson?.settings) {
           setGatewaySettings({
             provider: setJson.settings.provider || 'NODE_BOT',
-            nodeBotUrl: setJson.settings.nodeBotUrl || 'https://your-bot.onrender.com',
-            nodeBotSecret: setJson.settings.nodeBotSecret || 'super_secret_key_here',
+            nodeBotUrl: setJson.settings.nodeBotUrl || 'https://ezbd.onrender.com',
+            nodeBotSecret: setJson.settings.nodeBotSecret || 'blackrock_secret_bot_key_2026',
             isEnabled: setJson.settings.isEnabled !== false,
           });
         }

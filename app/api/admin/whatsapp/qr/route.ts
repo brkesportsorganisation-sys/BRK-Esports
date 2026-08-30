@@ -23,12 +23,14 @@ export async function GET() {
   try {
     const settings = await getWhatsAppSettings();
     const provider = settings.provider || 'NODE_BOT';
+    const nodeBotUrl = settings.nodeBotUrl || 'https://ezbd.onrender.com';
+    const nodeBotSecret = settings.nodeBotSecret || 'blackrock_secret_bot_key_2026';
 
     // 1. Node Bot QR Check
-    if (provider === 'NODE_BOT' && settings.nodeBotUrl && settings.nodeBotSecret) {
-      const host = settings.nodeBotUrl.replace(/\/+$/, '');
+    if (provider === 'NODE_BOT' && nodeBotUrl && nodeBotSecret) {
+      const host = nodeBotUrl.replace(/\/+$/, '');
       const res = await fetch(`${host}/api/qr`, {
-        headers: { 'x-api-secret': settings.nodeBotSecret },
+        headers: { 'x-api-secret': nodeBotSecret },
         signal: AbortSignal.timeout(8000),
       }).catch(() => null);
 
