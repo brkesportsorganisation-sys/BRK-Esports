@@ -11,7 +11,7 @@ const {
   fetchLatestWaWebVersion,
 } = require('@whiskeysockets/baileys');
 
-const ScheduledMessage = require('./models/ScheduledMessage');
+const ScheduledMessage = require('./ScheduledMessage');
 
 const app = express();
 app.use(express.json());
