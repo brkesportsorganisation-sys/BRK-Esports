@@ -47,6 +47,8 @@ import {
   Square,
   Hash,
   Link2,
+  QrCode,
+  LogOut,
 } from 'lucide-react';
 import { WhatsAppSchedule, WhatsAppTargetGroup, WhatsAppMessageLog, WhatsAppFrequency, WhatsAppTargetType, WhatsAppForwarderConfig } from '@/lib/types';
 import ImageUploadInput from '@/components/ui/ImageUploadInput';
@@ -66,7 +68,7 @@ interface WhatsAppContact {
 }
 
 export default function AdminWhatsAppPage() {
-  const [activeTab, setActiveTab] = useState<'DIRECT_INBOX' | 'CHANNEL_FORWARDER' | 'SCHEDULES' | 'BOT_AUTO_REPLY' | 'INSTANT_BROADCAST' | 'GROUPS' | 'LOGS' | 'SETTINGS'>('DIRECT_INBOX');
+  const [activeTab, setActiveTab] = useState<'DIRECT_INBOX' | 'QR_CONNECT' | 'CHANNEL_FORWARDER' | 'SCHEDULES' | 'BOT_AUTO_REPLY' | 'INSTANT_BROADCAST' | 'GROUPS' | 'LOGS' | 'SETTINGS'>('DIRECT_INBOX');
   const [schedules, setSchedules] = useState<WhatsAppSchedule[]>([]);
   const [groups, setGroups] = useState<WhatsAppTargetGroup[]>([]);
   const [logs, setLogs] = useState<WhatsAppMessageLog[]>([]);
@@ -83,6 +85,14 @@ export default function AdminWhatsAppPage() {
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   const [lastSyncTime, setLastSyncTime] = useState<string>('');
   const [isMongoConnected, setIsMongoConnected] = useState<boolean | null>(null);
+
+  // WhatsApp Web Direct QR Code State
+  const [qrStatus, setQrStatus] = useState<'CONNECTED' | 'WAITING_FOR_SCAN' | 'SCAN_REQUIRED' | 'CONFIG_REQUIRED' | 'INITIALIZING' | 'LOADING'>('LOADING');
+  const [qrCodeImage, setQrCodeImage] = useState<string>('');
+  const [qrPhoneNumber, setQrPhoneNumber] = useState<string>('');
+  const [qrMessage, setQrMessage] = useState<string>('');
+  const [isQrLoading, setIsQrLoading] = useState(false);
+  const [qrCountdown, setQrCountdown] = useState(20);
 
   // Selected player for Direct DM
   const [selectedContact, setSelectedContact] = useState<WhatsAppContact | null>(null);
@@ -521,6 +531,91 @@ export default function AdminWhatsAppPage() {
       setLoading(false);
     }
   };
+
+  const fetchQrStatus = async () => {
+    setIsQrLoading(true);
+    try {
+      const res = await fetch('/api/admin/whatsapp/qr', {
+        credentials: 'include',
+        signal: AbortSignal.timeout(9000),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
+        setQrStatus(data.status || 'CONNECTED');
+        if (data.qrCodeImage) setQrCodeImage(data.qrCodeImage);
+        if (data.phoneNumber) setQrPhoneNumber(data.phoneNumber);
+        if (data.message) setQrMessage(data.message);
+        setQrCountdown(20);
+      } else {
+        if (data.status) setQrStatus(data.status);
+        if (data.message) setQrMessage(data.message);
+      }
+    } catch (err: any) {
+      console.warn('[fetchQrStatus error]', err);
+    } finally {
+      setIsQrLoading(false);
+    }
+  };
+
+  const handleLogoutQr = async () => {
+    if (!confirm('Are you sure you want to unlink/log out this WhatsApp device? You will need to scan QR again.')) return;
+    setIsQrLoading(true);
+    try {
+      const res = await fetch('/api/admin/whatsapp/qr', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'LOGOUT' }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        showToast(data.message || 'WhatsApp logged out. Please scan new QR.', 'success');
+        await fetchQrStatus();
+      } else {
+        showToast(data.message || 'Failed to logout device.', 'error');
+      }
+    } catch (err: any) {
+      showToast(err?.message || 'Logout failed.', 'error');
+    } finally {
+      setIsQrLoading(false);
+    }
+  };
+
+  const handleRebootQr = async () => {
+    setIsQrLoading(true);
+    try {
+      const res = await fetch('/api/admin/whatsapp/qr', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'REBOOT' }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        showToast('WhatsApp instance rebooted.', 'success');
+        setTimeout(() => fetchQrStatus(), 2000);
+      }
+    } catch (err: any) {
+      showToast('Reboot failed.', 'error');
+    } finally {
+      setIsQrLoading(false);
+    }
+  };
+
+  // Auto-refresh QR code when on QR_CONNECT tab
+  useEffect(() => {
+    if (activeTab === 'QR_CONNECT') {
+      fetchQrStatus();
+      const interval = setInterval(() => {
+        setQrCountdown(prev => {
+          if (prev <= 1) {
+            fetchQrStatus();
+            return 20;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [activeTab]);
 
   function formatNextRun(nextRunAt?: string) {
     if (!nextRunAt) return 'Not scheduled';
@@ -1215,6 +1310,14 @@ export default function AdminWhatsAppPage() {
         {/* Quick Action Touch Buttons */}
         <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
           <button
+            onClick={() => setActiveTab('QR_CONNECT')}
+            className="flex-1 sm:flex-initial px-3.5 py-2.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 text-xs font-bold flex items-center justify-center gap-1.5 border border-emerald-500/40 shadow-xs transition-all cursor-pointer active:scale-95 whitespace-nowrap"
+          >
+            <QrCode className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Link Phone (QR)</span>
+          </button>
+
+          <button
             onClick={() => loadData(false)}
             className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition-all cursor-pointer flex items-center justify-center shrink-0 active:scale-95"
             title="Refresh"
@@ -1332,6 +1435,19 @@ export default function AdminWhatsAppPage() {
         >
           <Smartphone className="w-4 h-4 shrink-0" />
           <span>📱 Direct Player Inbox & DM ({contacts.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('QR_CONNECT')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-[12px] text-xs font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
+            activeTab === 'QR_CONNECT'
+              ? 'bg-emerald-600 text-white shadow-xs'
+              : 'bg-white border border-[#E2E8F0] text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+          }`}
+        >
+          <QrCode className="w-4 h-4 shrink-0 text-emerald-500" />
+          <span>📷 WhatsApp Web QR {qrStatus === 'CONNECTED' ? '🟢' : '🟡'}</span>
         </button>
 
         <button
@@ -1753,6 +1869,214 @@ export default function AdminWhatsAppPage() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* 📷 TAB: WHATSAPP WEB DIRECT QR CODE CONNECT              */}
+      {/* ======================================================== */}
+      {activeTab === 'QR_CONNECT' && (
+        <div className="space-y-6">
+          {/* Top Banner */}
+          <div className="bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 border border-emerald-500/30 p-6 rounded-[24px] text-white shadow-xl flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div className="flex items-start sm:items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/10">
+                <QrCode className="w-7 h-7 text-emerald-400" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <h3 className="text-lg font-black text-white tracking-tight">
+                    WhatsApp Web Direct QR Scanner & Device Linking
+                  </h3>
+                  <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide border ${
+                    qrStatus === 'CONNECTED'
+                      ? 'bg-emerald-900/80 text-emerald-300 border-emerald-500/50'
+                      : 'bg-amber-900/80 text-amber-300 border-amber-500/50 animate-pulse'
+                  }`}>
+                    {qrStatus === 'CONNECTED' ? '● AUTHORIZED & CONNECTED' : '● SCAN QR CODE TO LINK'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 max-w-2xl">
+                  আপনার মোবাইল WhatsApp দিয়ে নিচের QR কোডটি স্ক্যান করে সাইটের সাথে লিঙ্ক করুন। কোনো থার্ড-পার্টি খরচ ছাড়া ১০০% ফ্রিতে আনলিমিটেড গ্রুপে শিডিউলার মেসেজ পাঠান।
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 shrink-0 flex-wrap">
+              <button
+                type="button"
+                onClick={fetchQrStatus}
+                disabled={isQrLoading}
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold flex items-center gap-2 border border-slate-700 shadow-sm transition-all cursor-pointer disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isQrLoading ? 'animate-spin' : ''}`} />
+                <span>Refresh Status</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Main Grid: QR Box + Instructions */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Left Card: QR Scanner / Connected Box (7 cols) */}
+            <div className="lg:col-span-7 bg-white border border-[#E2E8F0] rounded-[24px] p-6 shadow-sm space-y-6">
+              {qrStatus === 'CONNECTED' ? (
+                <div className="py-8 text-center space-y-6">
+                  <div className="w-20 h-20 rounded-full bg-emerald-50 text-emerald-600 border-2 border-emerald-500/30 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/10">
+                    <CheckCircle2 className="w-10 h-10 animate-bounce" />
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="text-xl font-black text-slate-900">
+                      WhatsApp Web সফলভাবে কানেক্টেড! 🎉
+                    </h4>
+                    <p className="text-xs text-slate-500 max-w-md mx-auto">
+                      আপনার WhatsApp অ্যাকাউন্টটি বর্তমানে সক্রিয় আছে। ওয়েবসাইট থেকে সমস্ত গ্রুপ ব্রডকাস্ট ও শিডিউল মেসেজ এই অ্যাকাউন্ট থেকেই যাবে।
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 max-w-md mx-auto space-y-2 text-left">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-500 font-medium">কানেক্টেড মোবাইল নম্বর:</span>
+                      <strong className="text-emerald-700 font-mono font-bold text-sm">
+                        {qrPhoneNumber || '+880 1846-587311'}
+                      </strong>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-500 font-medium">সেশন স্টোরেজ:</span>
+                      <span className="text-emerald-600 font-bold font-mono">🍃 MongoDB Atlas (0% Egress)</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-500 font-medium">গ্রুপ ব্রডকাস্ট স্ট্যাটাস:</span>
+                      <span className="text-emerald-600 font-bold">✅ Unlimited Groups Active</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-center gap-3 pt-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={handleSyncGroups}
+                      disabled={isSyncingGroups}
+                      className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-2 shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isSyncingGroups ? 'animate-spin' : ''}`} />
+                      <span>{isSyncingGroups ? 'Syncing...' : 'গ্রুপগুলো সিঙ্ক করুন (Sync Groups)'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleLogoutQr}
+                      disabled={isQrLoading}
+                      className="px-5 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-2 transition-all cursor-pointer"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>লগআউট / নতুন ফোন স্ক্যান করুন</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-5 text-center">
+                  <div className="space-y-1 text-left">
+                    <h4 className="text-base font-black text-slate-900">
+                      QR কোড স্ক্যান করে ডিভাইস লিঙ্ক করুন
+                    </h4>
+                    <p className="text-xs text-slate-500">
+                      নিচের কোডটি আপনার মোবাইলের WhatsApp ক্যামেরা দিয়ে স্ক্যান করুন।
+                    </p>
+                  </div>
+
+                  {/* QR Image Box */}
+                  <div className="relative w-72 h-72 mx-auto p-4 rounded-3xl bg-white border-2 border-dashed border-emerald-500/40 shadow-md flex items-center justify-center overflow-hidden">
+                    {qrCodeImage ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={qrCodeImage}
+                        alt="WhatsApp QR Code"
+                        className="w-full h-full object-contain rounded-2xl"
+                      />
+                    ) : (
+                      <div className="space-y-3 p-4">
+                        <Loader2 className="w-10 h-10 text-emerald-600 animate-spin mx-auto" />
+                        <p className="text-xs text-slate-500 font-medium">QR কোড জেনারেট হচ্ছে...</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-center gap-3 text-xs text-slate-500">
+                    <span className="inline-flex items-center gap-1 font-mono">
+                      <Clock className="w-3.5 h-3.5 text-amber-500" />
+                      অটো-রিফ্রেশ: <strong>{qrCountdown}s</strong>
+                    </span>
+                    <span>•</span>
+                    <button
+                      type="button"
+                      onClick={fetchQrStatus}
+                      className="text-emerald-600 hover:text-emerald-700 font-bold cursor-pointer underline underline-offset-2"
+                    >
+                      এখনই রিফ্রেশ করুন
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Right Card: Step-by-Step Instructions (5 cols) */}
+            <div className="lg:col-span-5 space-y-6">
+              <div className="p-6 rounded-[24px] bg-slate-900 text-white space-y-5 shadow-lg border border-slate-800">
+                <h4 className="text-sm font-black text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+                  <Smartphone className="w-4 h-4" />
+                  <span>কীভাবে স্ক্যান করবেন? (Instructions)</span>
+                </h4>
+
+                <div className="space-y-4 text-xs text-slate-300">
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-emerald-500 text-slate-950 font-black flex items-center justify-center shrink-0 text-xs">
+                      ১
+                    </div>
+                    <div>
+                      <strong className="text-white block font-bold">WhatsApp ওপেন করুন:</strong>
+                      আপনার মোবাইলে WhatsApp ওপেন করুন।
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-emerald-500 text-slate-950 font-black flex items-center justify-center shrink-0 text-xs">
+                      ২
+                    </div>
+                    <div>
+                      <strong className="text-white block font-bold">Linked Devices-এ যান:</strong>
+                      Android-এ উপরে থাকা <strong>(⋮) ৩ ডট মেনু</strong> অথবা iPhone-এ <strong>Settings (⚙️)</strong> এ গিয়ে <strong>Linked Devices</strong> সিলেক্ট করুন।
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-emerald-500 text-slate-950 font-black flex items-center justify-center shrink-0 text-xs">
+                      ৩
+                    </div>
+                    <div>
+                      <strong className="text-white block font-bold">Link a Device চাপুন:</strong>
+                      <strong>"Link a Device"</strong> বাটনে ক্লিক করে ফোনের ক্যামেরা দিয়ে বামের QR কোডটি স্ক্যান করুন।
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-emerald-500 text-slate-950 font-black flex items-center justify-center shrink-0 text-xs">
+                      ৪
+                    </div>
+                    <div>
+                      <strong className="text-white block font-bold">সফল কানেকশন:</strong>
+                      স্ক্যান সম্পন্ন হলেই সাথে সাথে আপনার ওয়েবসাইট লাইভ কানেক্ট হয়ে যাবে!
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-800/80 border border-slate-700/60 text-[11px] text-emerald-300 space-y-1">
+                  <p className="font-bold">🛡️ ডেটাবেস ও সিকিউরিটি নিশ্চয়তা:</p>
+                  <p className="text-slate-400">
+                    সমস্ত সেশন ও কি-স্টোর সরাসরি <strong>MongoDB Atlas</strong>-এ সেভ থাকবে, ফলে আপনার মূল Supabase ডেটাবেসের উপর <strong>০% প্রেসার বা Egress ব্যান্ডউইথ</strong> খরচ হবে।
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
