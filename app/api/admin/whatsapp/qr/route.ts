@@ -46,12 +46,18 @@ export async function GET() {
       const qrData = res.ok ? await res.json().catch(() => ({})) : {};
 
       if (qrData?.status === 'CONNECTED') {
+        const rawUserId = qrData?.user?.id || '';
+        const phoneDigits = rawUserId.split(':')[0]?.split('@')[0] || '';
+        const displayPhone = phoneDigits ? `+${phoneDigits}` : '+880 WhatsApp Bot';
+        const userName = qrData?.user?.name ? ` (${qrData.user.name})` : '';
+
         return NextResponse.json({
           success: true,
           status: 'CONNECTED',
           provider: 'NODE_BOT',
           stateInstance: 'authorized',
-          phoneNumber: '+880 WhatsApp Bot',
+          phoneNumber: `${displayPhone}${userName}`,
+          groupsCount: qrData?.groupsCount || 0,
           message: 'WhatsApp Web is authorized and active!',
         });
       }
@@ -138,18 +144,25 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === 'LOGOUT') {
-      // We cannot directly delete baileys_auth_info/ from here.
-      // Instruct admin to do it manually.
+      const host = nodeBotUrl.replace(/\/+$/, '');
+      const logoutRes = await fetch(`${host}/api/logout`, {
+        method: 'POST',
+        headers: { 'x-api-secret': nodeBotSecret },
+        signal: AbortSignal.timeout(15000),
+      }).catch(() => null);
+
+      const logoutData = logoutRes?.ok ? await logoutRes.json().catch(() => ({})) : {};
+
       await logAdminAction(
         session?.sub || session?.email || 'admin',
         'WHATSAPP_BOT_LOGOUT',
         'WHATSAPP',
-        'Admin triggered WhatsApp logout instruction'
+        'Admin disconnected WhatsApp session to generate a fresh QR code'
       );
 
       return NextResponse.json({
         success: true,
-        message: '⚠️ To fully logout: Go to your Render dashboard → your WhatsApp service → Shell → run: rm -rf baileys_auth_info/ && node server.js to re-scan a fresh QR code.',
+        message: logoutData.message || 'WhatsApp session cleared. Fresh QR code is generating...',
       });
     }
 

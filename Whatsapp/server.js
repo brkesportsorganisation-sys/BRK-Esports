@@ -259,12 +259,58 @@ app.get('/', (req, res) => {
 // ─── GET QR / Status ──────────────────────────────────────────────────────────
 app.get('/api/qr', requireApiSecret, (req, res) => {
   if (isConnected) {
-    return res.json({ success: true, status: 'CONNECTED', message: 'WhatsApp is connected' });
+    return res.json({ 
+      success: true, 
+      status: 'CONNECTED', 
+      message: 'WhatsApp is connected',
+      user: sock?.user || null,
+      groupsCount: connectedGroups.length
+    });
   }
   if (app.locals.latestQr) {
     return res.json({ success: true, status: 'WAITING_FOR_SCAN', qr: app.locals.latestQr });
   }
   return res.json({ success: true, status: 'INITIALIZING', message: 'Waiting for QR code generation...' });
+});
+
+// ─── POST: Logout & Clear Session (Generate Fresh QR) ────────────────────────
+app.post('/api/logout', requireApiSecret, async (req, res) => {
+  try {
+    console.log('🔄 Logout requested. Clearing MongoDB WhatsApp session...');
+    if (sock) {
+      try {
+        await sock.logout();
+      } catch (e) {}
+      try {
+        sock.end(new Error('Admin logged out'));
+      } catch (e) {}
+    }
+
+    // Clear MongoDB sessions
+    const Session = mongoose.models.BaileysSession;
+    if (Session) {
+      await Session.deleteMany({});
+      console.log('✅ Cleared all BaileysSession documents in MongoDB.');
+    }
+
+    isConnected = false;
+    app.locals.latestQr = null;
+    connectedGroups = [];
+    connectedChannels = [];
+
+    // Reconnect to generate a brand new QR code
+    setTimeout(() => {
+      connectToWhatsApp();
+    }, 1500);
+
+    res.json({
+      success: true,
+      message: 'Logged out successfully. Generating a new fresh QR code...',
+    });
+  } catch (error) {
+    console.error('Logout error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 // ─── POST: Schedule a Message ─────────────────────────────────────────────────
