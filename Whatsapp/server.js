@@ -160,54 +160,8 @@ async function connectToWhatsApp() {
     }
   });
 
-  // ─── Auto-Reply Listener ──────────────────────────────────────────────────
-  sock.ev.on('messages.upsert', async ({ messages, type }) => {
-    if (type !== 'notify') return;
 
-    for (const msg of messages) {
-      if (msg.key.fromMe) continue; // Don't reply to our own messages
 
-      const from = msg.key.remoteJid;
-      const isGroup = from?.endsWith('@g.us');
-      if (isGroup) continue; // Only auto-reply to individual chats
-
-      const textMessage =
-        msg.message?.conversation || msg.message?.extendedTextMessage?.text || '';
-
-      if (!textMessage) continue;
-
-      try {
-        // Load bot config from MongoDB
-        const BotConfig = mongoose.models.BotConfig || require('./models/BotConfig');
-        const config = await BotConfig.findOne({ _id: 'bot_config' });
-        if (!config || !config.autoReplyEnabled) continue;
-
-        const lowerText = textMessage.toLowerCase().trim();
-
-        // Check keyword rules
-        let matched = false;
-        for (const rule of (config.rules || [])) {
-          if (!rule.isActive) continue;
-          const hasKeyword = (rule.keywords || []).some((kw) =>
-            lowerText.includes(kw.toLowerCase())
-          );
-          if (hasKeyword) {
-            await sock.sendMessage(from, { text: rule.replyText });
-            console.log(`🤖 Auto-replied to ${from} with rule: ${rule.id}`);
-            matched = true;
-            break;
-          }
-        }
-
-        if (!matched && config.defaultFallbackReply) {
-          await sock.sendMessage(from, { text: config.defaultFallbackReply });
-          console.log(`🤖 Fallback reply sent to ${from}`);
-        }
-      } catch (err) {
-        console.warn('⚠️ Auto-reply error:', err.message);
-      }
-    }
-  });
 }
 
 // ─── Helper: Refresh Groups Cache ────────────────────────────────────────────
