@@ -886,51 +886,58 @@ export async function sendDirectWhatsappMessage({
     console.warn(`[WhatsApp] WaAPI dispatch failed (${waapiRes.message}). Falling back to Zavu for ${formattedTo}...`);
   }
 
-  // 2. Otherwise send via Zavu SDK
-  const { client, error } = await getZavuClient();
-  if (!client) {
-    return { success: false, message: error || 'WhatsApp client initialization failed.' };
-  }
+  // Send via Node Bot API
+  if (settings.provider === 'NODE_BOT' && settings.nodeBotUrl && settings.nodeBotSecret) {
+    try {
+      const payload = {
+        message: activeImageUrl ? `${text}\n\n🖼️ Media: ${activeImageUrl}` : text,
+        sendAt: new Date().toISOString(), // Send immediately
+        groupJids: [formattedTo],
+      };
 
-  try {
-    const senderId = await getDefaultSenderId(client);
-    const response = await client.messages.send({
-      channel: 'whatsapp',
-      to: formattedTo,
-      text,
-      ...(senderId ? { 'Zavu-Sender': senderId } : {}),
-    });
+      const res = await fetch(`${settings.nodeBotUrl}/api/schedule-message`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-secret': settings.nodeBotSecret,
+        },
+        body: JSON.stringify(payload),
+      });
 
-    await addWhatsAppLog({
-      targetDestination: formattedTo,
-      targetName,
-      messageText: text,
-      triggerType,
-      status: 'SENT',
-      responseId: (response as any)?.message?.id || (response as any)?.id || (response as any)?.messageId || 'queued',
-    });
-
-    return { success: true, message: `Delivered to ${formattedTo}`, response };
-  } catch (err: any) {
-    const rawMsg = err?.message || '';
-    let errMsg = rawMsg;
-    if (rawMsg.includes('No default sender') || rawMsg.includes('Zavu-Sender')) {
-      errMsg = '⚠️ কোনো WhatsApp Sender যুক্ত করা হয়নি।';
-    } else if (rawMsg.includes('24') || rawMsg.includes('Re-engagement')) {
-      errMsg = `⚠️ Meta WhatsApp 24-ঘণ্টা নীতি: এই নম্বরে (${formattedTo}) মেসেজ পাঠানোর অনুমতি নেই।`;
+      if (res.ok) {
+        await addWhatsAppLog({
+          targetDestination: formattedTo,
+          targetName,
+          messageText: text,
+          imageUrl: activeImageUrl,
+          triggerType,
+          status: 'SENT',
+          responseId: 'node_bot_queued',
+        });
+        return { success: true, message: `Queued to Node Bot for ${formattedTo}` };
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to queue message to Node Bot');
+      }
+    } catch (err: any) {
+      console.warn(`[Node Bot] Dispatch failed: ${err.message}`);
+      await addWhatsAppLog({
+        targetDestination: formattedTo,
+        targetName,
+        messageText: text,
+        triggerType,
+        status: 'FAILED',
+        error: err.message,
+      });
+      return { success: false, message: err.message, error: err };
     }
-
-    await addWhatsAppLog({
-      targetDestination: formattedTo,
-      targetName,
-      messageText: text,
-      triggerType,
-      status: 'FAILED',
-      error: errMsg,
-    });
-
-    return { success: false, message: errMsg, error: err };
   }
+
+  // 3. DIRECT_QR fallback for simple wa.me links
+  return { 
+    success: false, 
+    message: 'No valid backend configured. Please configure Node Bot in settings.' 
+  };
 }
 
 /**

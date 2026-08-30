@@ -47,10 +47,12 @@ async function connectToWhatsApp() {
     if (qr) {
       console.log('📱 Scan this QR code with WhatsApp (Linked Devices):');
       qrcode.generate(qr, { small: true });
+      app.locals.latestQr = qr; // Store for API access
     }
 
     if (connection === 'close') {
       isConnected = false;
+      app.locals.latestQr = null; // Clear QR on close
       const statusCode = lastDisconnect?.error?.output?.statusCode;
       const loggedOut = statusCode === DisconnectReason.loggedOut;
 
@@ -67,6 +69,7 @@ async function connectToWhatsApp() {
       console.log('✅ WhatsApp successfully connected!');
       isConnected = true;
       reconnectAttempts = 0;
+      app.locals.latestQr = null; // Clear QR on successful connect
     }
   });
 
@@ -168,6 +171,17 @@ app.get('/api/scheduled-messages', requireApiSecret, async (req, res) => {
 // Health check + keep-alive ping target (see README step 6)
 app.get('/', (req, res) => {
   res.json({ status: 'ok', whatsappConnected: isConnected });
+});
+
+// 🌐 API: Vercel frontend calls this to get QR or status
+app.get('/api/qr', requireApiSecret, (req, res) => {
+  if (isConnected) {
+    return res.json({ success: true, status: 'CONNECTED', message: 'WhatsApp is connected' });
+  }
+  if (app.locals.latestQr) {
+    return res.json({ success: true, status: 'WAITING_FOR_SCAN', qr: app.locals.latestQr });
+  }
+  return res.json({ success: true, status: 'INITIALIZING', message: 'Waiting for QR code generation...' });
 });
 
 // Connect DB & WhatsApp

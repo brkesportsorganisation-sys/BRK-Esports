@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyAdminSession, requireAdminRole } from '@/lib/admin-auth';
-import { getWhatsAppSettings, getZavuClient } from '@/lib/whatsapp';
+import { getWhatsAppSettings } from '@/lib/whatsapp';
 
 async function getSession() {
   const cookieStore = await cookies();
@@ -18,186 +18,74 @@ export async function GET() {
   try {
     const settings = await getWhatsAppSettings();
 
-    // 1. Green-API Status Check
-    if (settings.provider === 'GREEN_API' && settings.greenApiToken) {
-      const host = (settings.greenApiUrl || 'https://7107.api.greenapi.com').replace(/\/+$/, '');
-      const instId = settings.greenApiInstanceId || '710722716896';
+    // 1. Node Bot Status Check
+    if (settings.provider === 'NODE_BOT' && settings.nodeBotUrl) {
       try {
-        const res = await fetch(`${host}/waInstance${instId}/getStateInstance/${settings.greenApiToken}`, {
-          signal: AbortSignal.timeout(3500),
+        const host = settings.nodeBotUrl.replace(/\/+$/, '');
+        const res = await fetch(`${host}/`, {
+          signal: AbortSignal.timeout(5000),
         });
         const json = await res.json().catch(() => ({}));
-        const stateInstance = json.stateInstance || '';
-        const isConnected = stateInstance === 'authorized';
+        const isConnected = json.whatsappConnected === true;
 
         return NextResponse.json({
           connected: isConnected,
-          provider: 'GREEN_API',
-          statusText: stateInstance.toUpperCase() || (isConnected ? 'AUTHORIZED' : 'NOT_AUTHORIZED'),
+          provider: 'NODE_BOT',
+          statusText: isConnected ? 'CONNECTED' : 'DISCONNECTED',
           account: {
-            projectName: 'ESPORTS ZONE BD (Green-API)',
-            teamName: 'Green-API WhatsApp Bot',
-            instanceId: instId,
+            projectName: 'ESPORTS ZONE BD (Node Bot)',
+            teamName: 'WhatsApp Render Bot',
+            instanceId: 'bot_01',
           },
           senders: [
             {
-              id: `green_${instId}`,
-              name: 'Green-API Bot',
-              phoneNumber: '+880 1846-587311',
+              id: 'node_bot_01',
+              name: 'WhatsApp Bot',
+              phoneNumber: 'Auto-Forwarder',
               isDefault: true,
             },
           ],
           activeSender: {
-            id: `green_${instId}`,
-            name: 'Green-API Bot',
-            phoneNumber: '+880 1846-587311',
+            id: 'node_bot_01',
+            name: 'WhatsApp Bot',
+            phoneNumber: 'Auto-Forwarder',
           },
         });
       } catch (err: any) {
-        console.warn('[Green-API Status Check Error]', err?.message);
+        console.warn('[Node Bot Status Check Error]', err?.message);
         return NextResponse.json({
-          connected: true,
-          provider: 'GREEN_API',
-          statusText: 'AUTHORIZED',
-          account: {
-            projectName: 'ESPORTS ZONE BD (Green-API)',
-            teamName: 'Green-API WhatsApp Bot',
-            instanceId: instId,
-          },
-          senders: [
-            {
-              id: `green_${instId}`,
-              name: 'Green-API Bot',
-              phoneNumber: '+880 1846-587311',
-              isDefault: true,
-            },
-          ],
-          activeSender: {
-            id: `green_${instId}`,
-            name: 'Green-API Bot',
-            phoneNumber: '+880 1846-587311',
-          },
+          connected: false,
+          provider: 'NODE_BOT',
+          statusText: 'OFFLINE',
+          error: 'Could not connect to Node Bot API. Is Render app sleeping?',
         });
       }
     }
 
-    // 2. WaAPI Status Check
-    if (settings.provider === 'WAAPI' && settings.waapiApiKey) {
-      const instId = settings.waapiInstanceId || '102791';
-      try {
-        const res = await fetch(`https://waapi.app/api/v1/instances/${instId}`, {
-          headers: {
-            'Authorization': `Bearer ${settings.waapiApiKey}`,
-            'Accept': 'application/json',
-          },
-          signal: AbortSignal.timeout(3500),
-        });
-        const json = await res.json().catch(() => ({}));
-
-        if (res.ok) {
-          const inst = json.instance || json.data || json;
-          const statusStr = inst.status || 'ready';
-          const isConnected = statusStr === 'ready' || statusStr === 'authenticated' || statusStr === 'CONNECTED';
-
-          return NextResponse.json({
-            connected: isConnected,
-            provider: 'WAAPI',
-            statusText: statusStr.toUpperCase(),
-            account: {
-              projectName: 'BRK ESPORTS ORG (WaAPI)',
-              teamName: inst.name || 'Esports Manager',
-              instanceId: instId,
-            },
-            senders: [
-              {
-                id: `waapi_${instId}`,
-                name: inst.name || 'Esports Manager',
-                phoneNumber: inst.owner || '+880 1846-587311',
-                isDefault: true,
-              },
-            ],
-            activeSender: {
-              id: `waapi_${instId}`,
-              name: inst.name || 'Esports Manager',
-              phoneNumber: inst.owner || '+880 1846-587311',
-            },
-          });
-        }
-      } catch (err: any) {
-        console.warn('[WaAPI Status Check Error]', err?.message);
-      }
-    }
-
-    // 2. Zavu Status Check
-    const { client, error } = await getZavuClient();
-    if (!client) {
-      return NextResponse.json({
-        connected: false,
-        provider: settings.provider,
-        error: error || 'WhatsApp client could not be initialized.',
-      });
-    }
-
-    // Fetch Account Info
-    const me = await client.me.retrieve().catch(err => {
-      console.warn('[Zavu Me]', err?.message);
-      return null;
-    });
-
-    // Fetch Live Senders
-    const senders: any[] = [];
-    try {
-      const seenPhoneNumberIds = new Set<string>();
-      for await (const s of client.senders.list()) {
-        const phoneNumId = (s as any).whatsapp?.phoneNumberId || s.id;
-        if (phoneNumId && seenPhoneNumberIds.has(phoneNumId)) continue;
-        if (phoneNumId) seenPhoneNumberIds.add(phoneNumId);
-
-        const phoneNumber =
-          (s as any).phoneNumber ||
-          (s as any).whatsapp?.displayPhoneNumber ||
-          '';
-
-        senders.push({
-          id: s.id,
-          name: s.name,
-          phoneNumber,
-          isDefault: s.isDefault,
-          channels: s.channels,
-          whatsapp: (s as any).whatsapp || null,
-          createdAt: s.createdAt,
-        });
-      }
-    } catch (sErr: any) {
-      console.warn('[Zavu Senders List]', sErr?.message);
-    }
-
-    // Fetch Balance
-    let balanceData = null;
-    try {
-      const b = await client.balance.retrieve();
-      balanceData = {
-        balanceUsd: (b.balance / 100).toFixed(2),
-        currency: b.currency || 'USD',
-      };
-    } catch {}
-
+    // 2. Direct QR Mode (Default UI mode)
     return NextResponse.json({
       connected: true,
-      provider: 'ZAVU',
+      provider: 'DIRECT_QR',
+      statusText: 'MANUAL_MODE',
       account: {
-        projectName: me?.project?.name || 'BRK ESPORTS ORG',
-        teamName: me?.team?.name || 'BRK ESPORTS ORG',
-        isTestMode: me?.isTestMode || false,
+        projectName: 'Direct QR (Manual)',
+        teamName: 'Local Phone',
       },
-      balance: balanceData,
-      senders,
-      activeSender:
-        senders.find(s => s.phoneNumber?.includes('880') || s.whatsapp?.displayPhoneNumber?.includes('880')) ||
-        senders.find(s => s.isDefault) ||
-        senders[0] ||
-        null,
+      senders: [
+        {
+          id: 'direct_qr',
+          name: 'Direct WhatsApp Web',
+          phoneNumber: 'Your Phone',
+          isDefault: true,
+        },
+      ],
+      activeSender: {
+        id: 'direct_qr',
+        name: 'Direct WhatsApp Web',
+        phoneNumber: 'Your Phone',
+      },
     });
+
   } catch (error: any) {
     console.error('[GET /api/admin/whatsapp/status]', error);
     return NextResponse.json(
@@ -206,3 +94,4 @@ export async function GET() {
     );
   }
 }
+
