@@ -192,9 +192,31 @@ async function refreshGroupsCache() {
 cron.schedule('* * * * *', async () => {
   if (!isConnected || !sock) return;
 
+  // 1. Trigger Next.js 24/7 automated scheduler runner
+  try {
+    const nextAppUrl = process.env.NEXT_APP_URL || 'https://www.esportszonebd.online';
+    const cronSecret = process.env.CRON_SECRET || 'blackrock_secret_bot_key_2026';
+    const cleanUrl = nextAppUrl.replace(/\/+$/, '');
+    const res = await fetch(`${cleanUrl}/api/admin/whatsapp/cron?secret=${cronSecret}`, {
+      headers: {
+        Authorization: `Bearer ${cronSecret}`,
+      },
+      signal: AbortSignal.timeout(25000),
+    }).catch(() => null);
+
+    if (res?.ok) {
+      const data = await res.json().catch(() => ({}));
+      if (data.executedCount > 0) {
+        console.log(`⏰ [24/7 Scheduler] Dispatched ${data.executedCount} due schedule(s)!`);
+      }
+    }
+  } catch (cronErr) {
+    console.warn('⚠️ [Next.js Scheduler Trigger Error]:', cronErr.message);
+  }
+
+  // 2. Process legacy local MongoDB queue if any
   try {
     const now = new Date();
-    // Only fetch up to 5 pending messages that haven't been sent yet
     const pendingMessages = await ScheduledMessage.find({
       sendAt: { $lte: now },
       isSent: false,

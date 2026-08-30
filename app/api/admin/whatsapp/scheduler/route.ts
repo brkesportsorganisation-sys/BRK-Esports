@@ -19,9 +19,7 @@ async function getSession() {
   return verifyAdminSession(token);
 }
 
-let lastAutoRunTime = 0;
-
-// 1. GET all schedules, groups, logs
+// 1. GET all schedules, groups, logs (pure read-only)
 export async function GET() {
   const session = await getSession();
   if (!requireAdminRole(session, ['SUPER_ADMIN', 'ADMIN', 'MODERATOR'])) {
@@ -29,13 +27,6 @@ export async function GET() {
   }
 
   try {
-    // Non-blocking background runner (debounced to at most once per 45s)
-    const now = Date.now();
-    if (now - lastAutoRunTime >= 45000) {
-      lastAutoRunTime = now;
-      void runAllDueWhatsAppSchedules().catch(() => {});
-    }
-
     const [schedules, groups, logs] = await Promise.all([
       getWhatsAppSchedules().catch(() => []),
       getWhatsAppTargetGroups().catch(() => []),
@@ -133,9 +124,7 @@ export async function POST(req: NextRequest) {
       isActive: schedule.isActive !== false,
       status: schedule.isActive !== false ? 'ACTIVE' : 'PAUSED',
       runCount: 0,
-      nextRunAt: (schedule.frequency === 'DAILY' || schedule.frequency === 'ONCE')
-        ? calculateNextRunTime(schedule)
-        : new Date().toISOString(), // Immediate first run for intervals
+      nextRunAt: calculateNextRunTime(schedule),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -143,7 +132,7 @@ export async function POST(req: NextRequest) {
     schedules.unshift(newSchedule);
     await saveWhatsAppSchedules(schedules);
 
-    // If interval or immediate execution is requested, dispatch the first run immediately!
+    // If interval or immediate execution is requested, dispatch the 1st run cleanly!
     let firstExecResult: any = null;
     if (schedule.frequency !== 'DAILY' && schedule.frequency !== 'ONCE') {
       try {
