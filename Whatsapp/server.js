@@ -170,7 +170,11 @@ app.get('/api/scheduled-messages', requireApiSecret, async (req, res) => {
 
 // Health check + keep-alive ping target (see README step 6)
 app.get('/', (req, res) => {
-  res.json({ status: 'ok', whatsappConnected: isConnected });
+  res.json({ 
+    status: 'ok', 
+    whatsappConnected: isConnected,
+    hasApiSecret: !!process.env.API_SECRET
+  });
 });
 
 // 🌐 API: Vercel frontend calls this to get QR or status
