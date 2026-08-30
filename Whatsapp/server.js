@@ -6,10 +6,10 @@ const cron = require('node-cron');
 const qrcode = require('qrcode-terminal');
 const {
   makeWASocket,
-  useMultiFileAuthState,
   DisconnectReason,
   fetchLatestWaWebVersion,
 } = require('@whiskeysockets/baileys');
+const { useMongoAuthState } = require('./mongoAuthState');
 
 const ScheduledMessage = require('./models/ScheduledMessage');
 
@@ -76,7 +76,9 @@ function requireApiSecret(req, res, next) {
 // ─── WhatsApp Connection ──────────────────────────────────────────────────────
 async function connectToWhatsApp() {
   const { version } = await fetchLatestWaWebVersion();
-  const { state, saveCreds } = await useMultiFileAuthState('baileys_auth_info');
+  console.log('🔄 Loading WhatsApp session from MongoDB...');
+  const { state, saveCreds } = await useMongoAuthState();
+  console.log('✅ Session loaded. Creds present:', !!state?.creds?.me);
 
   sock = makeWASocket({
     version,
