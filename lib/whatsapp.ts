@@ -891,32 +891,15 @@ export async function sendDirectWhatsappMessage({
   // Send via Node Bot API
   if (settings.provider === 'NODE_BOT' && settings.nodeBotUrl && settings.nodeBotSecret) {
     try {
-      const isGroupOrChannel =
-        formattedTo.includes('@g.us') ||
-        formattedTo.includes('@newsletter') ||
-        formattedTo.includes('@broadcast');
+      const host = settings.nodeBotUrl.replace(/\/+$/, '');
+      const endpoint = '/api/send-direct';
+      const payload = {
+        to: formattedTo,
+        message: text,
+        imageUrl: activeImageUrl,
+      };
 
-      let endpoint: string;
-      let payload: Record<string, unknown>;
-
-      if (isGroupOrChannel) {
-        // Groups: use schedule-message with immediate sendAt
-        endpoint = '/api/schedule-message';
-        payload = {
-          message: activeImageUrl ? `${text}\n\n🖼️ Media: ${activeImageUrl}` : text,
-          sendAt: new Date().toISOString(),
-          groupJids: [formattedTo],
-        };
-      } else {
-        // Individual phone: use send-direct
-        endpoint = '/api/send-direct';
-        payload = {
-          to: formattedTo,
-          message: activeImageUrl ? `${text}\n\n🖼️ Media: ${activeImageUrl}` : text,
-        };
-      }
-
-      const res = await fetch(`${settings.nodeBotUrl}${endpoint}`, {
+      const res = await fetch(`${host}${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -925,7 +908,9 @@ export async function sendDirectWhatsappMessage({
         body: JSON.stringify(payload),
       });
 
-      if (res.ok) {
+      const resData = await res.json().catch(() => ({}));
+
+      if (res.ok && resData.success) {
         await addWhatsAppLog({
           targetDestination: formattedTo,
           targetName,
@@ -933,12 +918,12 @@ export async function sendDirectWhatsappMessage({
           imageUrl: activeImageUrl,
           triggerType,
           status: 'SENT',
-          responseId: 'node_bot_queued',
+          responseId: resData.messageId || 'node_bot_sent',
         });
         return { success: true, message: `Sent via Node Bot to ${formattedTo}` };
       } else {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || `Node Bot returned ${res.status}`);
+        const errorMsg = resData.error || resData.message || `Node Bot returned HTTP ${res.status}`;
+        throw new Error(errorMsg);
       }
     } catch (err: any) {
       console.warn(`[Node Bot] Dispatch failed: ${err.message}`);
@@ -946,6 +931,7 @@ export async function sendDirectWhatsappMessage({
         targetDestination: formattedTo,
         targetName,
         messageText: text,
+        imageUrl: activeImageUrl,
         triggerType,
         status: 'FAILED',
         error: err.message,
@@ -1727,12 +1713,12 @@ export async function executeScheduledJob(schedule: WhatsAppSchedule): Promise<{
   }
 
   // 4. Check if this execution concludes the schedule limit
-  const isCompleted = (schedule.frequency === 'ONCE') || (maxRuns > 0 && executionNum >= maxRuns);
+  const isCompleted = (schedule.frequency === 'ONCE' && successCount > 0) || (maxRuns > 0 && executionNum >= maxRuns && successCount > 0);
   const nextRun = isCompleted ? undefined : calculateNextRunTime(schedule);
 
   const updatedSchedule: WhatsAppSchedule = {
     ...schedule,
-    runCount: executionNum,
+    runCount: successCount > 0 ? executionNum : currentRunCount,
     lastRunAt: new Date().toISOString(),
     nextRunAt: nextRun,
     lastStatus: successCount > 0 ? 'SUCCESS' : 'FAILED',
@@ -1752,9 +1738,11 @@ export async function executeScheduledJob(schedule: WhatsAppSchedule): Promise<{
 
   return {
     success: successCount > 0,
-    message: isCompleted
-      ? `Dispatched run #${executionNum} of ${maxRuns > 0 ? maxRuns : 1}. Target reached — Schedule COMPLETED.`
-      : `Dispatched run #${executionNum} (${remainingCount} remaining). Delivered to ${successCount} target(s).`,
+    message: successCount > 0
+      ? (isCompleted
+          ? `Dispatched run #${executionNum} of ${maxRuns > 0 ? maxRuns : 1}. Target reached — Schedule COMPLETED.`
+          : `Dispatched run #${executionNum} (${remainingCount} remaining). Delivered to ${successCount} target(s).`)
+      : `Failed to deliver to all ${recipients.length} target(s). Check WhatsApp connection status in Admin Panel.`,
     sentCount: successCount,
   };
 }

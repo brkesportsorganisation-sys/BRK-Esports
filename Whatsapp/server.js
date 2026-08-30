@@ -84,6 +84,12 @@ async function connectToWhatsApp() {
     version,
     auth: state,
     printQRInTerminal: true,
+    browser: ['Chrome (Windows)', 'Chrome', '120.0.0'],
+    generateHighQualityLinkPreview: true,
+    syncFullHistory: false,
+    connectTimeoutMs: 60000,
+    defaultQueryTimeoutMs: 60000,
+    keepAliveIntervalMs: 25000,
   });
 
   sock.ev.on('creds.update', saveCreds);
@@ -106,7 +112,7 @@ async function connectToWhatsApp() {
       const loggedOut = statusCode === DisconnectReason.loggedOut;
 
       if (loggedOut) {
-        console.log('❌ Logged out from WhatsApp. Delete baileys_auth_info/ and re-scan QR.');
+        console.log('❌ Logged out from WhatsApp. Re-scan QR code from Admin Panel.');
         return;
       }
 
@@ -175,8 +181,6 @@ async function refreshGroupsCache() {
     participants: g.participants?.length || 0,
   }));
 
-  // Channels: Baileys doesn't have a direct listChannels — we track from message events
-  // Return what we have
   return connectedGroups;
 }
 
@@ -239,7 +243,7 @@ app.get('/api/qr', requireApiSecret, (req, res) => {
 // ─── POST: Schedule a Message ─────────────────────────────────────────────────
 app.post('/api/schedule-message', requireApiSecret, async (req, res) => {
   try {
-    const { message, sendAt, groupJids } = req.body;
+    const { message, sendAt, groupJids, imageUrl } = req.body;
 
     if (!message || !sendAt) {
       return res.status(400).json({ success: false, error: 'message and sendAt are required' });
@@ -262,17 +266,51 @@ app.post('/api/schedule-message', requireApiSecret, async (req, res) => {
     const sendAtDate = new Date(sendAt);
     const isImmediate = sendAtDate <= new Date(Date.now() + 10000); // within 10 seconds = send now
 
-    if (isImmediate && isConnected && sock) {
-      // Send immediately without saving to DB
+    if (isImmediate) {
+      if (!isConnected || !sock) {
+        return res.status(503).json({
+          success: false,
+          error: 'WhatsApp is not connected on bot server. Please scan QR code in Admin Panel.',
+        });
+      }
+
+      const errors = [];
+      const sentJids = [];
+
       for (const groupJid of resolvedJids) {
         try {
-          await sock.sendMessage(groupJid, { text: message });
+          const isValidImageUrl = imageUrl &&
+            /^https?:\/\//i.test(imageUrl) &&
+            !imageUrl.includes('localhost') &&
+            !imageUrl.startsWith('blob:');
+
+          if (isValidImageUrl) {
+            await sock.sendMessage(groupJid, { image: { url: imageUrl }, caption: message });
+          } else {
+            await sock.sendMessage(groupJid, { text: message });
+          }
+          sentJids.push(groupJid);
+          console.log(`✅ Message sent to group: ${groupJid}`);
           await new Promise((res) => setTimeout(res, 1500));
         } catch (err) {
-          console.error(`❌ Immediate send failed to ${groupJid}:`, err.message);
+          console.error(`❌ Send failed to ${groupJid}:`, err.message);
+          errors.push(`${groupJid}: ${err.message}`);
         }
       }
-      return res.json({ success: true, message: 'Message sent immediately!' });
+
+      if (errors.length > 0 && sentJids.length === 0) {
+        return res.status(500).json({
+          success: false,
+          error: `Failed to deliver to group(s): ${errors.join('; ')}`,
+        });
+      }
+
+      return res.json({
+        success: true,
+        message: `Message dispatched to ${sentJids.length} group(s)${errors.length ? ` (${errors.length} failed)` : ''}`,
+        sentJids,
+        errors: errors.length ? errors : undefined,
+      });
     }
 
     const newMessage = new ScheduledMessage({
@@ -281,7 +319,7 @@ app.post('/api/schedule-message', requireApiSecret, async (req, res) => {
       sendAt: sendAtDate,
     });
     await newMessage.save();
-    res.json({ success: true, message: 'Message scheduled successfully!' });
+    res.json({ success: true, message: 'Message scheduled successfully in bot database!' });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -298,11 +336,11 @@ app.post('/api/send-direct', requireApiSecret, async (req, res) => {
   if (!isConnected || !sock) {
     return res.status(503).json({
       success: false,
-      error: 'WhatsApp is not connected. Please scan the QR code first.',
+      error: 'WhatsApp is not connected on bot server. Please scan the QR code first.',
     });
   }
 
-  const { to, message, jid } = req.body;
+  const { to, message, jid, imageUrl } = req.body;
   const destination = jid || to;
 
   if (!destination || !message) {
@@ -313,14 +351,31 @@ app.post('/api/send-direct', requireApiSecret, async (req, res) => {
     // Format destination: if phone number, convert to WhatsApp JID
     let waJid = destination.trim();
     if (!waJid.includes('@')) {
-      // Strip non-digits except leading +
       const digits = waJid.replace(/[^\d]/g, '');
       waJid = `${digits}@s.whatsapp.net`;
     }
 
-    await sock.sendMessage(waJid, { text: message });
-    console.log(`✅ Direct message sent to: ${waJid}`);
-    res.json({ success: true, message: `Message sent to ${waJid}` });
+    // Check if imageUrl is a valid public URL
+    const isValidImageUrl = imageUrl &&
+      /^https?:\/\//i.test(imageUrl) &&
+      !imageUrl.includes('localhost') &&
+      !imageUrl.startsWith('blob:');
+
+    let sendResult;
+    if (isValidImageUrl) {
+      // Send image with caption
+      sendResult = await sock.sendMessage(waJid, {
+        image: { url: imageUrl },
+        caption: message,
+      });
+      console.log(`✅ Image+message sent to: ${waJid}`);
+    } else {
+      // Send text only
+      sendResult = await sock.sendMessage(waJid, { text: message });
+      console.log(`✅ Message sent to: ${waJid}`);
+    }
+
+    res.json({ success: true, message: `Message sent to ${waJid}`, messageId: sendResult?.key?.id });
   } catch (error) {
     console.error('❌ Direct send error:', error.message);
     res.status(500).json({ success: false, error: error.message });
