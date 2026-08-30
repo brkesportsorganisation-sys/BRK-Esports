@@ -19,6 +19,8 @@ async function getSession() {
   return verifyAdminSession(token);
 }
 
+let lastAutoRunTime = 0;
+
 // 1. GET all schedules, groups, logs
 export async function GET() {
   const session = await getSession();
@@ -27,8 +29,12 @@ export async function GET() {
   }
 
   try {
-    // Non-blocking background runner
-    void runAllDueWhatsAppSchedules().catch(() => {});
+    // Non-blocking background runner (debounced to at most once per 45s)
+    const now = Date.now();
+    if (now - lastAutoRunTime >= 45000) {
+      lastAutoRunTime = now;
+      void runAllDueWhatsAppSchedules().catch(() => {});
+    }
 
     const [schedules, groups, logs] = await Promise.all([
       getWhatsAppSchedules().catch(() => []),

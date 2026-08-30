@@ -677,84 +677,12 @@ export async function sendRoomDetailsToPlayer({
       .replace(/\{PLAYER_NAME\}/g, playerName);
   }
 
-  // 1. Send via WaAPI if configured
-  if (settings.provider === 'WAAPI' && settings.waapiApiKey) {
-    const waapiRes = await sendWaapiMessage({
-      chatId: formattedPhone,
-      message: text,
-      instanceId: settings.waapiInstanceId,
-      apiKey: settings.waapiApiKey,
-    });
-
-    if (waapiRes.success) {
-      await addWhatsAppLog({
-        targetDestination: formattedPhone,
-        targetName: playerName,
-        messageText: text,
-        triggerType: 'ROOM_ALERT',
-        status: 'SENT',
-        responseId: (waapiRes.data as any)?.id || 'waapi_sent',
-      });
-      return waapiRes;
-    }
-
-    console.warn(`[WhatsApp] WaAPI room alert failed (${waapiRes.message}). Falling back to Zavu for ${formattedPhone}...`);
-  }
-
-  // 2. Otherwise send via Zavu SDK
-  const { client, error } = await getZavuClient();
-  if (!client) {
-    return { success: false, message: error || 'Zavu client initialization failed.' };
-  }
-
-  try {
-    const senderId = await getDefaultSenderId(client);
-    const response = await client.messages.send({
-      channel: 'whatsapp',
-      to: formattedPhone,
-      text,
-      ...(senderId ? { 'Zavu-Sender': senderId } : {}),
-    });
-
-    await addWhatsAppLog({
-      targetDestination: formattedPhone,
-      targetName: playerName,
-      messageText: text,
-      triggerType: 'ROOM_ALERT',
-      status: 'SENT',
-      responseId: (response as any)?.message?.id || (response as any)?.id || (response as any)?.messageId || 'queued',
-    });
-
-    return {
-      success: true,
-      message: `WhatsApp message successfully sent to ${formattedPhone}!`,
-      response,
-    };
-  } catch (err: any) {
-    console.error('[WhatsApp Send Error]', err);
-    const rawMsg = err?.message || '';
-    let errMsg = rawMsg;
-    if (rawMsg.includes('No default sender') || rawMsg.includes('Zavu-Sender')) {
-      errMsg = '⚠️ আপনার Zavu অ্যাকাউন্টে কোনো WhatsApp Sender এখনও যুক্ত করা হয়নি।';
-    } else if (rawMsg.includes('24') || rawMsg.includes('Re-engagement')) {
-      errMsg = `⚠️ Meta WhatsApp 24-ঘণ্টা নীতি: এই নম্বর (${formattedPhone}) আগে মেসেজ না পাঠালে সরাসরি মেসেজ যাবে না।`;
-    }
-
-    await addWhatsAppLog({
-      targetDestination: formattedPhone,
-      targetName: playerName,
-      messageText: text,
-      triggerType: 'ROOM_ALERT',
-      status: 'FAILED',
-      error: errMsg,
-    });
-
-    return {
-      success: false,
-      message: errMsg,
-      error: err,
-    };
-  }
+  return sendDirectWhatsappMessage({
+    to: formattedPhone,
+    text,
+    targetName: playerName,
+    triggerType: 'ROOM_ALERT',
+  });
 }
 
 /**
@@ -783,112 +711,7 @@ export async function sendDirectWhatsappMessage({
   const settings = await getWhatsAppSettings();
   const activeImageUrl = imageUrl || mediaUrl;
 
-  // 1. Send via Direct WhatsApp QR Session or Green-API Gateway
-  if ((settings.provider === 'DIRECT_QR' || settings.provider === 'GREEN_API') && settings.greenApiToken) {
-    let greenRes: any;
-
-    // Validate image URL: must be an absolute public URL (not localhost, relative, or blob)
-    const isValidPublicImageUrl = activeImageUrl &&
-      /^https?:\/\//i.test(activeImageUrl) &&
-      !activeImageUrl.includes('localhost') &&
-      !activeImageUrl.includes('127.0.0.1') &&
-      !activeImageUrl.startsWith('blob:') &&
-      !activeImageUrl.startsWith('/');
-
-    if (isValidPublicImageUrl) {
-      greenRes = await sendGreenApiFile({
-        chatId: formattedTo,
-        urlFile: activeImageUrl!,
-        caption: text,
-        apiUrl: settings.greenApiUrl,
-        instanceId: settings.greenApiInstanceId,
-        apiToken: settings.greenApiToken,
-      });
-
-      // If image send failed (e.g., error 466 = inaccessible URL), fallback to text-only
-      if (!greenRes.success) {
-        console.warn(`[Green-API] Image send failed (${greenRes.message}). Falling back to text-only...`);
-        greenRes = await sendGreenApiMessage({
-          chatId: formattedTo,
-          message: text,
-          apiUrl: settings.greenApiUrl,
-          instanceId: settings.greenApiInstanceId,
-          apiToken: settings.greenApiToken,
-        });
-      }
-    } else {
-      // No image or invalid URL — send text only
-      if (activeImageUrl && !isValidPublicImageUrl) {
-        console.warn(`[Green-API] Skipping image send — URL is not a public absolute URL: ${activeImageUrl}`);
-      }
-      greenRes = await sendGreenApiMessage({
-        chatId: formattedTo,
-        message: text,
-        apiUrl: settings.greenApiUrl,
-        instanceId: settings.greenApiInstanceId,
-        apiToken: settings.greenApiToken,
-      });
-    }
-
-    await addWhatsAppLog({
-      targetDestination: formattedTo,
-      targetName,
-      messageText: text,
-      imageUrl: activeImageUrl,
-      triggerType,
-      status: greenRes.success ? 'SENT' : 'FAILED',
-      responseId: (greenRes.data as any)?.idMessage || 'green_api_sent',
-      error: greenRes.success ? undefined : greenRes.message,
-    });
-
-    if (greenRes.success || formattedTo.includes('@g.us') || formattedTo.includes('@newsletter')) {
-      return greenRes;
-    }
-  }
-
-  // 2. Send via WaAPI if configured
-  if (settings.provider === 'WAAPI' && settings.waapiApiKey) {
-    const waapiRes = await sendWaapiMessage({
-      chatId: formattedTo,
-      message: activeImageUrl ? `${text}\n\n🖼️ Media: ${activeImageUrl}` : text,
-      instanceId: settings.waapiInstanceId,
-      apiKey: settings.waapiApiKey,
-    });
-
-    if (waapiRes.success) {
-      await addWhatsAppLog({
-        targetDestination: formattedTo,
-        targetName,
-        messageText: text,
-        triggerType,
-        status: 'SENT',
-        responseId: (waapiRes.data as any)?.id || 'waapi_sent',
-      });
-      return waapiRes;
-    }
-
-    // If destination is a WhatsApp Group (@g.us), WaAPI is strictly required
-    if (formattedTo.includes('@g.us') || formattedTo.includes('chat.whatsapp.com')) {
-      let friendlyError = waapiRes.message;
-      if (friendlyError.includes('trial') || friendlyError.includes('Trial')) {
-        friendlyError = '⚠️ WaAPI Trial Limit: Free Trial অ্যাকাউন্টে WhatsApp Group-এ মেসেজ পাঠানো যায় না। WaAPI প্ল্যান আপগ্রেড প্রয়োজন।';
-      }
-      await addWhatsAppLog({
-        targetDestination: formattedTo,
-        targetName,
-        messageText: text,
-        triggerType,
-        status: 'FAILED',
-        error: friendlyError,
-      });
-      return { success: false, message: friendlyError };
-    }
-
-    // If destination is an individual phone number and WaAPI failed, smoothly fallback to Zavu SDK!
-    console.warn(`[WhatsApp] WaAPI dispatch failed (${waapiRes.message}). Falling back to Zavu for ${formattedTo}...`);
-  }
-
-  // Send via Node Bot API
+  // 1. Send via Node Bot API (Render / Self-hosted Baileys)
   if (settings.provider === 'NODE_BOT' && settings.nodeBotUrl && settings.nodeBotSecret) {
     try {
       const host = settings.nodeBotUrl.replace(/\/+$/, '');
@@ -938,6 +761,103 @@ export async function sendDirectWhatsappMessage({
       });
       return { success: false, message: err.message, error: err };
     }
+  }
+
+  // 2. Send via Direct WhatsApp QR Session or Green-API Gateway
+  if (settings.provider === 'GREEN_API' && settings.greenApiToken) {
+    let greenRes: any;
+
+    // Validate image URL: must be an absolute public URL (not localhost, relative, or blob)
+    const isValidPublicImageUrl = activeImageUrl &&
+      /^https?:\/\//i.test(activeImageUrl) &&
+      !activeImageUrl.includes('localhost') &&
+      !activeImageUrl.includes('127.0.0.1') &&
+      !activeImageUrl.startsWith('blob:') &&
+      !activeImageUrl.startsWith('/');
+
+    if (isValidPublicImageUrl) {
+      greenRes = await sendGreenApiFile({
+        chatId: formattedTo,
+        urlFile: activeImageUrl!,
+        caption: text,
+        apiUrl: settings.greenApiUrl,
+        instanceId: settings.greenApiInstanceId,
+        apiToken: settings.greenApiToken,
+      });
+
+      if (!greenRes.success) {
+        console.warn(`[Green-API] Image send failed (${greenRes.message}). Falling back to text-only...`);
+        greenRes = await sendGreenApiMessage({
+          chatId: formattedTo,
+          message: text,
+          apiUrl: settings.greenApiUrl,
+          instanceId: settings.greenApiInstanceId,
+          apiToken: settings.greenApiToken,
+        });
+      }
+    } else {
+      greenRes = await sendGreenApiMessage({
+        chatId: formattedTo,
+        message: text,
+        apiUrl: settings.greenApiUrl,
+        instanceId: settings.greenApiInstanceId,
+        apiToken: settings.greenApiToken,
+      });
+    }
+
+    await addWhatsAppLog({
+      targetDestination: formattedTo,
+      targetName,
+      messageText: text,
+      imageUrl: activeImageUrl,
+      triggerType,
+      status: greenRes.success ? 'SENT' : 'FAILED',
+      responseId: (greenRes.data as any)?.idMessage || 'green_api_sent',
+      error: greenRes.success ? undefined : greenRes.message,
+    });
+
+    return greenRes;
+  }
+
+  // 3. Send via WaAPI if configured
+  if (settings.provider === 'WAAPI' && settings.waapiApiKey) {
+    const waapiRes = await sendWaapiMessage({
+      chatId: formattedTo,
+      message: activeImageUrl ? `${text}\n\n🖼️ Media: ${activeImageUrl}` : text,
+      instanceId: settings.waapiInstanceId,
+      apiKey: settings.waapiApiKey,
+    });
+
+    if (waapiRes.success) {
+      await addWhatsAppLog({
+        targetDestination: formattedTo,
+        targetName,
+        messageText: text,
+        triggerType,
+        status: 'SENT',
+        responseId: (waapiRes.data as any)?.id || 'waapi_sent',
+      });
+      return waapiRes;
+    }
+
+    // If destination is a WhatsApp Group (@g.us), WaAPI is strictly required
+    if (formattedTo.includes('@g.us') || formattedTo.includes('chat.whatsapp.com')) {
+      let friendlyError = waapiRes.message;
+      if (friendlyError.includes('trial') || friendlyError.includes('Trial')) {
+        friendlyError = '⚠️ WaAPI Trial Limit: Free Trial অ্যাকাউন্টে WhatsApp Group-এ মেসেজ পাঠানো যায় না। WaAPI প্ল্যান আপগ্রেড প্রয়োজন।';
+      }
+      await addWhatsAppLog({
+        targetDestination: formattedTo,
+        targetName,
+        messageText: text,
+        triggerType,
+        status: 'FAILED',
+        error: friendlyError,
+      });
+      return { success: false, message: friendlyError };
+    }
+
+    console.warn(`[WhatsApp] WaAPI dispatch failed (${waapiRes.message}). Falling back to Zavu for ${formattedTo}...`);
   }
 
 
@@ -1498,6 +1418,10 @@ export function calculateNextRunTime(schedule: WhatsAppSchedule, options?: { fro
   return new Date(nextTimeMs).toISOString();
 }
 
+// Concurrency protection locks
+const activeRunningScheduleIds = new Set<string>();
+let isEvaluatingDueSchedules = false;
+
 /**
  * Executes an individual WhatsApp schedule job immediately.
  * Supports:
@@ -1514,237 +1438,246 @@ export async function executeScheduledJob(schedule: WhatsAppSchedule): Promise<{
     return { success: false, message: 'Schedule is completed, paused or inactive.', sentCount: 0 };
   }
 
-  const currentRunCount = schedule.runCount || 0;
-  const maxRuns = schedule.maxExecutions || 0;
-
-  // Check if max execution limit is already reached
-  if (maxRuns > 0 && currentRunCount >= maxRuns) {
-    // Mark as completed
-    const allSchedules = await getWhatsAppSchedules();
-    const idx = allSchedules.findIndex(s => s.id === schedule.id);
-    if (idx >= 0) {
-      allSchedules[idx] = { ...allSchedules[idx], status: 'COMPLETED', isActive: false };
-      await saveWhatsAppSchedules(allSchedules);
-    }
-    return {
-      success: false,
-      message: `Schedule has reached its maximum limit of ${maxRuns} message(s).`,
-      sentCount: 0,
-    };
+  // Prevent concurrent execution of the same schedule
+  if (activeRunningScheduleIds.has(schedule.id)) {
+    return { success: false, message: 'This schedule is already executing.', sentCount: 0 };
   }
+  activeRunningScheduleIds.add(schedule.id);
 
-  // 1. Resolve Target Recipients
-  let recipients: Array<{ phone: string; name?: string }> = [];
+  try {
+    const currentRunCount = schedule.runCount || 0;
+    const maxRuns = schedule.maxExecutions || 0;
 
-  if (schedule.targetType === 'GROUP' || schedule.targetType === 'COMMUNITY') {
-    const allGroups = await getWhatsAppTargetGroups();
-    const seenIdentifiers = new Set<string>();
-
-    if (schedule.targetDestination === 'ALL_GROUPS') {
-      for (const g of allGroups) {
-        const ident = g.identifier?.trim();
-        // Skip WhatsApp invite links - they cannot receive messages, only @g.us JIDs can
-        if (
-          ident &&
-          !seenIdentifiers.has(ident) &&
-          !ident.includes('chat.whatsapp.com/') &&
-          !ident.includes('whatsapp.com/channel/')
-        ) {
-          seenIdentifiers.add(ident);
-          recipients.push({
-            phone: ident,
-            name: g.name || 'WhatsApp Group',
-          });
-        } else if (ident && (ident.includes('chat.whatsapp.com/') || ident.includes('whatsapp.com/channel/'))) {
-          console.warn(`[executeScheduledJob] Skipping group "${g.name}" — identifier is a group invite link, not a JID. Please update to @g.us format.`);
-        }
+    // Check if max execution limit is already reached
+    if (maxRuns > 0 && currentRunCount >= maxRuns) {
+      // Mark as completed
+      const allSchedules = await getWhatsAppSchedules();
+      const idx = allSchedules.findIndex(s => s.id === schedule.id);
+      if (idx >= 0) {
+        allSchedules[idx] = { ...allSchedules[idx], status: 'COMPLETED', isActive: false };
+        await saveWhatsAppSchedules(allSchedules);
       }
-    } else if (schedule.targetDestination.includes(',')) {
-      const ids = schedule.targetDestination.split(',').map(s => s.trim()).filter(Boolean);
-      for (const id of ids) {
-        const matched = allGroups.find(g => g.id === id || g.identifier === id || g.name === id);
-        const identifier = (matched ? matched.identifier : id)?.trim();
+      return {
+        success: false,
+        message: `Schedule has reached its maximum limit of ${maxRuns} message(s).`,
+        sentCount: 0,
+      };
+    }
+
+    // 1. Resolve Target Recipients
+    let recipients: Array<{ phone: string; name?: string }> = [];
+
+    if (schedule.targetType === 'GROUP' || schedule.targetType === 'COMMUNITY') {
+      const allGroups = await getWhatsAppTargetGroups();
+      const seenIdentifiers = new Set<string>();
+
+      if (schedule.targetDestination === 'ALL_GROUPS') {
+        for (const g of allGroups) {
+          const ident = g.identifier?.trim();
+          // Skip WhatsApp invite links - they cannot receive messages, only @g.us JIDs can
+          if (
+            ident &&
+            !seenIdentifiers.has(ident) &&
+            !ident.includes('chat.whatsapp.com/') &&
+            !ident.includes('whatsapp.com/channel/')
+          ) {
+            seenIdentifiers.add(ident);
+            recipients.push({
+              phone: ident,
+              name: g.name || 'WhatsApp Group',
+            });
+          } else if (ident && (ident.includes('chat.whatsapp.com/') || ident.includes('whatsapp.com/channel/'))) {
+            console.warn(`[executeScheduledJob] Skipping group "${g.name}" — identifier is a group invite link, not a JID. Please update to @g.us format.`);
+          }
+        }
+      } else if (schedule.targetDestination.includes(',')) {
+        const ids = schedule.targetDestination.split(',').map(s => s.trim()).filter(Boolean);
+        for (const id of ids) {
+          const matched = allGroups.find(g => g.id === id || g.identifier === id || g.name === id);
+          const identifier = (matched ? matched.identifier : id)?.trim();
+          const resolvedName = matched ? matched.name : (schedule.targetName || 'WhatsApp Group');
+          // Skip invite links and duplicates
+          if (
+            identifier &&
+            !seenIdentifiers.has(identifier) &&
+            !identifier.includes('chat.whatsapp.com/') &&
+            !identifier.includes('whatsapp.com/channel/')
+          ) {
+            seenIdentifiers.add(identifier);
+            recipients.push({
+              phone: identifier,
+              name: resolvedName,
+            });
+          } else if (identifier && (identifier.includes('chat.whatsapp.com/') || identifier.includes('whatsapp.com/channel/'))) {
+            console.warn(`[executeScheduledJob] Skipping group "${resolvedName}" — identifier is a group invite link, not a JID. Please update to @g.us format.`);
+          }
+        }
+      } else {
+        const matched = allGroups.find(
+          g => g.id === schedule.targetDestination || g.identifier === schedule.targetDestination || g.name === schedule.targetName
+        );
+        const identifier = (matched ? matched.identifier : schedule.targetDestination)?.trim();
         const resolvedName = matched ? matched.name : (schedule.targetName || 'WhatsApp Group');
-        // Skip invite links and duplicates
-        if (
+
+        if (identifier === 'TOURNAMENT_CAPTAINS' || identifier === 'ALL_REGISTERED') {
+          try {
+            const { data: regs } = await supabaseAdmin
+              .from('Participant')
+              .select('captainWhatsApp, iglName, squadName, tournamentId, status')
+              .eq('status', 'VERIFIED')
+              .not('captainWhatsApp', 'is', null);
+
+            if (regs && regs.length > 0) {
+              recipients = regs
+                .filter(r => r.captainWhatsApp && r.captainWhatsApp.trim().length > 0)
+                .map(r => ({
+                  phone: r.captainWhatsApp,
+                  name: r.iglName || r.squadName || 'Captain',
+                }));
+            }
+          } catch (err) {
+            console.warn('[executeScheduledJob] could not fetch registrations:', err);
+          }
+        } else if (
           identifier &&
-          !seenIdentifiers.has(identifier) &&
           !identifier.includes('chat.whatsapp.com/') &&
           !identifier.includes('whatsapp.com/channel/')
         ) {
-          seenIdentifiers.add(identifier);
           recipients.push({
             phone: identifier,
             name: resolvedName,
           });
-        } else if (identifier && (identifier.includes('chat.whatsapp.com/') || identifier.includes('whatsapp.com/channel/'))) {
+        } else if (identifier) {
           console.warn(`[executeScheduledJob] Skipping group "${resolvedName}" — identifier is a group invite link, not a JID. Please update to @g.us format.`);
         }
       }
-    } else {
-      const matched = allGroups.find(
-        g => g.id === schedule.targetDestination || g.identifier === schedule.targetDestination || g.name === schedule.targetName
-      );
-      const identifier = (matched ? matched.identifier : schedule.targetDestination)?.trim();
-      const resolvedName = matched ? matched.name : (schedule.targetName || 'WhatsApp Group');
+    } else if (schedule.targetType === 'TOURNAMENT_CAPTAINS' || schedule.targetType === 'ALL_REGISTERED') {
+      // Fetch verified tournament registrations from Supabase Participant table
+      try {
+        let query = supabaseAdmin
+          .from('Participant')
+          .select('captainWhatsApp, iglName, squadName, tournamentId, status')
+          .eq('status', 'VERIFIED')
+          .not('captainWhatsApp', 'is', null);
 
-      if (identifier === 'TOURNAMENT_CAPTAINS' || identifier === 'ALL_REGISTERED') {
-        try {
-          const { data: regs } = await supabaseAdmin
-            .from('Participant')
-            .select('captainWhatsApp, iglName, squadName, tournamentId, status')
-            .eq('status', 'VERIFIED')
-            .not('captainWhatsApp', 'is', null);
-
-          if (regs && regs.length > 0) {
-            recipients = regs
-              .filter(r => r.captainWhatsApp && r.captainWhatsApp.trim().length > 0)
-              .map(r => ({
-                phone: r.captainWhatsApp,
-                name: r.iglName || r.squadName || 'Captain',
-              }));
-          }
-        } catch (err) {
-          console.warn('[executeScheduledJob] could not fetch registrations:', err);
+        if (schedule.targetDestination && schedule.targetDestination !== 'ACTIVE_TOURNAMENTS') {
+          query = query.eq('tournamentId', schedule.targetDestination);
         }
-      } else if (
-        identifier &&
-        !identifier.includes('chat.whatsapp.com/') &&
-        !identifier.includes('whatsapp.com/channel/')
-      ) {
-        recipients.push({
-          phone: identifier,
-          name: resolvedName,
-        });
-      } else if (identifier) {
-        console.warn(`[executeScheduledJob] Skipping group "${resolvedName}" — identifier is a group invite link, not a JID. Please update to @g.us format.`);
+
+        const { data: regs } = await query;
+
+        if (regs && regs.length > 0) {
+          recipients = regs
+            .filter(r => r.captainWhatsApp && r.captainWhatsApp.trim().length > 0)
+            .map(r => ({
+              phone: r.captainWhatsApp,
+              name: r.iglName || r.squadName || 'Captain',
+            }));
+        }
+      } catch (err) {
+        console.warn('[executeScheduledJob] could not fetch registrations:', err);
       }
-    }
-  } else if (schedule.targetType === 'TOURNAMENT_CAPTAINS' || schedule.targetType === 'ALL_REGISTERED') {
-    // Fetch verified tournament registrations from Supabase Participant table
-    try {
-      let query = supabaseAdmin
-        .from('Participant')
-        .select('captainWhatsApp, iglName, squadName, tournamentId, status')
-        .eq('status', 'VERIFIED')
-        .not('captainWhatsApp', 'is', null);
-
-      if (schedule.targetDestination && schedule.targetDestination !== 'ACTIVE_TOURNAMENTS') {
-        query = query.eq('tournamentId', schedule.targetDestination);
-      }
-
-      const { data: regs } = await query;
-
-      if (regs && regs.length > 0) {
-        recipients = regs
-          .filter(r => r.captainWhatsApp && r.captainWhatsApp.trim().length > 0)
-          .map(r => ({
-            phone: r.captainWhatsApp,
-            name: r.iglName || r.squadName || 'Captain',
-          }));
-      }
-    } catch (err) {
-      console.warn('[executeScheduledJob] could not fetch registrations:', err);
-    }
-  } else {
-    // Single phone number or Custom phone recipient
-    if (schedule.targetDestination) {
-      recipients.push({
-        phone: schedule.targetDestination,
-        name: schedule.targetName || 'WhatsApp Target',
-      });
-    }
-  }
-
-  if (recipients.length === 0) {
-    return { success: false, message: 'No valid recipient target found for this schedule.', sentCount: 0 };
-  }
-
-  // 2. Resolve Message Template (support rotation / sequence)
-  let rawTemplate = schedule.messageTemplate;
-  if (schedule.messagesSequence && schedule.messagesSequence.length > 0) {
-    const seqIdx = currentRunCount % schedule.messagesSequence.length;
-    rawTemplate = schedule.messagesSequence[seqIdx] || schedule.messageTemplate;
-  }
-
-  const nowStr = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-  const dateStr = new Date().toLocaleDateString('en-GB');
-  const executionNum = currentRunCount + 1;
-  const remainingCount = maxRuns > 0 ? Math.max(0, maxRuns - executionNum) : 'Unlimited';
-
-  const formattedMessage = rawTemplate
-    .replace(/\{COUNT\}/g, String(executionNum))
-    .replace(/\{MAX_COUNT\}/g, maxRuns > 0 ? String(maxRuns) : 'Unlimited')
-    .replace(/\{REMAINING\}/g, String(remainingCount))
-    .replace(/\{TIME\}/g, nowStr)
-    .replace(/\{DATE\}/g, dateStr)
-    .replace(/\{SITE_LINK\}/g, 'https://brkesports.com');
-
-  // 3. Dispatch to all resolved recipients
-  let successCount = 0;
-  let failCount = 0;
-
-  for (let i = 0; i < recipients.length; i++) {
-    const r = recipients[i];
-    const personalizedText = formattedMessage
-      .replace(/\{PLAYER_NAME\}/g, r.name || 'Player')
-      .replace(/\{CAPTAIN_NAME\}/g, r.name || 'Captain');
-
-    const result = await sendDirectWhatsappMessage({
-      to: r.phone,
-      text: personalizedText,
-      imageUrl: schedule.imageUrl || schedule.mediaUrl,
-      targetName: r.name || schedule.targetName,
-      triggerType: 'SCHEDULED_AUTOMATION',
-    });
-
-    if (result.success) {
-      successCount++;
     } else {
-      failCount++;
-      console.warn(`[executeScheduledJob] Failed to deliver to "${r.name}" (${r.phone}):`, result.message);
+      // Single phone number or Custom phone recipient
+      if (schedule.targetDestination) {
+        recipients.push({
+          phone: schedule.targetDestination,
+          name: schedule.targetName || 'WhatsApp Target',
+        });
+      }
     }
 
-    // Small delay between group messages to prevent gateway rate-limiting
-    // Green-API free tier needs at least 1-2 seconds between requests
-    if (i < recipients.length - 1) {
-      await new Promise(res => setTimeout(res, 1500));
+    if (recipients.length === 0) {
+      return { success: false, message: 'No valid recipient target found for this schedule.', sentCount: 0 };
     }
+
+    // 2. Resolve Message Template (support rotation / sequence)
+    let rawTemplate = schedule.messageTemplate;
+    if (schedule.messagesSequence && schedule.messagesSequence.length > 0) {
+      const seqIdx = currentRunCount % schedule.messagesSequence.length;
+      rawTemplate = schedule.messagesSequence[seqIdx] || schedule.messageTemplate;
+    }
+
+    const nowStr = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    const dateStr = new Date().toLocaleDateString('en-GB');
+    const executionNum = currentRunCount + 1;
+    const remainingCount = maxRuns > 0 ? Math.max(0, maxRuns - executionNum) : 'Unlimited';
+
+    const formattedMessage = rawTemplate
+      .replace(/\{COUNT\}/g, String(executionNum))
+      .replace(/\{MAX_COUNT\}/g, maxRuns > 0 ? String(maxRuns) : 'Unlimited')
+      .replace(/\{REMAINING\}/g, String(remainingCount))
+      .replace(/\{TIME\}/g, nowStr)
+      .replace(/\{DATE\}/g, dateStr)
+      .replace(/\{SITE_LINK\}/g, 'https://brkesports.com');
+
+    // 3. Dispatch to all resolved recipients
+    let successCount = 0;
+    let failCount = 0;
+
+    for (let i = 0; i < recipients.length; i++) {
+      const r = recipients[i];
+      const personalizedText = formattedMessage
+        .replace(/\{PLAYER_NAME\}/g, r.name || 'Player')
+        .replace(/\{CAPTAIN_NAME\}/g, r.name || 'Captain');
+
+      const result = await sendDirectWhatsappMessage({
+        to: r.phone,
+        text: personalizedText,
+        imageUrl: schedule.imageUrl || schedule.mediaUrl,
+        targetName: r.name || schedule.targetName,
+        triggerType: 'SCHEDULED_AUTOMATION',
+      });
+
+      if (result.success) {
+        successCount++;
+      } else {
+        failCount++;
+        console.warn(`[executeScheduledJob] Failed to deliver to "${r.name}" (${r.phone}):`, result.message);
+      }
+
+      // Small delay between group messages to prevent gateway rate-limiting
+      if (i < recipients.length - 1) {
+        await new Promise(res => setTimeout(res, 2000));
+      }
+    }
+
+    // 4. Check if this execution concludes the schedule limit
+    const isCompleted = (schedule.frequency === 'ONCE' && successCount > 0) || (maxRuns > 0 && executionNum >= maxRuns && successCount > 0);
+    const nextRun = isCompleted ? undefined : calculateNextRunTime(schedule);
+
+    const updatedSchedule: WhatsAppSchedule = {
+      ...schedule,
+      runCount: successCount > 0 ? executionNum : currentRunCount,
+      lastRunAt: new Date().toISOString(),
+      nextRunAt: nextRun,
+      lastStatus: successCount > 0 ? 'SUCCESS' : 'FAILED',
+      lastError: failCount > 0 ? `Failed on ${failCount} recipient(s)` : undefined,
+      status: isCompleted ? 'COMPLETED' : schedule.status,
+      isActive: isCompleted ? false : schedule.isActive,
+    };
+
+    const allSchedules = await getWhatsAppSchedules();
+    const index = allSchedules.findIndex(s => s.id === schedule.id);
+    if (index >= 0) {
+      allSchedules[index] = updatedSchedule;
+    } else {
+      allSchedules.push(updatedSchedule);
+    }
+    await saveWhatsAppSchedules(allSchedules);
+
+    return {
+      success: successCount > 0,
+      message: successCount > 0
+        ? (isCompleted
+            ? `Dispatched run #${executionNum} of ${maxRuns > 0 ? maxRuns : 1}. Target reached — Schedule COMPLETED.`
+            : `Dispatched run #${executionNum} (${remainingCount} remaining). Delivered to ${successCount} target(s).`)
+        : `Failed to deliver to all ${recipients.length} target(s). Check WhatsApp connection status in Admin Panel.`,
+      sentCount: successCount,
+    };
+  } finally {
+    activeRunningScheduleIds.delete(schedule.id);
   }
-
-  // 4. Check if this execution concludes the schedule limit
-  const isCompleted = (schedule.frequency === 'ONCE' && successCount > 0) || (maxRuns > 0 && executionNum >= maxRuns && successCount > 0);
-  const nextRun = isCompleted ? undefined : calculateNextRunTime(schedule);
-
-  const updatedSchedule: WhatsAppSchedule = {
-    ...schedule,
-    runCount: successCount > 0 ? executionNum : currentRunCount,
-    lastRunAt: new Date().toISOString(),
-    nextRunAt: nextRun,
-    lastStatus: successCount > 0 ? 'SUCCESS' : 'FAILED',
-    lastError: failCount > 0 ? `Failed on ${failCount} recipient(s)` : undefined,
-    status: isCompleted ? 'COMPLETED' : schedule.status,
-    isActive: isCompleted ? false : schedule.isActive,
-  };
-
-  const allSchedules = await getWhatsAppSchedules();
-  const index = allSchedules.findIndex(s => s.id === schedule.id);
-  if (index >= 0) {
-    allSchedules[index] = updatedSchedule;
-  } else {
-    allSchedules.push(updatedSchedule);
-  }
-  await saveWhatsAppSchedules(allSchedules);
-
-  return {
-    success: successCount > 0,
-    message: successCount > 0
-      ? (isCompleted
-          ? `Dispatched run #${executionNum} of ${maxRuns > 0 ? maxRuns : 1}. Target reached — Schedule COMPLETED.`
-          : `Dispatched run #${executionNum} (${remainingCount} remaining). Delivered to ${successCount} target(s).`)
-      : `Failed to deliver to all ${recipients.length} target(s). Check WhatsApp connection status in Admin Panel.`,
-    sentCount: successCount,
-  };
 }
 
 /**
@@ -1754,30 +1687,39 @@ export async function runAllDueWhatsAppSchedules(): Promise<{
   executedCount: number;
   results: Array<{ scheduleId: string; title: string; success: boolean; sentCount: number }>;
 }> {
-  const schedules = await getWhatsAppSchedules();
-  const now = Date.now();
-  const results = [];
-  let executedCount = 0;
-
-  for (const schedule of schedules) {
-    if (!schedule.isActive || schedule.status !== 'ACTIVE') continue;
-
-    const nextRunMs = schedule.nextRunAt ? new Date(schedule.nextRunAt).getTime() : 0;
-    const isDue = nextRunMs <= now;
-
-    if (isDue) {
-      executedCount++;
-      const res = await executeScheduledJob(schedule);
-      results.push({
-        scheduleId: schedule.id,
-        title: schedule.title,
-        success: res.success,
-        sentCount: res.sentCount,
-      });
-    }
+  if (isEvaluatingDueSchedules) {
+    return { executedCount: 0, results: [] };
   }
+  isEvaluatingDueSchedules = true;
 
-  return { executedCount, results };
+  try {
+    const schedules = await getWhatsAppSchedules();
+    const now = Date.now();
+    const results = [];
+    let executedCount = 0;
+
+    for (const schedule of schedules) {
+      if (!schedule.isActive || schedule.status !== 'ACTIVE') continue;
+
+      const nextRunMs = schedule.nextRunAt ? new Date(schedule.nextRunAt).getTime() : 0;
+      const isDue = nextRunMs <= now;
+
+      if (isDue && !activeRunningScheduleIds.has(schedule.id)) {
+        executedCount++;
+        const res = await executeScheduledJob(schedule);
+        results.push({
+          scheduleId: schedule.id,
+          title: schedule.title,
+          success: res.success,
+          sentCount: res.sentCount,
+        });
+      }
+    }
+
+    return { executedCount, results };
+  } finally {
+    isEvaluatingDueSchedules = false;
+  }
 }
 
 /* ========================================================================= */

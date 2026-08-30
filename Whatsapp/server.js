@@ -141,16 +141,22 @@ async function connectToWhatsApp() {
     if (type !== 'notify') return;
 
     for (const msg of messages) {
-      if (msg.key.remoteJid !== SOURCE_CHANNEL_JID) continue;
+      // 1. CRITICAL: Ignore own messages to prevent infinite echo loops
+      if (msg.key.fromMe) continue;
+
+      // 2. CRITICAL: Only proceed if a valid SOURCE_CHANNEL_JID is explicitly configured
+      if (!SOURCE_CHANNEL_JID || SOURCE_CHANNEL_JID.trim() === '') continue;
+      if (msg.key.remoteJid !== SOURCE_CHANNEL_JID.trim()) continue;
 
       const textMessage =
         msg.message?.conversation || msg.message?.extendedTextMessage?.text;
       if (!textMessage) continue;
 
-      console.log(`📢 Channel message detected: "${textMessage}"`);
+      console.log(`📢 Channel message detected: "${textMessage.slice(0, 50)}..."`);
 
-      // Load target groups: use env or fall back to cached groups
-      const targets = TARGET_GROUPS.length > 0 ? TARGET_GROUPS : connectedGroups.map((g) => g.id);
+      // Load target groups: exclude the source channel to avoid loop
+      const allTargets = TARGET_GROUPS.length > 0 ? TARGET_GROUPS : connectedGroups.map((g) => g.id);
+      const targets = allTargets.filter((jid) => jid !== SOURCE_CHANNEL_JID && jid !== msg.key.remoteJid);
 
       for (const groupJid of targets) {
         try {
@@ -161,12 +167,10 @@ async function connectToWhatsApp() {
         } catch (err) {
           console.error(`❌ Failed to send to ${groupJid}:`, err.message);
         }
-        await new Promise((res) => setTimeout(res, 1500));
+        await new Promise((res) => setTimeout(res, 2000));
       }
     }
   });
-
-
 
 }
 
@@ -190,24 +194,25 @@ cron.schedule('* * * * *', async () => {
 
   try {
     const now = new Date();
+    // Only fetch up to 5 pending messages that haven't been sent yet
     const pendingMessages = await ScheduledMessage.find({
       sendAt: { $lte: now },
       isSent: false,
-    });
+    }).limit(5);
 
     for (const item of pendingMessages) {
-      try {
-        for (const groupJid of item.groupJids) {
+      // Mark as sent immediately to prevent loop if a single group fails
+      item.isSent = true;
+      await item.save();
+
+      for (const groupJid of item.groupJids) {
+        try {
           await sock.sendMessage(groupJid, { text: item.message });
-          await new Promise((res) => setTimeout(res, 1500));
+          console.log(`⏰ Cron message sent to: ${groupJid}`);
+          await new Promise((res) => setTimeout(res, 2000));
+        } catch (sendErr) {
+          console.error(`❌ Cron send failed for ${groupJid}:`, sendErr.message);
         }
-        item.isSent = true;
-        await item.save();
-        console.log('⏰ Scheduled message sent successfully!');
-      } catch (sendErr) {
-        item.failReason = sendErr.message;
-        await item.save();
-        console.error('❌ Scheduled message failed:', sendErr.message);
       }
     }
   } catch (err) {

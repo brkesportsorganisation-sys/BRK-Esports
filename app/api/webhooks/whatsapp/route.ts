@@ -7,15 +7,45 @@ import {
   forwardChannelMessageToGroups,
 } from '@/lib/whatsapp';
 
+// Temporary in-memory anti-spam cache: sender -> lastReplyTimestamp
+const recentAutoReplies = new Map<string, number>();
+
 export async function POST(req: NextRequest) {
   try {
     const payload = await req.json();
     console.log('[WhatsApp Webhook Received]', JSON.stringify(payload));
 
-    // Support Green-API, WaAPI, Zavu, and custom webhook payload formats
+    // 1. CRITICAL: Identify webhook event type and ignore outgoing or system events
     const typeWebhook = payload?.typeWebhook || payload?.event || payload?.type;
+
+    // Explicitly ignore non-incoming message events from Green-API / WaAPI / Zavu
+    const ignoredTypes = [
+      'outgoingMessageReceived',
+      'outgoingAPIMessageReceived',
+      'outgoingMessageStatus',
+      'stateInstanceChanged',
+      'statusInstanceChanged',
+      'deviceInfo',
+      'quotaExceeded',
+    ];
+
+    if (typeWebhook && ignoredTypes.includes(typeWebhook)) {
+      return NextResponse.json({ success: true, message: `Ignored event type: ${typeWebhook}` });
+    }
+
     const messageData = payload?.messageData || payload?.data?.message || payload?.data || payload?.message || payload;
     const senderData = payload?.senderData || {};
+
+    // Ignore if marked as outgoing or from self
+    if (
+      payload?.fromMe === true ||
+      senderData?.fromMe === true ||
+      messageData?.fromMe === true ||
+      payload?.isOutgoing === true ||
+      senderData?.isOutgoing === true
+    ) {
+      return NextResponse.json({ success: true, message: 'Ignored outgoing self-message' });
+    }
 
     // Extract sender / chat ID
     const rawFrom =
@@ -85,15 +115,14 @@ export async function POST(req: NextRequest) {
 
         // Match if incoming chat is a newsletter/channel or matches user's channel identifier/name:
         const isChannelMatch =
-          !configuredChannel ||
-          configuredChannel === '*' ||
-          configuredChannel === 'all' ||
-          incomingChat === configuredChannel ||
-          incomingChat.includes(configuredChannel) ||
-          configuredChannel.includes(incomingChat) ||
-          incomingChat.includes('@newsletter') ||
-          (channelInviteCode && incomingChat.includes(channelInviteCode)) ||
-          (forwarderConfig.sourceChannelName && incomingChat.includes(forwarderConfig.sourceChannelName.toLowerCase()));
+          configuredChannel &&
+          configuredChannel !== '' &&
+          (incomingChat === configuredChannel ||
+            incomingChat.includes(configuredChannel) ||
+            configuredChannel.includes(incomingChat) ||
+            incomingChat.includes('@newsletter') ||
+            (channelInviteCode && incomingChat.includes(channelInviteCode)) ||
+            (forwarderConfig.sourceChannelName && incomingChat.includes(forwarderConfig.sourceChannelName.toLowerCase())));
 
         if (isChannelMatch) {
           console.log(`[WhatsApp Forwarder] New message received from source channel (${from}). Relaying to groups...`);
@@ -120,8 +149,19 @@ export async function POST(req: NextRequest) {
     }
 
     // =========================================================================
-    // 💬 2. BOT KEYWORD AUTO-RESPONDER (For direct user DMs)
+    // 💬 2. BOT KEYWORD AUTO-RESPONDER (For direct user DMs ONLY)
     // =========================================================================
+    // DO NOT auto-reply to group chats (@g.us), channels (@newsletter), or broadcast lists
+    const isGroupOrChannel =
+      from.includes('@g.us') ||
+      from.includes('@newsletter') ||
+      from.includes('@broadcast') ||
+      from.includes('@lid');
+
+    if (isGroupOrChannel) {
+      return NextResponse.json({ success: true, message: 'Ignored group/channel message for DM auto-reply' });
+    }
+
     const { data: setting } = await supabaseAdmin
       .from('SiteSetting')
       .select('value')
@@ -135,6 +175,13 @@ export async function POST(req: NextRequest) {
     const config = typeof setting.value === 'string' ? JSON.parse(setting.value) : setting.value;
     if (!config.autoReplyEnabled) {
       return NextResponse.json({ success: true, message: 'Auto reply is disabled' });
+    }
+
+    // Rate-limit: at most 1 auto-reply per sender every 2 minutes to prevent loops
+    const now = Date.now();
+    const lastReply = recentAutoReplies.get(from) || 0;
+    if (now - lastReply < 120000) {
+      return NextResponse.json({ success: true, message: 'Auto-reply rate limited for this sender' });
     }
 
     // Check matched keyword rules
@@ -157,12 +204,20 @@ export async function POST(req: NextRequest) {
     }
 
     if (replyText) {
+      recentAutoReplies.set(from, now);
+      // Clean up cache periodically
+      if (recentAutoReplies.size > 1000) {
+        for (const [k, v] of recentAutoReplies.entries()) {
+          if (now - v > 300000) recentAutoReplies.delete(k);
+        }
+      }
+
       const formattedFrom = normalizePhoneNumber(from);
       await sendDirectWhatsappMessage({
         to: formattedFrom,
         text: replyText,
         targetName: 'Incoming Player (Bot Auto-Reply)',
-        triggerType: 'SCHEDULED_AUTOMATION',
+        triggerType: 'ROOM_ALERT',
       });
     }
 
