@@ -24,8 +24,8 @@ export async function GET() {
     const settings = await getWhatsAppSettings();
     const provider = settings.provider || 'GREEN_API';
 
-    // 1. GREEN-API QR & Status
-    if (provider === 'GREEN_API') {
+    // 1. WhatsApp Web Direct QR & Instance Status
+    if (provider === 'GREEN_API' || provider === 'DIRECT_QR') {
       const host = (settings.greenApiUrl || 'https://7107.api.greenapi.com').replace(/\/+$/, '');
       const instanceId = settings.greenApiInstanceId || '710722716896';
       const token = settings.greenApiToken;
@@ -34,7 +34,7 @@ export async function GET() {
         return NextResponse.json({
           success: false,
           status: 'CONFIG_REQUIRED',
-          message: 'Green-API Token is not configured. Please enter token in Settings.',
+          message: 'WhatsApp Gateway Token is not configured. Please enter token in Settings.',
         });
       }
 
@@ -56,7 +56,7 @@ export async function GET() {
         return NextResponse.json({
           success: true,
           status: 'CONNECTED',
-          provider: 'GREEN_API',
+          provider: 'DIRECT_QR',
           stateInstance,
           phoneNumber: instSettings?.wid ? `+${instSettings.wid.split('@')[0]}` : '+880 1846-587311',
           name: instSettings?.name || 'ESPORTS ZONE BD WhatsApp',
@@ -71,6 +71,17 @@ export async function GET() {
 
       const qrData = qrRes?.ok ? await qrRes.json().catch(() => ({})) : {};
 
+      if (qrData?.type === 'alreadyLogged' || qrData?.message?.includes('already logged')) {
+        return NextResponse.json({
+          success: true,
+          status: 'CONNECTED',
+          provider: 'DIRECT_QR',
+          stateInstance: 'authorized',
+          phoneNumber: '+880 1846-587311',
+          message: 'WhatsApp Web is authorized and active!',
+        });
+      }
+
       if (qrData?.type === 'qrCode' && qrData?.message) {
         // qrData.message is base64 image or raw string
         const qrImage = qrData.message.startsWith('data:image')
@@ -82,7 +93,7 @@ export async function GET() {
         return NextResponse.json({
           success: true,
           status: 'WAITING_FOR_SCAN',
-          provider: 'GREEN_API',
+          provider: 'DIRECT_QR',
           stateInstance,
           qrCodeImage: qrImage,
           rawQr: qrData.message,
@@ -90,21 +101,10 @@ export async function GET() {
         });
       }
 
-      if (qrData?.type === 'alreadyLogged') {
-        return NextResponse.json({
-          success: true,
-          status: 'CONNECTED',
-          provider: 'GREEN_API',
-          stateInstance: 'authorized',
-          phoneNumber: '+880 1846-587311',
-          message: 'WhatsApp Web is authorized and active!',
-        });
-      }
-
       return NextResponse.json({
         success: true,
         status: stateInstance === 'notAuthorized' ? 'SCAN_REQUIRED' : 'INITIALIZING',
-        provider: 'GREEN_API',
+        provider: 'DIRECT_QR',
         stateInstance,
         message: 'Generating new WhatsApp QR code...',
       });

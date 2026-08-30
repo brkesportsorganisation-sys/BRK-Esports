@@ -21,16 +21,22 @@ export async function POST(req: NextRequest) {
     const activeProvider = body.provider || settings.provider;
 
     let res: any;
-    if (activeProvider === 'GREEN_API') {
+    if (activeProvider === 'GREEN_API' || activeProvider === 'DIRECT_QR') {
       res = await fetchGreenApiChats(
         body.apiUrl || settings.greenApiUrl,
         body.instanceId || settings.greenApiInstanceId,
         body.apiKey || settings.greenApiToken
       );
-    } else {
+    } else if (activeProvider === 'WAAPI') {
       res = await fetchWaapiChats(
         body.instanceId || settings.waapiInstanceId,
         body.apiKey || settings.waapiApiKey
+      );
+    } else {
+      res = await fetchGreenApiChats(
+        body.apiUrl || settings.greenApiUrl,
+        body.instanceId || settings.greenApiInstanceId,
+        body.apiKey || settings.greenApiToken
       );
     }
 
