@@ -28,6 +28,10 @@ export function normalizePhoneNumber(rawPhone: string): string {
   if (trimmed.includes('chat.whatsapp.com/') || trimmed.includes('whatsapp.com/channel/')) {
     return trimmed;
   }
+  // Preserve Group IDs or targets with letters/spaces (group names)
+  if (/[a-zA-Z\s\[\]\|\-_]/.test(trimmed) && !trimmed.startsWith('+88') && !/^\+?\d+$/.test(trimmed)) {
+    return trimmed;
+  }
   // Remove spaces, hyphens, parentheses, and other non-digit chars (except leading +)
   let cleaned = trimmed.replace(/[^\d+]/g, '');
 

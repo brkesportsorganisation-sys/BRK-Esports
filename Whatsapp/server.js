@@ -364,6 +364,83 @@ app.get('/api/scheduled-messages', requireApiSecret, async (req, res) => {
 });
 
 // ─── POST: Send Direct Message (to individual phone or group JID) ─────────────
+// ─── Helper: Resolve WhatsApp Destination to real JID ────────────────────────
+async function resolveWhatsAppJid(destination, socketInstance) {
+  if (!destination) return null;
+  let trimmed = destination.trim();
+
+  // 1. Direct valid WhatsApp JID
+  if (
+    trimmed.endsWith('@g.us') ||
+    trimmed.endsWith('@s.whatsapp.net') ||
+    trimmed.endsWith('@newsletter') ||
+    trimmed.endsWith('@broadcast')
+  ) {
+    return trimmed;
+  }
+
+  // 2. Handle group invite link (e.g. https://chat.whatsapp.com/AbCdEf123456)
+  if (trimmed.includes('chat.whatsapp.com/')) {
+    const code = trimmed.split('chat.whatsapp.com/')[1]?.split(/[\?\/]/)[0]?.trim();
+    if (code && socketInstance) {
+      try {
+        const info = await socketInstance.groupGetInviteInfo(code);
+        if (info?.id) {
+          console.log(`🔗 Resolved invite link "${code}" -> Group JID: ${info.id}`);
+          return info.id;
+        }
+      } catch (err) {
+        console.warn(`⚠️ Could not resolve group invite link (${code}):`, err.message);
+      }
+    }
+  }
+
+  // 3. Match against connected groups cache by subject / name
+  if (connectedGroups && connectedGroups.length > 0) {
+    const cleanDest = trimmed.toLowerCase();
+    const matched = connectedGroups.find(
+      (g) => g.id === trimmed || g.name?.toLowerCase() === cleanDest || g.name?.toLowerCase().includes(cleanDest)
+    );
+    if (matched) {
+      console.log(`📋 Matched group name "${trimmed}" -> Group JID: ${matched.id}`);
+      return matched.id;
+    }
+  }
+
+  // 4. Try refreshing group cache if not found in initial cache
+  if (socketInstance) {
+    try {
+      const refreshed = await refreshGroupsCache();
+      const cleanDest = trimmed.toLowerCase();
+      const matched = (refreshed || []).find(
+        (g) => g.id === trimmed || g.name?.toLowerCase() === cleanDest || g.name?.toLowerCase().includes(cleanDest)
+      );
+      if (matched) {
+        console.log(`📋 Matched group name "${trimmed}" -> Fresh Group JID: ${matched.id}`);
+        return matched.id;
+      }
+    } catch {}
+  }
+
+  // 5. Detect if numeric group ID (starts with 120... or timestamp format)
+  if (/^120\d{14,}/.test(trimmed) || /^\d{10,}-\d+/.test(trimmed)) {
+    return `${trimmed}@g.us`;
+  }
+
+  // 6. If it contains digits (phone number)
+  const digits = trimmed.replace(/\D/g, '');
+  if (digits.length >= 7) {
+    let phoneDigits = digits;
+    if (digits.startsWith('01') && digits.length === 11) {
+      phoneDigits = `880${digits.substring(1)}`;
+    }
+    return `${phoneDigits}@s.whatsapp.net`;
+  }
+
+  return null;
+}
+
+// ─── POST: Send Direct Message (to individual phone or group JID) ─────────────
 app.post('/api/send-direct', requireApiSecret, async (req, res) => {
   if (!isConnected || !sock) {
     return res.status(503).json({
@@ -380,12 +457,16 @@ app.post('/api/send-direct', requireApiSecret, async (req, res) => {
   }
 
   try {
-    // Format destination: if phone number, convert to WhatsApp JID
-    let waJid = destination.trim();
-    if (!waJid.includes('@')) {
-      const digits = waJid.replace(/[^\d]/g, '');
-      waJid = `${digits}@s.whatsapp.net`;
+    // Resolve destination to actual WhatsApp JID
+    const waJid = await resolveWhatsAppJid(destination, sock);
+    if (!waJid) {
+      return res.status(400).json({
+        success: false,
+        error: `Could not resolve destination "${destination}" to a valid WhatsApp group or phone JID.`,
+      });
     }
+
+    console.log(`📤 Sending message to resolved JID: ${waJid}`);
 
     // Check if imageUrl is a valid public URL
     const isValidImageUrl = imageUrl &&
@@ -413,7 +494,7 @@ app.post('/api/send-direct', requireApiSecret, async (req, res) => {
       console.log(`✅ Message sent to: ${waJid}`);
     }
 
-    res.json({ success: true, message: `Message sent to ${waJid}`, messageId: sendResult?.key?.id });
+    res.json({ success: true, message: `Message sent to ${waJid}`, messageId: sendResult?.key?.id, jid: waJid });
   } catch (error) {
     console.error('❌ Direct send error:', error.message);
     res.status(500).json({ success: false, error: error.message });
