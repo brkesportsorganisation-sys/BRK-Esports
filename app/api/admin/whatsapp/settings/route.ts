@@ -29,17 +29,10 @@ export async function GET() {
       success: true,
       isMongoConnected: mongoOk,
       settings: {
-        provider: settings.provider,
-        greenApiUrl: settings.greenApiUrl || 'https://7107.api.greenapi.com',
-        greenApiInstanceId: settings.greenApiInstanceId || '710722716896',
-        greenApiToken: settings.greenApiToken || 'ea0c3d51fd1249bca407bb087266747fb099a650643b4d399d',
-        greenApiTokenFull: settings.greenApiToken || 'ea0c3d51fd1249bca407bb087266747fb099a650643b4d399d',
-        waapiApiKey: settings.waapiApiKey || 'FTjbix0MFIKsJWCiyLGcttqX0y1Hft8hy1abEXmEb33b91dd',
-        waapiApiKeyFull: settings.waapiApiKey || 'FTjbix0MFIKsJWCiyLGcttqX0y1Hft8hy1abEXmEb33b91dd',
-        waapiInstanceId: settings.waapiInstanceId || '102791',
-        zavuApiKey: settings.zavuApiKey || 'zv_live_057a6574405452d25b0141112a8cd4ec8b2401215f9aa27e',
-        zavuApiKeyFull: settings.zavuApiKey || 'zv_live_057a6574405452d25b0141112a8cd4ec8b2401215f9aa27e',
-        isEnabled: settings.isEnabled,
+        provider: settings.provider || 'NODE_BOT',
+        nodeBotUrl: settings.nodeBotUrl || 'https://your-render-app.onrender.com',
+        nodeBotSecret: settings.nodeBotSecret || 'super_secret_key_here',
+        isEnabled: settings.isEnabled ?? true,
         defaultTemplate: settings.defaultTemplate,
       }
     });
@@ -58,24 +51,16 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { 
-      greenApiUrl, 
-      greenApiInstanceId, 
-      greenApiToken, 
-      waapiApiKey, 
-      waapiInstanceId, 
-      zavuApiKey, 
+      nodeBotUrl, 
+      nodeBotSecret, 
       provider, 
       isEnabled, 
       defaultTemplate 
     } = body;
 
     const saved = await saveWhatsAppSettings({
-      greenApiUrl: greenApiUrl?.trim(),
-      greenApiInstanceId: greenApiInstanceId?.trim(),
-      greenApiToken: greenApiToken?.trim(),
-      waapiApiKey: waapiApiKey?.trim(),
-      waapiInstanceId: waapiInstanceId?.trim(),
-      zavuApiKey: zavuApiKey?.trim(),
+      nodeBotUrl: nodeBotUrl?.trim(),
+      nodeBotSecret: nodeBotSecret?.trim(),
       provider,
       isEnabled: isEnabled !== undefined ? Boolean(isEnabled) : undefined,
       defaultTemplate: defaultTemplate?.trim(),
@@ -101,3 +86,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, message: error?.message || 'Failed to save settings' }, { status: 500 });
   }
 }
+

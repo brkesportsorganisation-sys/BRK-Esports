@@ -118,28 +118,14 @@ export default function AdminWhatsAppPage() {
   const [isSyncingGroups, setIsSyncingGroups] = useState(false);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [gatewaySettings, setGatewaySettings] = useState<{
-    provider: 'DIRECT_QR' | 'GREEN_API' | 'WAAPI' | 'ZAVU';
-    greenApiUrl: string;
-    greenApiInstanceId: string;
-    greenApiToken: string;
-    greenApiTokenFull?: string;
-    waapiApiKey: string;
-    waapiApiKeyFull?: string;
-    waapiInstanceId: string;
-    zavuApiKey: string;
-    zavuApiKeyFull?: string;
+    provider: 'DIRECT_QR' | 'NODE_BOT';
+    nodeBotUrl: string;
+    nodeBotSecret: string;
     isEnabled: boolean;
   }>({
-    provider: 'DIRECT_QR',
-    greenApiUrl: 'https://7107.api.greenapi.com',
-    greenApiInstanceId: '710722716896',
-    greenApiToken: 'ea0c3d51fd1249bca407bb087266747fb099a650643b4d399d',
-    greenApiTokenFull: 'ea0c3d51fd1249bca407bb087266747fb099a650643b4d399d',
-    waapiApiKey: 'FTjbix0MFIKsJWCiyLGcttqX0y1Hft8hy1abEXmEb33b91dd',
-    waapiApiKeyFull: 'FTjbix0MFIKsJWCiyLGcttqX0y1Hft8hy1abEXmEb33b91dd',
-    waapiInstanceId: '102791',
-    zavuApiKey: 'zv_live_057a6574405452d25b0141112a8cd4ec8b2401215f9aa27e',
-    zavuApiKeyFull: 'zv_live_057a6574405452d25b0141112a8cd4ec8b2401215f9aa27e',
+    provider: 'NODE_BOT',
+    nodeBotUrl: 'https://your-render-app.onrender.com',
+    nodeBotSecret: 'super_secret_key_here',
     isEnabled: true,
   });
 
@@ -3650,7 +3636,7 @@ export default function AdminWhatsAppPage() {
                   </label>
 
                   <label className={`p-3.5 rounded-2xl border cursor-pointer flex flex-col justify-between gap-2 transition-all ${
-                    gatewaySettings.provider === 'GREEN_API'
+                    gatewaySettings.provider === 'NODE_BOT'
                       ? 'bg-emerald-50/80 border-emerald-500 text-emerald-950 ring-2 ring-emerald-500/20'
                       : 'bg-[#F8FAFC] border-slate-200 text-slate-700 hover:border-slate-300'
                   }`}>
@@ -3658,52 +3644,14 @@ export default function AdminWhatsAppPage() {
                       <input
                         type="radio"
                         name="provider"
-                        value="GREEN_API"
-                        checked={gatewaySettings.provider === 'GREEN_API'}
-                        onChange={() => setGatewaySettings(prev => ({ ...prev, provider: 'GREEN_API' }))}
+                        value="NODE_BOT"
+                        checked={gatewaySettings.provider === 'NODE_BOT'}
+                        onChange={() => setGatewaySettings(prev => ({ ...prev, provider: 'NODE_BOT' }))}
                         className="text-emerald-600 focus:ring-emerald-500"
                       />
-                      <div className="font-bold text-xs text-emerald-900">🟢 Green-API</div>
+                      <div className="font-bold text-xs text-emerald-900">🤖 Node Bot (Render)</div>
                     </div>
-                    <div className="text-[11px] text-slate-500 font-medium">Console Gateway</div>
-                  </label>
-
-                  <label className={`p-3.5 rounded-2xl border cursor-pointer flex flex-col justify-between gap-2 transition-all ${
-                    gatewaySettings.provider === 'WAAPI'
-                      ? 'bg-emerald-50/80 border-emerald-500 text-emerald-950 ring-2 ring-emerald-500/20'
-                      : 'bg-[#F8FAFC] border-slate-200 text-slate-700 hover:border-slate-300'
-                  }`}>
-                    <div className="flex items-center gap-2.5">
-                      <input
-                        type="radio"
-                        name="provider"
-                        value="WAAPI"
-                        checked={gatewaySettings.provider === 'WAAPI'}
-                        onChange={() => setGatewaySettings(prev => ({ ...prev, provider: 'WAAPI' }))}
-                        className="text-emerald-600 focus:ring-emerald-500"
-                      />
-                      <div className="font-bold text-xs">WaAPI Instance</div>
-                    </div>
-                    <div className="text-[11px] text-slate-500">QR Instance (waapi.app)</div>
-                  </label>
-
-                  <label className={`p-3.5 rounded-2xl border cursor-pointer flex flex-col justify-between gap-2 transition-all ${
-                    gatewaySettings.provider === 'ZAVU'
-                      ? 'bg-emerald-50/80 border-emerald-500 text-emerald-950 ring-2 ring-emerald-500/20'
-                      : 'bg-[#F8FAFC] border-slate-200 text-slate-700 hover:border-slate-300'
-                  }`}>
-                    <div className="flex items-center gap-2.5">
-                      <input
-                        type="radio"
-                        name="provider"
-                        value="ZAVU"
-                        checked={gatewaySettings.provider === 'ZAVU'}
-                        onChange={() => setGatewaySettings(prev => ({ ...prev, provider: 'ZAVU' }))}
-                        className="text-emerald-600 focus:ring-emerald-500"
-                      />
-                      <div className="font-bold text-xs">Zavu (Cloud API)</div>
-                    </div>
-                    <div className="text-[11px] text-slate-500">Meta Cloud Direct</div>
+                    <div className="text-[11px] text-slate-500 font-medium">Auto WhatsApp Scheduler</div>
                   </label>
                 </div>
               </div>
@@ -3730,118 +3678,39 @@ export default function AdminWhatsAppPage() {
                 </div>
               )}
 
-              {/* 🟢 Green-API Configuration Box */}
-              {gatewaySettings.provider === 'GREEN_API' && (
+              {/* 🤖 Node Bot Configuration Box */}
+              {gatewaySettings.provider === 'NODE_BOT' && (
                 <div className="p-4 rounded-2xl bg-emerald-50/40 border border-emerald-200 space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-emerald-950 text-xs flex items-center gap-1.5">
                       <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                      Green-API Developer Instance (100% Free)
-                    </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-200/80 text-emerald-900">
-                      Instance #{gatewaySettings.greenApiInstanceId || '710722716896'}
+                      Node.js WhatsApp Bot (Render)
                     </span>
                   </div>
 
                   <div>
-                    <label className="block text-slate-800 font-bold mb-1">apiTokenInstance (API Token) *</label>
+                    <label className="block text-slate-800 font-bold mb-1">Bot API URL *</label>
                     <input
                       type="text"
                       required
-                      value={gatewaySettings.greenApiToken}
-                      onChange={(e) => setGatewaySettings(prev => ({ ...prev, greenApiToken: e.target.value }))}
-                      placeholder="Paste your apiTokenInstance from Green-API console"
+                      value={gatewaySettings.nodeBotUrl}
+                      onChange={(e) => setGatewaySettings(prev => ({ ...prev, nodeBotUrl: e.target.value }))}
+                      placeholder="https://your-bot.onrender.com"
                       className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-emerald-300 text-xs font-mono text-slate-900 focus:outline-none focus:border-emerald-600"
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-slate-800 font-bold mb-1">idInstance *</label>
-                      <input
-                        type="text"
-                        required
-                        value={gatewaySettings.greenApiInstanceId}
-                        onChange={(e) => setGatewaySettings(prev => ({ ...prev, greenApiInstanceId: e.target.value }))}
-                        placeholder="710722716896"
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-emerald-300 text-xs font-mono text-slate-900 focus:outline-none focus:border-emerald-600"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-slate-800 font-bold mb-1">apiUrl *</label>
-                      <input
-                        type="text"
-                        value={gatewaySettings.greenApiUrl}
-                        onChange={(e) => setGatewaySettings(prev => ({ ...prev, greenApiUrl: e.target.value }))}
-                        placeholder="https://7107.api.greenapi.com"
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-emerald-300 text-xs font-mono text-slate-900 focus:outline-none focus:border-emerald-600"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* WaAPI Configuration Box */}
-              {gatewaySettings.provider === 'WAAPI' && (
-                <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-slate-200 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                      WaAPI Instance Credentials
-                    </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800">
-                      Instance #{gatewaySettings.waapiInstanceId || '102791'}
-                    </span>
-                  </div>
-
                   <div>
-                    <label className="block text-slate-700 font-bold mb-1">WaAPI API Token (Bearer Token) *</label>
+                    <label className="block text-slate-800 font-bold mb-1">API Secret (x-api-secret) *</label>
                     <input
                       type="text"
-                      value={gatewaySettings.waapiApiKey}
-                      onChange={(e) => setGatewaySettings(prev => ({ ...prev, waapiApiKey: e.target.value }))}
-                      placeholder="Paste WaAPI API Token (e.g. cMm1iOuY0d6xwpO...)"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E2E8F0] text-xs font-mono text-slate-900 focus:outline-none focus:border-emerald-600"
+                      required
+                      value={gatewaySettings.nodeBotSecret}
+                      onChange={(e) => setGatewaySettings(prev => ({ ...prev, nodeBotSecret: e.target.value }))}
+                      placeholder="super_secret_key_here"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-emerald-300 text-xs font-mono text-slate-900 focus:outline-none focus:border-emerald-600"
                     />
                   </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-slate-700 font-bold mb-1">Instance ID *</label>
-                      <input
-                        type="text"
-                        value={gatewaySettings.waapiInstanceId}
-                        onChange={(e) => setGatewaySettings(prev => ({ ...prev, waapiInstanceId: e.target.value }))}
-                        placeholder="102791"
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E2E8F0] text-xs font-mono text-slate-900 focus:outline-none focus:border-emerald-600"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-slate-700 font-bold mb-1">Webhook URL</label>
-                      <input
-                        type="text"
-                        readOnly
-                        value="https://brk-esports.vercel.app/api/webhooks/whatsapp"
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-mono text-slate-600"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Zavu Configuration Box */}
-              {gatewaySettings.provider === 'ZAVU' && (
-                <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-slate-200 space-y-3">
-                  <span className="font-bold text-slate-900 text-xs block">Zavu Cloud API Key</span>
-                  <input
-                    type="text"
-                    value={gatewaySettings.zavuApiKey}
-                    onChange={(e) => setGatewaySettings(prev => ({ ...prev, zavuApiKey: e.target.value }))}
-                    placeholder="zv_live_..."
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E2E8F0] text-xs font-mono text-slate-900 focus:outline-none focus:border-emerald-600"
-                  />
                 </div>
               )}
 

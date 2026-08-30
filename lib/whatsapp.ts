@@ -55,14 +55,9 @@ export function normalizePhoneNumber(rawPhone: string): string {
 }
 
 export interface WhatsAppSettings {
-  provider: 'DIRECT_QR' | 'GREEN_API' | 'WAAPI' | 'ZAVU';
-  apiKey: string;
-  greenApiUrl: string;
-  greenApiInstanceId: string;
-  greenApiToken: string;
-  waapiApiKey: string;
-  waapiInstanceId: string;
-  zavuApiKey: string;
+  provider: 'DIRECT_QR' | 'NODE_BOT';
+  nodeBotUrl: string;
+  nodeBotSecret: string;
   isEnabled: boolean;
   defaultTemplate: string;
 }
@@ -71,13 +66,9 @@ export interface WhatsAppSettings {
  * Fetches WhatsApp settings (Direct QR, Green-API, WaAPI or Zavu) from MongoDB Atlas (or Supabase fallback).
  */
 export async function getWhatsAppSettings(): Promise<WhatsAppSettings> {
-  let dbApiKey = '';
-  let dbWaapiKey = '';
-  let dbWaapiInstance = '';
-  let dbGreenUrl = '';
-  let dbGreenInstance = '';
-  let dbGreenToken = '';
-  let dbProvider = '';
+  let dbProvider = 'NODE_BOT';
+  let dbNodeBotUrl = process.env.WHATSAPP_BOT_URL || 'https://your-render-app.onrender.com';
+  let dbNodeBotSecret = process.env.WHATSAPP_BOT_SECRET || 'super_secret_key_here';
   let isEnabled = true;
   let defaultTemplate = `🎮 {TOURNAMENT_NAME} 🎮\n\nআপনার ম্যাচের রুম ডিটেইলস:\n🔹 Room ID: {ROOM_ID}\n🔹 Password: {ROOM_PASS}\n\nদ্রুত গেমে জয়েন করুন!`;
 
@@ -88,13 +79,9 @@ export async function getWhatsAppSettings(): Promise<WhatsAppSettings> {
       if (collections) {
         const doc = await collections.settings.findOne({ _id: 'gateway_settings' as any });
         if (doc) {
-          if (doc.greenApiUrl) dbGreenUrl = doc.greenApiUrl;
-          if (doc.greenApiInstanceId) dbGreenInstance = doc.greenApiInstanceId;
-          if (doc.greenApiToken) dbGreenToken = doc.greenApiToken;
-          if (doc.waapiApiKey) dbWaapiKey = doc.waapiApiKey;
-          if (doc.waapiInstanceId) dbWaapiInstance = doc.waapiInstanceId;
-          if (doc.zavuApiKey) dbApiKey = doc.zavuApiKey;
           if (doc.provider) dbProvider = doc.provider;
+          if (doc.nodeBotUrl) dbNodeBotUrl = doc.nodeBotUrl;
+          if (doc.nodeBotSecret) dbNodeBotSecret = doc.nodeBotSecret;
           if (doc.isEnabled !== undefined) isEnabled = Boolean(doc.isEnabled);
           if (doc.defaultTemplate) defaultTemplate = doc.defaultTemplate;
         }
@@ -102,59 +89,7 @@ export async function getWhatsAppSettings(): Promise<WhatsAppSettings> {
     } catch (mErr) {
       console.warn('[MongoDB getWhatsAppSettings error]:', mErr);
     }
-  } else {
-    // 2. Fallback to Supabase only if MongoDB not configured
-    try {
-      const { data: settings } = await supabaseAdmin
-        .from('SiteSetting')
-        .select('key, value')
-        .in('key', [
-          'GREEN_API_URL',
-          'GREEN_API_INSTANCE_ID',
-          'GREEN_API_TOKEN',
-          'WAAPI_API_KEY',
-          'WAAPI_INSTANCE_ID',
-          'ZAVU_API_KEY',
-          'WHATSAPP_API_KEY',
-          'WHATSAPP_PROVIDER',
-          'WHATSAPP_ENABLED',
-          'WHATSAPP_ROOM_TEMPLATE',
-        ]);
-
-      const map = (settings || []).reduce((acc: Record<string, string>, item: any) => {
-        acc[item.key] = item.value;
-        return acc;
-      }, {});
-
-      if (map.GREEN_API_URL) dbGreenUrl = map.GREEN_API_URL;
-      if (map.GREEN_API_INSTANCE_ID) dbGreenInstance = map.GREEN_API_INSTANCE_ID;
-      if (map.GREEN_API_TOKEN) dbGreenToken = map.GREEN_API_TOKEN;
-      if (map.WAAPI_API_KEY) dbWaapiKey = map.WAAPI_API_KEY;
-      if (map.WAAPI_INSTANCE_ID) dbWaapiInstance = map.WAAPI_INSTANCE_ID;
-      if (map.ZAVU_API_KEY) dbApiKey = map.ZAVU_API_KEY;
-      if (map.WHATSAPP_API_KEY && !dbApiKey) dbApiKey = map.WHATSAPP_API_KEY;
-      if (map.WHATSAPP_PROVIDER) dbProvider = map.WHATSAPP_PROVIDER;
-      if (map.WHATSAPP_ENABLED !== undefined) isEnabled = map.WHATSAPP_ENABLED === 'true';
-      if (map.WHATSAPP_ROOM_TEMPLATE) defaultTemplate = map.WHATSAPP_ROOM_TEMPLATE;
-    } catch (err) {
-      console.warn('[WhatsApp] Could not fetch settings from database:', err);
-    }
   }
-
-  const defaultGreenToken = 'ea0c3d51fd1249bca407bb087266747fb099a650643b4d399d';
-  const defaultWaapiKey = 'FTjbix0MFIKsJWCiyLGcttqX0y1Hft8hy1abEXmEb33b91dd';
-  const defaultZavuKey = 'zv_live_057a6574405452d25b0141112a8cd4ec8b2401215f9aa27e';
-
-  const greenApiUrl = dbGreenUrl || process.env.GREEN_API_URL || 'https://7107.api.greenapi.com';
-  const greenApiInstanceId = dbGreenInstance || process.env.GREEN_API_INSTANCE_ID || '710722716896';
-  const greenApiToken = dbGreenToken || process.env.GREEN_API_TOKEN || defaultGreenToken;
-  const waapiApiKey = dbWaapiKey || process.env.WAAPI_API_KEY || defaultWaapiKey;
-  const waapiInstanceId = dbWaapiInstance || process.env.WAAPI_INSTANCE_ID || '102791';
-  const zavuApiKey = dbApiKey || process.env.ZAVU_API_KEY || process.env.ZAVUDEV_API_KEY || defaultZavuKey;
-
-  const provider: 'DIRECT_QR' | 'GREEN_API' | 'WAAPI' | 'ZAVU' = 
-    (dbProvider as any) || 'DIRECT_QR';
-  const apiKey = provider === 'GREEN_API' || provider === 'DIRECT_QR' ? greenApiToken : provider === 'WAAPI' ? waapiApiKey : zavuApiKey;
 
   return {
     provider,
@@ -194,12 +129,8 @@ export async function saveWhatsAppSettings(settings: Partial<WhatsAppSettings>):
   // Supabase fallback
   try {
     const upserts: Array<{ id: string; key: string; value: string; updatedAt: string }> = [];
-    if (settings.greenApiUrl !== undefined) upserts.push({ id: 'setting_GREEN_API_URL', key: 'GREEN_API_URL', value: settings.greenApiUrl, updatedAt: new Date().toISOString() });
-    if (settings.greenApiInstanceId !== undefined) upserts.push({ id: 'setting_GREEN_API_INSTANCE_ID', key: 'GREEN_API_INSTANCE_ID', value: settings.greenApiInstanceId, updatedAt: new Date().toISOString() });
-    if (settings.greenApiToken !== undefined) upserts.push({ id: 'setting_GREEN_API_TOKEN', key: 'GREEN_API_TOKEN', value: settings.greenApiToken, updatedAt: new Date().toISOString() });
-    if (settings.waapiApiKey !== undefined) upserts.push({ id: 'setting_WAAPI_API_KEY', key: 'WAAPI_API_KEY', value: settings.waapiApiKey, updatedAt: new Date().toISOString() });
-    if (settings.waapiInstanceId !== undefined) upserts.push({ id: 'setting_WAAPI_INSTANCE_ID', key: 'WAAPI_INSTANCE_ID', value: settings.waapiInstanceId, updatedAt: new Date().toISOString() });
-    if (settings.zavuApiKey !== undefined) upserts.push({ id: 'setting_ZAVU_API_KEY', key: 'ZAVU_API_KEY', value: settings.zavuApiKey, updatedAt: new Date().toISOString() });
+    if (settings.nodeBotUrl !== undefined) upserts.push({ id: 'setting_WHATSAPP_BOT_URL', key: 'WHATSAPP_BOT_URL', value: settings.nodeBotUrl, updatedAt: new Date().toISOString() });
+    if (settings.nodeBotSecret !== undefined) upserts.push({ id: 'setting_WHATSAPP_BOT_SECRET', key: 'WHATSAPP_BOT_SECRET', value: settings.nodeBotSecret, updatedAt: new Date().toISOString() });
     if (settings.provider !== undefined) upserts.push({ id: 'setting_WHATSAPP_PROVIDER', key: 'WHATSAPP_PROVIDER', value: settings.provider, updatedAt: new Date().toISOString() });
     if (settings.isEnabled !== undefined) upserts.push({ id: 'setting_WHATSAPP_ENABLED', key: 'WHATSAPP_ENABLED', value: String(settings.isEnabled), updatedAt: new Date().toISOString() });
     if (settings.defaultTemplate !== undefined) upserts.push({ id: 'setting_WHATSAPP_ROOM_TEMPLATE', key: 'WHATSAPP_ROOM_TEMPLATE', value: settings.defaultTemplate, updatedAt: new Date().toISOString() });
