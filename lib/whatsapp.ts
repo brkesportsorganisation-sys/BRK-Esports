@@ -55,7 +55,7 @@ export function normalizePhoneNumber(rawPhone: string): string {
 }
 
 export interface WhatsAppSettings {
-  provider: 'GREEN_API' | 'WAAPI' | 'ZAVU';
+  provider: 'DIRECT_QR' | 'GREEN_API' | 'WAAPI' | 'ZAVU';
   apiKey: string;
   greenApiUrl: string;
   greenApiInstanceId: string;
@@ -68,7 +68,7 @@ export interface WhatsAppSettings {
 }
 
 /**
- * Fetches WhatsApp settings (Green-API, WaAPI or Zavu) from MongoDB Atlas (or Supabase fallback).
+ * Fetches WhatsApp settings (Direct QR, Green-API, WaAPI or Zavu) from MongoDB Atlas (or Supabase fallback).
  */
 export async function getWhatsAppSettings(): Promise<WhatsAppSettings> {
   let dbApiKey = '';
@@ -152,9 +152,9 @@ export async function getWhatsAppSettings(): Promise<WhatsAppSettings> {
   const waapiInstanceId = dbWaapiInstance || process.env.WAAPI_INSTANCE_ID || '102791';
   const zavuApiKey = dbApiKey || process.env.ZAVU_API_KEY || process.env.ZAVUDEV_API_KEY || defaultZavuKey;
 
-  const provider: 'GREEN_API' | 'WAAPI' | 'ZAVU' = 
-    (dbProvider as any) || (greenApiToken ? 'GREEN_API' : waapiApiKey ? 'WAAPI' : 'ZAVU');
-  const apiKey = provider === 'GREEN_API' ? greenApiToken : provider === 'WAAPI' ? waapiApiKey : zavuApiKey;
+  const provider: 'DIRECT_QR' | 'GREEN_API' | 'WAAPI' | 'ZAVU' = 
+    (dbProvider as any) || 'DIRECT_QR';
+  const apiKey = provider === 'GREEN_API' || provider === 'DIRECT_QR' ? greenApiToken : provider === 'WAAPI' ? waapiApiKey : zavuApiKey;
 
   return {
     provider,
@@ -851,8 +851,8 @@ export async function sendDirectWhatsappMessage({
   const settings = await getWhatsAppSettings();
   const activeImageUrl = imageUrl || mediaUrl;
 
-  // 1. Send via Green-API (Developer Free & Production) if configured
-  if (settings.provider === 'GREEN_API' && settings.greenApiToken) {
+  // 1. Send via Direct WhatsApp QR Session or Green-API Gateway
+  if ((settings.provider === 'DIRECT_QR' || settings.provider === 'GREEN_API') && settings.greenApiToken) {
     let greenRes: any;
 
     // Validate image URL: must be an absolute public URL (not localhost, relative, or blob)

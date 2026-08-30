@@ -118,7 +118,7 @@ export default function AdminWhatsAppPage() {
   const [isSyncingGroups, setIsSyncingGroups] = useState(false);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [gatewaySettings, setGatewaySettings] = useState<{
-    provider: 'GREEN_API' | 'WAAPI' | 'ZAVU';
+    provider: 'DIRECT_QR' | 'GREEN_API' | 'WAAPI' | 'ZAVU';
     greenApiUrl: string;
     greenApiInstanceId: string;
     greenApiToken: string;
@@ -130,7 +130,7 @@ export default function AdminWhatsAppPage() {
     zavuApiKeyFull?: string;
     isEnabled: boolean;
   }>({
-    provider: 'GREEN_API',
+    provider: 'DIRECT_QR',
     greenApiUrl: 'https://7107.api.greenapi.com',
     greenApiInstanceId: '710722716896',
     greenApiToken: 'ea0c3d51fd1249bca407bb087266747fb099a650643b4d399d',
@@ -3629,7 +3629,26 @@ export default function AdminWhatsAppPage() {
               {/* Active Provider Selector */}
               <div>
                 <label className="block text-slate-700 font-bold mb-1.5">Active WhatsApp Gateway Provider *</label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <label className={`p-3.5 rounded-2xl border cursor-pointer flex flex-col justify-between gap-2 transition-all ${
+                    gatewaySettings.provider === 'DIRECT_QR'
+                      ? 'bg-emerald-50/80 border-emerald-500 text-emerald-950 ring-2 ring-emerald-500/20'
+                      : 'bg-[#F8FAFC] border-slate-200 text-slate-700 hover:border-slate-300'
+                  }`}>
+                    <div className="flex items-center gap-2.5">
+                      <input
+                        type="radio"
+                        name="provider"
+                        value="DIRECT_QR"
+                        checked={gatewaySettings.provider === 'DIRECT_QR'}
+                        onChange={() => setGatewaySettings(prev => ({ ...prev, provider: 'DIRECT_QR' }))}
+                        className="text-emerald-600 focus:ring-emerald-500"
+                      />
+                      <div className="font-bold text-xs text-emerald-900">📱 WhatsApp Web QR (Default)</div>
+                    </div>
+                    <div className="text-[11px] text-emerald-700 font-medium">Direct Device Link • 0% Egress • Multi-Group</div>
+                  </label>
+
                   <label className={`p-3.5 rounded-2xl border cursor-pointer flex flex-col justify-between gap-2 transition-all ${
                     gatewaySettings.provider === 'GREEN_API'
                       ? 'bg-emerald-50/80 border-emerald-500 text-emerald-950 ring-2 ring-emerald-500/20'
@@ -3644,9 +3663,9 @@ export default function AdminWhatsAppPage() {
                         onChange={() => setGatewaySettings(prev => ({ ...prev, provider: 'GREEN_API' }))}
                         className="text-emerald-600 focus:ring-emerald-500"
                       />
-                      <div className="font-bold text-xs text-emerald-900">🟢 Green-API (Free)</div>
+                      <div className="font-bold text-xs text-emerald-900">🟢 Green-API</div>
                     </div>
-                    <div className="text-[11px] text-emerald-700 font-medium">100% Free Developer Tier for Groups & Schedulers</div>
+                    <div className="text-[11px] text-slate-500 font-medium">Console Gateway</div>
                   </label>
 
                   <label className={`p-3.5 rounded-2xl border cursor-pointer flex flex-col justify-between gap-2 transition-all ${
@@ -3665,7 +3684,7 @@ export default function AdminWhatsAppPage() {
                       />
                       <div className="font-bold text-xs">WaAPI Instance</div>
                     </div>
-                    <div className="text-[11px] text-slate-500">QR Device Linked instance (waapi.app)</div>
+                    <div className="text-[11px] text-slate-500">QR Instance (waapi.app)</div>
                   </label>
 
                   <label className={`p-3.5 rounded-2xl border cursor-pointer flex flex-col justify-between gap-2 transition-all ${
@@ -3684,10 +3703,32 @@ export default function AdminWhatsAppPage() {
                       />
                       <div className="font-bold text-xs">Zavu (Cloud API)</div>
                     </div>
-                    <div className="text-[11px] text-slate-500">Meta WhatsApp Official Cloud direct messaging</div>
+                    <div className="text-[11px] text-slate-500">Meta Cloud Direct</div>
                   </label>
                 </div>
               </div>
+
+              {/* 📱 Direct QR Configuration Box */}
+              {gatewaySettings.provider === 'DIRECT_QR' && (
+                <div className="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-300 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-emerald-950 text-xs flex items-center gap-1.5">
+                      <QrCode className="w-4 h-4 text-emerald-600" />
+                      Direct WhatsApp Web QR Mode Active
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('QR_CONNECT')}
+                      className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all cursor-pointer"
+                    >
+                      Open QR Scanner Tab →
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-600">
+                    এই মোডে আপনার নিজের ফোন দিয়ে স্ক্যান করা WhatsApp Web অ্যাকাউন্ট দিয়ে সমস্ত গ্রুপ মেসেজ ও শিডিউলার পাঠানো হবে।
+                  </p>
+                </div>
+              )}
 
               {/* 🟢 Green-API Configuration Box */}
               {gatewaySettings.provider === 'GREEN_API' && (
