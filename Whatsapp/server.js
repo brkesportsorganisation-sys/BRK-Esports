@@ -312,7 +312,12 @@ app.post('/api/schedule-message', requireApiSecret, async (req, res) => {
             !imageUrl.startsWith('blob:');
 
           if (isValidImageUrl) {
-            await sock.sendMessage(groupJid, { image: { url: imageUrl }, caption: message });
+            try {
+              await sock.sendMessage(groupJid, { image: { url: imageUrl }, caption: message });
+            } catch (imgErr) {
+              console.warn(`⚠️ Group image send failed (${imgErr.message}), falling back to text: ${groupJid}`);
+              await sock.sendMessage(groupJid, { text: message });
+            }
           } else {
             await sock.sendMessage(groupJid, { text: message });
           }
@@ -390,12 +395,18 @@ app.post('/api/send-direct', requireApiSecret, async (req, res) => {
 
     let sendResult;
     if (isValidImageUrl) {
-      // Send image with caption
-      sendResult = await sock.sendMessage(waJid, {
-        image: { url: imageUrl },
-        caption: message,
-      });
-      console.log(`✅ Image+message sent to: ${waJid}`);
+      try {
+        // Send image with caption
+        sendResult = await sock.sendMessage(waJid, {
+          image: { url: imageUrl },
+          caption: message,
+        });
+        console.log(`✅ Image+message sent to: ${waJid}`);
+      } catch (imgErr) {
+        console.warn(`⚠️ Image send failed (${imgErr.message}), falling back to text: ${waJid}`);
+        sendResult = await sock.sendMessage(waJid, { text: message });
+        console.log(`✅ Text-only fallback sent to: ${waJid}`);
+      }
     } else {
       // Send text only
       sendResult = await sock.sendMessage(waJid, { text: message });
@@ -507,4 +518,23 @@ mongoose
   });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+
+  // ─── Self-Keepalive Heartbeat (Prevent Render Free Tier from Sleeping) ────────
+  const SELF_URL = process.env.RENDER_EXTERNAL_URL || process.env.BOT_SELF_URL || 'https://ezbd.onrender.com';
+  cron.schedule('*/8 * * * *', () => {
+    try {
+      const https = require('https');
+      const http = require('http');
+      const client = SELF_URL.startsWith('https') ? https : http;
+      client.get(`${SELF_URL}/`, (res) => {
+        console.log(`💓 Keep-alive ping (${SELF_URL}): HTTP ${res.statusCode} | WhatsApp Connected: ${isConnected}`);
+      }).on('error', (err) => {
+        console.warn('⚠️ Keep-alive ping notice:', err.message);
+      });
+    } catch (e) {
+      console.warn('⚠️ Keep-alive exception:', e.message);
+    }
+  });
+});
