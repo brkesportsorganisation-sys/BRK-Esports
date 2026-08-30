@@ -55,18 +55,25 @@ export function normalizePhoneNumber(rawPhone: string): string {
 }
 
 export interface WhatsAppSettings {
-  provider: 'DIRECT_QR' | 'NODE_BOT';
+  provider: 'DIRECT_QR' | 'NODE_BOT' | 'GREEN_API' | 'WAAPI' | 'ZAVU';
   nodeBotUrl: string;
   nodeBotSecret: string;
   isEnabled: boolean;
   defaultTemplate: string;
+  greenApiUrl?: string;
+  greenApiInstanceId?: string;
+  greenApiToken?: string;
+  waapiApiKey?: string;
+  waapiInstanceId?: string;
+  zavuApiKey?: string;
+  apiKey?: string;
 }
 
 /**
  * Fetches WhatsApp settings (Direct QR, Green-API, WaAPI or Zavu) from MongoDB Atlas (or Supabase fallback).
  */
 export async function getWhatsAppSettings(): Promise<WhatsAppSettings> {
-  let dbProvider = 'NODE_BOT';
+  let dbProvider: 'DIRECT_QR' | 'NODE_BOT' | 'GREEN_API' | 'WAAPI' | 'ZAVU' = 'NODE_BOT';
   let dbNodeBotUrl = process.env.WHATSAPP_BOT_URL || 'https://your-render-app.onrender.com';
   let dbNodeBotSecret = process.env.WHATSAPP_BOT_SECRET || 'super_secret_key_here';
   let isEnabled = true;
@@ -92,14 +99,9 @@ export async function getWhatsAppSettings(): Promise<WhatsAppSettings> {
   }
 
   return {
-    provider,
-    apiKey,
-    greenApiUrl,
-    greenApiInstanceId,
-    greenApiToken,
-    waapiApiKey,
-    waapiInstanceId,
-    zavuApiKey,
+    provider: dbProvider,
+    nodeBotUrl: dbNodeBotUrl,
+    nodeBotSecret: dbNodeBotSecret,
     isEnabled,
     defaultTemplate,
   };

@@ -369,9 +369,6 @@ export default function AdminWhatsAppPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           provider: gatewaySettings.provider,
-          apiUrl: gatewaySettings.greenApiUrl,
-          instanceId: gatewaySettings.provider === 'GREEN_API' ? gatewaySettings.greenApiInstanceId : gatewaySettings.waapiInstanceId,
-          apiKey: (gatewaySettings.provider === 'GREEN_API' ? gatewaySettings.greenApiToken : gatewaySettings.waapiApiKey) || undefined,
         }),
       });
 
@@ -488,16 +485,9 @@ export default function AdminWhatsAppPage() {
         }
         if (setJson?.settings) {
           setGatewaySettings({
-            provider: setJson.settings.provider || 'GREEN_API',
-            greenApiUrl: setJson.settings.greenApiUrl || 'https://7107.api.greenapi.com',
-            greenApiInstanceId: setJson.settings.greenApiInstanceId || '710722716896',
-            greenApiToken: setJson.settings.greenApiTokenFull || setJson.settings.greenApiToken || '',
-            greenApiTokenFull: setJson.settings.greenApiTokenFull || '',
-            waapiApiKey: setJson.settings.waapiApiKeyFull || setJson.settings.waapiApiKey || '',
-            waapiApiKeyFull: setJson.settings.waapiApiKeyFull || '',
-            waapiInstanceId: setJson.settings.waapiInstanceId || '102791',
-            zavuApiKey: setJson.settings.zavuApiKeyFull || setJson.settings.zavuApiKey || '',
-            zavuApiKeyFull: setJson.settings.zavuApiKeyFull || '',
+            provider: setJson.settings.provider || 'NODE_BOT',
+            nodeBotUrl: setJson.settings.nodeBotUrl || 'https://your-bot.onrender.com',
+            nodeBotSecret: setJson.settings.nodeBotSecret || 'super_secret_key_here',
             isEnabled: setJson.settings.isEnabled !== false,
           });
         }
@@ -815,9 +805,6 @@ export default function AdminWhatsAppPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           provider: gatewaySettings.provider,
-          apiUrl: gatewaySettings.greenApiUrl,
-          instanceId: gatewaySettings.provider === 'GREEN_API' ? gatewaySettings.greenApiInstanceId : gatewaySettings.waapiInstanceId,
-          apiKey: (gatewaySettings.provider === 'GREEN_API' ? gatewaySettings.greenApiToken : gatewaySettings.waapiApiKey) || undefined,
         }),
       });
       const data = await res.json();
