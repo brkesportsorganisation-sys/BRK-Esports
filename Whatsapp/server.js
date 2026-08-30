@@ -185,8 +185,12 @@ app.get('/api/qr', requireApiSecret, (req, res) => {
 });
 
 // Connect DB & WhatsApp
+const uri = process.env.MONGO_URI || process.env.MONGODB_URI;
+console.log('MongoDB URI is provided:', !!uri);
+console.log('Available Env Keys:', Object.keys(process.env).join(', '));
+
 mongoose
-  .connect(process.env.MONGO_URI || process.env.MONGODB_URI)
+  .connect(uri)
   .then(() => {
     console.log('✅ MongoDB Connected');
     connectToWhatsApp();
