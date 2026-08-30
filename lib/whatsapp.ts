@@ -393,8 +393,8 @@ export async function fetchGreenApiChats(apiUrl?: string, instanceId?: string, a
   try {
     // Query both getChats (active chat history) AND getContacts (all contacts & groups in account)
     const [chatsRes, contactsRes] = await Promise.allSettled([
-      fetch(`${host}/waInstance${activeId}/getChats/${activeToken}`, { signal: AbortSignal.timeout(4000) }),
-      fetch(`${host}/waInstance${activeId}/getContacts/${activeToken}`, { signal: AbortSignal.timeout(4000) }),
+      fetch(`${host}/waInstance${activeId}/getChats/${activeToken}`, { signal: AbortSignal.timeout(20000) }),
+      fetch(`${host}/waInstance${activeId}/getContacts/${activeToken}`, { signal: AbortSignal.timeout(20000) }),
     ]);
 
     let chatsData: any[] = [];
@@ -435,22 +435,21 @@ export async function fetchGreenApiChats(apiUrl?: string, instanceId?: string, a
       const isNewsletter = id.endsWith('@newsletter') || id.includes('newsletter') || c.type === 'newsletter' || c.isNewsletter;
       const isGroup = id.endsWith('@g.us') || id.includes('@g.us') || c.type === 'group' || c.isGroup;
 
-      const name = rawName || (isNewsletter ? 'WhatsApp Channel' : isGroup ? 'WhatsApp Group' : id);
-
       if (isNewsletter) {
         channels.push({
           id: `chan_${id.replace(/[^a-zA-Z0-9]/g, '_')}`,
-          name: name,
+          name: rawName || 'WhatsApp Channel',
           channelId: id,
           description: 'Followed WhatsApp Channel',
         });
       } else if (isGroup) {
+        const name = rawName || `WhatsApp Group (${id.slice(0, 15)})`;
         groups.push({
           id: `grp_${id.replace(/[^a-zA-Z0-9]/g, '_')}`,
           name: name,
           category: name.toLowerCase().includes('scrim') ? 'SCRIMS_VIP' : name.toLowerCase().includes('tour') ? 'TOURNAMENT_MAIN' : 'GENERAL',
           identifier: id,
-          description: 'Synced from Green-API WhatsApp account',
+          description: 'Synced from WhatsApp account',
           createdAt: new Date().toISOString(),
         });
       }
@@ -466,7 +465,7 @@ export async function fetchGreenApiChats(apiUrl?: string, instanceId?: string, a
   } catch (err: any) {
     return {
       success: false,
-      message: err?.message || 'Failed to fetch chats from Green-API',
+      message: err?.message || 'Failed to fetch chats from WhatsApp.',
       chats: [],
       groups: [],
       channels: [],
