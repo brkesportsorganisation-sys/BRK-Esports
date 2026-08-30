@@ -34,6 +34,7 @@ export default function SquadJoinLandingPage({ params }: { params: Promise<{ tok
   const [freeFireUid, setFreeFireUid] = useState('');
   const [isJoining, setIsJoining] = useState(false);
   const [joinSuccess, setJoinSuccess] = useState<string | null>(null);
+  const [existingUserSquad, setExistingUserSquad] = useState<any | null>(null);
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -42,15 +43,43 @@ export default function SquadJoinLandingPage({ params }: { params: Promise<{ tok
         if (data.user) {
           setCurrentUser(data.user);
           setFreeFireUid(data.user.freeFireUid || '');
+          fetch(`/api/squads?userId=${data.user.id}`)
+            .then(sres => sres.json())
+            .then(sd => {
+              if (sd.squads && sd.squads.length > 0) {
+                setExistingUserSquad(sd.squads[0]);
+              }
+            })
+            .catch(() => {});
         } else {
           const localUser = db.getCurrentUser();
           setCurrentUser(localUser);
           if (localUser?.freeFireUid) setFreeFireUid(localUser.freeFireUid);
+          if (localUser?.id) {
+            fetch(`/api/squads?userId=${localUser.id}`)
+              .then(sres => sres.json())
+              .then(sd => {
+                if (sd.squads && sd.squads.length > 0) {
+                  setExistingUserSquad(sd.squads[0]);
+                }
+              })
+              .catch(() => {});
+          }
         }
       })
       .catch(() => {
         const localUser = db.getCurrentUser();
         setCurrentUser(localUser);
+        if (localUser?.id) {
+          fetch(`/api/squads?userId=${localUser.id}`)
+            .then(sres => sres.json())
+            .then(sd => {
+              if (sd.squads && sd.squads.length > 0) {
+                setExistingUserSquad(sd.squads[0]);
+              }
+            })
+            .catch(() => {});
+        }
       });
 
     // Load squad preview by token
@@ -220,6 +249,44 @@ export default function SquadJoinLandingPage({ params }: { params: Promise<{ tok
                   >
                     Log In to Join Squad
                   </Link>
+                </div>
+              ) : existingUserSquad?.id === squad?.id ? (
+                <div className="p-6 bg-emerald-50 rounded-2xl border border-emerald-200 text-center space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto">
+                    <ShieldCheck className="w-6 h-6" />
+                  </div>
+                  <h4 className="font-heading font-black text-sm text-emerald-950">You Are Already a Member of This Squad</h4>
+                  <p className="text-xs text-emerald-800">You are currently on the registered roster for [{squad.tag}] {squad.name}.</p>
+                  <Link
+                    href={`/squads/${squad.id}`}
+                    className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase rounded-xl inline-block shadow-md"
+                  >
+                    Go to Squad Dashboard
+                  </Link>
+                </div>
+              ) : existingUserSquad ? (
+                <div className="p-6 bg-amber-50 rounded-2xl border border-amber-200 text-center space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto">
+                    <AlertCircle className="w-6 h-6" />
+                  </div>
+                  <h4 className="font-heading font-black text-sm text-amber-950">1-Squad Limit (Already in a Squad)</h4>
+                  <p className="text-xs text-amber-800 leading-relaxed max-w-md mx-auto">
+                    You are already an active member of <strong>[{existingUserSquad.tag}] {existingUserSquad.name}</strong>. A player can only belong to <strong>1 active squad</strong> on ESPORTS ZONE BD.
+                  </p>
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-1">
+                    <Link
+                      href={`/squads/${existingUserSquad.id}`}
+                      className="px-5 py-2.5 bg-gradient-to-r from-brand-red to-brand-orange text-white font-bold text-xs rounded-xl shadow-md"
+                    >
+                      View Your Current Squad
+                    </Link>
+                    <Link
+                      href="/teams"
+                      className="px-5 py-2.5 bg-white border border-slate-300 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-50"
+                    >
+                      Browse All Squads
+                    </Link>
+                  </div>
                 </div>
               ) : (
                 <form onSubmit={handleJoinSquad} className="space-y-4 text-xs font-medium">

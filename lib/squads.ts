@@ -289,6 +289,17 @@ export async function getUserSquads(userId: string): Promise<Squad[]> {
 }
 
 /**
+ * Returns the single active squad a user belongs to (as Leader or Active Member), if any.
+ * Supports excluding a specific squad ID (e.g. current squad being checked).
+ */
+export async function getUserActiveSquad(userId: string, excludeSquadId?: string): Promise<Squad | null> {
+  if (!userId) return null;
+  const userSquads = await getUserSquads(userId);
+  const activeSquad = userSquads.find(s => !s.isDisbanded && (!excludeSquadId || s.id !== excludeSquadId));
+  return activeSquad || null;
+}
+
+/**
  * Gets pending invites / requests for a given user.
  */
 export async function getUserPendingInvites(userId: string): Promise<{ squad: Squad; member: SquadMember }[]> {

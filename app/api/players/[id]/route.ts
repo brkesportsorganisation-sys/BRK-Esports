@@ -13,13 +13,42 @@ export async function GET(
     }
 
     // 1. Fetch User Record
-    const { data: user, error: userError } = await supabaseAdmin
-      .from('User')
-      .select('id, name, inGameName, freeFireUid, avatar, role, accountNumber, totalKills, totalWins, earnings, createdAt, isBanned')
-      .eq('id', id)
-      .maybeSingle();
+    let user: any = null;
+    try {
+      const { data: dbUser } = await supabaseAdmin
+        .from('User')
+        .select('id, name, inGameName, freeFireUid, avatar, role, accountNumber, totalKills, totalWins, earnings, createdAt, isBanned')
+        .eq('id', id)
+        .maybeSingle();
+      if (dbUser) user = dbUser;
+    } catch {}
 
-    if (userError || !user) {
+    if (!user) {
+      // Fallback: check squads for player data
+      const { getSquads } = await import('@/lib/squads');
+      const allSquads = await getSquads();
+      for (const s of allSquads) {
+        const mem = (s.members || []).find(m => m.userId === id || m.id === id);
+        if (mem) {
+          user = {
+            id: mem.userId || id,
+            name: mem.userName,
+            inGameName: mem.userName,
+            freeFireUid: mem.freeFireUid || '',
+            avatar: mem.userAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${mem.userName}`,
+            accountNumber: mem.accountNumber || `EZBD-${id.substring(0, 6).toUpperCase()}`,
+            role: 'USER',
+            totalKills: 0,
+            totalWins: 0,
+            earnings: 0,
+            createdAt: mem.joinedAt || new Date().toISOString(),
+          };
+          break;
+        }
+      }
+    }
+
+    if (!user) {
       return NextResponse.json({ message: 'Player not found' }, { status: 404 });
     }
 

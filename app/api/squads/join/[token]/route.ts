@@ -63,17 +63,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
 
     const currentSquad = squads[index];
 
-    // Check if player is already in another squad for the same game
-    const otherActiveSquad = squads.find(s => 
-      s.id !== currentSquad.id && 
-      !s.isDisbanded && 
-      s.game === currentSquad.game && 
-      s.members?.some(m => m.userId === userId && m.status === 'ACTIVE')
-    );
+    // Check strict 1-squad rule: player cannot be in any other active squad
+    const { getUserActiveSquad } = await import('@/lib/squads');
+    const otherActiveSquad = await getUserActiveSquad(userId, currentSquad.id);
 
     if (otherActiveSquad) {
       return NextResponse.json({ 
-        message: `You are already an active member of "${otherActiveSquad.name}" for ${currentSquad.game}. Please leave that squad first before joining a new one.` 
+        message: `You are already an active member of squad "[${otherActiveSquad.tag}] ${otherActiveSquad.name}". You cannot belong to multiple squads simultaneously. Please leave your current squad first.`,
+        code: 'ALREADY_IN_SQUAD',
+        existingSquad: { id: otherActiveSquad.id, name: otherActiveSquad.name, tag: otherActiveSquad.tag }
       }, { status: 400 });
     }
 

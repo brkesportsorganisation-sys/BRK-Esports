@@ -42,17 +42,14 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === 'ACCEPT') {
-      // Enforce 1 active squad per game rule
-      const otherActiveSquad = squads.find(s => 
-        s.id !== squadId && 
-        !s.isDisbanded && 
-        s.game === currentSquad.game && 
-        s.members?.some(m => m.userId === userId && m.status === 'ACTIVE')
-      );
+      // Enforce strict 1-squad rule
+      const { getUserActiveSquad } = await import('@/lib/squads');
+      const otherActiveSquad = await getUserActiveSquad(userId, squadId);
 
       if (otherActiveSquad) {
         return NextResponse.json({ 
-          message: `You are already an active member of "${otherActiveSquad.name}" for ${currentSquad.game}. Please leave that squad first before joining a new one.` 
+          message: `You are already an active member of squad "[${otherActiveSquad.tag}] ${otherActiveSquad.name}". Please leave your current squad first before joining a new one.`,
+          code: 'ALREADY_IN_SQUAD'
         }, { status: 400 });
       }
 

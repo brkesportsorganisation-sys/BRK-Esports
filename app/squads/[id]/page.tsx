@@ -179,6 +179,11 @@ export default function SquadDetailsPage({ params }: { params: Promise<{ id: str
   const isLeader = squad?.leaderId === currentUser?.id;
   const isManager = squad?.members?.some(m => m.userId === currentUser?.id && m.memberType === 'MANAGER' && m.status === 'ACTIVE');
   const canManage = isLeader || isManager;
+  const isMemberOfThisSquad = Boolean(
+    isLeader ||
+    squad?.createdBy === currentUser?.id ||
+    squad?.members?.some(m => m.userId === currentUser?.id && (m.status === 'ACTIVE' || !m.status))
+  );
 
   const activeMembers = (squad?.members || []).filter(m => m.status === 'ACTIVE');
   const pendingRequests = (squad?.members || []).filter(m => m.status === 'PENDING_APPROVAL');
@@ -530,6 +535,16 @@ export default function SquadDetailsPage({ params }: { params: Promise<{ id: str
                     <UserPlus className="w-4 h-4" />
                     <span>Invite Player</span>
                   </button>
+                )}
+
+                {!isMemberOfThisSquad && (
+                  <Link
+                    href={`/squad/join/${squad.inviteToken}`}
+                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange hover:brightness-110 text-white text-xs font-heading font-black uppercase flex items-center gap-1.5 shadow-md shadow-orange-500/20 cursor-pointer transition-all active:scale-95"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    <span>Join This Squad</span>
+                  </Link>
                 )}
               </div>
 

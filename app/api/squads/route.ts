@@ -127,17 +127,15 @@ export async function POST(req: NextRequest) {
       }, { status: 409 });
     }
 
-    // Check one active squad per game rule (spec recommendation)
-    const existingUserSquad = squads.find(s => 
-      !s.isDisbanded && 
-      s.game === game && 
-      Array.isArray(s.members) && 
-      s.members.some(m => m.userId === leaderId && m.status === 'ACTIVE')
-    );
+    // Check strict 1-squad rule: A player can only belong to or lead 1 active squad
+    const { getUserActiveSquad } = await import('@/lib/squads');
+    const existingUserSquad = await getUserActiveSquad(leaderId);
 
     if (existingUserSquad) {
       return NextResponse.json({ 
-        message: `You are already an active member of "${existingUserSquad.name}" for ${game}. You can only lead or belong to one active squad per game.` 
+        message: `You are already a member/leader of squad "[${existingUserSquad.tag}] ${existingUserSquad.name}". You cannot belong to multiple squads simultaneously. Please leave or disband your current squad first.`,
+        code: 'ALREADY_IN_SQUAD',
+        existingSquad: { id: existingUserSquad.id, name: existingUserSquad.name, tag: existingUserSquad.tag }
       }, { status: 400 });
     }
 

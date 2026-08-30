@@ -210,19 +210,21 @@ export default function SquadTeamsHubPage() {
   const handleRespondInvite = async (squadId: string, action: 'ACCEPT' | 'DECLINE') => {
     if (!currentUser) return;
     try {
-      const res = await fetch(`/api/squads/${squadId}/members`, {
-        method: 'PATCH',
+      const res = await fetch('/api/user/squad-invites', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: currentUser.id,
+          squadId,
           action,
         }),
       });
 
+      const d = await res.json();
       if (res.ok) {
+        alert(d.message || (action === 'ACCEPT' ? 'Squad invitation accepted!' : 'Invitation declined.'));
         loadData(currentUser);
       } else {
-        const d = await res.json();
         alert(d.message || 'Failed to respond to invite.');
       }
     } catch {
@@ -434,8 +436,12 @@ export default function SquadTeamsHubPage() {
                       key={squad.id}
                       className="bg-white border border-slate-200 hover:border-orange-500/50 rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between group"
                     >
-                      {/* Top Header Card */}
-                      <div className="relative h-32 w-full overflow-hidden bg-slate-900">
+                      {/* Top Header Card (Clickable to view squad details) */}
+                      <Link 
+                        href={`/squads/${squad.id}`}
+                        className="relative h-32 w-full overflow-hidden bg-slate-900 block cursor-pointer"
+                        title="Touch to view full squad details and roster"
+                      >
                         {squad.bannerUrl && (
                           <img
                             src={squad.bannerUrl}
@@ -478,7 +484,7 @@ export default function SquadTeamsHubPage() {
                             </p>
                           </div>
                         </div>
-                      </div>
+                      </Link>
 
                       {/* Content Body */}
                       <div className="p-5 space-y-4 flex-1 flex flex-col justify-between">
@@ -553,54 +559,116 @@ export default function SquadTeamsHubPage() {
                   return (
                     <div
                       key={squad.id}
-                      className="bg-white border border-slate-200 hover:border-slate-300 rounded-3xl p-5 space-y-4 flex flex-col justify-between transition-all shadow-sm hover:shadow-md"
+                      className="bg-white border border-slate-200 hover:border-orange-500/50 rounded-3xl p-5 space-y-4 flex flex-col justify-between transition-all shadow-sm hover:shadow-lg group"
                     >
-                      <div className="space-y-3">
+                      {/* Top Clickable Squad Profile Area */}
+                      <Link 
+                        href={`/squads/${squad.id}`}
+                        className="space-y-3 cursor-pointer block group-hover:opacity-95"
+                        title="Touch to view full squad details and roster"
+                      >
                         <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-center gap-3">
-                            <img src={squad.logoUrl} alt={squad.name} className="w-12 h-12 rounded-2xl object-cover border border-slate-200 bg-slate-50" />
-                            <div>
+                          <div className="flex items-center gap-3 min-w-0">
+                            <img 
+                              src={squad.logoUrl} 
+                              alt={squad.name} 
+                              className="w-12 h-12 rounded-2xl object-cover border border-slate-200 bg-slate-50 shrink-0 group-hover:scale-105 transition-transform" 
+                            />
+                            <div className="min-w-0">
                               <div className="flex items-center gap-1.5">
-                                <span className="px-2 py-0.5 rounded-md bg-orange-100 text-orange-700 font-mono text-[10px] font-black">[{squad.tag}]</span>
-                                <h4 className="font-black text-slate-900 text-sm">{squad.name}</h4>
+                                <span className="px-2 py-0.5 rounded-md bg-orange-100 text-orange-700 font-mono text-[10px] font-black shrink-0">
+                                  [{squad.tag}]
+                                </span>
+                                <h4 className="font-black text-slate-900 text-sm truncate group-hover:text-brand-orange transition-colors">
+                                  {squad.name}
+                                </h4>
                               </div>
-                              <span className="text-[11px] text-slate-500 font-medium">Leader: {squad.leaderName}</span>
+                              <span className="text-[11px] text-slate-500 font-medium truncate block mt-0.5">
+                                Leader: <strong className="text-slate-800">{squad.leaderName}</strong>
+                              </span>
                             </div>
                           </div>
 
-                          <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold uppercase border border-slate-200">
-                            {squad.game}
+                          <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black uppercase border border-slate-200 shrink-0">
+                            🎮 {squad.game}
                           </span>
                         </div>
 
                         {squad.description && (
-                          <p className="text-xs text-slate-600 line-clamp-2">{squad.description}</p>
+                          <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                            {squad.description}
+                          </p>
                         )}
-                      </div>
 
+                        {/* Roster Quick Preview Avatars */}
+                        <div className="flex items-center justify-between bg-slate-50 p-2.5 rounded-2xl border border-slate-100">
+                          <div className="flex items-center -space-x-2 overflow-hidden">
+                            {activeMembers.slice(0, 4).map((m, idx) => (
+                              <img
+                                key={m.id || idx}
+                                src={m.userAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${m.userName}`}
+                                alt={m.userName}
+                                title={`${m.userName} (${m.inGameRole || 'PLAYER'})`}
+                                className="inline-block h-6 w-6 rounded-full ring-2 ring-white object-cover bg-white"
+                              />
+                            ))}
+                            {activeMembers.length > 4 && (
+                              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-orange-100 text-[9px] font-black text-orange-700 ring-2 ring-white">
+                                +{activeMembers.length - 4}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="text-[11px] font-bold text-orange-600 flex items-center gap-1 font-mono">
+                            <span>{activeMembers.length}/6 Active</span>
+                            <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                          </div>
+                        </div>
+                      </Link>
+
+                      {/* Stats & Actions */}
                       <div className="pt-3 border-t border-slate-100 space-y-3">
                         <div className="flex items-center justify-between text-xs text-slate-600 font-mono">
-                          <span>Roster: <strong className="text-slate-900 font-bold">{activeMembers.length} Members</strong></span>
+                          <span>Matches: <strong className="text-slate-900 font-bold">{squad.matchesPlayed}</strong></span>
                           <span>Wins: <strong className="text-emerald-600 font-bold">{squad.matchesWon}</strong></span>
+                          <span>Kills: <strong className="text-cyan-600 font-bold">{squad.totalKills}</strong></span>
                         </div>
 
-                        {isMySquad ? (
+                        <div className="grid grid-cols-2 gap-2">
                           <Link
                             href={`/squads/${squad.id}`}
-                            className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold flex items-center justify-center gap-1.5 border border-slate-200 transition-colors"
+                            className="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold flex items-center justify-center gap-1.5 border border-slate-200 transition-colors text-center"
                           >
-                            <span>View Your Squad</span>
-                            <ArrowRight className="w-3.5 h-3.5" />
+                            <Shield className="w-3.5 h-3.5 text-brand-orange" />
+                            <span>View Full Info</span>
                           </Link>
-                        ) : (
-                          <Link
-                            href={`/squad/join/${squad.inviteToken}`}
-                            className="w-full py-2.5 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange hover:brightness-110 text-white text-xs font-heading font-black uppercase flex items-center justify-center gap-1.5 shadow-md shadow-orange-500/15"
-                          >
-                            <UserPlus className="w-3.5 h-3.5" />
-                            <span>Request to Join</span>
-                          </Link>
-                        )}
+
+                          {isMySquad ? (
+                            <Link
+                              href={`/squads/${squad.id}`}
+                              className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange text-white text-xs font-heading font-black uppercase flex items-center justify-center gap-1 shadow-md shadow-orange-500/15"
+                            >
+                              <span>Manage</span>
+                              <ArrowRight className="w-3 h-3" />
+                            </Link>
+                          ) : mySquads.length >= 1 ? (
+                            <button
+                              disabled
+                              title="You already belong to an active squad (1-squad limit)."
+                              className="py-2.5 px-2 rounded-xl bg-slate-100 text-slate-400 text-[11px] font-bold flex items-center justify-center gap-1 border border-slate-200 cursor-not-allowed opacity-75"
+                            >
+                              <span>1/1 Limit</span>
+                            </button>
+                          ) : (
+                            <Link
+                              href={`/squad/join/${squad.inviteToken}`}
+                              className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange hover:brightness-110 text-white text-xs font-heading font-black uppercase flex items-center justify-center gap-1 shadow-md shadow-orange-500/15"
+                            >
+                              <UserPlus className="w-3.5 h-3.5" />
+                              <span>Join Squad</span>
+                            </Link>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );

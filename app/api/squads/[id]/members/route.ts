@@ -62,6 +62,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       }
     }
 
+    // Check strict 1-squad rule: player cannot belong to any other active squad
+    const { getUserActiveSquad } = await import('@/lib/squads');
+    const existingOtherSquad = await getUserActiveSquad(targetUserId, id);
+    if (existingOtherSquad) {
+      const msg = isJoinRequest
+        ? `You are already an active member of squad "[${existingOtherSquad.tag}] ${existingOtherSquad.name}". You cannot join multiple squads. Please leave your current squad first.`
+        : `Player ${targetUserName || 'selected'} is already an active member of squad "[${existingOtherSquad.tag}] ${existingOtherSquad.name}". A player cannot belong to multiple squads.`;
+      return NextResponse.json({ message: msg, code: 'ALREADY_IN_SQUAD' }, { status: 400 });
+    }
+
     // Check max roster size (e.g. max 6 players per squad)
     const activePlayerCount = (currentSquad.members || []).filter(m => m.status === 'ACTIVE' && m.memberType === 'PLAYER').length;
     if (memberType === 'PLAYER' && activePlayerCount >= 6) {
@@ -121,12 +131,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const { id } = await params;
     const body = await req.json();
     const { 
-      requesterId, 
-      memberId, 
-      action, // 'UPDATE_ROLE' | 'PROMOTE_LEADER' | 'APPROVE_REQUEST' | 'REJECT_REQUEST' | 'ACCEPT_INVITE' | 'DECLINE_INVITE'
+      requesterId: rawRequesterId, 
+      userId: rawUserId,
+      memberId: rawMemberId, 
+      action: rawAction, // 'UPDATE_ROLE' | 'PROMOTE_LEADER' | 'APPROVE_REQUEST' | 'REJECT_REQUEST' | 'ACCEPT_INVITE' | 'DECLINE_INVITE' | 'ACCEPT' | 'DECLINE'
       inGameRole, 
       memberType 
     } = body;
+
+    const requesterId = rawRequesterId || rawUserId;
+    const memberId = rawMemberId || rawUserId;
+    const action = rawAction === 'ACCEPT' ? 'ACCEPT_INVITE' : (rawAction === 'DECLINE' ? 'DECLINE_INVITE' : rawAction);
 
     let squads = await getSquads();
     let index = squads.findIndex(s => s.id === id);
@@ -161,17 +176,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       }
 
       if (action === 'ACCEPT_INVITE') {
-        // Enforce 1 active squad per game rule
-        const otherActiveSquad = squads.find(s => 
-          s.id !== id && 
-          !s.isDisbanded && 
-          s.game === currentSquad.game && 
-          s.members?.some(m => m.userId === requesterId && m.status === 'ACTIVE')
-        );
+        // Enforce strict 1-squad rule
+        const { getUserActiveSquad } = await import('@/lib/squads');
+        const otherActiveSquad = await getUserActiveSquad(targetMember.userId, id);
 
         if (otherActiveSquad) {
           return NextResponse.json({ 
-            message: `You are already an active member of "${otherActiveSquad.name}" for ${currentSquad.game}. Please leave that squad first before joining a new one.` 
+            message: `You are already an active member of squad "[${otherActiveSquad.tag}] ${otherActiveSquad.name}". Please leave your current squad first before joining a new one.`,
+            code: 'ALREADY_IN_SQUAD'
           }, { status: 400 });
         }
 
@@ -198,6 +210,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       }
 
       if (action === 'APPROVE_REQUEST') {
+        // Check if player has joined another squad since requesting
+        const { getUserActiveSquad } = await import('@/lib/squads');
+        const otherActiveSquad = await getUserActiveSquad(targetMember.userId, id);
+        if (otherActiveSquad) {
+          return NextResponse.json({ 
+            message: `Cannot approve: Player ${targetMember.userName} is already an active member of another squad ("[${otherActiveSquad.tag}] ${otherActiveSquad.name}").`,
+            code: 'ALREADY_IN_SQUAD'
+          }, { status: 400 });
+        }
+
         currentSquad.members![memberIndex].status = 'ACTIVE';
         currentSquad.members![memberIndex].joinedAt = new Date().toISOString();
       } else {
