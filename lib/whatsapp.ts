@@ -1,5 +1,6 @@
 import Zavudev from '@zavudev/sdk';
 import { supabaseAdmin } from './supabase';
+import { getWhatsAppCollections, isMongoConfigured } from './mongodb';
 import { WhatsAppSchedule, WhatsAppTargetGroup, WhatsAppMessageLog, WhatsAppFrequency, WhatsAppForwarderConfig, WhatsAppSourceChannel } from './types';
 
 /**
@@ -67,7 +68,7 @@ export interface WhatsAppSettings {
 }
 
 /**
- * Fetches WhatsApp settings (Green-API, WaAPI or Zavu) from database or environment variables.
+ * Fetches WhatsApp settings (Green-API, WaAPI or Zavu) from MongoDB Atlas (or Supabase fallback).
  */
 export async function getWhatsAppSettings(): Promise<WhatsAppSettings> {
   let dbApiKey = '';
@@ -80,40 +81,64 @@ export async function getWhatsAppSettings(): Promise<WhatsAppSettings> {
   let isEnabled = true;
   let defaultTemplate = `🎮 {TOURNAMENT_NAME} 🎮\n\nআপনার ম্যাচের রুম ডিটেইলস:\n🔹 Room ID: {ROOM_ID}\n🔹 Password: {ROOM_PASS}\n\nদ্রুত গেমে জয়েন করুন!`;
 
-  try {
-    const { data: settings } = await supabaseAdmin
-      .from('SiteSetting')
-      .select('key, value')
-      .in('key', [
-        'GREEN_API_URL',
-        'GREEN_API_INSTANCE_ID',
-        'GREEN_API_TOKEN',
-        'WAAPI_API_KEY',
-        'WAAPI_INSTANCE_ID',
-        'ZAVU_API_KEY',
-        'WHATSAPP_API_KEY',
-        'WHATSAPP_PROVIDER',
-        'WHATSAPP_ENABLED',
-        'WHATSAPP_ROOM_TEMPLATE',
-      ]);
+  // 1. Try MongoDB first (0% Supabase Egress)
+  if (isMongoConfigured()) {
+    try {
+      const collections = await getWhatsAppCollections();
+      if (collections) {
+        const doc = await collections.settings.findOne({ _id: 'gateway_settings' as any });
+        if (doc) {
+          if (doc.greenApiUrl) dbGreenUrl = doc.greenApiUrl;
+          if (doc.greenApiInstanceId) dbGreenInstance = doc.greenApiInstanceId;
+          if (doc.greenApiToken) dbGreenToken = doc.greenApiToken;
+          if (doc.waapiApiKey) dbWaapiKey = doc.waapiApiKey;
+          if (doc.waapiInstanceId) dbWaapiInstance = doc.waapiInstanceId;
+          if (doc.zavuApiKey) dbApiKey = doc.zavuApiKey;
+          if (doc.provider) dbProvider = doc.provider;
+          if (doc.isEnabled !== undefined) isEnabled = Boolean(doc.isEnabled);
+          if (doc.defaultTemplate) defaultTemplate = doc.defaultTemplate;
+        }
+      }
+    } catch (mErr) {
+      console.warn('[MongoDB getWhatsAppSettings error]:', mErr);
+    }
+  } else {
+    // 2. Fallback to Supabase only if MongoDB not configured
+    try {
+      const { data: settings } = await supabaseAdmin
+        .from('SiteSetting')
+        .select('key, value')
+        .in('key', [
+          'GREEN_API_URL',
+          'GREEN_API_INSTANCE_ID',
+          'GREEN_API_TOKEN',
+          'WAAPI_API_KEY',
+          'WAAPI_INSTANCE_ID',
+          'ZAVU_API_KEY',
+          'WHATSAPP_API_KEY',
+          'WHATSAPP_PROVIDER',
+          'WHATSAPP_ENABLED',
+          'WHATSAPP_ROOM_TEMPLATE',
+        ]);
 
-    const map = (settings || []).reduce((acc: Record<string, string>, item: any) => {
-      acc[item.key] = item.value;
-      return acc;
-    }, {});
+      const map = (settings || []).reduce((acc: Record<string, string>, item: any) => {
+        acc[item.key] = item.value;
+        return acc;
+      }, {});
 
-    if (map.GREEN_API_URL) dbGreenUrl = map.GREEN_API_URL;
-    if (map.GREEN_API_INSTANCE_ID) dbGreenInstance = map.GREEN_API_INSTANCE_ID;
-    if (map.GREEN_API_TOKEN) dbGreenToken = map.GREEN_API_TOKEN;
-    if (map.WAAPI_API_KEY) dbWaapiKey = map.WAAPI_API_KEY;
-    if (map.WAAPI_INSTANCE_ID) dbWaapiInstance = map.WAAPI_INSTANCE_ID;
-    if (map.ZAVU_API_KEY) dbApiKey = map.ZAVU_API_KEY;
-    if (map.WHATSAPP_API_KEY && !dbApiKey) dbApiKey = map.WHATSAPP_API_KEY;
-    if (map.WHATSAPP_PROVIDER) dbProvider = map.WHATSAPP_PROVIDER;
-    if (map.WHATSAPP_ENABLED !== undefined) isEnabled = map.WHATSAPP_ENABLED === 'true';
-    if (map.WHATSAPP_ROOM_TEMPLATE) defaultTemplate = map.WHATSAPP_ROOM_TEMPLATE;
-  } catch (err) {
-    console.warn('[WhatsApp] Could not fetch settings from database:', err);
+      if (map.GREEN_API_URL) dbGreenUrl = map.GREEN_API_URL;
+      if (map.GREEN_API_INSTANCE_ID) dbGreenInstance = map.GREEN_API_INSTANCE_ID;
+      if (map.GREEN_API_TOKEN) dbGreenToken = map.GREEN_API_TOKEN;
+      if (map.WAAPI_API_KEY) dbWaapiKey = map.WAAPI_API_KEY;
+      if (map.WAAPI_INSTANCE_ID) dbWaapiInstance = map.WAAPI_INSTANCE_ID;
+      if (map.ZAVU_API_KEY) dbApiKey = map.ZAVU_API_KEY;
+      if (map.WHATSAPP_API_KEY && !dbApiKey) dbApiKey = map.WHATSAPP_API_KEY;
+      if (map.WHATSAPP_PROVIDER) dbProvider = map.WHATSAPP_PROVIDER;
+      if (map.WHATSAPP_ENABLED !== undefined) isEnabled = map.WHATSAPP_ENABLED === 'true';
+      if (map.WHATSAPP_ROOM_TEMPLATE) defaultTemplate = map.WHATSAPP_ROOM_TEMPLATE;
+    } catch (err) {
+      console.warn('[WhatsApp] Could not fetch settings from database:', err);
+    }
   }
 
   const defaultGreenToken = 'ea0c3d51fd1249bca407bb087266747fb099a650643b4d399d';
@@ -143,6 +168,50 @@ export async function getWhatsAppSettings(): Promise<WhatsAppSettings> {
     isEnabled,
     defaultTemplate,
   };
+}
+
+/**
+ * Saves WhatsApp gateway settings into MongoDB (or Supabase fallback).
+ */
+export async function saveWhatsAppSettings(settings: Partial<WhatsAppSettings>): Promise<boolean> {
+  if (isMongoConfigured()) {
+    try {
+      const collections = await getWhatsAppCollections();
+      if (collections) {
+        await collections.settings.updateOne(
+          { _id: 'gateway_settings' as any },
+          { $set: { ...settings, updatedAt: new Date().toISOString() } },
+          { upsert: true }
+        );
+        return true;
+      }
+    } catch (mErr) {
+      console.error('[MongoDB saveWhatsAppSettings error]:', mErr);
+      return false;
+    }
+  }
+
+  // Supabase fallback
+  try {
+    const upserts: Array<{ id: string; key: string; value: string; updatedAt: string }> = [];
+    if (settings.greenApiUrl !== undefined) upserts.push({ id: 'setting_GREEN_API_URL', key: 'GREEN_API_URL', value: settings.greenApiUrl, updatedAt: new Date().toISOString() });
+    if (settings.greenApiInstanceId !== undefined) upserts.push({ id: 'setting_GREEN_API_INSTANCE_ID', key: 'GREEN_API_INSTANCE_ID', value: settings.greenApiInstanceId, updatedAt: new Date().toISOString() });
+    if (settings.greenApiToken !== undefined) upserts.push({ id: 'setting_GREEN_API_TOKEN', key: 'GREEN_API_TOKEN', value: settings.greenApiToken, updatedAt: new Date().toISOString() });
+    if (settings.waapiApiKey !== undefined) upserts.push({ id: 'setting_WAAPI_API_KEY', key: 'WAAPI_API_KEY', value: settings.waapiApiKey, updatedAt: new Date().toISOString() });
+    if (settings.waapiInstanceId !== undefined) upserts.push({ id: 'setting_WAAPI_INSTANCE_ID', key: 'WAAPI_INSTANCE_ID', value: settings.waapiInstanceId, updatedAt: new Date().toISOString() });
+    if (settings.zavuApiKey !== undefined) upserts.push({ id: 'setting_ZAVU_API_KEY', key: 'ZAVU_API_KEY', value: settings.zavuApiKey, updatedAt: new Date().toISOString() });
+    if (settings.provider !== undefined) upserts.push({ id: 'setting_WHATSAPP_PROVIDER', key: 'WHATSAPP_PROVIDER', value: settings.provider, updatedAt: new Date().toISOString() });
+    if (settings.isEnabled !== undefined) upserts.push({ id: 'setting_WHATSAPP_ENABLED', key: 'WHATSAPP_ENABLED', value: String(settings.isEnabled), updatedAt: new Date().toISOString() });
+    if (settings.defaultTemplate !== undefined) upserts.push({ id: 'setting_WHATSAPP_ROOM_TEMPLATE', key: 'WHATSAPP_ROOM_TEMPLATE', value: settings.defaultTemplate, updatedAt: new Date().toISOString() });
+
+    if (upserts.length > 0) {
+      await supabaseAdmin.from('SiteSetting').upsert(upserts, { onConflict: 'key' });
+    }
+    return true;
+  } catch (sErr) {
+    console.error('[Supabase saveWhatsAppSettings error]:', sErr);
+    return false;
+  }
 }
 
 /**
@@ -1010,10 +1079,30 @@ const DEFAULT_GROUPS: WhatsAppTargetGroup[] = [
 const DEFAULT_SCHEDULES: WhatsAppSchedule[] = [];
 
 /**
- * Loads all WhatsApp scheduled jobs from SiteSetting store.
+ * Loads all WhatsApp scheduled jobs from MongoDB (or Supabase fallback).
  * Filters out any legacy demo mock data.
  */
 export async function getWhatsAppSchedules(): Promise<WhatsAppSchedule[]> {
+  // 1. MongoDB first (0% Supabase Egress)
+  if (isMongoConfigured()) {
+    try {
+      const collections = await getWhatsAppCollections();
+      if (collections) {
+        const docs = await collections.schedules.find({}).toArray();
+        if (Array.isArray(docs) && docs.length > 0) {
+          const cleaned = docs.map(d => {
+            const { _id, ...rest } = d;
+            return rest as WhatsAppSchedule;
+          }).filter(s => s.id !== 'sched_room_reminder_9pm' && s.id !== 'sched_daily_reg_promo');
+          return cleaned;
+        }
+      }
+    } catch (mErr) {
+      console.warn('[MongoDB getWhatsAppSchedules error]:', mErr);
+    }
+  }
+
+  // 2. Supabase fallback
   try {
     const { data: setting } = await supabaseAdmin
       .from('SiteSetting')
@@ -1024,7 +1113,6 @@ export async function getWhatsAppSchedules(): Promise<WhatsAppSchedule[]> {
     if (setting?.value) {
       const parsed = typeof setting.value === 'string' ? JSON.parse(setting.value) : setting.value;
       if (Array.isArray(parsed)) {
-        // Filter out legacy demo schedules
         const realSchedules = parsed.filter(s => 
           s.id !== 'sched_room_reminder_9pm' && 
           s.id !== 'sched_daily_reg_promo'
@@ -1040,9 +1128,29 @@ export async function getWhatsAppSchedules(): Promise<WhatsAppSchedule[]> {
 }
 
 /**
- * Saves all WhatsApp scheduled jobs to SiteSetting store.
+ * Saves all WhatsApp scheduled jobs to MongoDB (or Supabase fallback).
  */
 export async function saveWhatsAppSchedules(schedules: WhatsAppSchedule[]): Promise<boolean> {
+  // 1. MongoDB first
+  if (isMongoConfigured()) {
+    try {
+      const collections = await getWhatsAppCollections();
+      if (collections) {
+        // Bulk replace / sync schedules collection
+        await collections.schedules.deleteMany({});
+        if (schedules.length > 0) {
+          const docs = schedules.map(s => ({ ...s, _id: s.id as any }));
+          await collections.schedules.insertMany(docs);
+        }
+        return true;
+      }
+    } catch (mErr) {
+      console.error('[MongoDB saveWhatsAppSchedules error]:', mErr);
+      return false;
+    }
+  }
+
+  // 2. Supabase fallback
   try {
     const { error } = await supabaseAdmin
       .from('SiteSetting')
@@ -1061,10 +1169,34 @@ export async function saveWhatsAppSchedules(schedules: WhatsAppSchedule[]): Prom
 }
 
 /**
- * Loads all WhatsApp Target Groups from SiteSetting store.
- * Filters out legacy sample-main-group and sample-scrims-vip demo data.
+ * Loads all WhatsApp Target Groups from MongoDB (or Supabase fallback).
  */
 export async function getWhatsAppTargetGroups(): Promise<WhatsAppTargetGroup[]> {
+  // 1. MongoDB first
+  if (isMongoConfigured()) {
+    try {
+      const collections = await getWhatsAppCollections();
+      if (collections) {
+        const docs = await collections.groups.find({}).toArray();
+        if (Array.isArray(docs) && docs.length > 0) {
+          const cleaned = docs.map(d => {
+            const { _id, ...rest } = d;
+            return rest as WhatsAppTargetGroup;
+          }).filter(g => 
+            g.identifier !== 'https://chat.whatsapp.com/sample-main-group' &&
+            g.identifier !== 'https://chat.whatsapp.com/sample-scrims-vip' &&
+            g.id !== 'grp_tournament_main' &&
+            g.id !== 'grp_scrims_vip'
+          );
+          if (cleaned.length > 0) return cleaned;
+        }
+      }
+    } catch (mErr) {
+      console.warn('[MongoDB getWhatsAppTargetGroups error]:', mErr);
+    }
+  }
+
+  // 2. Supabase fallback
   try {
     const { data: setting } = await supabaseAdmin
       .from('SiteSetting')
@@ -1075,7 +1207,6 @@ export async function getWhatsAppTargetGroups(): Promise<WhatsAppTargetGroup[]> 
     if (setting?.value) {
       const parsed = typeof setting.value === 'string' ? JSON.parse(setting.value) : setting.value;
       if (Array.isArray(parsed)) {
-        // Filter out legacy demo groups with sample links
         const realGroups = parsed.filter(g => 
           g.identifier !== 'https://chat.whatsapp.com/sample-main-group' &&
           g.identifier !== 'https://chat.whatsapp.com/sample-scrims-vip' &&
@@ -1095,9 +1226,28 @@ export async function getWhatsAppTargetGroups(): Promise<WhatsAppTargetGroup[]> 
 }
 
 /**
- * Saves WhatsApp Target Groups to SiteSetting store.
+ * Saves WhatsApp Target Groups to MongoDB (or Supabase fallback).
  */
 export async function saveWhatsAppTargetGroups(groups: WhatsAppTargetGroup[]): Promise<boolean> {
+  // 1. MongoDB first
+  if (isMongoConfigured()) {
+    try {
+      const collections = await getWhatsAppCollections();
+      if (collections) {
+        await collections.groups.deleteMany({});
+        if (groups.length > 0) {
+          const docs = groups.map(g => ({ ...g, _id: g.id as any }));
+          await collections.groups.insertMany(docs);
+        }
+        return true;
+      }
+    } catch (mErr) {
+      console.error('[MongoDB saveWhatsAppTargetGroups error]:', mErr);
+      return false;
+    }
+  }
+
+  // 2. Supabase fallback
   try {
     const { error } = await supabaseAdmin
       .from('SiteSetting')
@@ -1116,9 +1266,28 @@ export async function saveWhatsAppTargetGroups(groups: WhatsAppTargetGroup[]): P
 }
 
 /**
- * Loads recent WhatsApp message logs from SiteSetting store.
+ * Loads recent WhatsApp message logs from MongoDB (or Supabase fallback).
  */
 export async function getWhatsAppLogs(): Promise<WhatsAppMessageLog[]> {
+  // 1. MongoDB first
+  if (isMongoConfigured()) {
+    try {
+      const collections = await getWhatsAppCollections();
+      if (collections) {
+        const docs = await collections.logs.find({}).sort({ sentAt: -1 }).limit(100).toArray();
+        if (Array.isArray(docs)) {
+          return docs.map(d => {
+            const { _id, ...rest } = d;
+            return rest as WhatsAppMessageLog;
+          });
+        }
+      }
+    } catch (mErr) {
+      console.warn('[MongoDB getWhatsAppLogs error]:', mErr);
+    }
+  }
+
+  // 2. Supabase fallback
   try {
     const { data: setting } = await supabaseAdmin
       .from('SiteSetting')
@@ -1129,7 +1298,7 @@ export async function getWhatsAppLogs(): Promise<WhatsAppMessageLog[]> {
     if (setting?.value) {
       const parsed = typeof setting.value === 'string' ? JSON.parse(setting.value) : setting.value;
       if (Array.isArray(parsed)) {
-        return parsed.slice(0, 100); // return up to 100 most recent logs
+        return parsed.slice(0, 100);
       }
     }
   } catch (err) {
@@ -1141,25 +1310,35 @@ export async function getWhatsAppLogs(): Promise<WhatsAppMessageLog[]> {
 
 /**
  * Records a new WhatsApp message log with lightweight footprint.
- * Truncates text and keeps max 15 items to prevent database bloat.
  */
 export async function addWhatsAppLog(log: Omit<WhatsAppMessageLog, 'id' | 'sentAt'>): Promise<void> {
+  const cleanImageUrl = log.imageUrl && log.imageUrl.startsWith('http') ? log.imageUrl : undefined;
+
+  const newLog: WhatsAppMessageLog = {
+    id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+    sentAt: new Date().toISOString(),
+    ...log,
+    messageText: (log.messageText || '').slice(0, 120),
+    imageUrl: cleanImageUrl,
+    error: log.error ? String(log.error).slice(0, 100) : undefined,
+  };
+
+  // 1. MongoDB first (No limits, ultra fast, 0% Supabase Egress)
+  if (isMongoConfigured()) {
+    try {
+      const collections = await getWhatsAppCollections();
+      if (collections) {
+        await collections.logs.insertOne({ ...newLog, _id: newLog.id as any });
+        return;
+      }
+    } catch (mErr) {
+      console.warn('[MongoDB addWhatsAppLog error]:', mErr);
+    }
+  }
+
+  // 2. Supabase fallback
   try {
     const existing = await getWhatsAppLogs();
-    
-    // Sanitize image URL (never save base64 blobs into log JSON)
-    const cleanImageUrl = log.imageUrl && log.imageUrl.startsWith('http') ? log.imageUrl : undefined;
-
-    const newLog: WhatsAppMessageLog = {
-      id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-      sentAt: new Date().toISOString(),
-      ...log,
-      messageText: (log.messageText || '').slice(0, 120), // Truncate to 120 chars
-      imageUrl: cleanImageUrl,
-      error: log.error ? String(log.error).slice(0, 100) : undefined,
-    };
-
-    // Keep only last 15 logs max
     const updated = [newLog, ...existing].slice(0, 15);
 
     await supabaseAdmin
@@ -1179,6 +1358,21 @@ export async function addWhatsAppLog(log: Omit<WhatsAppMessageLog, 'id' | 'sentA
  * Clears all stored WhatsApp message logs from database.
  */
 export async function clearWhatsAppLogs(): Promise<boolean> {
+  // 1. MongoDB first
+  if (isMongoConfigured()) {
+    try {
+      const collections = await getWhatsAppCollections();
+      if (collections) {
+        await collections.logs.deleteMany({});
+        return true;
+      }
+    } catch (mErr) {
+      console.error('[MongoDB clearWhatsAppLogs error]:', mErr);
+      return false;
+    }
+  }
+
+  // 2. Supabase fallback
   try {
     const { error } = await supabaseAdmin
       .from('SiteSetting')
@@ -1672,9 +1866,26 @@ export const DEFAULT_FORWARDER_CONFIG: WhatsAppForwarderConfig = {
 };
 
 /**
- * Loads the WhatsApp Channel Auto-Forwarder configuration from SiteSetting.
+ * Loads the WhatsApp Channel Auto-Forwarder configuration from MongoDB (or Supabase fallback).
  */
 export async function getWhatsAppForwarderConfig(): Promise<WhatsAppForwarderConfig> {
+  // 1. MongoDB first
+  if (isMongoConfigured()) {
+    try {
+      const collections = await getWhatsAppCollections();
+      if (collections) {
+        const doc = await collections.forwarder.findOne({ _id: 'forwarder_config' as any });
+        if (doc) {
+          const { _id, ...rest } = doc;
+          return { ...DEFAULT_FORWARDER_CONFIG, ...rest };
+        }
+      }
+    } catch (mErr) {
+      console.warn('[MongoDB getWhatsAppForwarderConfig error]:', mErr);
+    }
+  }
+
+  // 2. Supabase fallback
   try {
     const { data: setting } = await supabaseAdmin
       .from('SiteSetting')
@@ -1693,9 +1904,28 @@ export async function getWhatsAppForwarderConfig(): Promise<WhatsAppForwarderCon
 }
 
 /**
- * Saves the WhatsApp Channel Auto-Forwarder configuration to SiteSetting.
+ * Saves the WhatsApp Channel Auto-Forwarder configuration to MongoDB (or Supabase fallback).
  */
 export async function saveWhatsAppForwarderConfig(config: WhatsAppForwarderConfig): Promise<boolean> {
+  // 1. MongoDB first
+  if (isMongoConfigured()) {
+    try {
+      const collections = await getWhatsAppCollections();
+      if (collections) {
+        await collections.forwarder.updateOne(
+          { _id: 'forwarder_config' as any },
+          { $set: { ...config, updatedAt: new Date().toISOString() } },
+          { upsert: true }
+        );
+        return true;
+      }
+    } catch (mErr) {
+      console.error('[MongoDB saveWhatsAppForwarderConfig error]:', mErr);
+      return false;
+    }
+  }
+
+  // 2. Supabase fallback
   try {
     const { error } = await supabaseAdmin
       .from('SiteSetting')
@@ -1706,13 +1936,114 @@ export async function saveWhatsAppForwarderConfig(config: WhatsAppForwarderConfi
         updatedAt: new Date().toISOString(),
       }, { onConflict: 'key' });
 
-    if (error) {
-      console.error('[WhatsApp Forwarder] Error upserting SiteSetting:', error);
-      return false;
-    }
-    return true;
+    return !error;
   } catch (err) {
     console.error('[WhatsApp Forwarder] Could not save config:', err);
+    return false;
+  }
+}
+
+export const DEFAULT_BOT_CONFIG = {
+  autoReplyEnabled: true,
+  welcomeMessageEnabled: true,
+  welcomeMessage: `🎮 স্বাগতম ESPORTS ZONE BD-এ! 🎮\n\nআমরা প্রতিদিন নিয়মিত Free Fire টুর্নামেন্ট ও কাস্টম ম্যাচ আয়োজন করি।\n\n🔹 টুর্নামেন্টে যোগ দিতে ভিজিট করুন: https://esportszonebd.online/tournaments\n🔹 রুম ও আইডি সহায়তার জন্য 'room' লিখে পাঠান।\n🔹 ডিপোজিট ও পেমেন্ট সহায়তার জন্য 'bkash' লিখে পাঠান।`,
+  defaultFallbackReply: `ধন্যবাদ মেসেজ দেওয়ার জন্য! আমাদের অ্যাডমিন টিম দ্রুত আপনার সাথে যোগাযোগ করবে।\nটুর্নামেন্ট ডিটেইলস জানতে ভিজিট করুন: https://esportszonebd.online`,
+  rules: [
+    {
+      id: 'rule_room',
+      keywords: ['room', 'id', 'pass', 'password', 'রুম', 'পাসওয়ার্ড'],
+      replyText: `🎮 Room ID & Pass নোটিশ:\n\nআপনার টুর্নামেন্ট শুরু হওয়ার ঠিক ১৫ মিনিট আগে আপনার WhatsApp নম্বরে এবং আমাদের ওয়েবসাইটে Room ID ও Password রিলিজ করা হবে!\n\nসঠিক স্লটে জয়েন করতে esportszonebd.online-এ নজর রাখুন।`,
+      isActive: true,
+    },
+    {
+      id: 'rule_bkash',
+      keywords: ['bkash', 'nagad', 'payment', 'টাকা', 'পেমেন্ট', 'বিকাশ', 'নগদ'],
+      replyText: `💰 পেমেন্ট ও ওয়ালেট ডিপোজিট:\n\nঅটোমেটিক ব্যালেন্স অ্যাড করতে আমাদের সাইটের Wallet অপশনে যান।\nবিকাশ/নগদ সেন্ড মানি করে TrxID সাবমিট করলেই ৫ মিনিটে ব্যালেন্স অ্যাড হয়ে যাবে!\nলিঙ্ক: https://brkesports.com/wallet`,
+      isActive: true,
+    },
+    {
+      id: 'rule_stop',
+      keywords: ['stop', 'unsubscribe', 'বন্ধ', 'off', 'cancel'],
+      replyText: `✅ আপনার অনুরোধ অনুযায়ী আপনাকে নোটিফিকেশন লিস্ট থেকে বাদ দেওয়া হয়েছে। ভবিষ্যতে এই নম্বরে আর কোনো প্রমোশনাল মেসেজ যাবে না। ধন্যবাদ!`,
+      isActive: true,
+    },
+  ],
+};
+
+/**
+ * Loads WhatsApp Bot auto-reply configuration from MongoDB (or Supabase fallback).
+ */
+export async function getWhatsAppBotConfig(): Promise<typeof DEFAULT_BOT_CONFIG> {
+  // 1. MongoDB first
+  if (isMongoConfigured()) {
+    try {
+      const collections = await getWhatsAppCollections();
+      if (collections) {
+        const doc = await collections.bot.findOne({ _id: 'bot_config' as any });
+        if (doc) {
+          const { _id, ...rest } = doc;
+          return { ...DEFAULT_BOT_CONFIG, ...rest } as any;
+        }
+      }
+    } catch (mErr) {
+      console.warn('[MongoDB getWhatsAppBotConfig error]:', mErr);
+    }
+  }
+
+  // 2. Supabase fallback
+  try {
+    const { data: setting } = await supabaseAdmin
+      .from('SiteSetting')
+      .select('value')
+      .eq('key', 'WHATSAPP_BOT_CONFIG')
+      .maybeSingle();
+
+    if (setting?.value) {
+      const parsed = typeof setting.value === 'string' ? JSON.parse(setting.value) : setting.value;
+      return { ...DEFAULT_BOT_CONFIG, ...parsed };
+    }
+  } catch (err) {
+    console.warn('[WhatsApp Bot] Could not load config from SiteSetting:', err);
+  }
+  return DEFAULT_BOT_CONFIG;
+}
+
+/**
+ * Saves WhatsApp Bot auto-reply configuration to MongoDB (or Supabase fallback).
+ */
+export async function saveWhatsAppBotConfig(config: any): Promise<boolean> {
+  // 1. MongoDB first
+  if (isMongoConfigured()) {
+    try {
+      const collections = await getWhatsAppCollections();
+      if (collections) {
+        await collections.bot.updateOne(
+          { _id: 'bot_config' as any },
+          { $set: { ...config, updatedAt: new Date().toISOString() } },
+          { upsert: true }
+        );
+        return true;
+      }
+    } catch (mErr) {
+      console.error('[MongoDB saveWhatsAppBotConfig error]:', mErr);
+      return false;
+    }
+  }
+
+  // 2. Supabase fallback
+  try {
+    const { error } = await supabaseAdmin
+      .from('SiteSetting')
+      .upsert({
+        id: 'setting_WHATSAPP_BOT_CONFIG',
+        key: 'WHATSAPP_BOT_CONFIG',
+        value: JSON.stringify(config),
+        updatedAt: new Date().toISOString(),
+      }, { onConflict: 'key' });
+
+    return !error;
+  } catch (err) {
+    console.error('[WhatsApp Bot] Could not save config:', err);
     return false;
   }
 }

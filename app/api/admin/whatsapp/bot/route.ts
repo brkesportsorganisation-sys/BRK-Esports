@@ -49,6 +49,8 @@ const DEFAULT_BOT_CONFIG: WhatsAppBotConfig = {
   ],
 };
 
+import { getWhatsAppBotConfig, saveWhatsAppBotConfig } from '@/lib/whatsapp';
+
 // GET bot config
 export async function GET() {
   const session = await getSession();
@@ -57,22 +59,12 @@ export async function GET() {
   }
 
   try {
-    const { data: setting } = await supabaseAdmin
-      .from('SiteSetting')
-      .select('value')
-      .eq('key', 'WHATSAPP_BOT_CONFIG')
-      .maybeSingle();
-
-    let config = DEFAULT_BOT_CONFIG;
-    if (setting?.value) {
-      const parsed = typeof setting.value === 'string' ? JSON.parse(setting.value) : setting.value;
-      config = { ...DEFAULT_BOT_CONFIG, ...parsed };
-    }
-
+    const config = await getWhatsAppBotConfig();
     return NextResponse.json({ config });
   } catch (error: any) {
     console.error('[GET /api/admin/whatsapp/bot]', error);
-    return NextResponse.json({ config: DEFAULT_BOT_CONFIG });
+    const config = await getWhatsAppBotConfig();
+    return NextResponse.json({ config });
   }
 }
 
@@ -91,14 +83,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Config is required' }, { status: 400 });
     }
 
-    await supabaseAdmin
-      .from('SiteSetting')
-      .upsert({
-        id: 'setting_WHATSAPP_BOT_CONFIG',
-        key: 'WHATSAPP_BOT_CONFIG',
-        value: JSON.stringify(config),
-        updatedAt: new Date().toISOString(),
-      }, { onConflict: 'key' });
+    const saved = await saveWhatsAppBotConfig(config);
+    if (!saved) {
+      return NextResponse.json({ message: 'Failed to save bot configuration' }, { status: 500 });
+    }
 
     return NextResponse.json({ success: true, message: 'WhatsApp Bot configuration saved successfully!' });
   } catch (error: any) {

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyAdminSession, requireAdminRole, logAdminAction } from '@/lib/admin-auth';
-import { supabaseAdmin } from '@/lib/supabase';
-import { getWhatsAppSettings } from '@/lib/whatsapp';
+import { getWhatsAppSettings, saveWhatsAppSettings } from '@/lib/whatsapp';
+import { isMongoConfigured, getWhatsAppDb } from '@/lib/mongodb';
 
 async function getSession() {
   const cookieStore = await cookies();
@@ -19,8 +19,15 @@ export async function GET() {
 
   try {
     const settings = await getWhatsAppSettings();
+    let mongoOk = isMongoConfigured();
+    if (mongoOk) {
+      const db = await getWhatsAppDb();
+      mongoOk = Boolean(db);
+    }
+
     return NextResponse.json({
       success: true,
+      isMongoConnected: mongoOk,
       settings: {
         provider: settings.provider,
         greenApiUrl: settings.greenApiUrl || 'https://7107.api.greenapi.com',
@@ -62,42 +69,20 @@ export async function POST(req: NextRequest) {
       defaultTemplate 
     } = body;
 
-    const upserts = [];
+    const saved = await saveWhatsAppSettings({
+      greenApiUrl: greenApiUrl?.trim(),
+      greenApiInstanceId: greenApiInstanceId?.trim(),
+      greenApiToken: greenApiToken?.trim(),
+      waapiApiKey: waapiApiKey?.trim(),
+      waapiInstanceId: waapiInstanceId?.trim(),
+      zavuApiKey: zavuApiKey?.trim(),
+      provider,
+      isEnabled: isEnabled !== undefined ? Boolean(isEnabled) : undefined,
+      defaultTemplate: defaultTemplate?.trim(),
+    });
 
-    if (greenApiUrl !== undefined) {
-      upserts.push({ id: 'setting_GREEN_API_URL', key: 'GREEN_API_URL', value: greenApiUrl.trim(), updatedAt: new Date().toISOString() });
-    }
-    if (greenApiInstanceId !== undefined) {
-      upserts.push({ id: 'setting_GREEN_API_INSTANCE_ID', key: 'GREEN_API_INSTANCE_ID', value: greenApiInstanceId.trim(), updatedAt: new Date().toISOString() });
-    }
-    if (greenApiToken !== undefined) {
-      upserts.push({ id: 'setting_GREEN_API_TOKEN', key: 'GREEN_API_TOKEN', value: greenApiToken.trim(), updatedAt: new Date().toISOString() });
-    }
-    if (waapiApiKey !== undefined) {
-      upserts.push({ id: 'setting_WAAPI_API_KEY', key: 'WAAPI_API_KEY', value: waapiApiKey.trim(), updatedAt: new Date().toISOString() });
-    }
-    if (waapiInstanceId !== undefined) {
-      upserts.push({ id: 'setting_WAAPI_INSTANCE_ID', key: 'WAAPI_INSTANCE_ID', value: waapiInstanceId.trim(), updatedAt: new Date().toISOString() });
-    }
-    if (zavuApiKey !== undefined) {
-      upserts.push({ id: 'setting_ZAVU_API_KEY', key: 'ZAVU_API_KEY', value: zavuApiKey.trim(), updatedAt: new Date().toISOString() });
-    }
-    if (provider !== undefined) {
-      upserts.push({ id: 'setting_WHATSAPP_PROVIDER', key: 'WHATSAPP_PROVIDER', value: provider, updatedAt: new Date().toISOString() });
-    }
-    if (isEnabled !== undefined) {
-      upserts.push({ id: 'setting_WHATSAPP_ENABLED', key: 'WHATSAPP_ENABLED', value: String(isEnabled), updatedAt: new Date().toISOString() });
-    }
-    if (defaultTemplate !== undefined) {
-      upserts.push({ id: 'setting_WHATSAPP_ROOM_TEMPLATE', key: 'WHATSAPP_ROOM_TEMPLATE', value: defaultTemplate.trim(), updatedAt: new Date().toISOString() });
-    }
-
-    if (upserts.length > 0) {
-      const { error } = await supabaseAdmin
-        .from('SiteSetting')
-        .upsert(upserts, { onConflict: 'key' });
-
-      if (error) throw error;
+    if (!saved) {
+      return NextResponse.json({ success: false, message: 'Failed to save settings to database' }, { status: 500 });
     }
 
     await logAdminAction(

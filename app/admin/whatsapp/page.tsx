@@ -82,6 +82,7 @@ export default function AdminWhatsAppPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   const [lastSyncTime, setLastSyncTime] = useState<string>('');
+  const [isMongoConnected, setIsMongoConnected] = useState<boolean | null>(null);
 
   // Selected player for Direct DM
   const [selectedContact, setSelectedContact] = useState<WhatsAppContact | null>(null);
@@ -486,6 +487,9 @@ export default function AdminWhatsAppPage() {
 
       if (settingsResult.status === 'fulfilled' && settingsResult.value.ok) {
         const setJson = await settingsResult.value.json().catch(() => ({}));
+        if (setJson?.isMongoConnected !== undefined) {
+          setIsMongoConnected(Boolean(setJson.isMongoConnected));
+        }
         if (setJson?.settings) {
           setGatewaySettings({
             provider: setJson.settings.provider || 'GREEN_API',
@@ -1238,8 +1242,8 @@ export default function AdminWhatsAppPage() {
       </div>
 
       {/* 2. REALTIME AUTOMATION BAR (Clean Light/Dark Badge) */}
-      <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-2xl bg-slate-900 text-white shadow-sm border border-slate-800 text-xs">
-        <div className="flex items-center gap-2.5 min-w-0">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-2.5 rounded-2xl bg-slate-900 text-white shadow-sm border border-slate-800 text-xs">
+        <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
           <span className="relative flex h-2.5 w-2.5 shrink-0">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
@@ -1247,9 +1251,16 @@ export default function AdminWhatsAppPage() {
           <span className="font-bold text-emerald-400 tracking-wider text-[11px] truncate">
             REALTIME AUTOMATION ACTIVE
           </span>
-          <span className="text-slate-400 text-[11px] hidden md:inline font-mono">
-            • Auto-evaluating scheduled intervals every 10s • Zavu API Gateway
-          </span>
+          {isMongoConnected ? (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold">
+              <span>🍃 MongoDB Atlas Connected</span>
+              <span className="text-emerald-400 font-mono">(0% Supabase Egress)</span>
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-950/60 border border-amber-500/30 text-amber-300 text-[10px] font-medium">
+              <span>⚠️ Using Supabase Storage</span>
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
