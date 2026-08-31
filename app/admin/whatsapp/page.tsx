@@ -339,6 +339,7 @@ export default function AdminWhatsAppPage() {
           message: manualRelayMessage.trim(),
           imageUrl: manualRelayImageUrl.trim() || undefined,
           sourceChannelName: forwarderConfig.sourceChannelName || 'Admin Channel Relay',
+          forceTargetGroups: forwarderConfig.targetGroupMode === 'SELECTED_GROUPS' ? forwarderConfig.targetGroupIds : undefined,
         }),
         credentials: 'include',
       });
@@ -2179,7 +2180,7 @@ export default function AdminWhatsAppPage() {
                       onClick={handleSyncChannels}
                       disabled={isSyncingChannels}
                       className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-800 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                      title="Fetch followed WhatsApp Channels from Green-API/WaAPI"
+                      title="Fetch followed WhatsApp Channels from Baileys Bot"
                     >
                       {isSyncingChannels ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -2763,7 +2764,7 @@ export default function AdminWhatsAppPage() {
 
                 <div className="space-y-3 text-xs">
                   <p className="text-slate-300 leading-relaxed text-[11px]">
-                    আপনার Green-API / WaAPI ড্যাশবোর্ডে গিয়ে নিচের Webhook URL টি পেস্ট করে <code>incomingMessageReceived</code> ইভেন্ট চালু করে রাখুন:
+                    আপনার Baileys Node Bot অথবা Webhook থেকে নিচের Webhook URL টি পেস্ট করে <code>incomingMessageReceived</code> ইভেন্ট চালু করে রাখুন:
                   </p>
 
                   <div className="p-3 bg-black/50 border border-slate-700 rounded-xl space-y-1.5">
@@ -3595,7 +3596,7 @@ export default function AdminWhatsAppPage() {
           <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] p-5 sm:p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)] space-y-5">
             <div className="border-b border-[#F1F5F9] pb-3">
               <h2 className="text-base font-bold text-[#0F172A]">WhatsApp Gateway & Provider Settings</h2>
-              <p className="text-xs text-slate-500">Configure your WaAPI instance token or Zavu credentials.</p>
+              <p className="text-xs text-slate-500">Baileys Node Bot (Render) এবং WhatsApp Web QR কনফিগারেশন।</p>
             </div>
 
             <form onSubmit={handleSaveGatewaySettings} className="space-y-5 text-xs font-medium">

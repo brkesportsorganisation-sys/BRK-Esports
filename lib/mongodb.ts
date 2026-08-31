@@ -1,10 +1,14 @@
 import { MongoClient, Db } from 'mongodb';
 
 const uri = process.env.MONGODB_URI || '';
-const options = {};
+const options = {
+  serverSelectionTimeoutMS: 3000,
+  connectTimeoutMS: 3000,
+};
 
 let client: MongoClient | null = null;
 let clientPromise: Promise<MongoClient> | null = null;
+let lastFailureTime = 0;
 
 declare global {
   // eslint-disable-next-line no-var
@@ -12,7 +16,14 @@ declare global {
 }
 
 export function isMongoConfigured(): boolean {
-  return Boolean(uri && uri.startsWith('mongodb') && !uri.includes('<db_username>'));
+  if (!uri || !uri.startsWith('mongodb') || uri.includes('<db_username>')) {
+    return false;
+  }
+  // If failed recently within 30 seconds, temporarily treat as not configured to prevent request lag
+  if (Date.now() - lastFailureTime < 30000) {
+    return false;
+  }
+  return true;
 }
 
 export async function getMongoClient(): Promise<MongoClient | null> {
@@ -20,26 +31,28 @@ export async function getMongoClient(): Promise<MongoClient | null> {
     return null;
   }
 
-  if (process.env.NODE_ENV === 'development') {
-    // In development mode, use a global variable so that the value
-    // is preserved across module reloads caused by HMR.
-    if (!global._mongoClientPromise) {
-      client = new MongoClient(uri, options);
-      global._mongoClientPromise = client.connect();
-    }
-    clientPromise = global._mongoClientPromise;
-  } else {
-    // In production mode, it's best to not use a global variable.
-    if (!clientPromise) {
-      client = new MongoClient(uri, options);
-      clientPromise = client.connect();
-    }
-  }
-
   try {
-    return await clientPromise;
-  } catch (err) {
-    console.error('[MongoDB Connection Error]:', err);
+    if (process.env.NODE_ENV === 'development') {
+      if (!global._mongoClientPromise) {
+        client = new MongoClient(uri, options);
+        global._mongoClientPromise = client.connect();
+      }
+      clientPromise = global._mongoClientPromise;
+    } else {
+      if (!clientPromise) {
+        client = new MongoClient(uri, options);
+        clientPromise = client.connect();
+      }
+    }
+
+    const connectedClient = await clientPromise;
+    return connectedClient;
+  } catch (err: any) {
+    console.warn('[MongoDB Connection Failed - Using Supabase Fallback]:', err?.message || err);
+    lastFailureTime = Date.now();
+    global._mongoClientPromise = undefined;
+    clientPromise = null;
+    client = null;
     return null;
   }
 }

@@ -15,9 +15,13 @@ export function normalizePhoneNumber(rawPhone: string): string {
   if (!rawPhone) return '';
   let trimmed = rawPhone.trim();
 
-  // If internal format like grp_120363426443362477_g_us
-  if (trimmed.startsWith('grp_') && trimmed.includes('_g_us')) {
-    return trimmed.replace('grp_', '').replace('_g_us', '@g.us');
+  // If internal format like grp_120363426443362477_g_us or grp_waapi_120363426443362477_g_us
+  if (trimmed.includes('_g_us')) {
+    return trimmed.replace(/^grp_(waapi_)?/, '').replace('_g_us', '@g.us');
+  }
+  if (trimmed.startsWith('grp_')) {
+    trimmed = trimmed.replace(/^grp_(waapi_)?/, '');
+    if (/^\d+$/.test(trimmed)) return `${trimmed}@g.us`;
   }
 
   // Preserve WhatsApp Group JIDs & Channel JIDs (e.g. 120363028392819283@g.us, 120363294829384920@newsletter, @broadcast, @s.whatsapp.net)
@@ -768,17 +772,20 @@ export async function sendDirectWhatsappMessage({
         throw new Error(errorMsg);
       }
     } catch (err: any) {
-      console.warn(`[Node Bot] Dispatch failed: ${err.message}`);
-      await addWhatsAppLog({
-        targetDestination: formattedTo,
-        targetName,
-        messageText: text,
-        imageUrl: activeImageUrl,
-        triggerType,
-        status: 'FAILED',
-        error: err.message,
-      });
-      return { success: false, message: err.message, error: err };
+      console.warn(`[Node Bot] Dispatch failed: ${err.message}. Checking fallbacks...`);
+      // If no other provider configured, record failure and return
+      if (!settings.greenApiToken && !settings.waapiApiKey && !settings.zavuApiKey) {
+        await addWhatsAppLog({
+          targetDestination: formattedTo,
+          targetName,
+          messageText: text,
+          imageUrl: activeImageUrl,
+          triggerType,
+          status: 'FAILED',
+          error: err.message,
+        });
+        return { success: false, message: err.message, error: err };
+      }
     }
   }
 

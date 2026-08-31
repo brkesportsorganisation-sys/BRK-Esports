@@ -136,52 +136,89 @@ async function connectToWhatsApp() {
     }
   });
 
-  // ─── Dynamic Forwarder Config Loader from MongoDB ─────────────────────────
+  // ─── Dynamic Forwarder Config Loader from Memory / MongoDB / Next.js ─────
+  let inMemoryForwarderConfig = null;
   async function getDynamicForwarderConfig() {
+    if (inMemoryForwarderConfig) return inMemoryForwarderConfig;
     try {
       if (mongoose.connection && mongoose.connection.db) {
         const doc = await mongoose.connection.db.collection('whatsapp_forwarder').findOne({ _id: 'forwarder_config' });
-        if (doc) return doc;
+        if (doc) {
+          inMemoryForwarderConfig = doc;
+          return doc;
+        }
       }
     } catch (e) {}
     return null;
   }
 
-  // ─── Channel Forwarder Listener ───────────────────────────────────────────
+  // ─── Channel & Newsletter Auto-Forwarder Listener ─────────────────────────
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
-    if (type !== 'notify') return;
+    for (const msg of (messages || [])) {
+      if (!msg || !msg.message) continue;
+      // 1. Ignore own outgoing messages
+      if (msg.key?.fromMe) continue;
 
-    for (const msg of messages) {
-      // 1. Ignore own messages
-      if (msg.key.fromMe) continue;
+      const jid = msg.key?.remoteJid || '';
+      const isNewsletter = jid.endsWith('@newsletter') || jid.endsWith('@broadcast') || jid.includes('newsletter');
 
-      const jid = msg.key.remoteJid || '';
-      const isNewsletter = jid.endsWith('@newsletter') || jid.endsWith('@broadcast');
-
-      // 2. Load dynamic forwarder settings from MongoDB or environment
+      // 2. Load dynamic forwarder settings
       const forwarderConfig = await getDynamicForwarderConfig();
       const isEnabled = forwarderConfig?.enabled ?? !!SOURCE_CHANNEL_JID;
       if (!isEnabled) continue;
 
       const configuredChannel = (forwarderConfig?.sourceChannelId || SOURCE_CHANNEL_JID || '').trim();
+      const channelInviteCode = configuredChannel.includes('whatsapp.com/channel/')
+        ? configuredChannel.split('whatsapp.com/channel/')[1]?.replace(/[^a-zA-Z0-9]/g, '')
+        : '';
+
       const isMatch =
         configuredChannel === '*' ||
         configuredChannel === '' ||
         jid === configuredChannel ||
-        (configuredChannel.includes('whatsapp.com/channel/') && jid.includes(configuredChannel.split('whatsapp.com/channel/')[1])) ||
+        (channelInviteCode && jid.includes(channelInviteCode)) ||
         isNewsletter;
 
       if (!isMatch) continue;
 
+      // Extract text from all Baileys message shapes
       const textMessage =
         msg.message?.conversation ||
         msg.message?.extendedTextMessage?.text ||
         msg.message?.imageMessage?.caption ||
+        msg.message?.videoMessage?.caption ||
+        msg.message?.documentMessage?.caption ||
+        msg.message?.viewOnceMessage?.message?.imageMessage?.caption ||
+        msg.message?.viewOnceMessage?.message?.extendedTextMessage?.text ||
+        msg.message?.newsletterEdit?.message?.conversation ||
         '';
 
-      if (!textMessage) continue;
+      const hasMedia = !!msg.message?.imageMessage || !!msg.message?.videoMessage || !!msg.message?.documentMessage;
+      if (!textMessage && !hasMedia) continue;
 
-      console.log(`📢 [Channel Message Detected from ${jid}]: "${textMessage.slice(0, 60)}..."`);
+      console.log(`📢 [Channel Message Detected from ${jid}]: "${(textMessage || 'Media Message').slice(0, 80)}..."`);
+
+      // Keyword filters
+      if (forwarderConfig?.filterKeywords && forwarderConfig.filterKeywords.length > 0) {
+        const hasMatch = forwarderConfig.filterKeywords.some((kw) =>
+          textMessage.toLowerCase().includes(kw.trim().toLowerCase())
+        );
+        if (!hasMatch) {
+          console.log('⏭️ [Forwarder Skipped]: Keyword filter mismatch');
+          continue;
+        }
+      }
+
+      // Ignore filters
+      if (forwarderConfig?.ignoreKeywords && forwarderConfig.ignoreKeywords.length > 0) {
+        const shouldIgnore = forwarderConfig.ignoreKeywords.some((kw) =>
+          textMessage.toLowerCase().includes(kw.trim().toLowerCase())
+        );
+        if (shouldIgnore) {
+          console.log('⏭️ [Forwarder Skipped]: Ignore keyword matched');
+          continue;
+        }
+      }
 
       // 3. Resolve Target Groups
       let targets = [];
@@ -195,6 +232,7 @@ async function connectToWhatsApp() {
         targets = connectedGroups.length > 0 ? connectedGroups.map((g) => g.id) : TARGET_GROUPS;
       }
 
+      targets = targets.map((t) => t.includes('_g_us') ? t.replace(/^grp_(waapi_)?/, '').replace('_g_us', '@g.us') : t);
       targets = targets.filter((t) => t !== jid && t.endsWith('@g.us'));
 
       if (targets.length === 0) {
@@ -203,14 +241,22 @@ async function connectToWhatsApp() {
         targets = connectedGroups.map((g) => g.id).filter((t) => t !== jid && t.endsWith('@g.us'));
       }
 
-      const prefix = forwarderConfig?.prefixHeader || '📢 *[অফিশিয়াল চ্যানেল আপডেট]*\n\n';
+      const prefix = forwarderConfig?.prefixHeader !== undefined ? forwarderConfig.prefixHeader : '📢 *[অফিশিয়াল চ্যানেল আপডেট]*\n\n';
       const footer = forwarderConfig?.appendFooter || '';
-      const finalMsg = `${prefix}${textMessage}${footer ? `\n\n${footer}` : ''}`;
+      const finalMsg = `${prefix ? prefix : ''}${textMessage}${footer ? `\n\n${footer}` : ''}`;
 
       for (const groupJid of targets) {
         try {
-          await sock.sendMessage(groupJid, { text: finalMsg });
-          console.log(`✅ [Auto-Forwarded Notice to ${groupJid}]`);
+          if (msg.message?.imageMessage && forwarderConfig?.includeMedia !== false) {
+            try {
+              await sock.sendMessage(groupJid, { forward: msg });
+            } catch {
+              await sock.sendMessage(groupJid, { text: finalMsg });
+            }
+          } else {
+            await sock.sendMessage(groupJid, { text: finalMsg });
+          }
+          console.log(`✅ [Auto-Forwarded to ${groupJid}]`);
         } catch (err) {
           console.error(`❌ [Forward Failed to ${groupJid}]:`, err.message);
         }
@@ -776,6 +822,36 @@ app.post('/api/bot-config', requireApiSecret, async (req, res) => {
       { upsert: true, new: true }
     );
     res.json({ success: true, message: 'Bot config saved.' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ─── GET/POST: Channel Forwarder Config ───────────────────────────────────────
+app.get('/api/forwarder-config', requireApiSecret, async (req, res) => {
+  try {
+    const config = await getDynamicForwarderConfig();
+    res.json({ success: true, config });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/forwarder-config', requireApiSecret, async (req, res) => {
+  try {
+    const { config } = req.body;
+    if (!config) {
+      return res.status(400).json({ success: false, error: 'config is required' });
+    }
+    inMemoryForwarderConfig = config;
+    if (mongoose.connection && mongoose.connection.db) {
+      await mongoose.connection.db.collection('whatsapp_forwarder').findOneAndUpdate(
+        { _id: 'forwarder_config' },
+        { $set: { ...config, _id: 'forwarder_config', updatedAt: new Date() } },
+        { upsert: true, returnDocument: 'after' }
+      );
+    }
+    res.json({ success: true, message: 'Forwarder config updated successfully on bot.', config });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

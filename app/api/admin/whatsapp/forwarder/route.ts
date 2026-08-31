@@ -163,6 +163,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: 'Failed to save forwarder config to database' }, { status: 500 });
     }
 
+    // Notify Node Bot on Render to update active in-memory forwarder listener
+    try {
+      const settings = await (await import('@/lib/whatsapp')).getWhatsAppSettings();
+      if (settings.nodeBotUrl && settings.nodeBotSecret) {
+        const host = settings.nodeBotUrl.replace(/\/+$/, '');
+        fetch(`${host}/api/forwarder-config`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-secret': settings.nodeBotSecret,
+          },
+          body: JSON.stringify({ config: mergedConfig }),
+          signal: AbortSignal.timeout(4000),
+        }).catch(() => {});
+      }
+    } catch {}
+
     await logAdminAction(
       session?.sub || session?.email || 'admin',
       'UPDATE_WHATSAPP_FORWARDER',
