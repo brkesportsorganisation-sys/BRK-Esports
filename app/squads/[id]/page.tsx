@@ -236,8 +236,8 @@ export default function SquadDetailsPage({ params }: { params: Promise<{ id: str
   const handleSendInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedPlayer || !currentUser) return;
-    const playerRole = (selectedPlayer as any)?.inGameRole || 'RUSHER';
-    const playerType = 'PLAYER';
+    const playerRole = inviteRole || 'RUSHER';
+    const playerType = inviteType || 'PLAYER';
 
     setIsInviting(true);
     try {
@@ -259,7 +259,7 @@ export default function SquadDetailsPage({ params }: { params: Promise<{ id: str
 
       const data = await res.json();
       if (res.ok) {
-        alert(data.message);
+        alert(data.message || `Invitation sent to ${selectedPlayer.name}! They will be added to the squad once they accept.`);
         setInviteModalOpen(false);
         setSelectedPlayer(null);
         setSearchPlayerQuery('');
@@ -646,6 +646,120 @@ export default function SquadDetailsPage({ params }: { params: Promise<{ id: str
           </div>
         </div>
 
+        {/* ── Active Invitation Banner for Logged In Player ── */}
+        {currentUser && (squad?.members || []).some(m => m.userId === currentUser.id && m.status === 'INVITED') && (
+          <div className="bg-emerald-50 border-2 border-emerald-300 rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm animate-fadeIn">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-md shrink-0">
+                <Crown className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="font-heading font-black text-emerald-950 text-base">
+                  You Have Been Invited to Join [{squad.tag}] {squad.name}!
+                </h4>
+                <p className="text-xs text-emerald-700 font-medium">
+                  The squad leader invited you to join the active roster as <strong className="text-emerald-900 font-bold">{squad.members?.find(m => m.userId === currentUser.id)?.inGameRole || 'Player'}</strong>.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`/api/user/squad-invites`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ userId: currentUser.id, squadId: squad.id, action: 'ACCEPT' })
+                    });
+                    const d = await res.json();
+                    if (res.ok) {
+                      alert(d.message || 'You have joined the squad!');
+                      loadSquad();
+                    } else {
+                      alert(d.message || 'Failed to accept invitation.');
+                    }
+                  } catch {
+                    alert('Network error.');
+                  }
+                }}
+                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-heading font-black text-xs uppercase shadow-md flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
+              >
+                <Check className="w-4 h-4" />
+                <span>Accept & Join Squad</span>
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`/api/user/squad-invites`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ userId: currentUser.id, squadId: squad.id, action: 'DECLINE' })
+                    });
+                    const d = await res.json();
+                    if (res.ok) {
+                      alert(d.message || 'Invitation declined.');
+                      loadSquad();
+                    }
+                  } catch {
+                    alert('Network error.');
+                  }
+                }}
+                className="px-4 py-2.5 rounded-xl bg-white hover:bg-red-50 text-slate-700 hover:text-red-600 font-bold text-xs border border-slate-200 cursor-pointer active:scale-95 transition-all"
+              >
+                Decline
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Pending Join Request Banner for Logged In Player ── */}
+        {currentUser && (squad?.members || []).some(m => m.userId === currentUser.id && m.status === 'PENDING_APPROVAL') && (
+          <div className="bg-orange-50 border border-orange-200 rounded-3xl p-4 sm:p-5 flex items-center justify-between gap-4 shadow-sm animate-fadeIn">
+            <div className="flex items-center gap-3">
+              <Clock className="w-6 h-6 text-brand-orange shrink-0 animate-pulse" />
+              <div>
+                <h4 className="font-heading font-black text-orange-950 text-sm">
+                  Join Request Pending Leader Approval
+                </h4>
+                <p className="text-[11px] text-orange-800">
+                  Your request to join [{squad.tag}] {squad.name} is waiting for the Squad Leader to review and accept.
+                </p>
+              </div>
+            </div>
+            <span className="px-3 py-1 rounded-full bg-orange-200 text-orange-800 font-black text-[10px] uppercase">
+              ⏳ Pending Approval
+            </span>
+          </div>
+        )}
+
+        {/* ── Squad Leader Pending Requests Alert Banner ── */}
+        {canManage && pendingRequests.length > 0 && (
+          <div className="bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-orange-500/5 border-2 border-brand-orange/40 rounded-3xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm animate-slideDown">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-red to-brand-orange text-white flex items-center justify-center shadow-xs shrink-0">
+                <Sparkles className="w-5 h-5 animate-pulse" />
+              </div>
+              <div>
+                <h4 className="font-heading font-black text-slate-900 text-sm">
+                  🔔 {pendingRequests.length} Player Join Request(s) Waiting for Your Approval!
+                </h4>
+                <p className="text-[11px] text-slate-600">
+                  Review player profiles, account numbers, and in-game roles, then accept to add them to your active roster.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setActiveTab('REQUESTS')}
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-black text-xs uppercase shadow-md shadow-orange-500/20 flex items-center gap-1.5 cursor-pointer hover:brightness-110 active:scale-95 transition-all shrink-0"
+            >
+              <span>Review Requests ({pendingRequests.length})</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
         {/* ── Sub Navigation Tabs ── */}
         <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
           <div className="flex items-center gap-2 bg-slate-100/80 p-1 rounded-2xl border border-slate-200">
@@ -664,14 +778,19 @@ export default function SquadDetailsPage({ params }: { params: Promise<{ id: str
             {canManage && (
               <button
                 onClick={() => setActiveTab('REQUESTS')}
-                className={`px-5 py-2.5 rounded-xl text-xs font-heading font-black tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
+                className={`px-5 py-2.5 rounded-xl text-xs font-heading font-black tracking-wider transition-all flex items-center gap-2 cursor-pointer relative ${
                   activeTab === 'REQUESTS'
                     ? 'bg-gradient-to-r from-brand-red to-brand-orange text-white shadow-sm'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 <Clock className="w-4 h-4" />
-                <span>JOIN REQUESTS ({pendingRequests.length + invitedMembers.length})</span>
+                <span>
+                  JOIN REQUESTS {pendingRequests.length > 0 ? `(${pendingRequests.length})` : `(0)`}
+                </span>
+                {pendingRequests.length > 0 && (
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+                )}
               </button>
             )}
 
@@ -1200,6 +1319,24 @@ export default function SquadDetailsPage({ params }: { params: Promise<{ id: str
                   </div>
                 )}
               </div>
+
+              {/* Role Selection */}
+              {selectedPlayer && (
+                <div className="space-y-1">
+                  <label className="text-slate-700 font-bold uppercase block text-[11px]">
+                    Assign In-Game Role *
+                  </label>
+                  <select
+                    value={inviteRole}
+                    onChange={(e) => setInviteRole(e.target.value as InGameRole)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-bold focus:outline-none focus:border-brand-orange cursor-pointer"
+                  >
+                    {gameRoles.map((r: { role: InGameRole; label: string; icon: string }) => (
+                      <option key={r.role} value={r.role}>{r.label}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
                 <button

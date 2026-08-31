@@ -374,7 +374,7 @@ export async function getUserPendingInvites(userId: string): Promise<{ squad: Sq
 }
 
 /**
- * Searches users safely by Username, Account Number (EZBD-XXXXXX), or Free Fire UID.
+ * Searches users safely by Username, In-Game Name, App ID / Account Number (EZBD-XXXXXX), or Free Fire UID.
  */
 export async function searchPlayers(query: string, currentUserId?: string): Promise<{
   id: string;
@@ -385,20 +385,24 @@ export async function searchPlayers(query: string, currentUserId?: string): Prom
   inGameName: string;
   isCurrentUser: boolean;
 }[]> {
-  const q = (query || '').trim().toLowerCase();
-  if (!q || q.length < 2) return [];
+  const rawQ = (query || '').trim();
+  if (!rawQ || rawQ.length < 2) return [];
+
+  // Strip 'EZBD-' if user types it, or search with raw
+  const q = rawQ.replace(/^EZBD-?/i, '').trim() || rawQ;
 
   try {
+    const filter = `name.ilike.%${rawQ}%,inGameName.ilike.%${rawQ}%,accountNumber.ilike.%${q}%,freeFireUid.ilike.%${rawQ}%,id.ilike.%${rawQ}%,email.ilike.%${rawQ}%,phone.ilike.%${rawQ}%`;
     const { data: users } = await supabaseAdmin
       .from('User')
-      .select('id, name, avatar, accountNumber, freeFireUid, inGameName, email')
-      .or(`name.ilike.%${q}%,accountNumber.ilike.%${q}%,freeFireUid.ilike.%${q}%,inGameName.ilike.%${q}%,email.ilike.%${q}%`)
+      .select('id, name, avatar, accountNumber, freeFireUid, inGameName, email, phone')
+      .or(filter)
       .limit(10);
 
     if (users && users.length > 0) {
       return users.map((u: any) => ({
         id: u.id,
-        name: u.name || 'Player',
+        name: u.inGameName || u.name || 'Player',
         avatar: u.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${u.name || u.id}`,
         accountNumber: u.accountNumber || `EZBD-${u.id.substring(0, 6).toUpperCase()}`,
         freeFireUid: u.freeFireUid || '',
@@ -410,6 +414,5 @@ export async function searchPlayers(query: string, currentUserId?: string): Prom
     console.warn('[searchPlayers] Supabase error:', err);
   }
 
-  // Memory search fallback
   return [];
 }

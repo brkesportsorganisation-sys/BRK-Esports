@@ -79,11 +79,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     // Determine initial status:
-    // If invited by Leader -> 'INVITED'
-    // If requested to join by player -> if requireApprovalToJoin is false -> 'ACTIVE', else 'PENDING_APPROVAL'
+    // If invited by Leader -> 'INVITED' (waiting for player to accept)
+    // If requested to join by player -> ALWAYS 'PENDING_APPROVAL' (waiting for leader to accept)
     let status: SquadMemberStatus = 'INVITED';
     if (isJoinRequest) {
-      status = currentSquad.requireApprovalToJoin ? 'PENDING_APPROVAL' : 'ACTIVE';
+      status = 'PENDING_APPROVAL';
     }
 
     const newMember: SquadMember = {
@@ -114,8 +114,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     await saveSquads(squads);
 
     const successMsg = isJoinRequest
-      ? (status === 'ACTIVE' ? 'You joined the squad successfully!' : 'Join request sent to Squad Leader for approval!')
-      : `Invitation sent to ${targetUserName}!`;
+      ? 'Join request sent to Squad Leader for approval! You will join the squad once the Leader accepts your request.'
+      : `Invitation sent to ${targetUserName}! They will join once they accept the invite.`;
 
     return NextResponse.json({ success: true, message: successMsg, member: newMember });
 
@@ -189,6 +189,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
         currentSquad.members![memberIndex].status = 'ACTIVE';
         currentSquad.members![memberIndex].joinedAt = new Date().toISOString();
+
+        // Sync to Supabase TeamMember table
+        try {
+          await supabaseAdmin.from('TeamMember').upsert({
+            id: targetMember.id,
+            teamId: id,
+            userId: targetMember.userId,
+            role: targetMember.memberType === 'MANAGER' ? 'MANAGER' : 'MEMBER',
+            joinedAt: currentSquad.members![memberIndex].joinedAt,
+          });
+        } catch {}
       } else {
         currentSquad.members![memberIndex].status = 'REJECTED';
       }
@@ -222,6 +233,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
         currentSquad.members![memberIndex].status = 'ACTIVE';
         currentSquad.members![memberIndex].joinedAt = new Date().toISOString();
+
+        // Sync to Supabase TeamMember table
+        try {
+          await supabaseAdmin.from('TeamMember').upsert({
+            id: targetMember.id,
+            teamId: id,
+            userId: targetMember.userId,
+            role: targetMember.memberType === 'MANAGER' ? 'MANAGER' : 'MEMBER',
+            joinedAt: currentSquad.members![memberIndex].joinedAt,
+          });
+        } catch {}
       } else {
         currentSquad.members![memberIndex].status = 'REJECTED';
       }

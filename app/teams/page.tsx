@@ -649,7 +649,7 @@ export default function SquadTeamsHubPage() {
                               className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange hover:brightness-110 text-white text-xs font-heading font-black uppercase flex items-center justify-center gap-1 shadow-md shadow-orange-500/15"
                             >
                               <UserPlus className="w-3.5 h-3.5" />
-                              <span>Join Squad</span>
+                              <span>Request Join</span>
                             </Link>
                           )}
                         </div>

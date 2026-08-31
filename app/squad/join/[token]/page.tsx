@@ -299,9 +299,7 @@ export default function SquadJoinLandingPage({ params }: { params: Promise<{ tok
 
                   <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <span className="text-[11px] text-slate-500 font-medium">
-                      {squad.requireApprovalToJoin
-                        ? 'ℹ️ Squad leader approval is required before joining active roster.'
-                        : '⚡ Instant join enabled — you will be added directly!'}
+                      🛡️ Squad Leader approval is required. You will join the active roster once the Leader accepts.
                     </span>
 
                     <button
@@ -310,7 +308,7 @@ export default function SquadJoinLandingPage({ params }: { params: Promise<{ tok
                       className="px-6 py-3 bg-gradient-to-r from-brand-red to-brand-orange hover:brightness-110 text-white font-heading font-black text-xs uppercase rounded-xl shadow-lg shadow-orange-500/20 cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 transition-all shrink-0"
                     >
                       {isJoining && <Loader2 className="w-4 h-4 animate-spin" />}
-                      <span>{squad.requireApprovalToJoin ? 'Send Join Request' : 'Join Squad Now'}</span>
+                      <span>Send Join Request</span>
                     </button>
                   </div>
                 </form>

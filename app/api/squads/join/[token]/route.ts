@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSquadByInviteToken, getSquads, saveSquads } from '@/lib/squads';
-import { SquadMember } from '@/lib/types';
+import { SquadMember, SquadMemberStatus } from '@/lib/types';
 
 // 1. GET preview squad by invite token
 export async function GET(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
@@ -84,7 +84,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       return NextResponse.json({ message: 'Your join request is already pending approval with the Squad Leader.' }, { status: 400 });
     }
 
-    const status = currentSquad.requireApprovalToJoin ? 'PENDING_APPROVAL' : 'ACTIVE';
+    // All join requests via invite link require Squad Leader approval
+    const status: SquadMemberStatus = 'PENDING_APPROVAL';
 
     const newMember: SquadMember = {
       id: `mem_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
@@ -115,9 +116,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
     return NextResponse.json({
       success: true,
       status,
-      message: status === 'ACTIVE'
-        ? `Congratulations! You have joined [${currentSquad.tag}] ${currentSquad.name}!`
-        : `Your join request was submitted to Squad Leader for approval!`,
+      message: `Your join request was submitted to Squad Leader for approval! You will join the squad once the Leader accepts.`,
       squadId: currentSquad.id,
     });
 
