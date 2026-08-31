@@ -13,7 +13,13 @@ import { WhatsAppSchedule, WhatsAppTargetGroup, WhatsAppMessageLog, WhatsAppFreq
  */
 export function normalizePhoneNumber(rawPhone: string): string {
   if (!rawPhone) return '';
-  const trimmed = rawPhone.trim();
+  let trimmed = rawPhone.trim();
+
+  // If internal format like grp_120363426443362477_g_us
+  if (trimmed.startsWith('grp_') && trimmed.includes('_g_us')) {
+    return trimmed.replace('grp_', '').replace('_g_us', '@g.us');
+  }
+
   // Preserve WhatsApp Group JIDs & Channel JIDs (e.g. 120363028392819283@g.us, 120363294829384920@newsletter, @broadcast, @s.whatsapp.net)
   if (
     trimmed.includes('@g.us') || 
@@ -24,14 +30,23 @@ export function normalizePhoneNumber(rawPhone: string): string {
   ) {
     return trimmed;
   }
+
   // Preserve WhatsApp Group & Channel Links
   if (trimmed.includes('chat.whatsapp.com/') || trimmed.includes('whatsapp.com/channel/')) {
     return trimmed;
   }
+
+  // Check if it's a numeric group ID (starts with 120 and length >= 16 digits)
+  const rawDigits = trimmed.replace(/\D/g, '');
+  if (/^120\d{14,}/.test(rawDigits)) {
+    return `${rawDigits}@g.us`;
+  }
+
   // Preserve Group IDs or targets with letters/spaces (group names)
   if (/[a-zA-Z\s\[\]\|\-_]/.test(trimmed) && !trimmed.startsWith('+88') && !/^\+?\d+$/.test(trimmed)) {
     return trimmed;
   }
+
   // Remove spaces, hyphens, parentheses, and other non-digit chars (except leading +)
   let cleaned = trimmed.replace(/[^\d+]/g, '');
 

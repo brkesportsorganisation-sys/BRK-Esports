@@ -7,6 +7,58 @@ export const INITIAL_SQUADS: Squad[] = [];
 let inMemorySquads: Squad[] = [];
 
 /**
+ * Strict 1-Squad Policy: Sanitizes squad rosters to ensure every player ID exists in AT MOST 1 squad.
+ */
+export function sanitizeSquadsRoster(squads: Squad[]): Squad[] {
+  if (!Array.isArray(squads)) return [];
+
+  // Map user ID -> squad ID
+  const userToSquad = new Map<string, string>();
+  const userAccountToSquad = new Map<string, string>();
+
+  // Pass 1: Leaders own their squads (Highest priority)
+  for (const s of squads) {
+    if (s.isDisbanded) continue;
+    if (s.leaderId) {
+      userToSquad.set(s.leaderId, s.id);
+    }
+  }
+
+  // Pass 2: Clean members list per squad (Strip duplicates & multiple memberships)
+  for (const s of squads) {
+    if (s.isDisbanded || !Array.isArray(s.members)) continue;
+    const cleanMembers: SquadMember[] = [];
+    const seenUserIds = new Set<string>();
+
+    for (const m of s.members) {
+      if (!m || !m.userId) continue;
+      if (seenUserIds.has(m.userId)) continue; // avoid duplicate in same squad
+      seenUserIds.add(m.userId);
+
+      const assignedSquad = userToSquad.get(m.userId);
+      const acctKey = m.accountNumber ? m.accountNumber.trim().toUpperCase() : '';
+      const assignedByAcct = acctKey ? userAccountToSquad.get(acctKey) : undefined;
+
+      if (!assignedSquad && !assignedByAcct) {
+        // Register this user to this squad
+        userToSquad.set(m.userId, s.id);
+        if (acctKey) userAccountToSquad.set(acctKey, s.id);
+        cleanMembers.push(m);
+      } else if (assignedSquad === s.id || assignedByAcct === s.id) {
+        cleanMembers.push(m);
+      } else {
+        // User already belongs to another squad, exclude from this one
+        console.log(`[1-Squad Rule] Removed user ${m.userName} (${m.userId}) from squad "${s.name}" (already in squad ${assignedSquad || assignedByAcct})`);
+      }
+    }
+
+    s.members = cleanMembers;
+  }
+
+  return squads;
+}
+
+/**
  * Loads all squads from Supabase SiteSetting store or in-memory fallback.
  */
 export async function getSquads(): Promise<Squad[]> {
@@ -20,8 +72,9 @@ export async function getSquads(): Promise<Squad[]> {
     if (data?.value) {
       const parsed = JSON.parse(data.value);
       if (Array.isArray(parsed)) {
-        inMemorySquads = parsed;
-        return parsed;
+        const sanitized = sanitizeSquadsRoster(parsed);
+        inMemorySquads = sanitized;
+        return sanitized;
       }
     }
   } catch (err) {
@@ -35,14 +88,15 @@ export async function getSquads(): Promise<Squad[]> {
  * Saves squads list to Supabase with persistent database storage.
  */
 export async function saveSquads(squads: Squad[]): Promise<boolean> {
-  inMemorySquads = squads;
+  const sanitized = sanitizeSquadsRoster(squads);
+  inMemorySquads = sanitized;
   try {
     const { error } = await supabaseAdmin
       .from('SiteSetting')
       .upsert({
         id: 'setting_squads_data',
         key: 'BRK_ESPORTS_SQUADS',
-        value: JSON.stringify(squads),
+        value: JSON.stringify(sanitized),
         updatedAt: new Date().toISOString(),
       }, { onConflict: 'key' });
 
@@ -205,26 +259,23 @@ export async function getSquadByInviteToken(token: string): Promise<Squad | null
 }
 
 /**
- * Gets all active squads where the given user is a member (Leader, Player, Manager, Coach).
+ * Gets the single active squad where the given user is a member (Leader, Player, Manager, Coach).
+ * Strict 1-Squad Rule: A user can belong to AT MOST 1 active squad at any time.
  */
 export async function getUserSquads(userId: string): Promise<Squad[]> {
   if (!userId) return [];
   const squads = await getSquads();
   
-  // Also get user profile for name/account matching
-  let userName = '';
-  let userInGameName = '';
+  // Also get user profile for exact accountNumber / UID matching
   let userAccountNumber = '';
   let userUid = '';
   try {
     const { data: dbUser } = await supabaseAdmin
       .from('User')
-      .select('id, name, inGameName, accountNumber, freeFireUid, email')
+      .select('id, accountNumber, freeFireUid')
       .eq('id', userId)
       .maybeSingle();
     if (dbUser) {
-      userName = (dbUser.name || '').trim().toLowerCase();
-      userInGameName = (dbUser.inGameName || '').trim().toLowerCase();
       userAccountNumber = (dbUser.accountNumber || '').trim().toUpperCase();
       userUid = (dbUser.freeFireUid || '').trim();
     }
@@ -235,18 +286,14 @@ export async function getUserSquads(userId: string): Promise<Squad[]> {
     if (m.userId === userId || m.id === userId) return true;
     if (userAccountNumber && m.accountNumber && m.accountNumber.toUpperCase() === userAccountNumber) return true;
     if (userUid && m.freeFireUid && m.freeFireUid === userUid) return true;
-    if (userInGameName && m.userName && m.userName.toLowerCase() === userInGameName) return true;
-    if (userName && m.userName && m.userName.toLowerCase() === userName) return true;
     return false;
   };
 
   const isUserLeader = (s: Squad) => {
-    if (s.leaderId === userId || s.createdBy === userId) return true;
-    if (userInGameName && s.leaderName && s.leaderName.toLowerCase() === userInGameName) return true;
-    if (userName && s.leaderName && s.leaderName.toLowerCase() === userName) return true;
-    return false;
+    return s.leaderId === userId || s.createdBy === userId;
   };
 
+  // Find all matching squads (should be at most 1 due to sanitization)
   const found = squads.filter(s => 
     !s.isDisbanded && 
     (
@@ -255,16 +302,18 @@ export async function getUserSquads(userId: string): Promise<Squad[]> {
     )
   );
 
-  if (found.length > 0) return found;
+  if (found.length > 0) {
+    // Return the primary squad (prioritize leadership squad if any, else first)
+    const leaderSquad = found.find(s => isUserLeader(s));
+    return [leaderSquad || found[0]];
+  }
 
-  // Query Supabase `Team` and `TeamMember` tables directly if not cached
+  // Fallback: Query Supabase `Team` and `TeamMember` tables directly if not cached
   try {
-    let teamQuery = supabaseAdmin
+    const { data: legacyCaptainTeams } = await supabaseAdmin
       .from('Team')
       .select('id')
-      .or(`captainId.eq.${userId}${userName ? `,captainName.ilike.%${userName}%` : ''}`);
-
-    const { data: legacyCaptainTeams } = await teamQuery;
+      .eq('captainId', userId);
 
     const { data: legacyMemberships } = await supabaseAdmin
       .from('TeamMember')
@@ -277,15 +326,15 @@ export async function getUserSquads(userId: string): Promise<Squad[]> {
 
     for (const teamId of allTeamIds) {
       const imported = await getSquadById(teamId);
-      if (imported && !found.some(s => s.id === imported.id)) {
-        found.push(imported);
+      if (imported && !imported.isDisbanded) {
+        return [imported]; // Return at most 1
       }
     }
   } catch (err) {
     console.warn('[getUserSquads] Supabase direct query notice:', err);
   }
 
-  return found;
+  return [];
 }
 
 /**

@@ -66,17 +66,13 @@ export default function SquadTeamsHubPage() {
   ];
 
   const resolveIsMySquad = (squad: Squad, user: User | null): boolean => {
-    if (!user) return false;
+    if (!user || !user.id) return false;
     if (squad.leaderId === user.id || squad.createdBy === user.id) return true;
-    if (user.name && squad.leaderName && squad.leaderName.toLowerCase() === user.name.toLowerCase()) return true;
-    if (user.inGameName && squad.leaderName && squad.leaderName.toLowerCase() === user.inGameName.toLowerCase()) return true;
     if (Array.isArray(squad.members)) {
       return squad.members.some(m => 
         m.userId === user.id ||
         (user.accountNumber && m.accountNumber && m.accountNumber.toUpperCase() === user.accountNumber.toUpperCase()) ||
-        (user.freeFireUid && m.freeFireUid === user.freeFireUid) ||
-        (user.inGameName && m.userName && m.userName.toLowerCase() === user.inGameName.toLowerCase()) ||
-        (user.name && m.userName && m.userName.toLowerCase() === user.name.toLowerCase())
+        (user.freeFireUid && m.freeFireUid && m.freeFireUid === user.freeFireUid)
       );
     }
     return false;
@@ -105,16 +101,18 @@ export default function SquadTeamsHubPage() {
         loadedMySquads = ud.squads || [];
       }
 
-      // Merge client-matched squads from allSquads to ensure 100% reliable detection
-      if (activeUser && loadedAllSquads.length > 0) {
+      // Fallback matching if server didn't find one
+      if (loadedMySquads.length === 0 && activeUser && loadedAllSquads.length > 0) {
         for (const s of loadedAllSquads) {
-          if (resolveIsMySquad(s, activeUser) && !loadedMySquads.some(ms => ms.id === s.id)) {
+          if (resolveIsMySquad(s, activeUser)) {
             loadedMySquads.push(s);
+            break; // 1-squad limit
           }
         }
       }
 
-      setMySquads(loadedMySquads);
+      // Strict 1-Squad limit: A player can only have AT MOST 1 active squad
+      setMySquads(loadedMySquads.slice(0, 1));
 
       if (invRes && invRes.ok) {
         const idData = await invRes.json();
@@ -341,7 +339,7 @@ export default function SquadTeamsHubPage() {
               }`}
             >
               <Crown className="w-4 h-4" />
-              <span>MY ACTIVE SQUADS ({mySquads.length})</span>
+              <span>MY SQUAD {mySquads.length > 0 ? '(1)' : '(0)'}</span>
             </button>
 
             <button
@@ -392,7 +390,7 @@ export default function SquadTeamsHubPage() {
             {loading ? (
               <div className="py-24 text-center space-y-3">
                 <Loader2 className="w-10 h-10 text-brand-orange animate-spin mx-auto" />
-                <div className="text-xs text-slate-500 font-bold">Loading your esports squads...</div>
+                <div className="text-xs text-slate-500 font-bold">Loading your esports squad...</div>
               </div>
             ) : mySquads.length === 0 ? (
               <div className="bg-white rounded-3xl p-10 sm:p-14 text-center border border-slate-200 space-y-4 max-w-xl mx-auto shadow-sm">
@@ -414,20 +412,17 @@ export default function SquadTeamsHubPage() {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="max-w-3xl mx-auto">
                 {mySquads.map((squad) => {
                   const myMembership = squad.members?.find(m => 
                     m.userId === currentUser?.id || 
                     (currentUser?.accountNumber && m.accountNumber === currentUser.accountNumber) ||
-                    (currentUser?.name && m.userName?.toLowerCase() === currentUser.name.toLowerCase()) ||
-                    (currentUser?.inGameName && m.userName?.toLowerCase() === currentUser.inGameName.toLowerCase())
+                    (currentUser?.freeFireUid && m.freeFireUid === currentUser.freeFireUid)
                   );
                   const isLeader = Boolean(
                     myMembership?.isLeader || 
                     squad.leaderId === currentUser?.id || 
-                    squad.createdBy === currentUser?.id ||
-                    (currentUser?.name && squad.leaderName?.toLowerCase() === currentUser.name.toLowerCase()) ||
-                    (currentUser?.inGameName && squad.leaderName?.toLowerCase() === currentUser.inGameName.toLowerCase())
+                    squad.createdBy === currentUser?.id
                   );
                   const activeMembers = (squad.members || []).filter(m => m.status === 'ACTIVE' || !m.status);
 

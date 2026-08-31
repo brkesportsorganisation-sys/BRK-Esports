@@ -136,38 +136,85 @@ async function connectToWhatsApp() {
     }
   });
 
+  // ─── Dynamic Forwarder Config Loader from MongoDB ─────────────────────────
+  async function getDynamicForwarderConfig() {
+    try {
+      if (mongoose.connection && mongoose.connection.db) {
+        const doc = await mongoose.connection.db.collection('whatsapp_forwarder').findOne({ _id: 'forwarder_config' });
+        if (doc) return doc;
+      }
+    } catch (e) {}
+    return null;
+  }
+
   // ─── Channel Forwarder Listener ───────────────────────────────────────────
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
     if (type !== 'notify') return;
 
     for (const msg of messages) {
-      // 1. CRITICAL: Ignore own messages to prevent infinite echo loops
+      // 1. Ignore own messages
       if (msg.key.fromMe) continue;
 
-      // 2. CRITICAL: Only proceed if a valid SOURCE_CHANNEL_JID is explicitly configured
-      if (!SOURCE_CHANNEL_JID || SOURCE_CHANNEL_JID.trim() === '') continue;
-      if (msg.key.remoteJid !== SOURCE_CHANNEL_JID.trim()) continue;
+      const jid = msg.key.remoteJid || '';
+      const isNewsletter = jid.endsWith('@newsletter') || jid.endsWith('@broadcast');
+
+      // 2. Load dynamic forwarder settings from MongoDB or environment
+      const forwarderConfig = await getDynamicForwarderConfig();
+      const isEnabled = forwarderConfig?.enabled ?? !!SOURCE_CHANNEL_JID;
+      if (!isEnabled) continue;
+
+      const configuredChannel = (forwarderConfig?.sourceChannelId || SOURCE_CHANNEL_JID || '').trim();
+      const isMatch =
+        configuredChannel === '*' ||
+        configuredChannel === '' ||
+        jid === configuredChannel ||
+        (configuredChannel.includes('whatsapp.com/channel/') && jid.includes(configuredChannel.split('whatsapp.com/channel/')[1])) ||
+        isNewsletter;
+
+      if (!isMatch) continue;
 
       const textMessage =
-        msg.message?.conversation || msg.message?.extendedTextMessage?.text;
+        msg.message?.conversation ||
+        msg.message?.extendedTextMessage?.text ||
+        msg.message?.imageMessage?.caption ||
+        '';
+
       if (!textMessage) continue;
 
-      console.log(`📢 Channel message detected: "${textMessage.slice(0, 50)}..."`);
+      console.log(`📢 [Channel Message Detected from ${jid}]: "${textMessage.slice(0, 60)}..."`);
 
-      // Load target groups: exclude the source channel to avoid loop
-      const allTargets = TARGET_GROUPS.length > 0 ? TARGET_GROUPS : connectedGroups.map((g) => g.id);
-      const targets = allTargets.filter((jid) => jid !== SOURCE_CHANNEL_JID && jid !== msg.key.remoteJid);
+      // 3. Resolve Target Groups
+      let targets = [];
+      if (
+        forwarderConfig?.targetGroupMode === 'SELECTED_GROUPS' &&
+        Array.isArray(forwarderConfig.targetGroupIds) &&
+        forwarderConfig.targetGroupIds.length > 0
+      ) {
+        targets = forwarderConfig.targetGroupIds;
+      } else {
+        targets = connectedGroups.length > 0 ? connectedGroups.map((g) => g.id) : TARGET_GROUPS;
+      }
+
+      targets = targets.filter((t) => t !== jid && t.endsWith('@g.us'));
+
+      if (targets.length === 0) {
+        console.warn('⚠️ No valid target groups for channel forwarding. Refreshing groups...');
+        await refreshGroupsCache();
+        targets = connectedGroups.map((g) => g.id).filter((t) => t !== jid && t.endsWith('@g.us'));
+      }
+
+      const prefix = forwarderConfig?.prefixHeader || '📢 *[অফিশিয়াল চ্যানেল আপডেট]*\n\n';
+      const footer = forwarderConfig?.appendFooter || '';
+      const finalMsg = `${prefix}${textMessage}${footer ? `\n\n${footer}` : ''}`;
 
       for (const groupJid of targets) {
         try {
-          await sock.sendMessage(groupJid, {
-            text: `[Forwarded Notice]\n\n${textMessage}`,
-          });
-          console.log(`✅ Forwarded to: ${groupJid}`);
+          await sock.sendMessage(groupJid, { text: finalMsg });
+          console.log(`✅ [Auto-Forwarded Notice to ${groupJid}]`);
         } catch (err) {
-          console.error(`❌ Failed to send to ${groupJid}:`, err.message);
+          console.error(`❌ [Forward Failed to ${groupJid}]:`, err.message);
         }
-        await new Promise((res) => setTimeout(res, 2000));
+        await new Promise((res) => setTimeout(res, 1800));
       }
     }
   });
@@ -415,6 +462,11 @@ async function resolveWhatsAppJid(destination, socketInstance) {
   if (!destination) return null;
   let trimmed = destination.trim();
 
+  // If internal format like grp_120363426443362477_g_us
+  if (trimmed.startsWith('grp_') && trimmed.includes('_g_us')) {
+    trimmed = trimmed.replace('grp_', '').replace('_g_us', '@g.us');
+  }
+
   // 1. Direct valid WhatsApp JID
   if (
     trimmed.endsWith('@g.us') ||
@@ -441,11 +493,11 @@ async function resolveWhatsAppJid(destination, socketInstance) {
     }
   }
 
-  // 3. Match against connected groups cache by subject / name
+  // 3. Match against connected groups cache by subject / name / id
   if (connectedGroups && connectedGroups.length > 0) {
     const cleanDest = trimmed.toLowerCase();
     const matched = connectedGroups.find(
-      (g) => g.id === trimmed || g.name?.toLowerCase() === cleanDest || g.name?.toLowerCase().includes(cleanDest)
+      (g) => g.id === trimmed || g.id?.toLowerCase() === cleanDest || g.name?.toLowerCase() === cleanDest || g.name?.toLowerCase().includes(cleanDest)
     );
     if (matched) {
       console.log(`📋 Matched group name "${trimmed}" -> Group JID: ${matched.id}`);
@@ -459,7 +511,7 @@ async function resolveWhatsAppJid(destination, socketInstance) {
       const refreshed = await refreshGroupsCache();
       const cleanDest = trimmed.toLowerCase();
       const matched = (refreshed || []).find(
-        (g) => g.id === trimmed || g.name?.toLowerCase() === cleanDest || g.name?.toLowerCase().includes(cleanDest)
+        (g) => g.id === trimmed || g.id?.toLowerCase() === cleanDest || g.name?.toLowerCase() === cleanDest || g.name?.toLowerCase().includes(cleanDest)
       );
       if (matched) {
         console.log(`📋 Matched group name "${trimmed}" -> Fresh Group JID: ${matched.id}`);
@@ -468,17 +520,17 @@ async function resolveWhatsAppJid(destination, socketInstance) {
     } catch {}
   }
 
-  // 5. Detect if numeric group ID (starts with 120... or timestamp format)
-  if (/^120\d{14,}/.test(trimmed) || /^\d{10,}-\d+/.test(trimmed)) {
-    return `${trimmed}@g.us`;
+  // 5. Detect if numeric group ID (starts with 120 and length >= 16 digits, or timestamp format)
+  const digitsOnly = trimmed.replace(/\D/g, '');
+  if (/^120\d{14,}/.test(digitsOnly) || /^\d{10,}-\d+/.test(trimmed)) {
+    return `${digitsOnly}@g.us`;
   }
 
   // 6. If it contains digits (phone number)
-  const digits = trimmed.replace(/\D/g, '');
-  if (digits.length >= 7) {
-    let phoneDigits = digits;
-    if (digits.startsWith('01') && digits.length === 11) {
-      phoneDigits = `880${digits.substring(1)}`;
+  if (digitsOnly.length >= 7) {
+    let phoneDigits = digitsOnly;
+    if (digitsOnly.startsWith('01') && digitsOnly.length === 11) {
+      phoneDigits = `880${digitsOnly.substring(1)}`;
     }
     return `${phoneDigits}@s.whatsapp.net`;
   }
@@ -592,6 +644,111 @@ app.get('/api/get-channels', requireApiSecret, async (req, res) => {
   } catch (error) {
     console.error('❌ Get channels error:', error.message);
     res.status(500).json({ success: false, error: error.message, channels: [] });
+  }
+});
+
+// ─── POST: Resolve WhatsApp Channel by Link or Code ──────────────────────────
+app.post('/api/resolve-channel', requireApiSecret, async (req, res) => {
+  if (!isConnected || !sock) {
+    return res.status(503).json({ success: false, error: 'WhatsApp is not connected.' });
+  }
+
+  const { url, code: rawCode } = req.body;
+  const input = url || rawCode || '';
+  if (!input) {
+    return res.status(400).json({ success: false, error: 'Channel URL or Code is required.' });
+  }
+
+  try {
+    let inviteCode = input.trim();
+    if (inviteCode.includes('whatsapp.com/channel/')) {
+      inviteCode = inviteCode.split('whatsapp.com/channel/')[1]?.split(/[\?\/]/)[0]?.trim();
+    }
+
+    // Try Baileys newsletter metadata
+    if (sock.newsletterMetadata) {
+      const meta = await sock.newsletterMetadata('invite', inviteCode);
+      if (meta?.id) {
+        return res.json({
+          success: true,
+          channel: {
+            id: meta.id,
+            name: meta.name || 'WhatsApp Channel',
+            subscribers: meta.subscribers || 0,
+            description: meta.description || '',
+          },
+        });
+      }
+    }
+
+    // Fallback if metadata not available
+    return res.json({
+      success: true,
+      channel: {
+        id: `${inviteCode}@newsletter`,
+        name: 'Official WhatsApp Channel',
+      },
+    });
+  } catch (err) {
+    console.error('❌ Resolve channel error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ─── POST: Manually Forward Channel Update to All Groups ─────────────────────
+app.post('/api/forward-channel', requireApiSecret, async (req, res) => {
+  if (!isConnected || !sock) {
+    return res.status(503).json({ success: false, error: 'WhatsApp is not connected.' });
+  }
+
+  const { message, channelName, targetGroupIds, imageUrl } = req.body;
+  if (!message) {
+    return res.status(400).json({ success: false, error: 'Message text is required.' });
+  }
+
+  try {
+    await refreshGroupsCache();
+    let targets =
+      Array.isArray(targetGroupIds) && targetGroupIds.length > 0
+        ? targetGroupIds
+        : connectedGroups.map((g) => g.id);
+
+    targets = targets.filter((t) => t.endsWith('@g.us'));
+
+    if (targets.length === 0) {
+      return res.status(400).json({ success: false, error: 'No connected groups found to forward to.' });
+    }
+
+    const header = `📢 *[${channelName || 'অফিশিয়াল চ্যানেল আপডেট'}]*\n\n`;
+    const fullText = `${header}${message.trim()}`;
+
+    const sentJids = [];
+    const errors = [];
+
+    for (const groupJid of targets) {
+      try {
+        if (imageUrl && /^https?:\/\//i.test(imageUrl)) {
+          await sock.sendMessage(groupJid, { image: { url: imageUrl }, caption: fullText });
+        } else {
+          await sock.sendMessage(groupJid, { text: fullText });
+        }
+        sentJids.push(groupJid);
+        console.log(`✅ [Manual Channel Forward to ${groupJid}]`);
+        await new Promise((r) => setTimeout(r, 1500));
+      } catch (e) {
+        errors.push(`${groupJid}: ${e.message}`);
+      }
+    }
+
+    return res.json({
+      success: sentJids.length > 0,
+      message: `Forwarded to ${sentJids.length} group(s)!`,
+      sentJids,
+      errors: errors.length ? errors : undefined,
+    });
+  } catch (err) {
+    console.error('❌ Forward channel error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
