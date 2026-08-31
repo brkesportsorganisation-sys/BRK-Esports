@@ -8,13 +8,14 @@ const {
   makeWASocket,
   DisconnectReason,
   fetchLatestWaWebVersion,
+  downloadMediaMessage,
 } = require('@whiskeysockets/baileys');
 const { useMongoAuthState } = require('./mongoAuthState');
 
 const ScheduledMessage = require('./models/ScheduledMessage');
 
 const app = express();
-app.use(express.json({ limit: '5mb' }));
+app.use(express.json({ limit: '10mb' }));
 
 // ─── CORS ────────────────────────────────────────────────────────────────────
 // Allow: Vercel production, Vercel preview URLs, localhost dev
@@ -63,6 +64,7 @@ let isConnected = false;
 let reconnectAttempts = 0;
 let connectedGroups = []; // Cache of groups after connect
 let connectedChannels = []; // Cache of channels after connect
+const recentForwardedMsgIds = new Map(); // Anti-duplicate deduplication map (id -> timestamp)
 
 // ─── Auth Middleware ──────────────────────────────────────────────────────────
 function requireApiSecret(req, res, next) {
@@ -152,6 +154,24 @@ async function connectToWhatsApp() {
     return null;
   }
 
+  // ─── Helper: Log forward action to MongoDB ────────────────────────────────
+  async function logForwardToDb(targetJid, groupName, text, status = 'SENT', error = null) {
+    try {
+      if (mongoose.connection && mongoose.connection.db) {
+        await mongoose.connection.db.collection('whatsapp_logs').insertOne({
+          id: `log_fwd_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          targetDestination: targetJid,
+          targetName: groupName || targetJid,
+          messageText: text,
+          triggerType: 'CHANNEL_FORWARD',
+          status,
+          error: error || undefined,
+          sentAt: new Date().toISOString(),
+        });
+      }
+    } catch (e) {}
+  }
+
   // ─── Channel & Newsletter Auto-Forwarder Listener ─────────────────────────
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
     for (const msg of (messages || [])) {
@@ -162,6 +182,15 @@ async function connectToWhatsApp() {
       const jid = msg.key?.remoteJid || '';
       const isNewsletter = jid.endsWith('@newsletter') || jid.endsWith('@broadcast') || jid.includes('newsletter');
 
+      // Auto-cache discovered newsletter into channels cache
+      if (isNewsletter && !connectedChannels.find((c) => c.id === jid)) {
+        connectedChannels.push({
+          id: jid,
+          name: 'WhatsApp Channel',
+          discoveredAt: new Date().toISOString(),
+        });
+      }
+
       // 2. Load dynamic forwarder settings
       const forwarderConfig = await getDynamicForwarderConfig();
       const isEnabled = forwarderConfig?.enabled ?? !!SOURCE_CHANNEL_JID;
@@ -169,39 +198,71 @@ async function connectToWhatsApp() {
 
       const configuredChannel = (forwarderConfig?.sourceChannelId || SOURCE_CHANNEL_JID || '').trim();
       const channelInviteCode = configuredChannel.includes('whatsapp.com/channel/')
-        ? configuredChannel.split('whatsapp.com/channel/')[1]?.replace(/[^a-zA-Z0-9]/g, '')
+        ? configuredChannel.split('whatsapp.com/channel/')[1]?.split(/[\?\/]/)[0]?.replace(/[^a-zA-Z0-9]/g, '')
         : '';
 
-      const isMatch =
-        configuredChannel === '*' ||
-        configuredChannel === '' ||
-        jid === configuredChannel ||
-        (channelInviteCode && jid.includes(channelInviteCode)) ||
-        isNewsletter;
+      // Match check
+      let isMatch = false;
+      if (!configuredChannel || configuredChannel === '*' || configuredChannel.toLowerCase() === 'all') {
+        isMatch = isNewsletter;
+      } else if (jid === configuredChannel || jid.includes(configuredChannel) || configuredChannel.includes(jid)) {
+        isMatch = true;
+      } else if (channelInviteCode && jid.includes(channelInviteCode)) {
+        isMatch = true;
+      } else if (isNewsletter) {
+        // If user provided channel name, match against it or treat as channel
+        if (forwarderConfig?.sourceChannelName && forwarderConfig.sourceChannelName !== 'WhatsApp Channel') {
+          isMatch = true;
+        } else {
+          isMatch = true;
+        }
+      }
 
       if (!isMatch) continue;
 
-      // Extract text from all Baileys message shapes
+      // 3. Deduplication: Prevent double posting within 10 minutes
+      const msgId = msg.key?.id || `${jid}_${Date.now()}`;
+      const now = Date.now();
+      if (recentForwardedMsgIds.has(msgId)) {
+        continue;
+      }
+      recentForwardedMsgIds.set(msgId, now);
+
+      // Clean up deduplication cache
+      if (recentForwardedMsgIds.size > 200) {
+        for (const [k, v] of recentForwardedMsgIds.entries()) {
+          if (now - v > 600000) recentForwardedMsgIds.delete(k);
+        }
+      }
+
+      // 4. Extract Text & Media from Baileys message structure
+      const msgObj = msg.message;
       const textMessage =
-        msg.message?.conversation ||
-        msg.message?.extendedTextMessage?.text ||
-        msg.message?.imageMessage?.caption ||
-        msg.message?.videoMessage?.caption ||
-        msg.message?.documentMessage?.caption ||
-        msg.message?.viewOnceMessage?.message?.imageMessage?.caption ||
-        msg.message?.viewOnceMessage?.message?.extendedTextMessage?.text ||
-        msg.message?.newsletterEdit?.message?.conversation ||
+        msgObj?.conversation ||
+        msgObj?.extendedTextMessage?.text ||
+        msgObj?.imageMessage?.caption ||
+        msgObj?.videoMessage?.caption ||
+        msgObj?.documentMessage?.caption ||
+        msgObj?.viewOnceMessage?.message?.imageMessage?.caption ||
+        msgObj?.viewOnceMessage?.message?.extendedTextMessage?.text ||
+        msgObj?.viewOnceMessageV2?.message?.imageMessage?.caption ||
+        msgObj?.newsletterEdit?.message?.conversation ||
         '';
 
-      const hasMedia = !!msg.message?.imageMessage || !!msg.message?.videoMessage || !!msg.message?.documentMessage;
-      if (!textMessage && !hasMedia) continue;
+      const isImage = !!(msgObj?.imageMessage || msgObj?.viewOnceMessage?.message?.imageMessage || msgObj?.viewOnceMessageV2?.message?.imageMessage);
+      const isVideo = !!(msgObj?.videoMessage || msgObj?.viewOnceMessage?.message?.videoMessage || msgObj?.viewOnceMessageV2?.message?.videoMessage);
+      const isDocument = !!msgObj?.documentMessage;
 
-      console.log(`📢 [Channel Message Detected from ${jid}]: "${(textMessage || 'Media Message').slice(0, 80)}..."`);
+      if (!textMessage && !isImage && !isVideo && !isDocument) {
+        continue;
+      }
 
-      // Keyword filters
+      console.log(`📢 [Channel Message Detected from ${jid}]: "${(textMessage || 'Media Update').slice(0, 80)}..."`);
+
+      // 5. Keyword Filters
       if (forwarderConfig?.filterKeywords && forwarderConfig.filterKeywords.length > 0) {
         const hasMatch = forwarderConfig.filterKeywords.some((kw) =>
-          textMessage.toLowerCase().includes(kw.trim().toLowerCase())
+          kw.trim() && textMessage.toLowerCase().includes(kw.trim().toLowerCase())
         );
         if (!hasMatch) {
           console.log('⏭️ [Forwarder Skipped]: Keyword filter mismatch');
@@ -212,7 +273,7 @@ async function connectToWhatsApp() {
       // Ignore filters
       if (forwarderConfig?.ignoreKeywords && forwarderConfig.ignoreKeywords.length > 0) {
         const shouldIgnore = forwarderConfig.ignoreKeywords.some((kw) =>
-          textMessage.toLowerCase().includes(kw.trim().toLowerCase())
+          kw.trim() && textMessage.toLowerCase().includes(kw.trim().toLowerCase())
         );
         if (shouldIgnore) {
           console.log('⏭️ [Forwarder Skipped]: Ignore keyword matched');
@@ -220,7 +281,23 @@ async function connectToWhatsApp() {
         }
       }
 
-      // 3. Resolve Target Groups
+      // 6. Download media buffer if present and allowed
+      let mediaBuffer = null;
+      let mediaType = 'text';
+
+      if (forwarderConfig?.includeMedia !== false && (isImage || isVideo || isDocument)) {
+        try {
+          mediaBuffer = await downloadMediaMessage(msg, 'buffer', {});
+          if (isImage) mediaType = 'image';
+          else if (isVideo) mediaType = 'video';
+          else if (isDocument) mediaType = 'document';
+          console.log(`📥 Downloaded ${mediaType} buffer (${(mediaBuffer.length / 1024).toFixed(1)} KB)`);
+        } catch (downloadErr) {
+          console.warn(`⚠️ Could not download media buffer (${downloadErr.message}). Relaying text-only.`);
+        }
+      }
+
+      // 7. Resolve Target Groups
       let targets = [];
       if (
         forwarderConfig?.targetGroupMode === 'SELECTED_GROUPS' &&
@@ -229,38 +306,69 @@ async function connectToWhatsApp() {
       ) {
         targets = forwarderConfig.targetGroupIds;
       } else {
+        if (connectedGroups.length === 0) {
+          await refreshGroupsCache();
+        }
         targets = connectedGroups.length > 0 ? connectedGroups.map((g) => g.id) : TARGET_GROUPS;
       }
 
-      targets = targets.map((t) => t.includes('_g_us') ? t.replace(/^grp_(waapi_)?/, '').replace('_g_us', '@g.us') : t);
-      targets = targets.filter((t) => t !== jid && t.endsWith('@g.us'));
+      // Sanitize group JIDs
+      targets = targets
+        .map((t) => (typeof t === 'string' && t.includes('_g_us') ? t.replace(/^grp_(waapi_)?/, '').replace('_g_us', '@g.us') : t))
+        .filter((t) => typeof t === 'string' && t !== jid && t.endsWith('@g.us'));
 
       if (targets.length === 0) {
-        console.warn('⚠️ No valid target groups for channel forwarding. Refreshing groups...');
+        console.warn('⚠️ No valid target groups for channel forwarding. Re-syncing groups...');
         await refreshGroupsCache();
         targets = connectedGroups.map((g) => g.id).filter((t) => t !== jid && t.endsWith('@g.us'));
       }
 
+      if (targets.length === 0) {
+        console.warn('❌ Still no target groups available. Forward cancelled.');
+        continue;
+      }
+
+      // 8. Format Final Broadcast Message with Prefix & Footer
       const prefix = forwarderConfig?.prefixHeader !== undefined ? forwarderConfig.prefixHeader : '📢 *[অফিশিয়াল চ্যানেল আপডেট]*\n\n';
       const footer = forwarderConfig?.appendFooter || '';
-      const finalMsg = `${prefix ? prefix : ''}${textMessage}${footer ? `\n\n${footer}` : ''}`;
+      const finalMsg = `${prefix ? prefix : ''}${textMessage}${footer ? `\n\n${footer}` : ''}`.trim();
 
+      console.log(`🚀 Relaying channel update to ${targets.length} group(s)...`);
+
+      // 9. Dispatch to all Target Groups with throttle
       for (const groupJid of targets) {
         try {
-          if (msg.message?.imageMessage && forwarderConfig?.includeMedia !== false) {
-            try {
-              await sock.sendMessage(groupJid, { forward: msg });
-            } catch {
-              await sock.sendMessage(groupJid, { text: finalMsg });
-            }
+          const matchedGroup = connectedGroups.find((g) => g.id === groupJid);
+          const groupName = matchedGroup?.name || groupJid;
+
+          if (mediaBuffer && mediaType === 'image') {
+            await sock.sendMessage(groupJid, {
+              image: mediaBuffer,
+              caption: finalMsg,
+            });
+          } else if (mediaBuffer && mediaType === 'video') {
+            await sock.sendMessage(groupJid, {
+              video: mediaBuffer,
+              caption: finalMsg,
+            });
+          } else if (mediaBuffer && mediaType === 'document') {
+            await sock.sendMessage(groupJid, {
+              document: mediaBuffer,
+              caption: finalMsg,
+              mimetype: msgObj?.documentMessage?.mimetype || 'application/pdf',
+              fileName: msgObj?.documentMessage?.fileName || 'document.pdf',
+            });
           } else {
             await sock.sendMessage(groupJid, { text: finalMsg });
           }
-          console.log(`✅ [Auto-Forwarded to ${groupJid}]`);
+
+          console.log(`✅ [Auto-Forwarded to ${groupName} (${groupJid})]`);
+          await logForwardToDb(groupJid, groupName, finalMsg, 'SENT');
         } catch (err) {
           console.error(`❌ [Forward Failed to ${groupJid}]:`, err.message);
+          await logForwardToDb(groupJid, groupJid, finalMsg, 'FAILED', err.message);
         }
-        await new Promise((res) => setTimeout(res, 1800));
+        await new Promise((res) => setTimeout(res, 1600));
       }
     }
   });
