@@ -28,8 +28,12 @@ export async function POST(req: NextRequest) {
     const allowedExts = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
     const safeExt = allowedExts.includes(ext) ? ext : 'jpg';
 
+    const url = new URL(req.url);
+    const folderParam = url.searchParams.get('folder') || (formData.get('folder') as string) || 'squad-logos';
+    const safeFolder = folderParam.replace(/[^a-zA-Z0-9_-]/g, '') || 'squad-logos';
+
     // Unique filename to prevent collisions
-    const fileName = `whatsapp-banners/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${safeExt}`;
+    const fileName = `${safeFolder}/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${safeExt}`;
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
@@ -38,7 +42,7 @@ export async function POST(req: NextRequest) {
       .from('tournament-images')
       .upload(fileName, buffer, {
         contentType: file.type,
-        upsert: false,
+        upsert: true,
       });
 
     if (error) {

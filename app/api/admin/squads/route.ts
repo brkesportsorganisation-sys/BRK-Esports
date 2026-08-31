@@ -72,17 +72,41 @@ export async function PATCH(req: NextRequest) {
     }
 
     // Moderate / Edit info
+    let finalLogoUrl = logoUrl || current.logoUrl;
+    if (logoUrl && logoUrl.startsWith('data:image/')) {
+      try {
+        const { saveBase64Image } = await import('@/lib/upload');
+        const uploaded = await saveBase64Image(logoUrl, 'squad-logos');
+        finalLogoUrl = uploaded || logoUrl;
+      } catch (err) {
+        console.warn('[PATCH /api/admin/squads] Logo upload notice:', err);
+      }
+    }
+
     const updated = {
       ...current,
       name: name?.trim() || current.name,
       tag: tag?.trim().toUpperCase() || current.tag,
-      logoUrl: logoUrl || current.logoUrl,
+      logoUrl: finalLogoUrl,
       isDisbanded: isDisbanded !== undefined ? isDisbanded : current.isDisbanded,
       updatedAt: new Date().toISOString(),
     };
 
     squads[index] = updated;
     await saveSquads(squads);
+
+    // Sync with Supabase Team table
+    try {
+      const { supabaseAdmin } = await import('@/lib/supabase');
+      await supabaseAdmin
+        .from('Team')
+        .update({
+          name: updated.name,
+          tag: updated.tag,
+          logo: updated.logoUrl,
+        })
+        .eq('id', squadId);
+    } catch {}
 
     await logAdminAction(session?.sub || session?.email || 'admin', 'MODERATE_SQUAD', `Updated squad: [${updated.tag}] ${updated.name}`);
     return NextResponse.json({ success: true, message: 'Squad updated by admin.', squad: updated });

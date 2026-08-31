@@ -157,12 +157,36 @@ export async function POST(req: NextRequest) {
       status: 'ACTIVE',
     };
 
+    // Process base64 logo/banner to Supabase Storage
+    let finalLogoUrl = logoUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=200';
+    let finalBannerUrl = bannerUrl || 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1200';
+
+    if (finalLogoUrl.startsWith('data:image/')) {
+      try {
+        const { saveBase64Image } = await import('@/lib/upload');
+        const uploadedLogo = await saveBase64Image(finalLogoUrl, 'squad-logos');
+        if (uploadedLogo) finalLogoUrl = uploadedLogo;
+      } catch (uploadErr) {
+        console.warn('[POST /api/squads] Logo upload notice:', uploadErr);
+      }
+    }
+
+    if (finalBannerUrl.startsWith('data:image/')) {
+      try {
+        const { saveBase64Image } = await import('@/lib/upload');
+        const uploadedBanner = await saveBase64Image(finalBannerUrl, 'squad-banners');
+        if (uploadedBanner) finalBannerUrl = uploadedBanner;
+      } catch (uploadErr) {
+        console.warn('[POST /api/squads] Banner upload notice:', uploadErr);
+      }
+    }
+
     const newSquad: Squad = {
       id: squadId,
       name: cleanName,
       tag: cleanTag,
-      logoUrl: logoUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=200',
-      bannerUrl: bannerUrl || 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1200',
+      logoUrl: finalLogoUrl,
+      bannerUrl: finalBannerUrl,
       game,
       createdBy: leaderId,
       leaderId,

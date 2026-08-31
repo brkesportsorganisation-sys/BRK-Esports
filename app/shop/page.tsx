@@ -149,7 +149,7 @@ export default function GamingShopPage() {
       setCurrentUser(localUser);
       if (localUser.freeFireUid) setPlayerUid(localUser.freeFireUid);
       if (localUser.inGameName) setInGameName(localUser.inGameName);
-      if (localUser.phone || localUser.whatsapp) setPhoneNumber(localUser.phone || localUser.whatsapp || '');
+      if (localUser.phone || (localUser as any).whatsApp || (localUser as any).whatsapp) setPhoneNumber(localUser.phone || (localUser as any).whatsApp || (localUser as any).whatsapp || '');
       if (localUser.id) {
         fetch(`/api/auth/me?id=${localUser.id}`)
           .then(res => res.json())

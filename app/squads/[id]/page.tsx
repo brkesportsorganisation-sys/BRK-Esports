@@ -34,10 +34,13 @@ import {
   Link as LinkIcon,
   X,
   Plus,
-  Info
+  Info,
+  Camera
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import SquadLogoUploader from '@/components/ui/SquadLogoUploader';
+import ImageUploadInput from '@/components/ui/ImageUploadInput';
 
 export default function SquadDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -89,6 +92,41 @@ export default function SquadDetailsPage({ params }: { params: Promise<{ id: str
   const [editRequireApproval, setEditRequireApproval] = useState(true);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [isDisbanding, setIsDisbanding] = useState(false);
+
+  // Quick Logo Change Modal State
+  const [logoModalOpen, setLogoModalOpen] = useState(false);
+  const [isSavingLogo, setIsSavingLogo] = useState(false);
+
+  const handleQuickLogoSave = async () => {
+    if (!currentUser || !squad) return;
+    if (!editLogo) {
+      alert('Please select or upload a squad logo.');
+      return;
+    }
+    setIsSavingLogo(true);
+    try {
+      const res = await fetch(`/api/squads/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requesterId: currentUser.id,
+          logoUrl: editLogo,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert('Squad logo successfully updated and saved in database!');
+        setLogoModalOpen(false);
+        loadSquad();
+      } else {
+        alert(data.message || 'Failed to update squad logo.');
+      }
+    } catch {
+      alert('Network error while saving squad logo.');
+    } finally {
+      setIsSavingLogo(false);
+    }
+  };
 
   // Player Profile & Tournament History Inspection State
   const [inspectingPlayerId, setInspectingPlayerId] = useState<string | null>(null);
@@ -495,11 +533,28 @@ export default function SquadDetailsPage({ params }: { params: Promise<{ id: str
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 -mt-16 sm:-mt-20">
               
               <div className="flex flex-col sm:flex-row sm:items-end gap-5">
-                <img
-                  src={squad.logoUrl}
-                  alt={squad.name}
-                  className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl object-cover border-4 border-white shadow-xl bg-slate-900 shrink-0"
-                />
+                {/* Squad Logo Avatar with Quick Upload Trigger */}
+                <div className="relative group shrink-0">
+                  <img
+                    src={squad.logoUrl}
+                    alt={squad.name}
+                    className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl object-cover border-4 border-white shadow-xl bg-slate-900 shrink-0"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=200';
+                    }}
+                  />
+                  {canManage && (
+                    <button
+                      type="button"
+                      onClick={() => setLogoModalOpen(true)}
+                      className="absolute inset-0 bg-black/60 rounded-3xl flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-[10px] font-bold gap-1 shadow-inner"
+                      title="Change squad logo photo"
+                    >
+                      <Camera className="w-6 h-6 text-brand-orange" />
+                      <span>Change Logo</span>
+                    </button>
+                  )}
+                </div>
 
                 <div className="space-y-1.5 pt-2 sm:pt-0">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -523,6 +578,17 @@ export default function SquadDetailsPage({ params }: { params: Promise<{ id: str
 
               {/* Action Buttons */}
               <div className="flex items-center gap-2.5 flex-wrap shrink-0">
+                {canManage && (
+                  <button
+                    onClick={() => setLogoModalOpen(true)}
+                    className="px-4 py-2.5 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-700 text-xs font-bold flex items-center gap-1.5 border border-orange-200 shadow-2xs cursor-pointer transition-all active:scale-95"
+                    title="Upload or change squad logo from mobile/device"
+                  >
+                    <Camera className="w-3.5 h-3.5 text-brand-orange" />
+                    <span>Change Logo</span>
+                  </button>
+                )}
+
                 <button
                   onClick={() => setLinkModalOpen(true)}
                   className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold flex items-center gap-2 border border-slate-200 shadow-2xs cursor-pointer transition-all active:scale-95"
@@ -959,25 +1025,27 @@ export default function SquadDetailsPage({ params }: { params: Promise<{ id: str
                 </div>
               </div>
 
+              {/* Mobile / Device Squad Logo Uploader */}
               <div className="space-y-1">
-                <label className="text-slate-700 font-bold uppercase block text-[11px]">Squad Logo Avatar URL *</label>
-                <input
-                  type="url"
-                  required
+                <SquadLogoUploader
                   value={editLogo}
-                  onChange={(e) => setEditLogo(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-mono focus:outline-none focus:border-brand-orange"
+                  onChange={setEditLogo}
+                  label="Squad Logo / Clan Badge (Mobile / Device Upload) *"
+                  required={true}
+                  squadTag={editTag}
+                  squadName={editName}
+                  theme="light"
                 />
               </div>
 
+              {/* Squad Banner Image Uploader */}
               <div className="space-y-1">
-                <label className="text-slate-700 font-bold uppercase block text-[11px]">Squad Top Hero Banner URL</label>
-                <input
-                  type="url"
-                  placeholder="https://images.unsplash.com/..."
+                <ImageUploadInput
                   value={editBanner}
-                  onChange={(e) => setEditBanner(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-mono focus:outline-none focus:border-brand-orange"
+                  onChange={setEditBanner}
+                  label="Squad Top Hero Banner Image"
+                  placeholder="Upload banner image from device or paste URL..."
+                  theme="light"
                 />
               </div>
 
@@ -1436,6 +1504,62 @@ export default function SquadDetailsPage({ params }: { params: Promise<{ id: str
               </div>
             )}
 
+          </div>
+        </div>
+      )}
+
+      {/* ════════════ MODAL: QUICK SQUAD LOGO CHANGER ════════════ */}
+      {logoModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 max-w-lg w-full space-y-5 shadow-2xl text-slate-900">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <span className="p-2 rounded-xl bg-orange-100 text-brand-orange">
+                  <Camera className="w-5 h-5" />
+                </span>
+                <div>
+                  <h3 className="font-heading font-black text-lg text-slate-900">Change Squad Logo</h3>
+                  <p className="text-[11px] text-slate-500">Upload new squad badge from phone gallery or camera.</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setLogoModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 font-bold transition-colors cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <SquadLogoUploader
+                value={editLogo}
+                onChange={setEditLogo}
+                label="Upload New Squad Logo"
+                required={true}
+                squadTag={squad?.tag}
+                squadName={squad?.name}
+                theme="light"
+              />
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setLogoModalOpen(false)}
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleQuickLogoSave}
+                  disabled={isSavingLogo || !editLogo}
+                  className="px-6 py-2.5 bg-gradient-to-r from-brand-red to-brand-orange hover:brightness-110 text-white font-heading font-black text-xs uppercase rounded-xl shadow-md shadow-orange-500/20 cursor-pointer disabled:opacity-50 flex items-center gap-2 transition-all"
+                >
+                  {isSavingLogo && <Loader2 className="w-4 h-4 animate-spin" />}
+                  <span>Save Squad Logo</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

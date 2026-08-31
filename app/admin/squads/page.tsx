@@ -19,6 +19,7 @@ import {
   Filter
 } from 'lucide-react';
 import Link from 'next/link';
+import SquadLogoUploader from '@/components/ui/SquadLogoUploader';
 
 export default function AdminSquadsPage() {
   const [squads, setSquads] = useState<Squad[]>([]);
@@ -383,13 +384,14 @@ export default function AdminSquadsPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-slate-700 font-bold uppercase block text-[11px]">Squad Logo URL *</label>
-                <input
-                  type="url"
-                  required
+                <SquadLogoUploader
                   value={editLogo}
-                  onChange={(e) => setEditLogo(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-mono focus:outline-none focus:border-amber-500"
+                  onChange={setEditLogo}
+                  label="Squad Logo (Upload / Change) *"
+                  required={true}
+                  squadTag={editTag}
+                  squadName={editName}
+                  theme="light"
                 />
               </div>
 

@@ -32,9 +32,11 @@ import {
   ExternalLink,
   Shield,
   Layers,
+  Camera,
   X
 } from 'lucide-react';
 import Link from 'next/link';
+import SquadLogoUploader from '@/components/ui/SquadLogoUploader';
 
 export default function SquadTeamsHubPage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -51,19 +53,11 @@ export default function SquadTeamsHubPage() {
   const [formName, setFormName] = useState('');
   const [formTag, setFormTag] = useState('');
   const [formGame, setFormGame] = useState<GameType>('FREE_FIRE');
-  const [formLogo, setFormLogo] = useState('https://images.unsplash.com/photo-1542751371-adc38448a05e?w=200');
+  const [formLogo, setFormLogo] = useState('');
   const [formDescription, setFormDescription] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-
-  const PRESET_LOGOS = [
-    { name: '🔥 Cyber Phoenix', url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=200' },
-    { name: '⚡ Neon Wolf', url: 'https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?w=200' },
-    { name: '👑 Golden Crown', url: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=200' },
-    { name: '⚔️ Crimson Skull', url: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=200' },
-    { name: '🛡️ Apex Shield', url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200' },
-  ];
 
   const resolveIsMySquad = (squad: Squad, user: User | null): boolean => {
     if (!user || !user.id) return false;
@@ -748,38 +742,17 @@ export default function SquadTeamsHubPage() {
                 </select>
               </div>
 
-              {/* Logo Selection & Preset Selector */}
-              <div className="space-y-2">
-                <label className="text-slate-700 font-bold uppercase block text-[11px]">Squad Logo Avatar *</label>
-                <div className="flex items-center gap-3">
-                  <img src={formLogo} alt="Selected Logo" className="w-12 h-12 rounded-2xl object-cover border-2 border-orange-500 bg-slate-100 shrink-0" />
-                  <input
-                    type="url"
-                    required
-                    placeholder="Paste custom logo URL..."
-                    value={formLogo}
-                    onChange={(e) => setFormLogo(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 font-mono focus:outline-none focus:border-brand-orange"
-                  />
-                </div>
-
-                <div className="pt-1">
-                  <span className="text-[10px] text-slate-500 font-bold uppercase block mb-1.5">Or pick a 1-Click Esports Logo:</span>
-                  <div className="flex items-center gap-2 overflow-x-auto pb-1">
-                    {PRESET_LOGOS.map((p, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => setFormLogo(p.url)}
-                        className={`p-1 rounded-xl border transition-all shrink-0 cursor-pointer ${
-                          formLogo === p.url ? 'border-orange-500 ring-2 ring-orange-400/30' : 'border-slate-200 hover:border-slate-300'
-                        }`}
-                      >
-                        <img src={p.url} alt={p.name} className="w-9 h-9 rounded-lg object-cover" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
+              {/* Mobile Device Squad Logo Uploader */}
+              <div className="space-y-1">
+                <SquadLogoUploader
+                  value={formLogo}
+                  onChange={setFormLogo}
+                  label="Squad Logo Avatar (Mobile / Device Upload) *"
+                  required={true}
+                  squadTag={formTag}
+                  squadName={formName}
+                  theme="light"
+                />
               </div>
 
               <div className="space-y-1">

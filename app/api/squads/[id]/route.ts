@@ -147,12 +147,45 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       return NextResponse.json({ message: 'Only Squad Leader or Manager can edit squad details.' }, { status: 403 });
     }
 
+    // Process base64 logo/banner if updated
+    let finalLogoUrl = current.logoUrl;
+    if (logoUrl !== undefined && logoUrl !== null && logoUrl !== '') {
+      if (logoUrl.startsWith('data:image/')) {
+        try {
+          const { saveBase64Image } = await import('@/lib/upload');
+          const uploaded = await saveBase64Image(logoUrl, 'squad-logos');
+          finalLogoUrl = uploaded || logoUrl;
+        } catch (uploadErr) {
+          console.warn('[PATCH /api/squads/[id]] Logo upload notice:', uploadErr);
+          finalLogoUrl = logoUrl;
+        }
+      } else {
+        finalLogoUrl = logoUrl;
+      }
+    }
+
+    let finalBannerUrl = current.bannerUrl;
+    if (bannerUrl !== undefined && bannerUrl !== null && bannerUrl !== '') {
+      if (bannerUrl.startsWith('data:image/')) {
+        try {
+          const { saveBase64Image } = await import('@/lib/upload');
+          const uploaded = await saveBase64Image(bannerUrl, 'squad-banners');
+          finalBannerUrl = uploaded || bannerUrl;
+        } catch (uploadErr) {
+          console.warn('[PATCH /api/squads/[id]] Banner upload notice:', uploadErr);
+          finalBannerUrl = bannerUrl;
+        }
+      } else {
+        finalBannerUrl = bannerUrl;
+      }
+    }
+
     const updated = {
       ...current,
       name: name?.trim() || current.name,
       tag: tag?.trim().toUpperCase().replace(/[^A-Z0-9]/g, '') || current.tag,
-      logoUrl: logoUrl || current.logoUrl,
-      bannerUrl: bannerUrl || current.bannerUrl,
+      logoUrl: finalLogoUrl,
+      bannerUrl: finalBannerUrl,
       description: description !== undefined ? description : current.description,
       requireApprovalToJoin: requireApprovalToJoin !== undefined ? requireApprovalToJoin : current.requireApprovalToJoin,
       updatedAt: new Date().toISOString(),
@@ -160,6 +193,20 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     squads[index] = updated;
     await saveSquads(squads);
+
+    // Sync to Supabase Team table if exists
+    try {
+      await supabaseAdmin
+        .from('Team')
+        .update({
+          name: updated.name,
+          tag: updated.tag,
+          logo: updated.logoUrl,
+        })
+        .eq('id', id);
+    } catch (syncErr) {
+      console.warn('[PATCH /api/squads/[id]] Supabase Team sync notice:', syncErr);
+    }
 
     return NextResponse.json({ success: true, message: 'Squad updated successfully!', squad: updated });
   } catch (error: any) {
