@@ -144,18 +144,27 @@ export default function GamingShopPage() {
       }
     } catch {}
 
-    fetch('/api/auth/me')
-      .then(res => res.json())
-      .then(data => {
-        if (data.user) {
-          setCurrentUser(data.user);
-          db.setCurrentUser(data.user);
-          if (data.user.freeFireUid) setPlayerUid(data.user.freeFireUid);
-          if (data.user.inGameName) setInGameName(data.user.inGameName);
-          if (data.user.phone || data.user.whatsapp) setPhoneNumber(data.user.phone || data.user.whatsapp || '');
-        }
-      })
-      .catch(() => {});
+    const localUser = db.getCurrentUser();
+    if (localUser) {
+      setCurrentUser(localUser);
+      if (localUser.freeFireUid) setPlayerUid(localUser.freeFireUid);
+      if (localUser.inGameName) setInGameName(localUser.inGameName);
+      if (localUser.phone || localUser.whatsapp) setPhoneNumber(localUser.phone || localUser.whatsapp || '');
+      if (localUser.id) {
+        fetch(`/api/auth/me?id=${localUser.id}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.user) {
+              setCurrentUser(data.user);
+              db.setCurrentUser(data.user);
+              if (data.user.freeFireUid) setPlayerUid(data.user.freeFireUid);
+              if (data.user.inGameName) setInGameName(data.user.inGameName);
+              if (data.user.phone || data.user.whatsapp) setPhoneNumber(data.user.phone || data.user.whatsapp || '');
+            }
+          })
+          .catch(() => {});
+      }
+    }
 
     fetchLatestBanners();
     loadShopProducts();

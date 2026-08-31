@@ -136,17 +136,21 @@ export default function SquadDetailsPage({ params }: { params: Promise<{ id: str
   };
 
   useEffect(() => {
-    fetch('/api/auth/me')
-      .then(res => res.json())
-      .then(data => {
-        if (data.user) {
-          setCurrentUser(data.user);
-          db.setCurrentUser(data.user);
-        } else {
-          setCurrentUser(db.getCurrentUser());
-        }
-      })
-      .catch(() => setCurrentUser(db.getCurrentUser()));
+    const localUser = db.getCurrentUser();
+    if (localUser?.id) {
+      setCurrentUser(localUser);
+      fetch(`/api/auth/me?id=${localUser.id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.user) {
+            setCurrentUser(data.user);
+            db.setCurrentUser(data.user);
+          }
+        })
+        .catch(() => {});
+    } else {
+      setCurrentUser(null);
+    }
 
     loadSquad();
   }, [id]);

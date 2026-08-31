@@ -37,50 +37,31 @@ export default function SquadJoinLandingPage({ params }: { params: Promise<{ tok
   const [existingUserSquad, setExistingUserSquad] = useState<any | null>(null);
 
   useEffect(() => {
-    fetch('/api/auth/me')
-      .then(res => res.json())
-      .then(data => {
-        if (data.user) {
-          setCurrentUser(data.user);
-          setFreeFireUid(data.user.freeFireUid || '');
-          fetch(`/api/squads?userId=${data.user.id}`)
-            .then(sres => sres.json())
-            .then(sd => {
-              if (sd.squads && sd.squads.length > 0) {
-                setExistingUserSquad(sd.squads[0]);
-              }
-            })
-            .catch(() => {});
-        } else {
-          const localUser = db.getCurrentUser();
-          setCurrentUser(localUser);
-          if (localUser?.freeFireUid) setFreeFireUid(localUser.freeFireUid);
-          if (localUser?.id) {
-            fetch(`/api/squads?userId=${localUser.id}`)
-              .then(sres => sres.json())
-              .then(sd => {
-                if (sd.squads && sd.squads.length > 0) {
-                  setExistingUserSquad(sd.squads[0]);
-                }
-              })
-              .catch(() => {});
-          }
-        }
-      })
-      .catch(() => {
-        const localUser = db.getCurrentUser();
-        setCurrentUser(localUser);
-        if (localUser?.id) {
-          fetch(`/api/squads?userId=${localUser.id}`)
-            .then(sres => sres.json())
-            .then(sd => {
-              if (sd.squads && sd.squads.length > 0) {
-                setExistingUserSquad(sd.squads[0]);
-              }
-            })
-            .catch(() => {});
-        }
-      });
+    const localUser = db.getCurrentUser();
+    if (localUser) {
+      setCurrentUser(localUser);
+      if (localUser.freeFireUid) setFreeFireUid(localUser.freeFireUid);
+      if (localUser.id) {
+        fetch(`/api/squads?userId=${localUser.id}`)
+          .then(sres => sres.json())
+          .then(sd => {
+            if (sd.squads && sd.squads.length > 0) {
+              setExistingUserSquad(sd.squads[0]);
+            }
+          })
+          .catch(() => {});
+        fetch(`/api/auth/me?id=${localUser.id}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.user) {
+              setCurrentUser(data.user);
+              db.setCurrentUser(data.user);
+              if (data.user.freeFireUid) setFreeFireUid(data.user.freeFireUid);
+            }
+          })
+          .catch(() => {});
+      }
+    }
 
     // Load squad preview by token
     fetch(`/api/squads/join/${token}`)

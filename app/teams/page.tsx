@@ -129,31 +129,23 @@ export default function SquadTeamsHubPage() {
   };
 
   useEffect(() => {
-    fetch('/api/auth/me')
-      .then(res => res.json())
-      .then(d => {
-        if (d.user) {
-          setCurrentUser(d.user);
-          loadData(d.user);
-        } else {
-          const localUser = db.getCurrentUser();
-          if (localUser) {
-            setCurrentUser(localUser);
-            loadData(localUser);
-          } else {
-            loadData(null);
+    const localUser = db.getCurrentUser();
+    if (localUser?.id) {
+      setCurrentUser(localUser);
+      loadData(localUser);
+      fetch(`/api/auth/me?id=${localUser.id}`)
+        .then(res => res.json())
+        .then(d => {
+          if (d.user) {
+            setCurrentUser(d.user);
+            db.setCurrentUser(d.user);
+            loadData(d.user);
           }
-        }
-      })
-      .catch(() => {
-        const localUser = db.getCurrentUser();
-        if (localUser) {
-          setCurrentUser(localUser);
-          loadData(localUser);
-        } else {
-          loadData(null);
-        }
-      });
+        })
+        .catch(() => {});
+    } else {
+      loadData(null);
+    }
   }, []);
 
   const handleCreateSquad = async (e: React.FormEvent) => {
