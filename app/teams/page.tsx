@@ -70,9 +70,12 @@ export default function SquadTeamsHubPage() {
     if (squad.leaderId === user.id || squad.createdBy === user.id) return true;
     if (Array.isArray(squad.members)) {
       return squad.members.some(m => 
-        m.userId === user.id ||
-        (user.accountNumber && m.accountNumber && m.accountNumber.toUpperCase() === user.accountNumber.toUpperCase()) ||
-        (user.freeFireUid && m.freeFireUid && m.freeFireUid === user.freeFireUid)
+        (m.status === 'ACTIVE' || !m.status) &&
+        (
+          m.userId === user.id ||
+          (user.accountNumber && m.accountNumber && m.accountNumber.toUpperCase() === user.accountNumber.toUpperCase()) ||
+          (user.freeFireUid && m.freeFireUid && m.freeFireUid === user.freeFireUid)
+        )
       );
     }
     return false;

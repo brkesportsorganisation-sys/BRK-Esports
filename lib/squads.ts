@@ -327,7 +327,13 @@ export async function getUserSquads(userId: string): Promise<Squad[]> {
     for (const teamId of allTeamIds) {
       const imported = await getSquadById(teamId);
       if (imported && !imported.isDisbanded) {
-        return [imported]; // Return at most 1
+        const isLeader = imported.leaderId === userId || imported.createdBy === userId;
+        const isActiveMember = Array.isArray(imported.members) && imported.members.some(m => 
+          isUserMember(m) && (m.status === 'ACTIVE' || !m.status)
+        );
+        if (isLeader || isActiveMember) {
+          return [imported]; // Return at most 1
+        }
       }
     }
   } catch (err) {
