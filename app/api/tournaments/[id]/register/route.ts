@@ -195,14 +195,14 @@ export async function POST(
 
     if (isPayingWithCoins && !allowCoins) {
       return NextResponse.json({
-        message: 'This tournament does not accept BRK Coins. Please register using your Main Wallet balance (BDT).',
+        message: 'This tournament does not accept EZBD Coins. Please register using your Main Wallet balance (BDT).',
         code: 'COIN_PAYMENT_NOT_ALLOWED',
       }, { status: 400 });
     }
 
     if (!isPayingWithCoins && tournament.entryFeeType === 'COINS') {
       return NextResponse.json({
-        message: 'This is a Coin-Only tournament. Please register using BRK Coins.',
+        message: 'This is a Coin-Only tournament. Please register using EZBD Coins.',
         code: 'COIN_PAYMENT_REQUIRED',
       }, { status: 400 });
     }

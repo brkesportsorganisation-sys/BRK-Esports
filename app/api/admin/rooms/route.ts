@@ -181,7 +181,7 @@ export async function POST(request: NextRequest) {
         .eq('id', tournamentId)
         .maybeSingle();
 
-      const tournamentTitle = tour?.title || 'BlackRock Esports Tournament';
+      const tournamentTitle = tour?.title || 'EZBD Esports Tournament';
 
       // Fetch verified captains
       const { data: participants } = await supabaseAdmin

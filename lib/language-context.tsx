@@ -19,7 +19,7 @@ const LanguageContext = createContext<LanguageContextType>({
   isBangla: true,
 });
 
-const STORAGE_KEY = 'brk_selected_lang';
+const STORAGE_KEY = 'ezbd_selected_lang';
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Language>('bn');

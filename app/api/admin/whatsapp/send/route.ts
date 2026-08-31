@@ -59,7 +59,7 @@ export async function POST(request: Request) {
       }
 
       // Fetch tournament title
-      let resolvedTitle = tournamentTitle || 'BlackRock Esports Tournament';
+      let resolvedTitle = tournamentTitle || 'EZBD Esports Tournament';
       if (tournamentId && tournamentId !== 'ACTIVE_TOURNAMENTS' && tournamentId !== 'ALL') {
         const { data: tour } = await supabaseAdmin
           .from('Tournament')

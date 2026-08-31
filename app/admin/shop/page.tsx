@@ -568,7 +568,7 @@ export default function AdminGamingShopPage() {
             <div className="text-xl sm:text-2xl font-black text-amber-300 font-mono mt-1">
               {stats.totalCoinsSpent.toLocaleString()} 🪙
             </div>
-            <div className="text-[10px] text-slate-500 font-mono mt-0.5">BRK Coins Spent</div>
+            <div className="text-[10px] text-slate-500 font-mono mt-0.5">EZBD Coins Spent</div>
           </div>
 
           <div className="p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800/80">
@@ -1142,7 +1142,7 @@ export default function AdminGamingShopPage() {
               <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Coins className="w-5 h-5 text-amber-400" />
-                  <span className="font-bold text-white">BRK Coins System</span>
+                  <span className="font-bold text-white">EZBD Coins System</span>
                 </div>
                 <span className="font-mono font-bold text-amber-400 text-sm">{stats.totalCoinsSpent.toLocaleString()} Coins</span>
               </div>
@@ -1253,7 +1253,7 @@ export default function AdminGamingShopPage() {
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 font-bold mb-1">Price in BRK Coins (🪙)</label>
+                  <label className="block text-slate-300 font-bold mb-1">Price in EZBD Coins (🪙)</label>
                   <input
                     type="number"
                     min="0"
@@ -1272,7 +1272,7 @@ export default function AdminGamingShopPage() {
                   >
                     <option value="BOTH">Both Wallet (৳) & Coins (🪙)</option>
                     <option value="WALLET">Wallet Cash (৳) Only</option>
-                    <option value="COINS">BRK Coins (🪙) Only</option>
+                    <option value="COINS">EZBD Coins (🪙) Only</option>
                   </select>
                 </div>
 

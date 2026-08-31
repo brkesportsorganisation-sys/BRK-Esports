@@ -63,7 +63,7 @@ function MessagesInboxContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedContact, setCopiedContact] = useState(false);
 
-  // Search Player by BRK ID Modal State
+  // Search Player by EZBD ID Modal State
   const [isSearchPlayerModalOpen, setIsSearchPlayerModalOpen] = useState(false);
   const [playerSearchQuery, setPlayerSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -705,7 +705,7 @@ function MessagesInboxContent() {
         </div>
       )}
 
-      {/* ── FIND & START CHAT BY BRK ID MODAL ── */}
+      {/* ── FIND & START CHAT BY EZBD ID MODAL ── */}
       {isSearchPlayerModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-150">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full border border-slate-200 shadow-2xl space-y-5 animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
@@ -756,7 +756,7 @@ function MessagesInboxContent() {
               {playerSearchQuery.trim().length < 2 ? (
                 <div className="p-8 text-center text-slate-400 text-xs font-medium space-y-1">
                   <Search className="w-8 h-8 mx-auto text-slate-300" />
-                  <div>Type at least 2 letters or digits of the BRK ID to search.</div>
+                  <div>Type at least 2 letters or digits of the EZBD ID to search.</div>
                 </div>
               ) : isSearchingPlayers ? (
                 <div className="p-8 text-center text-slate-400 text-xs font-medium">
@@ -766,7 +766,7 @@ function MessagesInboxContent() {
                 <div className="p-8 text-center text-slate-500 text-xs font-medium space-y-1">
                   <UserIcon className="w-8 h-8 mx-auto text-slate-300" />
                   <div className="font-bold text-slate-700">No player found</div>
-                  <div>No player matched &quot;{playerSearchQuery}&quot;. Please verify the BRK ID.</div>
+                  <div>No player matched &quot;{playerSearchQuery}&quot;. Please verify the EZBD ID.</div>
                 </div>
               ) : (
                 searchResults.map((player) => (

@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
         id: msgId,
         conversationId,
         senderId: 'SYSTEM_ADMIN_BOT',
-        senderName: '🛡️ BlackRock Moderation System',
+        senderName: '🛡️ EZBD Moderation System',
         content: warningMsg,
         isFlagged: false,
         createdAt: now,

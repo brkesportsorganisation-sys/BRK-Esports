@@ -1914,7 +1914,7 @@ function ProfilePageContent() {
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
                   required
-                  placeholder="e.g. BlackRock Esports"
+                  placeholder="e.g. EZBD Esports"
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-900 font-bold focus:outline-none focus:border-brand-orange focus:bg-white"
                 />
               </div>

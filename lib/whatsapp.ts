@@ -660,7 +660,7 @@ export async function sendRoomDetailsToPlayer({
   roomId,
   pass,
   playerName = 'Player',
-  tournamentTitle = 'BRK ESPORTS TOURNAMENT',
+  tournamentTitle = 'EZBD ESPORTS TOURNAMENT',
   customMessage,
 }: SendRoomDetailsParams) {
   const formattedPhone = normalizePhoneNumber(playerPhone);
@@ -894,7 +894,7 @@ export async function broadcastRoomDetails({
   recipients,
   roomId,
   pass,
-  tournamentTitle = 'BRK ESPORTS TOURNAMENT',
+  tournamentTitle = 'EZBD ESPORTS TOURNAMENT',
   customMessage,
 }: {
   recipients: Array<{ phone: string; name?: string }>;
@@ -1631,7 +1631,7 @@ export async function executeScheduledJob(schedule: WhatsAppSchedule): Promise<{
       .replace(/\{REMAINING\}/g, String(remainingCount))
       .replace(/\{TIME\}/g, nowStr)
       .replace(/\{DATE\}/g, dateStr)
-      .replace(/\{SITE_LINK\}/g, 'https://brkesports.com');
+      .replace(/\{SITE_LINK\}/g, 'https://esportszonebd.online');
 
     // 3. Dispatch to all resolved recipients
     let successCount = 0;
@@ -1869,7 +1869,7 @@ export const DEFAULT_BOT_CONFIG = {
     {
       id: 'rule_bkash',
       keywords: ['bkash', 'nagad', 'payment', 'টাকা', 'পেমেন্ট', 'বিকাশ', 'নগদ'],
-      replyText: `💰 পেমেন্ট ও ওয়ালেট ডিপোজিট:\n\nঅটোমেটিক ব্যালেন্স অ্যাড করতে আমাদের সাইটের Wallet অপশনে যান।\nবিকাশ/নগদ সেন্ড মানি করে TrxID সাবমিট করলেই ৫ মিনিটে ব্যালেন্স অ্যাড হয়ে যাবে!\nলিঙ্ক: https://brkesports.com/wallet`,
+      replyText: `💰 পেমেন্ট ও ওয়ালেট ডিপোজিট:\n\nঅটোমেটিক ব্যালেন্স অ্যাড করতে আমাদের সাইটের Wallet অপশনে যান।\nবিকাশ/নগদ সেন্ড মানি করে TrxID সাবমিট করলেই ৫ মিনিটে ব্যালেন্স অ্যাড হয়ে যাবে!\nলিঙ্ক: https://esportszonebd.online/wallet`,
       isActive: true,
     },
     {

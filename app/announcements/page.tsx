@@ -80,7 +80,7 @@ export default function AnnouncementsPage() {
         </h1>
 
         <p className="text-slate-600 text-xs sm:text-sm max-w-md mx-auto px-4">
-          Tournament notices, server updates, rule changes, and executive news from BlackRock Esports.
+          Tournament notices, server updates, rule changes, and executive news from EZBD Esports.
         </p>
 
         {/* Search & Category Filter Bar */}
@@ -229,7 +229,7 @@ export default function AnnouncementsPage() {
                           <span>View Notice</span>
                           <ArrowRight className="w-3 h-3" />
                         </span>
-                        <span className="text-[10px] text-slate-400 font-medium">BlackRock Team</span>
+                        <span className="text-[10px] text-slate-400 font-medium">EZBD Team</span>
                       </div>
                     </div>
                   ))}

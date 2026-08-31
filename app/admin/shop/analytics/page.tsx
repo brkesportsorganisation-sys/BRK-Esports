@@ -175,7 +175,7 @@ export default function AdminShopAnalyticsPage() {
             <div className="space-y-1.5">
               <div className="flex justify-between font-bold">
                 <span className="text-slate-700 flex items-center gap-1">
-                  <Coins className="w-3.5 h-3.5 text-amber-500" /> BRK Coins (🪙 Redemptions)
+                  <Coins className="w-3.5 h-3.5 text-amber-500" /> EZBD Coins (🪙 Redemptions)
                 </span>
                 <span className="text-amber-600">{totalCoinsSpent.toLocaleString()} 🪙</span>
               </div>

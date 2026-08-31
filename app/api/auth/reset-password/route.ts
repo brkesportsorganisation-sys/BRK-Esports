@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
         id: notifId,
         userId: user.id,
         title: 'পাসওয়ার্ড সফলভাবে পরিবর্তন হয়েছে 🔒',
-        message: 'আপনার BRK Esports একাউন্টের পাসওয়ার্ড সফলভাবে আপডেট করা হয়েছে। এখন নতুন পাসওয়ার্ড দিয়ে লগইন করুন।',
+        message: 'আপনার EZBD Esports একাউন্টের পাসওয়ার্ড সফলভাবে আপডেট করা হয়েছে। এখন নতুন পাসওয়ার্ড দিয়ে লগইন করুন।',
         isRead: false,
         createdAt: new Date().toISOString(),
       }]);

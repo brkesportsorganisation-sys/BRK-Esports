@@ -506,7 +506,7 @@ export default function AdminBannersPage() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
               <div className="absolute top-3 left-3 px-2.5 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-wider border border-white/20">
-                BRK ESPORTS PASSPORT
+                EZBD ESPORTS PASSPORT
               </div>
             </div>
 

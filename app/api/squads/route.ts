@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
     const cleanTag = tag.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
 
     if (cleanTag.length < 2 || cleanTag.length > 6) {
-      return NextResponse.json({ message: 'Squad tag must be 2 to 6 characters (e.g. BRK, NV, ALPH).' }, { status: 400 });
+      return NextResponse.json({ message: 'Squad tag must be 2 to 6 characters (e.g. EZBD, NV, ALPH).' }, { status: 400 });
     }
 
     const squads = await getSquads();

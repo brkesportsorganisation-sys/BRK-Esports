@@ -1023,7 +1023,7 @@ export default function AdminRegistrationsPage() {
                   rows={3}
                   value={whatsappModal.customNote}
                   onChange={(e) => setWhatsappModal((prev) => ({ ...prev, customNote: e.target.value }))}
-                  placeholder="Leave empty to use standard BRK Esports tournament template."
+                  placeholder="Leave empty to use standard EZBD Esports tournament template."
                   className="w-full p-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:border-emerald-500 focus:bg-white text-xs font-medium resize-none"
                 />
               </div>

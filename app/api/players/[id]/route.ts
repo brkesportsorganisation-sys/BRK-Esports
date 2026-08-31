@@ -109,7 +109,7 @@ export async function GET(
       return {
         id: reg.id,
         tournamentId: tour.id || reg.tournamentId,
-        tournamentTitle: tour.title || 'BRK Free Fire Championship',
+        tournamentTitle: tour.title || 'EZBD Free Fire Championship',
         gameMode: tour.gameMode || 'Squad BR',
         map: tour.map || 'Bermuda',
         prizePool: tour.prizePool || 0,

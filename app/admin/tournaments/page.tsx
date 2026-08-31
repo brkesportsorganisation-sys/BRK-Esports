@@ -1019,7 +1019,7 @@ export default function AdminTournamentsPage() {
                     {[
                       { id: 'BOTH', label: '🔄 Cash & Coins', desc: 'টাকা ও কয়েন উভয়টি' },
                       { id: 'CASH', label: '৳ Cash Only', desc: 'শুধু ওয়ালেট টাকা' },
-                      { id: 'COINS', label: '🪙 Coins Only', desc: 'শুধু BRK কয়েন' },
+                      { id: 'COINS', label: '🪙 Coins Only', desc: 'শুধু EZBD কয়েন' },
                       { id: 'FREE', label: '🎁 Free Entry', desc: 'ফ্রি এন্ট্রি' },
                     ].map((mode) => (
                       <button

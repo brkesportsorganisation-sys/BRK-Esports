@@ -24,7 +24,7 @@ async function getSession() {
  * {
  *   "groupId": "120363028392819283@g.us", // or group link or phone or saved group id
  *   "groupName": "Tournament Elite Group",
- *   "message": "🔥 Match starting in 15 minutes! Room ID & Pass available now: https://brkesports.com"
+ *   "message": "🔥 Match starting in 15 minutes! Room ID & Pass available now: https://esportszonebd.online"
  * }
  * 
  * 2. Automated Scheduled Group Broadcast:

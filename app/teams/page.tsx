@@ -720,7 +720,7 @@ export default function SquadTeamsHubPage() {
                   <input
                     type="text"
                     required
-                    placeholder="e.g. BlackRock Hunters"
+                    placeholder="e.g. EZBD Hunters"
                     value={formName}
                     onChange={(e) => setFormName(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-bold focus:outline-none focus:border-brand-orange"

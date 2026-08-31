@@ -521,7 +521,7 @@ export default function LFGPage() {
                     value={squadName}
                     onChange={(e) => setSquadName(e.target.value)}
                     required
-                    placeholder="e.g. BRK_TITANS"
+                    placeholder="e.g. EZBD_TITANS"
                     className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 font-bold focus:outline-none focus:border-brand-orange"
                   />
                 </div>

@@ -4,7 +4,7 @@
   "webDir": "public",
   "bundledWebRuntime": false,
   "server": {
-    "url": "https://brk-esports-d9ta.vercel.app",
+    "url": "https://esportszonebd.online",
     "cleartext": true
   },
   "android": {

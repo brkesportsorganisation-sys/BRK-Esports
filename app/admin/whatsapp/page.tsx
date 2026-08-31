@@ -151,7 +151,7 @@ export default function AdminWhatsAppPage() {
       {
         id: 'rule_bkash',
         keywords: ['bkash', 'nagad', 'payment', 'টাকা', 'পেমেন্ট', 'বিকাশ', 'নগদ'],
-        replyText: `💰 পেমেন্ট ও ওয়ালেট ডিপোজিট:\n\nঅটোমেটিক ব্যালেন্স অ্যাড করতে আমাদের সাইটের Wallet অপশনে যান।\nবিকাশ/নগদ সেন্ড মানি করে TrxID সাবমিট করলেই ৫ মিনিটে ব্যালেন্স অ্যাড হয়ে যাবে!\nলিঙ্ক: https://brkesports.com/wallet`,
+        replyText: `💰 পেমেন্ট ও ওয়ালেট ডিপোজিট:\n\nঅটোমেটিক ব্যালেন্স অ্যাড করতে আমাদের সাইটের Wallet অপশনে যান।\nবিকাশ/নগদ সেন্ড মানি করে TrxID সাবমিট করলেই ৫ মিনিটে ব্যালেন্স অ্যাড হয়ে যাবে!\nলিঙ্ক: https://esportszonebd.online/wallet`,
         isActive: true,
       },
       {
@@ -184,9 +184,9 @@ export default function AdminWhatsAppPage() {
   const [formImageUrl, setFormImageUrl] = useState('');
   const [formUseSequence, setFormUseSequence] = useState(false);
   const [formMessagesSequence, setFormMessagesSequence] = useState<string[]>([
-    '🔥 টুর্নামেন্ট স্লট বুকিং চলছে! দ্রুত রেজিস্টার করুন: https://brkesports.com/tournaments',
-    '⚡ আর মাত্র কয়েকটি স্লট বাকি! আপনার স্কোয়াড নিশ্চিত করুন: https://brkesports.com/tournaments',
-    '🚨 শেষ সুযোগ! কিছুক্ষণের মধ্যে রেজিস্ট্রেশন বন্ধ হয়ে যাবে। Booyah জিতুন: https://brkesports.com'
+    '🔥 টুর্নামেন্ট স্লট বুকিং চলছে! দ্রুত রেজিস্টার করুন: https://esportszonebd.online/tournaments',
+    '⚡ আর মাত্র কয়েকটি স্লট বাকি! আপনার স্কোয়াড নিশ্চিত করুন: https://esportszonebd.online/tournaments',
+    '🚨 শেষ সুযোগ! কিছুক্ষণের মধ্যে রেজিস্ট্রেশন বন্ধ হয়ে যাবে। Booyah জিতুন: https://esportszonebd.online'
   ]);
 
   const toggleFormGroupSelection = (identifier: string) => {
@@ -208,7 +208,7 @@ export default function AdminWhatsAppPage() {
   // 3. Instant Broadcast State (Multi-Group Support)
   const [broadcastTargetMode, setBroadcastTargetMode] = useState<'ALL_GROUPS' | 'SELECTED_GROUPS' | 'ALL_REGISTERED'>('SELECTED_GROUPS');
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
-  const [broadcastMessage, setBroadcastMessage] = useState(`🎮 BRK ESPORTS TOURNAMENT NOTIFICATION 🎮\n\nআজকের টুর্নামেন্টের রুম আইডি ও জরুরি আপডেট প্রকাশ করা হয়েছে!\n\nসবাই দ্রুত অ্যাপে লগইন করে রুম চেক করুন: https://brkesports.com`);
+  const [broadcastMessage, setBroadcastMessage] = useState(`🎮 EZBD ESPORTS TOURNAMENT NOTIFICATION 🎮\n\nআজকের টুর্নামেন্টের রুম আইডি ও জরুরি আপডেট প্রকাশ করা হয়েছে!\n\nসবাই দ্রুত অ্যাপে লগইন করে রুম চেক করুন: https://esportszonebd.online`);
   const [broadcastImageUrl, setBroadcastImageUrl] = useState('');
   const [isBroadcasting, setIsBroadcasting] = useState(false);
 
@@ -664,7 +664,7 @@ export default function AdminWhatsAppPage() {
       );
     } else if (templateType === 'PAYMENT') {
       setDirectMessage(
-        `💰 জরুরি পেমেন্ট নোটিশ:\n\nপ্রিয় ${name}, টুর্নামেন্টে আপনার স্লট কনফার্ম করতে অনুগ্রহ করে বিকাশ/নগদে এন্ট্রি ফি পরিশোধ করে TrxID সাবমিট করুন।\nডিপোজিট লিঙ্ক: https://brkesports.com/wallet`
+        `💰 জরুরি পেমেন্ট নোটিশ:\n\nপ্রিয় ${name}, টুর্নামেন্টে আপনার স্লট কনফার্ম করতে অনুগ্রহ করে বিকাশ/নগদে এন্ট্রি ফি পরিশোধ করে TrxID সাবমিট করুন।\nডিপোজিট লিঙ্ক: https://esportszonebd.online/wallet`
       );
     } else if (templateType === 'ANTI_CHEAT') {
       setDirectMessage(
@@ -711,19 +711,19 @@ export default function AdminWhatsAppPage() {
     const n = customDmName || 'Player';
     if (tpl === 'ROOM_ID') {
       setCustomDmMessage(
-        `🎮 আসসালামু আলাইকুম ${n}!\n\nআপনার টুর্নামেন্টের রুম ডিটেইলস:\n🔹 Room ID: [ROOM_ID_HERE]\n🔹 Password: [PASS_HERE]\n\nদ্রুত জয়েন করুন! ম্যাচ শুরুর ৫ মিনিট আগে রুম লক হবে 🔥\n\n— BlackRock Esports`
+        `🎮 আসসালামু আলাইকুম ${n}!\n\nআপনার টুর্নামেন্টের রুম ডিটেইলস:\n🔹 Room ID: [ROOM_ID_HERE]\n🔹 Password: [PASS_HERE]\n\nদ্রুত জয়েন করুন! ম্যাচ শুরুর ৫ মিনিট আগে রুম লক হবে 🔥\n\n— EZBD Esports`
       );
     } else if (tpl === 'WELCOME') {
       setCustomDmMessage(
-        `🎮 স্বাগতম BlackRock Esports-এ, ${n}!\n\nআমরা প্রতিদিন নিয়মিত Free Fire টুর্নামেন্ট আয়োজন করি।\n\n🏆 টুর্নামেন্টে যোগ দিতে: https://brkesports.com/tournaments\n💰 ওয়ালেট ডিপোজিট: https://brkesports.com/wallet\n\nকোনো প্রশ্ন থাকলে জানান! আমরা সাহায্য করতে সদা প্রস্তুত। ✅`
+        `🎮 স্বাগতম EZBD Esports-এ, ${n}!\n\nআমরা প্রতিদিন নিয়মিত Free Fire টুর্নামেন্ট আয়োজন করি।\n\n🏆 টুর্নামেন্টে যোগ দিতে: https://esportszonebd.online/tournaments\n💰 ওয়ালেট ডিপোজিট: https://esportszonebd.online/wallet\n\nকোনো প্রশ্ন থাকলে জানান! আমরা সাহায্য করতে সদা প্রস্তুত। ✅`
       );
     } else if (tpl === 'PAYMENT') {
       setCustomDmMessage(
-        `💰 পেমেন্ট রিমাইন্ডার:\n\nপ্রিয় ${n}, টুর্নামেন্টে আপনার স্লট কনফার্ম করতে দয়া করে এন্ট্রি ফি পরিশোধ করুন।\n\n🔗 ডিপোজিট লিঙ্ক: https://brkesports.com/wallet\n\nনির্ধারিত সময়ের মধ্যে পেমেন্ট না করলে স্লট বাতিল হতে পারে।`
+        `💰 পেমেন্ট রিমাইন্ডার:\n\nপ্রিয় ${n}, টুর্নামেন্টে আপনার স্লট কনফার্ম করতে দয়া করে এন্ট্রি ফি পরিশোধ করুন।\n\n🔗 ডিপোজিট লিঙ্ক: https://esportszonebd.online/wallet\n\nনির্ধারিত সময়ের মধ্যে পেমেন্ট না করলে স্লট বাতিল হতে পারে।`
       );
     } else if (tpl === 'WARN') {
       setCustomDmMessage(
-        `🛡️ BlackRock Esports সতর্কবার্তা:\n\nপ্রিয় ${n}, টুর্নামেন্টে Hack / Config / Emulator ব্যবহার সম্পূর্ণ নিষিদ্ধ।\n\n⚠️ দোষী প্রমাণিত হলে তাৎক্ষণিক লাইফটাইম ব্যান করা হবে।\n\nFair Play বজায় রাখুন এবং সবার জন্য খেলাটি উপভোগ্য রাখুন। 🙏`
+        `🛡️ EZBD Esports সতর্কবার্তা:\n\nপ্রিয় ${n}, টুর্নামেন্টে Hack / Config / Emulator ব্যবহার সম্পূর্ণ নিষিদ্ধ।\n\n⚠️ দোষী প্রমাণিত হলে তাৎক্ষণিক লাইফটাইম ব্যান করা হবে।\n\nFair Play বজায় রাখুন এবং সবার জন্য খেলাটি উপভোগ্য রাখুন। 🙏`
       );
     }
   };
@@ -1112,7 +1112,7 @@ export default function AdminWhatsAppPage() {
           body: JSON.stringify({
             action: 'BROADCAST',
             tournamentId: 'ACTIVE_TOURNAMENTS',
-            tournamentTitle: 'BlackRock Esports Notification',
+            tournamentTitle: 'EZBD Esports Notification',
             roomId: 'INFO',
             pass: 'INFO',
             customMessage: broadcastMessage.trim(),
@@ -3491,7 +3491,7 @@ export default function AdminWhatsAppPage() {
                       onClick={() => {
                         setBroadcastTargetMode('SELECTED_GROUPS');
                         setSelectedGroupIds([grp.identifier || grp.id]);
-                        setBroadcastMessage(`🎮 [${grp.name}] টুর্নামেন্ট আপডেট:\n\nরুম আইডি ও জরুরি নোটিশ প্রকাশ করা হয়েছে! সবাই দ্রুত প্রস্তুত থাকুন: https://brkesports.com`);
+                        setBroadcastMessage(`🎮 [${grp.name}] টুর্নামেন্ট আপডেট:\n\nরুম আইডি ও জরুরি নোটিশ প্রকাশ করা হয়েছে! সবাই দ্রুত প্রস্তুত থাকুন: https://esportszonebd.online`);
                         setActiveTab('INSTANT_BROADCAST');
                         showToast(`Selected "${grp.name}". Compose message to send now.`, 'success');
                       }}

@@ -23,7 +23,7 @@ export default function PushNotificationPrompt() {
 
       // Show prompt if permission is default and user hasn't dismissed recently
       if (Notification.permission === 'default') {
-        const lastDismissed = localStorage.getItem('brk_notif_prompt_dismissed');
+        const lastDismissed = localStorage.getItem('ezbd_notif_prompt_dismissed');
         const now = Date.now();
         if (!lastDismissed || now - parseInt(lastDismissed, 10) > 24 * 60 * 60 * 1000) {
           // Delay popup by 1.8s for smooth user entry
@@ -109,7 +109,7 @@ export default function PushNotificationPrompt() {
 
   const handleDismiss = () => {
     setShowPrompt(false);
-    localStorage.setItem('brk_notif_prompt_dismissed', Date.now().toString());
+    localStorage.setItem('ezbd_notif_prompt_dismissed', Date.now().toString());
   };
 
   if (!showPrompt || !isSupported || permission !== 'default') {

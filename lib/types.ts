@@ -928,7 +928,7 @@ export interface WhatsAppSourceChannel {
 export interface WhatsAppForwarderConfig {
   enabled: boolean;
   sourceChannelId: string; // e.g. "120363xxxxxx@newsletter", WhatsApp channel URL, or group JID
-  sourceChannelName: string; // Display label, e.g. "Official BRK Channel"
+  sourceChannelName: string; // Display label, e.g. "Official EZBD Channel"
   savedChannels?: WhatsAppSourceChannel[]; // Available source channels to select from
   targetGroupMode: 'ALL_GROUPS' | 'SELECTED_GROUPS';
   targetGroupIds: string[]; // List of target group identifiers/JIDs

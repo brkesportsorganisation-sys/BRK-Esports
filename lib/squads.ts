@@ -66,7 +66,7 @@ export async function getSquads(): Promise<Squad[]> {
     const { data } = await supabaseAdmin
       .from('SiteSetting')
       .select('value')
-      .eq('key', 'BRK_ESPORTS_SQUADS')
+      .eq('key', 'EZBD_ESPORTS_SQUADS')
       .maybeSingle();
 
     if (data?.value) {
@@ -95,7 +95,7 @@ export async function saveSquads(squads: Squad[]): Promise<boolean> {
       .from('SiteSetting')
       .upsert({
         id: 'setting_squads_data',
-        key: 'BRK_ESPORTS_SQUADS',
+        key: 'EZBD_ESPORTS_SQUADS',
         value: JSON.stringify(sanitized),
         updatedAt: new Date().toISOString(),
       }, { onConflict: 'key' });

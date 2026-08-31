@@ -77,7 +77,7 @@ Or use the Admin Panel → WhatsApp → Sync Groups button (calls `/api/get-grou
 |----------|-------|
 | `MONGO_URI` | Your MongoDB Atlas URI |
 | `API_SECRET` | A long random secret (must match `WHATSAPP_BOT_SECRET` on Vercel) |
-| `ALLOWED_ORIGIN` | Your Vercel URL (e.g. `https://brkesports.vercel.app`) |
+| `ALLOWED_ORIGIN` | Your Vercel URL (e.g. `https://esportszonebd.online`) |
 | `TARGET_GROUPS` | Comma-separated group JIDs (can set later via Sync) |
 | `SOURCE_CHANNEL_JID` | Your channel JID ending in `@newsletter` |
 

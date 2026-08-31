@@ -1,4 +1,4 @@
-# BRK Esports — Tournament & WhatsApp Automation Platform
+# EZBD Esports — Tournament & WhatsApp Automation Platform
 
 Free Fire esports tournament platform with bKash/Nagad payment, admin dashboard, automated WhatsApp bot scheduling (Zavu API), community features, and live match tracking.
 

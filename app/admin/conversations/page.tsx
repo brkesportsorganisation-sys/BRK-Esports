@@ -158,7 +158,7 @@ export default function AdminConversationsMonitorPage() {
   };
 
   const handleBanUser = async (userId: string, userName: string) => {
-    if (!confirm(`Are you sure you want to BAN player "${userName}" from BlackRock Esports?`)) return;
+    if (!confirm(`Are you sure you want to BAN player "${userName}" from EZBD Esports?`)) return;
     try {
       setActionLoading(true);
       const res = await fetch('/api/admin/conversations', {
@@ -281,7 +281,7 @@ export default function AdminConversationsMonitorPage() {
                 <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Search user name or BRK ID..."
+                  placeholder="Search user name or EZBD ID..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-orange"

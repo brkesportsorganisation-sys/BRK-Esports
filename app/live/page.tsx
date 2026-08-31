@@ -25,9 +25,9 @@ export default async function LivePage() {
 
   const liveUrl = settingsMap.YOUTUBE_LIVE_URL || settingsMap.YOUTUBE_URL || '';
   const isLive = settingsMap.YOUTUBE_LIVE_IS_ACTIVE === 'true' || Boolean(liveUrl);
-  const streamTitle = settingsMap.YOUTUBE_LIVE_TITLE || 'BRK Esports Free Fire Championship - Live Match';
+  const streamTitle = settingsMap.YOUTUBE_LIVE_TITLE || 'EZBD Esports Free Fire Championship - Live Match';
   const streamDesc = settingsMap.YOUTUBE_LIVE_DESCRIPTION || 'Watch Bangladesh top Free Fire squads battle live for the championship trophy!';
-  const channelUrl = settingsMap.YOUTUBE_CHANNEL_URL || 'https://youtube.com/@BRKEsports';
+  const channelUrl = settingsMap.YOUTUBE_CHANNEL_URL || 'https://youtube.com/@EZBDEsports';
 
   // Extract YouTube ID
   const getYoutubeId = (url: string) => {
@@ -136,7 +136,7 @@ export default async function LivePage() {
               <div className="flex items-center gap-4 text-slate-600">
                 <span className="flex items-center gap-1 font-medium">
                   <Users className="w-3.5 h-3.5 text-blue-500" />
-                  <span>BRK Arena Spectator</span>
+                  <span>EZBD Arena Spectator</span>
                 </span>
                 <span className="flex items-center gap-1 font-medium">
                   <Trophy className="w-3.5 h-3.5 text-amber-500" />

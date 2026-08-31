@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
       });
 
       const exportPayload = {
-        title: 'BlackRock Esports Live Support Chat Archive',
+        title: 'EZBD Esports Live Support Chat Archive',
         exportDate: new Date().toISOString(),
         retentionPolicy: '30-Day Auto Retention',
         cutoffDate: cutoffIso,

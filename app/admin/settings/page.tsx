@@ -1143,7 +1143,7 @@ Login to your account and book your slot today!`);
                         type="text"
                         value={welcomeEmailFrom}
                         onChange={(e) => setWelcomeEmailFrom(e.target.value)}
-                        placeholder="BlackRock Esports <onboarding@resend.dev>"
+                        placeholder="EZBD Esports <onboarding@resend.dev>"
                         className="w-full px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] font-mono text-xs text-[#0F172A] focus:outline-none focus:border-indigo-600"
                       />
                       <span className="text-[10px] text-slate-400 mt-1 block">
@@ -1206,7 +1206,7 @@ Login to your account and book your slot today!`);
                         type="text"
                         value={smtpFrom}
                         onChange={(e) => setSmtpFrom(e.target.value)}
-                        placeholder="BlackRock Esports <support@brkesports.com>"
+                        placeholder="EZBD Esports <support@esportszonebd.online>"
                         className="w-full px-3.5 py-2.5 rounded-[12px] bg-white border border-[#E2E8F0] font-mono text-xs text-[#0F172A] focus:outline-none focus:border-emerald-600"
                       />
                       <span className="text-[10px] text-emerald-700 mt-1 block">
@@ -1295,7 +1295,7 @@ Login to your account and book your slot today!`);
                 <form onSubmit={handleSendTestEmail} className="flex flex-col sm:flex-row items-center gap-3">
                   <input
                     type="email"
-                    placeholder="Enter your email address (e.g. brkesportsorganisation@gmail.com)"
+                    placeholder="Enter your email address (e.g. ezbdorganisation@gmail.com)"
                     value={testEmailRecipient}
                     onChange={(e) => setTestEmailRecipient(e.target.value)}
                     className="w-full sm:flex-1 px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-medium text-[#0F172A] focus:outline-none focus:border-indigo-600"
@@ -1637,7 +1637,7 @@ Login to your account and book your slot today!`);
                     <Bell className="w-5 h-5 text-orange-600 flex-shrink-0" />
                     <div>
                       <div className="font-bold text-slate-900 text-xs">Broadcast Live Stream Push Notification</div>
-                      <div className="text-[11px] text-slate-600">Send an instant alert to all registered users that BRK Esports is live on YouTube.</div>
+                      <div className="text-[11px] text-slate-600">Send an instant alert to all registered users that EZBD Esports is live on YouTube.</div>
                     </div>
                   </div>
 

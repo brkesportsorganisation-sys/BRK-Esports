@@ -368,7 +368,7 @@ export default function AdminShopOrdersPage() {
                           {isCoins ? `${order.amount} 🪙` : `৳${order.amount}`}
                         </span>
                         <span className={`text-[10px] font-bold uppercase ${isCoins ? 'text-amber-600' : 'text-emerald-600'}`}>
-                          {isCoins ? 'BRK Coins' : 'Wallet Cash'}
+                          {isCoins ? 'EZBD Coins' : 'Wallet Cash'}
                         </span>
                       </td>
 

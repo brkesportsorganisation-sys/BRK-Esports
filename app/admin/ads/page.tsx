@@ -624,7 +624,7 @@ export default function AdminRewardsHubPage() {
                           >
                             <option value="WALLET">💰 Real Money (৳ BDT)</option>
                             <option value="DIAMONDS">💎 Diamonds</option>
-                            <option value="COINS">🪙 BRK Coins</option>
+                            <option value="COINS">🪙 EZBD Coins</option>
                             <option value="TRY_AGAIN">🍀 Better Luck Next Time</option>
                           </select>
                         </div>

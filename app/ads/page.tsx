@@ -372,7 +372,7 @@ export default function RewardsHubPage() {
                 Earn Rewards & <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-red via-brand-orange to-amber-500">Lottery Wheel</span>
               </h1>
               <p className="text-xs md:text-sm text-slate-600 max-w-xl leading-relaxed">
-                Watch video ads to earn BRK Coins, spin the high-reward lottery wheel for real bKash cash & diamonds, or convert coins directly to wallet balance.
+                Watch video ads to earn EZBD Coins, spin the high-reward lottery wheel for real bKash cash & diamonds, or convert coins directly to wallet balance.
               </p>
             </div>
 
@@ -538,7 +538,7 @@ export default function RewardsHubPage() {
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-brand-orange font-bold mt-0.5">•</span>
-                  <span>Each completed ad grants instant BRK coins directly to your balance.</span>
+                  <span>Each completed ad grants instant EZBD coins directly to your balance.</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-brand-orange font-bold mt-0.5">•</span>

@@ -10,7 +10,7 @@ export const DEFAULT_CHAMPIONS_CONFIG: ChampionsConfig = {
     {
       rank: 1,
       name: 'Tanvir Hossain',
-      inGameName: 'BRK・DEVIL亗',
+      inGameName: 'EZBD・DEVIL亗',
       freeFireUid: '189283741',
       avatar: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=200',
       earnings: 45200,
@@ -54,7 +54,7 @@ export const DEFAULT_CHAMPIONS_CONFIG: ChampionsConfig = {
     {
       rank: 4,
       name: 'Tanvir Hossain',
-      inGameName: 'BRK・DEVIL亗',
+      inGameName: 'EZBD・DEVIL亗',
       freeFireUid: '189283741',
       avatar: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=200',
       earnings: 45200,
@@ -93,11 +93,11 @@ export const DEFAULT_CHAMPIONS_CONFIG: ChampionsConfig = {
   ],
   legendarySquads: [
     {
-      id: 'sq_brk_elite',
-      squadName: 'BlackRock Elite',
-      tag: 'BRK',
+      id: 'sq_ezbd_elite',
+      squadName: 'EZBD Elite',
+      tag: 'EZBD',
       logo: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=200',
-      captainName: 'BRK・DEVIL亗',
+      captainName: 'EZBD・DEVIL亗',
       totalWins: 42,
       totalEarnings: 84000,
       titles: '🏆 3x BR Grand Champion • CS Knockout MVP Squad',
@@ -126,7 +126,7 @@ export async function getChampionsConfig(): Promise<ChampionsConfig> {
     const { data } = await supabaseAdmin
       .from('SiteSetting')
       .select('value')
-      .eq('key', 'BRK_ESPORTS_CHAMPIONS')
+      .eq('key', 'EZBD_ESPORTS_CHAMPIONS')
       .maybeSingle();
 
     if (data?.value) {
@@ -156,7 +156,7 @@ export async function saveChampionsConfig(config: ChampionsConfig): Promise<bool
     const { error } = await supabaseAdmin
       .from('SiteSetting')
       .upsert({
-        key: 'BRK_ESPORTS_CHAMPIONS',
+        key: 'EZBD_ESPORTS_CHAMPIONS',
         value: JSON.stringify(inMemoryConfig),
         updatedAt: new Date().toISOString(),
       }, { onConflict: 'key' });

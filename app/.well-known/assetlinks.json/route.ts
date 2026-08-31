@@ -22,7 +22,7 @@ export async function GET() {
         relation: ['delegate_permission/common.handle_all_urls'],
         target: {
           namespace: 'android_app',
-          package_name: 'com.brkesports.app',
+          package_name: 'com.ezbd.app',
           sha256_cert_fingerprints: [
             '14:6D:E9:7D:0F:52:AB:6C:AE:34:F8:8C:7C:F4:14:8B:6C:5B:3C:D3:5F:8C:BE:3D:4E:9F:8A:2C:1B:3D:4E:5F',
           ],

@@ -45,7 +45,7 @@ export async function broadcastRoomDetailsToTournament(
 
   try {
     // 1. Fetch tournament title
-    let tournamentTitle = 'BlackRock Esports Tournament';
+    let tournamentTitle = 'EZBD Esports Tournament';
     if (tournamentId && tournamentId !== 'ACTIVE_TOURNAMENTS' && tournamentId !== 'ALL') {
       const { data: tour } = await supabaseAdmin
         .from('Tournament')

@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'This item can only be purchased with Wallet Cash (৳).' }, { status: 400 });
     }
     if (!isCoins && product.currencyType === 'COINS') {
-      return NextResponse.json({ message: 'This item can only be purchased with BRK Coins (🪙).' }, { status: 400 });
+      return NextResponse.json({ message: 'This item can only be purchased with EZBD Coins (🪙).' }, { status: 400 });
     }
 
     // Base price

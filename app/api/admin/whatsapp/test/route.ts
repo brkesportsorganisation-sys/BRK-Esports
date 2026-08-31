@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     const settings = await getWhatsAppSettings();
     const provider = settings.provider || 'NODE_BOT';
 
-    const testMessage = `🤖 BlackRock Esports WhatsApp Test 🤖\n\n✅ WhatsApp (${provider}) is successfully connected and operational!\n🕒 Timestamp: ${new Date().toLocaleString('en-BD', { timeZone: 'Asia/Dhaka' })}\n\n🎮 BRK ESPORTS - https://brkesports.com`;
+    const testMessage = `🤖 EZBD Esports WhatsApp Test 🤖\n\n✅ WhatsApp (${provider}) is successfully connected and operational!\n🕒 Timestamp: ${new Date().toLocaleString('en-BD', { timeZone: 'Asia/Dhaka' })}\n\n🎮 EZBD ESPORTS - https://esportszonebd.online`;
 
     // ─── NODE_BOT Mode ────────────────────────────────────────────────────────
     if (provider === 'NODE_BOT') {

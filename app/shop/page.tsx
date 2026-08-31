@@ -991,7 +991,7 @@ export default function GamingShopPage() {
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-[10px] font-bold uppercase text-amber-700 flex items-center gap-1">
                             <Coins className="w-3.5 h-3.5" />
-                            <span>BRK Coins</span>
+                            <span>EZBD Coins</span>
                           </span>
                           {paymentMethod === 'COINS' && <Check className="w-4 h-4 text-amber-600" />}
                         </div>

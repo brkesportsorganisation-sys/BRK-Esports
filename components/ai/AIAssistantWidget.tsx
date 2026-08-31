@@ -393,7 +393,7 @@ export default function AIAssistantWidget() {
       .replace(/\bFree Fire\b/gi, 'ফ্রি ফায়ার')
       .replace(/\bESPORTS ZONE BD\b/gi, 'ইস্পোর্টস জোন বিডি')
       .replace(/\bEZBD\b/gi, 'ই জেড বি ডি')
-      .replace(/\bBRK\b/gi, 'ই জেড বি ডি')
+
       .replace(/\bWallet\b/gi, 'ওয়ালেট')
       .replace(/\bTournament\b/gi, 'টুর্নামেন্ট')
       .replace(/\bTournaments\b/gi, 'টুর্নামেন্ট')

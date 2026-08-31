@@ -37,13 +37,13 @@ const DEFAULT_BOT_CONFIG: WhatsAppBotConfig = {
     {
       id: 'rule_bkash',
       keywords: ['bkash', 'nagad', 'payment', 'টাকা', 'পেমেন্ট', 'বিকাশ', 'নগদ'],
-      replyText: `💰 পেমেন্ট ও ওয়ালেট ডিপোজিট:\n\nঅটোমেটিক ব্যালেন্স অ্যাড করতে আমাদের সাইটের Wallet অপশনে যান।\nবিকাশ/নগদ সেন্ড মানি করে TrxID সাবমিট করলেই ৫ মিনিটে ব্যালেন্স অ্যাড হয়ে যাবে!\nলিঙ্ক: https://brkesports.com/wallet`,
+      replyText: `💰 পেমেন্ট ও ওয়ালেট ডিপোজিট:\n\nঅটোমেটিক ব্যালেন্স অ্যাড করতে আমাদের সাইটের Wallet অপশনে যান।\nবিকাশ/নগদ সেন্ড মানি করে TrxID সাবমিট করলেই ৫ মিনিটে ব্যালেন্স অ্যাড হয়ে যাবে!\nলিঙ্ক: https://esportszonebd.online/wallet`,
       isActive: true,
     },
     {
       id: 'rule_rules',
       keywords: ['rule', 'rules', 'hack', 'নিয়ম', 'হ্যাক'],
-      replyText: `📜 BlackRock ম্যাচ রুলস:\n\n1. কোনো হ্যাক বা স্ক্রিপ্ট ব্যবহার করা যাবে না।\n2. পিসি বা এম্যুলেটর সম্পূর্ণ নিষিদ্ধ।\n3. নির্ধারিত সময়ে রুমে জয়েন না করলে রিফান্ড হবে না।\nFair play maintain করুন!`,
+      replyText: `📜 EZBD ম্যাচ রুলস:\n\n1. কোনো হ্যাক বা স্ক্রিপ্ট ব্যবহার করা যাবে না।\n2. পিসি বা এম্যুলেটর সম্পূর্ণ নিষিদ্ধ।\n3. নির্ধারিত সময়ে রুমে জয়েন না করলে রিফান্ড হবে না।\nFair play maintain করুন!`,
       isActive: true,
     },
   ],
