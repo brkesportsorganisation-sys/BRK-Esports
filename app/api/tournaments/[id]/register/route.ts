@@ -272,7 +272,28 @@ export async function POST(
       .update(balanceUpdate)
       .eq('id', userId);
 
-    // 2. Create Participant
+    // 2. Assign to room (Auto Room A, B, C batching based on format & room capacity)
+    let roomAssignment = {
+      roomId: `room_${tournamentId}_A`,
+      roomLabel: 'A',
+      slotNumberInRoom: 1,
+      isNewRoomCreated: false,
+    };
+
+    try {
+      const { assignParticipantToRoom } = await import('@/lib/tournament-rooms');
+      roomAssignment = await assignParticipantToRoom(tournament, {
+        id: registrationId,
+        userId,
+        squadName: squadName.trim(),
+        iglName: iglName.trim(),
+        captainWhatsApp: captainWhatsApp ? captainWhatsApp.trim() : null,
+      });
+    } catch (roomErr: any) {
+      console.warn('[POST /api/tournaments/[id]/register] Room assignment notice:', roomErr?.message);
+    }
+
+    // 3. Create Participant
     const participantRecord: Record<string, any> = {
       id: registrationId,
       registrationId,
@@ -288,6 +309,9 @@ export async function POST(
       player3Name: player3Name.trim(),
       player4Name: player4Name.trim(),
       backupPlayerName: backupPlayerName?.trim() || null,
+      roomId: roomAssignment.roomId,
+      roomLabel: roomAssignment.roomLabel,
+      slotNumberInRoom: roomAssignment.slotNumberInRoom,
       joinedAt: new Date().toISOString(),
     };
 
@@ -296,10 +320,19 @@ export async function POST(
       .insert([participantRecord]);
 
     if (partErr) {
-      console.error('[POST /api/tournaments/[id]/register] Supabase Participant insert error:', partErr);
+      // If table doesn't have room columns yet, retry without them
+      if (partErr.message?.includes('roomId') || partErr.message?.includes('roomLabel') || partErr.message?.includes('slotNumberInRoom')) {
+        const cleanRecord = { ...participantRecord };
+        delete cleanRecord.roomId;
+        delete cleanRecord.roomLabel;
+        delete cleanRecord.slotNumberInRoom;
+        await supabaseAdmin.from('Participant').insert([cleanRecord]);
+      } else {
+        console.error('[POST /api/tournaments/[id]/register] Supabase Participant insert error:', partErr);
+      }
     }
 
-    // 3. Create Payment record
+    // 4. Create Payment record
     const paymentId = `pay_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     await supabaseAdmin
       .from('Payment')

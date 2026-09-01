@@ -33,6 +33,7 @@ import {
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import SlotGrid from '@/components/tournaments/SlotGrid';
+import RoomBatchGrid from '@/components/tournaments/RoomBatchGrid';
 import TournamentCountdown from '@/components/tournaments/TournamentCountdown';
 import { useRealtimeTournament } from '@/lib/use-realtime';
 import { getTournamentByIdFromDb } from '@/lib/tournament-store';
@@ -838,16 +839,13 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
         {activeTab === 'ROOM' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 min-w-0 w-full">
             <div className="lg:col-span-2 space-y-6 min-w-0 w-full">
-              <SlotGrid
+              <RoomBatchGrid
                 tournamentId={tournament.id}
                 tournamentTitle={tournament.title}
+                tournamentFormat={tournament.tournamentBatchFormat || 'SINGLE_ROOM'}
                 gameMode={tournament.mode}
-                maxTeams={tournament.maxTeams || 12}
-                participants={(tournament as any).participants || []}
-                roomId={tournament.roomId}
-                roomPassword={tournament.roomPassword}
+                currentUser={currentUser}
                 startTime={tournament.matchTime || (tournament.tournamentStart ? String(tournament.tournamentStart) : undefined)}
-                isUserRegistered={isJoined || currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN'}
               />
             </div>
 

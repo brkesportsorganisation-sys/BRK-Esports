@@ -86,6 +86,76 @@ export interface PrizeTier {
   prize: number;
 }
 
+export type TournamentBatchFormat = 'SINGLE_ROOM' | 'QUALIFIER_FINAL' | 'INDEPENDENT_ROOMS';
+export type RoomType = 'QUALIFIER' | 'FINAL' | 'STANDALONE';
+export type RoomStatus = 'OPEN' | 'FULL' | 'LIVE' | 'COMPLETED';
+
+export interface TournamentRoom {
+  id: string;
+  tournamentId: string;
+  roomLabel: string; // 'A', 'B', 'C', ... or 'Final'
+  roomType: RoomType;
+  capacity: number; // e.g. 12 squads for Free Fire
+  currentCount: number;
+  roomIdCredential?: string;
+  roomPassword?: string;
+  revealAt?: string; // ISO timestamp when credentials unlock
+  isPublished: boolean;
+  status: RoomStatus;
+  prizePool?: number; // for independent standalone rooms or final rooms
+  advancementCount?: number; // for qualifier rooms (e.g. top 3 advance)
+  matchTime?: string;
+  roomNotes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface RoomQualifier {
+  id: string;
+  tournamentId: string;
+  roomId: string;
+  participantId: string;
+  squadName: string;
+  iglName?: string;
+  captainWhatsApp?: string;
+  userId: string;
+  rankInRoom?: number;
+  killsInRoom?: number;
+  pointsInRoom?: number;
+  advancedToFinal: boolean;
+  finalRoomId?: string;
+  advancedAt?: string;
+}
+
+export interface Participant {
+  id: string;
+  registrationId?: string;
+  tournamentId: string;
+  userId: string;
+  teamId?: string | null;
+  status: string;
+  squadName: string;
+  iglName: string;
+  captainWhatsApp?: string | null;
+  player1Name: string;
+  player2Name: string;
+  player3Name: string;
+  player4Name: string;
+  backupPlayerName?: string | null;
+  roomId?: string;
+  roomLabel?: string;
+  slotNumberInRoom?: number;
+  roomResult?: {
+    kills?: number;
+    placement?: number;
+    points?: number;
+    score?: string;
+  };
+  joinedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface Tournament {
   id: string;
   title: string;
@@ -95,6 +165,11 @@ export interface Tournament {
   gameName?: string;
   mode: Mode;
   format: Format;
+  tournamentBatchFormat?: TournamentBatchFormat; // Format A: QUALIFIER_FINAL, Format B: INDEPENDENT_ROOMS, or SINGLE_ROOM
+  roomCapacity?: number; // Custom room max squads (Free Fire default = 12)
+  maxRooms?: number; // Max rooms allowed or unlimited
+  defaultAdvancementCount?: number; // Top N teams advancing to final (Format A)
+  rooms?: TournamentRoom[];
   entryFee: number;
   prizePool: number;
   firstPrize: number;

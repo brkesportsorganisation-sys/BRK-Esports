@@ -3,8 +3,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { AlertCircle, CheckCircle2, Coins, Copy, Eye, Filter, Loader2, Plus, PlusCircle, Search, ShieldCheck, Sparkles, Star, Trash2, Trophy, UploadCloud, X, MessageSquare, Send } from 'lucide-react';
-import { Tournament, Mode, Format, TournamentStatus, CommunityAccessType, CommunityUnlockMode, PrizeTier } from '@/lib/types';
+import { AlertCircle, CheckCircle2, Coins, Copy, Eye, Filter, Loader2, Plus, PlusCircle, Search, ShieldCheck, Sparkles, Star, Trash2, Trophy, UploadCloud, X, MessageSquare, Send, Layers, UserCheck, Play, ArrowUpRight, Lock, Unlock, Gamepad2, Award } from 'lucide-react';
+import { Tournament, Mode, Format, TournamentStatus, CommunityAccessType, CommunityUnlockMode, PrizeTier, TournamentBatchFormat, TournamentRoom, RoomQualifier } from '@/lib/types';
 import ImageUploadInput from '@/components/ui/ImageUploadInput';
 import 'react-quill-new/dist/quill.snow.css';
 
@@ -28,6 +28,10 @@ interface TournamentFormState {
   gameName: string;
   mode: Mode;
   format: Format;
+  tournamentBatchFormat: TournamentBatchFormat;
+  roomCapacity: number;
+  maxRooms: number | '';
+  defaultAdvancementCount: number;
   entryFee: number;
   prizePool: number;
   firstPrize: number;
@@ -79,6 +83,10 @@ const defaultForm: TournamentFormState = {
   gameName: 'Free Fire',
   mode: 'SQUAD' as Mode,
   format: 'BR_RANKED' as Format,
+  tournamentBatchFormat: 'SINGLE_ROOM' as TournamentBatchFormat,
+  roomCapacity: 12,
+  maxRooms: '',
+  defaultAdvancementCount: 3,
   entryFee: 100,
   prizePool: 4000,
   firstPrize: 2000,
@@ -154,6 +162,198 @@ export default function AdminTournamentsPage() {
   const [descriptionHtmlMode, setDescriptionHtmlMode] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [isBroadcastingWhatsapp, setIsBroadcastingWhatsapp] = useState(false);
+
+  // ─── Tournament Rooms Management State ─────────────────────────────────────
+  const [selectedRoomTournament, setSelectedRoomTournament] = useState<Tournament | null>(null);
+  const [roomModalOpen, setRoomModalOpen] = useState(false);
+  const [tournamentRooms, setTournamentRooms] = useState<TournamentRoom[]>([]);
+  const [roomQualifiers, setRoomQualifiers] = useState<RoomQualifier[]>([]);
+  const [isRoomsLoading, setIsRoomsLoading] = useState(false);
+  const [selectedAdvancingIds, setSelectedAdvancingIds] = useState<string[]>([]);
+  const [isAdvancing, setIsAdvancing] = useState(false);
+  const [roomActiveTab, setRoomActiveTab] = useState<'ROOMS' | 'QUALIFIERS'>('ROOMS');
+  const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
+  const [roomEditForm, setRoomEditForm] = useState<{
+    roomIdCredential: string;
+    roomPassword: string;
+    revealAt: string;
+    isPublished: boolean;
+    status: 'OPEN' | 'FULL' | 'LIVE' | 'COMPLETED';
+    capacity: number;
+    prizePool: number;
+    matchTime: string;
+  }>({
+    roomIdCredential: '',
+    roomPassword: '',
+    revealAt: '',
+    isPublished: false,
+    status: 'OPEN',
+    capacity: 12,
+    prizePool: 0,
+    matchTime: '',
+  });
+
+  const openRoomModal = async (tournament: Tournament) => {
+    setSelectedRoomTournament(tournament);
+    setRoomModalOpen(true);
+    setRoomActiveTab('ROOMS');
+    setEditingRoomId(null);
+    setSelectedAdvancingIds([]);
+    await loadTournamentRoomsData(tournament.id);
+  };
+
+  const loadTournamentRoomsData = async (tournamentId: string) => {
+    setIsRoomsLoading(true);
+    try {
+      const res = await fetch(`/api/tournaments/${tournamentId}/rooms`, { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        setTournamentRooms(data.rooms || []);
+        setRoomQualifiers(data.qualifiers || []);
+      }
+    } catch (err) {
+      console.warn('Failed to load tournament rooms:', err);
+    } finally {
+      setIsRoomsLoading(false);
+    }
+  };
+
+  const startEditRoom = (room: TournamentRoom) => {
+    setEditingRoomId(room.id);
+    setRoomEditForm({
+      roomIdCredential: room.roomIdCredential || '',
+      roomPassword: room.roomPassword || '',
+      revealAt: toLocalISO(room.revealAt),
+      isPublished: Boolean(room.isPublished),
+      status: room.status || 'OPEN',
+      capacity: room.capacity || 12,
+      prizePool: room.prizePool || 0,
+      matchTime: toLocalISO(room.matchTime),
+    });
+  };
+
+  const handleSaveRoom = async (roomId: string) => {
+    if (!selectedRoomTournament) return;
+    try {
+      const res = await fetch(`/api/tournaments/${selectedRoomTournament.id}/rooms`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+        credentials: 'include',
+        body: JSON.stringify({
+          action: 'UPDATE_ROOM',
+          roomId,
+          roomData: {
+            ...roomEditForm,
+            revealAt: roomEditForm.revealAt ? new Date(roomEditForm.revealAt).toISOString() : undefined,
+            matchTime: roomEditForm.matchTime ? new Date(roomEditForm.matchTime).toISOString() : undefined,
+          },
+        }),
+      });
+      if (res.ok) {
+        setFeedbackTone('success');
+        setFeedback('Room details updated successfully!');
+        setEditingRoomId(null);
+        await loadTournamentRoomsData(selectedRoomTournament.id);
+      }
+    } catch (err: any) {
+      setFeedbackTone('error');
+      setFeedback(err?.message || 'Failed to update room');
+    }
+  };
+
+  const handleCreateNewRoom = async (label?: string) => {
+    if (!selectedRoomTournament) return;
+    try {
+      const res = await fetch(`/api/tournaments/${selectedRoomTournament.id}/rooms`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+        credentials: 'include',
+        body: JSON.stringify({
+          action: 'CREATE_ROOM',
+          roomData: {
+            roomLabel: label || undefined,
+            roomType: selectedRoomTournament.tournamentBatchFormat === 'QUALIFIER_FINAL' ? 'QUALIFIER' : 'STANDALONE',
+            capacity: selectedRoomTournament.roomCapacity || 12,
+          },
+        }),
+      });
+      if (res.ok) {
+        await loadTournamentRoomsData(selectedRoomTournament.id);
+      }
+    } catch (err) {}
+  };
+
+  const handleBroadcastRoomWhatsappDirect = async (room: TournamentRoom) => {
+    if (!selectedRoomTournament) return;
+    if (!room.roomIdCredential || !room.roomPassword) {
+      alert('Please set both Room ID and Room Password before broadcasting.');
+      return;
+    }
+    if (!confirm(`Broadcast credentials for Room ${room.roomLabel} to all ${room.currentCount || 0} registered players via WhatsApp?`)) {
+      return;
+    }
+    try {
+      const res = await fetch('/api/admin/whatsapp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+        credentials: 'include',
+        body: JSON.stringify({
+          action: 'BROADCAST',
+          tournamentId: selectedRoomTournament.id,
+          tournamentTitle: `${selectedRoomTournament.title} [Room ${room.roomLabel}]`,
+          roomId: room.roomIdCredential,
+          pass: room.roomPassword,
+        }),
+      });
+      if (res.ok) {
+        alert(`WhatsApp credentials broadcast for Room ${room.roomLabel} sent successfully!`);
+      }
+    } catch {
+      alert('Failed to broadcast room credentials.');
+    }
+  };
+
+  const handleAdvanceSelectedSquads = async () => {
+    if (!selectedRoomTournament || selectedAdvancingIds.length === 0) return;
+    setIsAdvancing(true);
+    try {
+      const allParticipants: any[] = [];
+      tournamentRooms.forEach((r: any) => {
+        if (r.participants) {
+          r.participants.forEach((p: any) => {
+            if (selectedAdvancingIds.includes(p.id)) {
+              allParticipants.push({
+                participantId: p.id,
+                userId: p.userId || p.id,
+                squadName: p.squadName,
+                iglName: p.iglName,
+                sourceRoomId: r.id,
+              });
+            }
+          });
+        }
+      });
+
+      const res = await fetch(`/api/admin/tournaments/${selectedRoomTournament.id}/advance`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+        credentials: 'include',
+        body: JSON.stringify({ advancingParticipants: allParticipants }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.message || 'Squads advanced to Final Room!');
+        setSelectedAdvancingIds([]);
+        await loadTournamentRoomsData(selectedRoomTournament.id);
+      } else {
+        alert(data.message || 'Failed to advance squads.');
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Error advancing squads');
+    } finally {
+      setIsAdvancing(false);
+    }
+  };
 
   const handleBroadcastRoomWhatsapp = async () => {
     if (!editingId) return;
@@ -435,6 +635,10 @@ export default function AdminTournamentsPage() {
       gameName: item.gameName || (item.game === 'EFOOTBALL' ? 'eFootball' : item.game === 'PUBG_MOBILE' ? 'PUBG Mobile' : item.game === 'VALORANT' ? 'Valorant' : 'Free Fire'),
       mode: item.mode,
       format: item.format,
+      tournamentBatchFormat: item.tournamentBatchFormat || 'SINGLE_ROOM',
+      roomCapacity: item.roomCapacity || 12,
+      maxRooms: item.maxRooms || '',
+      defaultAdvancementCount: item.defaultAdvancementCount || 3,
       entryFee: item.entryFee,
       prizePool: item.prizePool,
       firstPrize: item.firstPrize,
@@ -566,6 +770,10 @@ export default function AdminTournamentsPage() {
       gameName: form.gameName || undefined,
       mode: form.mode,
       format: form.format,
+      tournamentBatchFormat: form.tournamentBatchFormat,
+      roomCapacity: Number(form.roomCapacity) || 12,
+      maxRooms: form.maxRooms !== '' ? Number(form.maxRooms) : undefined,
+      defaultAdvancementCount: Number(form.defaultAdvancementCount) || 3,
       entryFee: form.entryFee,
       prizePool: form.prizePool,
       firstPrize,
@@ -893,6 +1101,7 @@ export default function AdminTournamentsPage() {
                   </td>
                   <td className="px-4 py-4 text-right">
                     <div className="flex flex-wrap justify-end gap-1.5">
+                      <button onClick={() => void openRoomModal(item)} className="rounded-xl border border-purple-800/60 bg-purple-950/60 px-2.5 py-1.5 text-xs font-bold text-purple-300 hover:bg-purple-900 transition-colors cursor-pointer flex items-center gap-1"><Layers className="h-3 w-3 inline text-purple-400" /> Rooms</button>
                       <button onClick={() => openEditModal(item)} className="rounded-xl border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs font-bold text-slate-300 hover:text-white transition-colors cursor-pointer">Edit</button>
                       <button onClick={() => void handleQuickAction(item.id, { status: item.status === 'LIVE' ? 'UPCOMING' : 'LIVE', isPublished: true })} className="rounded-xl border border-emerald-800/50 bg-emerald-950/50 px-2.5 py-1.5 text-xs font-bold text-emerald-400 hover:bg-emerald-900 transition-colors cursor-pointer">Publish</button>
                       <button onClick={() => void handleQuickAction(item.id, { isFeatured: !item.isFeatured })} className="rounded-xl border border-orange-800/50 bg-orange-950/50 px-2.5 py-1.5 text-xs font-bold text-orange-400 hover:bg-orange-900 transition-colors cursor-pointer">Feature</button>
@@ -1320,6 +1529,109 @@ export default function AdminTournamentsPage() {
                   )}
 
                 </div>
+
+                {/* ─── Multi-Room Batching Configuration ─── */}
+                <div className="rounded-2xl border border-purple-200 bg-purple-50/50 p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-purple-600" />
+                    <div>
+                      <h4 className="text-xs font-bold text-purple-950 uppercase tracking-wider">Tournament Multi-Room / Group Batching</h4>
+                      <p className="text-[11px] text-purple-700">Configure how players are slotted into rooms (e.g. Free Fire 12-squad custom lobbies).</p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-3 pt-1">
+                    <label className={`p-2.5 rounded-xl border flex flex-col justify-between cursor-pointer transition-all ${form.tournamentBatchFormat === 'SINGLE_ROOM' ? 'bg-white border-purple-600 shadow-xs' : 'bg-white/60 border-slate-200'}`}>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="tournamentBatchFormat"
+                          value="SINGLE_ROOM"
+                          checked={form.tournamentBatchFormat === 'SINGLE_ROOM'}
+                          onChange={() => setForm(prev => ({ ...prev, tournamentBatchFormat: 'SINGLE_ROOM' }))}
+                          className="accent-purple-600"
+                        />
+                        <span className="text-xs font-bold text-slate-900">Single Room</span>
+                      </div>
+                      <span className="text-[10px] text-slate-500 mt-1">1 custom room lobby only</span>
+                    </label>
+
+                    <label className={`p-2.5 rounded-xl border flex flex-col justify-between cursor-pointer transition-all ${form.tournamentBatchFormat === 'QUALIFIER_FINAL' ? 'bg-white border-purple-600 shadow-xs' : 'bg-white/60 border-slate-200'}`}>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="tournamentBatchFormat"
+                          value="QUALIFIER_FINAL"
+                          checked={form.tournamentBatchFormat === 'QUALIFIER_FINAL'}
+                          onChange={() => setForm(prev => ({ ...prev, tournamentBatchFormat: 'QUALIFIER_FINAL' }))}
+                          className="accent-purple-600"
+                        />
+                        <span className="text-xs font-bold text-slate-900">Format A: Qualifiers → Final</span>
+                      </div>
+                      <span className="text-[10px] text-slate-500 mt-1">Top teams advance to Final Room</span>
+                    </label>
+
+                    <label className={`p-2.5 rounded-xl border flex flex-col justify-between cursor-pointer transition-all ${form.tournamentBatchFormat === 'INDEPENDENT_ROOMS' ? 'bg-white border-purple-600 shadow-xs' : 'bg-white/60 border-slate-200'}`}>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="tournamentBatchFormat"
+                          value="INDEPENDENT_ROOMS"
+                          checked={form.tournamentBatchFormat === 'INDEPENDENT_ROOMS'}
+                          onChange={() => setForm(prev => ({ ...prev, tournamentBatchFormat: 'INDEPENDENT_ROOMS' }))}
+                          className="accent-purple-600"
+                        />
+                        <span className="text-xs font-bold text-slate-900">Format B: Independent Rooms</span>
+                      </div>
+                      <span className="text-[10px] text-slate-500 mt-1">Standalone rooms with separate prizes</span>
+                    </label>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-3 pt-2">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-700 block mb-1">Room Capacity (Slots)</label>
+                      <input
+                        type="number"
+                        min="2"
+                        max="100"
+                        value={form.roomCapacity}
+                        onChange={(e) => setForm(prev => ({ ...prev, roomCapacity: Number(e.target.value) }))}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-bold outline-none focus:border-purple-600"
+                        placeholder="e.g. 12"
+                      />
+                      <span className="text-[9px] text-slate-400">Free Fire = 12 squads</span>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-700 block mb-1">Max Rooms Cap</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={form.maxRooms}
+                        onChange={(e) => setForm(prev => ({ ...prev, maxRooms: e.target.value === '' ? '' : Number(e.target.value) }))}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-bold outline-none focus:border-purple-600"
+                        placeholder="Unlimited"
+                      />
+                      <span className="text-[9px] text-slate-400">Optional room limit</span>
+                    </div>
+
+                    {form.tournamentBatchFormat === 'QUALIFIER_FINAL' && (
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-700 block mb-1">Top Advance to Final</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="20"
+                          value={form.defaultAdvancementCount}
+                          onChange={(e) => setForm(prev => ({ ...prev, defaultAdvancementCount: Number(e.target.value) }))}
+                          className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-bold outline-none focus:border-purple-600"
+                          placeholder="e.g. 3"
+                        />
+                        <span className="text-[9px] text-slate-400">Top N squads per room</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -1486,6 +1798,365 @@ export default function AdminTournamentsPage() {
           </div>
         </div>
       ) : null}
+
+      {/* ─── 4. "MANAGE ROOMS & GROUPS" MODAL (Admin Exclusive) ──────────────── */}
+      {roomModalOpen && selectedRoomTournament && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
+          <div className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl border border-slate-800 bg-[#111827] p-6 shadow-2xl text-slate-200">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between pb-4 border-b border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-2xl bg-purple-950/80 border border-purple-800/60 text-purple-400">
+                  <Layers className="h-6 w-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-heading font-black text-white">ROOM &amp; GROUP BATCHING CENTER</h2>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-900/60 text-purple-300 font-extrabold uppercase border border-purple-700/60">
+                      {selectedRoomTournament.tournamentBatchFormat === 'QUALIFIER_FINAL' ? 'Format A: Qualifier → Final' : selectedRoomTournament.tournamentBatchFormat === 'INDEPENDENT_ROOMS' ? 'Format B: Independent Rooms' : 'Single Room'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5 font-medium">
+                    {selectedRoomTournament.title} • Capacity: {selectedRoomTournament.roomCapacity || 12} slots/room
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setRoomModalOpen(false)}
+                className="rounded-2xl border border-slate-800 p-2 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Sub-tabs Header */}
+            <div className="flex items-center justify-between gap-3 mt-4 border-b border-slate-800/80 pb-3">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setRoomActiveTab('ROOMS')}
+                  className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
+                    roomActiveTab === 'ROOMS'
+                      ? 'bg-purple-600 text-white shadow-md'
+                      : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                  }`}
+                >
+                  <Gamepad2 className="w-3.5 h-3.5" />
+                  <span>Rooms Overview ({tournamentRooms.length})</span>
+                </button>
+
+                {selectedRoomTournament.tournamentBatchFormat === 'QUALIFIER_FINAL' && (
+                  <button
+                    onClick={() => setRoomActiveTab('QUALIFIERS')}
+                    className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
+                      roomActiveTab === 'QUALIFIERS'
+                        ? 'bg-purple-600 text-white shadow-md'
+                        : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                    }`}
+                  >
+                    <Trophy className="w-3.5 h-3.5" />
+                    <span>Qualifier Advancement Tool</span>
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleCreateNewRoom()}
+                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-purple-300 text-xs font-bold border border-purple-800/50 transition-all flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Room</span>
+                </button>
+                {selectedRoomTournament.tournamentBatchFormat === 'QUALIFIER_FINAL' && !tournamentRooms.some(r => r.roomType === 'FINAL') && (
+                  <button
+                    onClick={() => handleCreateNewRoom('Final')}
+                    className="px-3 py-1.5 rounded-xl bg-purple-950 hover:bg-purple-900 text-purple-300 text-xs font-bold border border-purple-700 transition-all flex items-center gap-1 cursor-pointer"
+                  >
+                    <Trophy className="w-3.5 h-3.5" />
+                    <span>Create Final Room</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Content Area */}
+            {isRoomsLoading ? (
+              <div className="py-16 text-center text-slate-400 flex flex-col items-center justify-center gap-2">
+                <Loader2 className="w-6 h-6 animate-spin text-purple-400" />
+                <span>Loading room roster &amp; batch data...</span>
+              </div>
+            ) : roomActiveTab === 'ROOMS' ? (
+              /* TAB 1: ROOMS LIST & CREDENTIALS EDITOR */
+              <div className="mt-4 space-y-4">
+                {tournamentRooms.length === 0 ? (
+                  <div className="p-8 text-center text-slate-400 bg-slate-900/50 rounded-2xl border border-slate-800">
+                    No custom rooms configured yet. Click &quot;Add Room&quot; above to create Room A.
+                  </div>
+                ) : (
+                  tournamentRooms.map((room) => {
+                    const isFinal = room.roomType === 'FINAL' || room.roomLabel === 'Final';
+                    const isEditing = editingRoomId === room.id;
+                    const participants = (room as any).participants || [];
+                    const isFull = participants.length >= (room.capacity || 12);
+
+                    return (
+                      <div
+                        key={room.id}
+                        className={`rounded-2xl border p-4 transition-all ${
+                          isFinal
+                            ? 'bg-purple-950/30 border-purple-800/80 shadow-xs'
+                            : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'
+                        }`}
+                      >
+                        {/* Room Header Banner */}
+                        <div className="flex items-center justify-between gap-3 flex-wrap pb-3 border-b border-slate-800/80">
+                          <div className="flex items-center gap-3">
+                            <span className={`px-3 py-1 rounded-xl text-xs font-mono font-black ${
+                              isFinal ? 'bg-purple-600 text-white' : 'bg-brand-orange text-white'
+                            }`}>
+                              ROOM {room.roomLabel}
+                            </span>
+                            <div>
+                              <span className="text-xs font-bold text-white flex items-center gap-2">
+                                <span>{isFinal ? '🏆 Championship Final Room' : `Qualifier / Batch Room ${room.roomLabel}`}</span>
+                                <span className={`text-[9px] px-2 py-0.2 rounded-full font-bold ${
+                                  isFull ? 'bg-red-950 text-red-400 border border-red-800' : 'bg-emerald-950 text-emerald-400 border border-emerald-800'
+                                }`}>
+                                  {participants.length}/{room.capacity || 12} Filled
+                                </span>
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-mono block">
+                                Status: {room.status} • Match: {room.matchTime ? new Date(room.matchTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Same as Tournament'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            {room.roomIdCredential && room.roomPassword && (
+                              <button
+                                onClick={() => handleBroadcastRoomWhatsappDirect(room)}
+                                className="px-2.5 py-1.5 rounded-xl bg-emerald-950 hover:bg-emerald-900 border border-emerald-700/80 text-emerald-300 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"
+                                title="Broadcast Room ID & Pass via WhatsApp to this room's players"
+                              >
+                                <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
+                                <span>WhatsApp Broadcast</span>
+                              </button>
+                            )}
+                            <button
+                              onClick={() => isEditing ? setEditingRoomId(null) : startEditRoom(room)}
+                              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-white transition-colors cursor-pointer"
+                            >
+                              {isEditing ? 'Cancel' : 'Edit Credentials'}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Edit Credentials Form Drawer */}
+                        {isEditing && (
+                          <div className="mt-3 p-4 bg-slate-950/80 rounded-xl border border-slate-800 space-y-3 animate-fadeIn">
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-purple-400">
+                              Edit Room {room.roomLabel} Credentials &amp; Unlock Settings
+                            </h4>
+                            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                              <div>
+                                <label className="text-[10px] font-bold text-slate-400 block mb-1">Room ID</label>
+                                <input
+                                  type="text"
+                                  value={roomEditForm.roomIdCredential}
+                                  onChange={(e) => setRoomEditForm(prev => ({ ...prev, roomIdCredential: e.target.value }))}
+                                  placeholder="e.g. 8492049"
+                                  className="w-full px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 text-xs font-mono font-bold text-white outline-none focus:border-purple-500"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] font-bold text-slate-400 block mb-1">Room Password</label>
+                                <input
+                                  type="text"
+                                  value={roomEditForm.roomPassword}
+                                  onChange={(e) => setRoomEditForm(prev => ({ ...prev, roomPassword: e.target.value }))}
+                                  placeholder="e.g. 1234"
+                                  className="w-full px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 text-xs font-mono font-bold text-white outline-none focus:border-purple-500"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] font-bold text-slate-400 block mb-1">Credentials Unlock Time (revealAt)</label>
+                                <input
+                                  type="datetime-local"
+                                  value={roomEditForm.revealAt}
+                                  onChange={(e) => setRoomEditForm(prev => ({ ...prev, revealAt: e.target.value }))}
+                                  className="w-full px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 text-xs font-bold text-white outline-none focus:border-purple-500"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] font-bold text-slate-400 block mb-1">Room Status</label>
+                                <select
+                                  value={roomEditForm.status}
+                                  onChange={(e) => setRoomEditForm(prev => ({ ...prev, status: e.target.value as any }))}
+                                  className="w-full px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 text-xs font-bold text-white outline-none focus:border-purple-500"
+                                >
+                                  <option value="OPEN">🟢 OPEN</option>
+                                  <option value="FULL">🔴 FULL</option>
+                                  <option value="LIVE">🔥 LIVE</option>
+                                  <option value="COMPLETED">🏁 COMPLETED</option>
+                                </select>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between pt-2">
+                              <label className="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={roomEditForm.isPublished}
+                                  onChange={(e) => setRoomEditForm(prev => ({ ...prev, isPublished: e.target.checked }))}
+                                  className="accent-purple-600 rounded"
+                                />
+                                <span>Publish Room (Allow registered players to reveal upon countdown unlock)</span>
+                              </label>
+
+                              <button
+                                onClick={() => handleSaveRoom(room.id)}
+                                className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-black shadow-md hover:brightness-110 transition-all cursor-pointer"
+                              >
+                                Save Room Credentials
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Registered Squads in this Room */}
+                        <div className="mt-3">
+                          <span className="text-[11px] font-bold text-slate-400 block mb-2">
+                            Assigned Squads ({participants.length}):
+                          </span>
+                          {participants.length === 0 ? (
+                            <span className="text-xs text-slate-500 italic block py-2">
+                              No squads assigned to this room yet. Auto-assigned sequentially on registration.
+                            </span>
+                          ) : (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                              {participants.map((p: any, pIdx: number) => (
+                                <div
+                                  key={p.id || pIdx}
+                                  className="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-left space-y-1 text-xs"
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-mono text-[9px] text-purple-400 font-bold">
+                                      SLOT #{p.slotNumber || pIdx + 1}
+                                    </span>
+                                  </div>
+                                  <div className="font-bold text-white truncate">{p.squadName}</div>
+                                  {p.iglName && (
+                                    <div className="text-[10px] text-slate-400 font-mono truncate">
+                                      IGL: {p.iglName}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            ) : (
+              /* TAB 2: QUALIFIER ADVANCEMENT TOOL (Format A) */
+              <div className="mt-4 space-y-4">
+                <div className="p-4 rounded-2xl bg-purple-950/40 border border-purple-800/80 flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                      <Trophy className="w-4 h-4 text-purple-400" />
+                      <span>Format A: Select Advancing Squads for Final Room</span>
+                    </h3>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      Check the winning/qualifying squads from each room below, then click &quot;Advance to Final Room&quot; to auto-populate the Championship Final roster.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleAdvanceSelectedSquads}
+                    disabled={isAdvancing || selectedAdvancingIds.length === 0}
+                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 text-white text-xs font-black shadow-md transition-all disabled:opacity-50 flex items-center gap-1.5 cursor-pointer shrink-0"
+                  >
+                    {isAdvancing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Award className="w-4 h-4" />}
+                    <span>Advance Selected ({selectedAdvancingIds.length}) to Final</span>
+                  </button>
+                </div>
+
+                {/* Squads Selector Table */}
+                <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/50">
+                  <table className="min-w-full text-left text-xs">
+                    <thead className="bg-slate-900 text-slate-400 uppercase font-bold border-b border-slate-800">
+                      <tr>
+                        <th className="px-4 py-3 w-12 text-center">Select</th>
+                        <th className="px-4 py-3">Source Room</th>
+                        <th className="px-4 py-3">Squad Name</th>
+                        <th className="px-4 py-3">IGL</th>
+                        <th className="px-4 py-3">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/80">
+                      {tournamentRooms
+                        .filter(r => r.roomType !== 'FINAL')
+                        .flatMap(r => ((r as any).participants || []).map((p: any) => ({ ...p, roomLabel: r.roomLabel, roomId: r.id })))
+                        .map((squad: any) => {
+                          const isSelected = selectedAdvancingIds.includes(squad.id);
+                          const isAlreadyAdv = roomQualifiers.some(q => q.participantId === squad.id && q.advancedToFinal);
+
+                          return (
+                            <tr key={squad.id} className="hover:bg-slate-900/80 transition-colors">
+                              <td className="px-4 py-3 text-center">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected || isAlreadyAdv}
+                                  disabled={isAlreadyAdv}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setSelectedAdvancingIds(prev => [...prev, squad.id]);
+                                    } else {
+                                      setSelectedAdvancingIds(prev => prev.filter(id => id !== squad.id));
+                                    }
+                                  }}
+                                  className="accent-purple-600 rounded cursor-pointer"
+                                />
+                              </td>
+                              <td className="px-4 py-3 font-mono font-bold text-purple-400">
+                                Room {squad.roomLabel}
+                              </td>
+                              <td className="px-4 py-3 font-bold text-white">
+                                {squad.squadName}
+                              </td>
+                              <td className="px-4 py-3 text-slate-400 font-mono">
+                                {squad.iglName || 'N/A'}
+                              </td>
+                              <td className="px-4 py-3">
+                                {isAlreadyAdv ? (
+                                  <span className="px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800 font-bold text-[10px]">
+                                    🏆 In Final Room
+                                  </span>
+                                ) : isSelected ? (
+                                  <span className="px-2 py-0.5 rounded-full bg-purple-950 text-purple-300 border border-purple-700 font-bold text-[10px]">
+                                    Selected to Advance
+                                  </span>
+                                ) : (
+                                  <span className="text-slate-500 text-[10px]">
+                                    Qualifier Participant
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

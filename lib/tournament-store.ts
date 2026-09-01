@@ -77,6 +77,10 @@ function serializeTournament(record: Record<string, any>): Tournament {
     ),
     mode: (record.mode as Tournament['mode']) || 'SQUAD',
     format: (record.format as Tournament['format']) || 'BR_RANKED',
+    tournamentBatchFormat: (record.tournamentBatchFormat as Tournament['tournamentBatchFormat']) || 'SINGLE_ROOM',
+    roomCapacity: record.roomCapacity ? Number(record.roomCapacity) : 12,
+    maxRooms: record.maxRooms ? Number(record.maxRooms) : undefined,
+    defaultAdvancementCount: record.defaultAdvancementCount ? Number(record.defaultAdvancementCount) : 3,
     entryFee: Number(record.entryFee || 0),
     prizePool: Number(record.prizePool || 0),
     firstPrize: Number(record.firstPrize || 0),
@@ -215,6 +219,10 @@ export async function createTournamentInDb(input: Record<string, any>) {
     galleryImages: JSON.stringify(parseGalleryImages(input.galleryImages)),
     mode: input.mode || 'SQUAD',
     format: input.format || 'BR_RANKED',
+    tournamentBatchFormat: input.tournamentBatchFormat || 'SINGLE_ROOM',
+    roomCapacity: input.roomCapacity ? Number(input.roomCapacity) : 12,
+    maxRooms: input.maxRooms ? Number(input.maxRooms) : null,
+    defaultAdvancementCount: input.defaultAdvancementCount ? Number(input.defaultAdvancementCount) : 3,
     entryFee: Number(input.entryFee || 0),
     prizePool: Number(input.prizePool || 0),
     firstPrize: Number(input.firstPrize || 0),
@@ -301,6 +309,10 @@ export async function updateTournamentInDb(id: string, input: Record<string, any
   if (input.galleryImages !== undefined) updateData.galleryImages = JSON.stringify(parseGalleryImages(input.galleryImages));
   if (input.mode !== undefined) updateData.mode = input.mode;
   if (input.format !== undefined) updateData.format = input.format;
+  if (input.tournamentBatchFormat !== undefined) updateData.tournamentBatchFormat = input.tournamentBatchFormat;
+  if (input.roomCapacity !== undefined) updateData.roomCapacity = Number(input.roomCapacity);
+  if (input.maxRooms !== undefined) updateData.maxRooms = input.maxRooms !== null && input.maxRooms !== '' ? Number(input.maxRooms) : null;
+  if (input.defaultAdvancementCount !== undefined) updateData.defaultAdvancementCount = Number(input.defaultAdvancementCount);
   if (input.entryFee !== undefined) updateData.entryFee = Number(input.entryFee);
   if (input.prizePool !== undefined) updateData.prizePool = Number(input.prizePool);
   if (input.firstPrize !== undefined) updateData.firstPrize = Number(input.firstPrize);
