@@ -159,12 +159,13 @@ async function connectToWhatsApp() {
       reconnectAttempts = 0;
       app.locals.latestQr = null;
 
-      // Auto-fetch groups on connect
+      // Auto-fetch groups & channels on connect
       try {
         await refreshGroupsCache();
+        await refreshChannelsCache();
         console.log(`📋 Cached ${connectedGroups.length} group(s) and ${connectedChannels.length} channel(s).`);
       } catch (err) {
-        console.warn('⚠️ Could not prefetch groups:', err.message);
+        console.warn('⚠️ Could not prefetch groups/channels:', err.message);
       }
     }
   });
@@ -210,25 +211,21 @@ async function connectToWhatsApp() {
       if (msg.key?.id) {
         storeMessage(msg.key.id, msg.message);
       }
-      // 1. Ignore own outgoing messages
-      if (msg.key?.fromMe) continue;
 
       const jid = msg.key?.remoteJid || '';
       const isNewsletter = jid.endsWith('@newsletter') || jid.endsWith('@broadcast') || jid.includes('newsletter');
 
-      // Auto-cache discovered newsletter into channels cache
-      if (isNewsletter && !connectedChannels.find((c) => c.id === jid)) {
-        connectedChannels.push({
-          id: jid,
-          name: 'WhatsApp Channel',
-          discoveredAt: new Date().toISOString(),
-        });
+      // Auto-cache discovered newsletter into channels cache & MongoDB
+      if (isNewsletter) {
+        let detectedName = msg.pushName || 'WhatsApp Channel';
+        if (msg.message?.extendedTextMessage?.contextInfo?.externalAdReply?.title) {
+          detectedName = msg.message.extendedTextMessage.contextInfo.externalAdReply.title;
+        }
+        await saveChannelToDb(jid, detectedName);
       }
 
-      // 2. Load dynamic forwarder settings
-      const forwarderConfig = await getDynamicForwarderConfig();
-      const isEnabled = forwarderConfig?.enabled ?? !!SOURCE_CHANNEL_JID;
-      if (!isEnabled) continue;
+      // Ignore regular chats fromMe, but ALLOW channel (@newsletter) messages even if fromMe!
+      if (msg.key?.fromMe && !isNewsletter) continue;
 
       const configuredChannel = (forwarderConfig?.sourceChannelId || SOURCE_CHANNEL_JID || '').trim();
       const channelInviteCode = configuredChannel.includes('whatsapp.com/channel/')
@@ -421,6 +418,71 @@ async function refreshGroupsCache() {
   }));
 
   return connectedGroups;
+}
+
+// ─── Channels Cache & MongoDB Persistence ────────────────────────────────────
+async function loadChannelsFromDb() {
+  try {
+    if (mongoose.connection && mongoose.connection.db) {
+      const list = await mongoose.connection.db.collection('whatsapp_channels').find({}).toArray();
+      if (list && list.length > 0) {
+        for (const c of list) {
+          const id = c._id || c.id;
+          if (id && !connectedChannels.find((x) => x.id === id)) {
+            connectedChannels.push({
+              id,
+              name: c.name || 'WhatsApp Channel',
+              discoveredAt: c.discoveredAt || new Date().toISOString(),
+            });
+          }
+        }
+      }
+    }
+  } catch (e) {}
+}
+
+async function saveChannelToDb(id, name) {
+  try {
+    if (!id) return;
+    const existing = connectedChannels.find((c) => c.id === id);
+    if (!existing) {
+      connectedChannels.push({ id, name: name || 'WhatsApp Channel', discoveredAt: new Date().toISOString() });
+    } else if (name && name !== 'WhatsApp Channel' && existing.name === 'WhatsApp Channel') {
+      existing.name = name;
+    }
+    if (mongoose.connection && mongoose.connection.db) {
+      await mongoose.connection.db.collection('whatsapp_channels').updateOne(
+        { _id: id },
+        {
+          $set: { _id: id, id, name: name || 'WhatsApp Channel', updatedAt: new Date().toISOString() },
+          $setOnInsert: { discoveredAt: new Date().toISOString() },
+        },
+        { upsert: true }
+      );
+    }
+  } catch (e) {}
+}
+
+async function refreshChannelsCache() {
+  if (!sock || !isConnected) return connectedChannels;
+  try {
+    if (typeof sock.newsletterSubscribed === 'function') {
+      const list = await sock.newsletterSubscribed();
+      if (Array.isArray(list)) {
+        for (const item of list) {
+          const jid = item.id || item.jid;
+          const name = item.name || item.subject || item.thread_metadata?.name?.text || 'WhatsApp Channel';
+          if (jid) {
+            await saveChannelToDb(jid, name);
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('⚠️ newsletterSubscribed check:', e.message);
+  }
+  await loadChannelsFromDb();
+  return connectedChannels;
 }
 
 // ─── Scheduled Message Cron (every minute) ───────────────────────────────────
@@ -818,17 +880,19 @@ app.get('/api/get-channels', requireApiSecret, async (req, res) => {
   }
 
   try {
-    // Baileys doesn't expose a direct getChannels API yet.
-    // We return what we've collected from message events + SOURCE_CHANNEL_JID env
-    const channels = [...connectedChannels];
-    if (SOURCE_CHANNEL_JID && !channels.find((c) => c.id === SOURCE_CHANNEL_JID)) {
-      channels.push({
-        id: SOURCE_CHANNEL_JID,
-        name: 'Configured Source Channel',
+    await refreshChannelsCache();
+
+    const forwarderConfig = await getDynamicForwarderConfig();
+    const configuredChannel = (forwarderConfig?.sourceChannelId || SOURCE_CHANNEL_JID || '').trim();
+    if (configuredChannel && !connectedChannels.find((c) => c.id === configuredChannel)) {
+      connectedChannels.push({
+        id: configuredChannel,
+        name: forwarderConfig?.sourceChannelName || 'Configured Source Channel',
         isSource: true,
       });
     }
-    res.json({ success: true, channels, total: channels.length });
+
+    res.json({ success: true, channels: connectedChannels, total: connectedChannels.length });
   } catch (error) {
     console.error('❌ Get channels error:', error.message);
     res.status(500).json({ success: false, error: error.message, channels: [] });
@@ -857,6 +921,7 @@ app.post('/api/resolve-channel', requireApiSecret, async (req, res) => {
     if (sock.newsletterMetadata) {
       const meta = await sock.newsletterMetadata('invite', inviteCode);
       if (meta?.id) {
+        await saveChannelToDb(meta.id, meta.name || 'WhatsApp Channel');
         return res.json({
           success: true,
           channel: {
@@ -870,10 +935,12 @@ app.post('/api/resolve-channel', requireApiSecret, async (req, res) => {
     }
 
     // Fallback if metadata not available
+    const fallbackId = inviteCode.endsWith('@newsletter') ? inviteCode : `${inviteCode}@newsletter`;
+    await saveChannelToDb(fallbackId, 'Official WhatsApp Channel');
     return res.json({
       success: true,
       channel: {
-        id: `${inviteCode}@newsletter`,
+        id: fallbackId,
         name: 'Official WhatsApp Channel',
       },
     });
