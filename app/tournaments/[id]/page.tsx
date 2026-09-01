@@ -226,7 +226,8 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
   const isGiveawayTournament = Boolean(
     tournament?.isGiveaway || 
     tournament?.requiresFullSquad || 
-    (tournament?.title && tournament.title.toLowerCase().includes('giveaway'))
+    (Number(tournament?.entryFee) === 0 && (!tournament?.coinEntryFee || Number(tournament?.coinEntryFee) === 0)) ||
+    (tournament?.title && (tournament.title.toLowerCase().includes('giveaway') || tournament.title.toLowerCase().includes('free')))
   );
 
   const eligibleSquads = useMemo(() => {
@@ -480,6 +481,10 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
       showToast('⚠️ এই ট্যুরনামেন্টের রেজিস্ট্রেশন বন্ধ রয়েছে।');
       return;
     }
+    if (isJoined && isGiveawayTournament) {
+      showToast('⚠️ Giveaway টুর্নামেন্টে প্রতি ইউজারের জন্য শুধুমাত্র ১টি টিম রেজিস্ট্রেশনের অনুমতি রয়েছে।');
+      return;
+    }
 
     let user = currentUser;
     if (!user) {
@@ -578,6 +583,11 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
     }
 
     if (!user) return;
+
+    if (isJoined && isGiveawayTournament) {
+      setSubmitError('Giveaway টুর্নামেন্টে ইতিমধ্যে আপনার ১টি টিম রেজিস্টার করা আছে। একাধিক টিম রেজিস্টার করা যাবে না।');
+      return;
+    }
 
     setSubmitError('');
     setFieldErrors({});
@@ -762,13 +772,29 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
               </button>
             ) : isFull ? (
               <button className="px-7 py-3.5 sm:px-8 sm:py-4 rounded-2xl bg-slate-200 text-slate-500 font-heading font-bold text-sm sm:text-base cursor-not-allowed">SLOTS FULL</button>
+            ) : isJoined && isGiveawayTournament ? (
+              <button
+                disabled
+                className="px-7 py-3.5 sm:px-8 sm:py-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white font-heading font-black text-sm sm:text-base shadow-neon-cyan flex items-center space-x-2.5 cursor-default opacity-95"
+              >
+                <Check className="w-5 h-5 sm:w-6 sm:h-6" />
+                <span>ALREADY REGISTERED (1 SQUAD LIMIT)</span>
+              </button>
+            ) : isJoined ? (
+              <button
+                onClick={openJoinModal}
+                className="px-7 py-3.5 sm:px-8 sm:py-4 rounded-2xl text-white font-heading font-black text-sm sm:text-base shadow-neon-cyan hover:scale-105 active:scale-95 transition-all flex items-center space-x-2.5 cursor-pointer bg-gradient-to-r from-green-600 to-emerald-600"
+              >
+                <Check className="w-5 h-5 sm:w-6 sm:h-6" />
+                <span>REGISTER ANOTHER SQUAD (৳{tournament.entryFee})</span>
+              </button>
             ) : (
               <button
                 onClick={openJoinModal}
-                className={`px-7 py-3.5 sm:px-8 sm:py-4 rounded-2xl text-white font-heading font-black text-sm sm:text-base shadow-neon-red hover:scale-105 active:scale-95 transition-all flex items-center space-x-2.5 cursor-pointer ${isJoined ? 'bg-gradient-to-r from-green-600 to-emerald-600 shadow-neon-cyan' : 'bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold'}`}
+                className="px-7 py-3.5 sm:px-8 sm:py-4 rounded-2xl text-white font-heading font-black text-sm sm:text-base shadow-neon-red hover:scale-105 active:scale-95 transition-all flex items-center space-x-2.5 cursor-pointer bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold"
               >
-                {isJoined ? <Check className="w-5 h-5 sm:w-6 sm:h-6" /> : <Trophy className="w-5 h-5 sm:w-6 sm:h-6" />}
-                <span>{isJoined ? 'REGISTER ANOTHER SQUAD' : 'JOIN'} (৳{tournament.entryFee})</span>
+                <Trophy className="w-5 h-5 sm:w-6 sm:h-6" />
+                <span>JOIN (৳{tournament.entryFee})</span>
               </button>
             )}
           </div>

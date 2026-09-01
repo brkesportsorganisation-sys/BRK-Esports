@@ -116,8 +116,31 @@ export async function POST(
     }
 
     // Giveaway & Full Squad Verification
-    const isGiveawayTournament = Boolean(tournament.isGiveaway || tournament.requiresFullSquad || (tournament.title && tournament.title.toLowerCase().includes('giveaway')));
+    const isGiveawayTournament = Boolean(
+      tournament.isGiveaway || 
+      tournament.requiresFullSquad || 
+      (Number(tournament.entryFee) === 0 && (!tournament.coinEntryFee || Number(tournament.coinEntryFee) === 0)) ||
+      (tournament.title && (tournament.title.toLowerCase().includes('giveaway') || tournament.title.toLowerCase().includes('free')))
+    );
+
     if (isGiveawayTournament) {
+      // 1. Check if user has already registered a team in this giveaway tournament
+      const { data: existingUserReg } = await supabaseAdmin
+        .from('Participant')
+        .select('id, squadName')
+        .eq('tournamentId', tournamentId)
+        .eq('userId', userId)
+        .maybeSingle();
+
+      if (existingUserReg) {
+        return NextResponse.json({
+          message: 'Giveaway tournaments allow only 1 team registration per user. You have already registered for this tournament.',
+          code: 'ALREADY_REGISTERED_GIVEAWAY',
+          errors: { squadName: 'Giveaway টুর্নামেন্টে ইতিমধ্যে আপনার ১টি টিম রেজিস্টার করা আছে। একাধিক টিম রেজিস্টার করা যাবে না।' }
+        }, { status: 400 });
+      }
+
+      // 2. Full official squad verification
       const allSquads = await getSquads();
       const userSquad = allSquads.find((s: any) => 
         (s.name?.trim().toLowerCase() === squadName.trim().toLowerCase() || s.id === body.squadId) &&
