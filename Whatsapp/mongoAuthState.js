@@ -64,45 +64,76 @@ async function useMongoAuthState() {
     );
   }
 
+  const keyCache = new Map();
+
   const keys = {
     get: async (type, ids) => {
       const result = {};
-      await Promise.all(
-        ids.map(async (id) => {
-          const doc = await Session.findById(docId(type, id)).lean();
-          if (doc?.data) {
-            let value = deserialize(doc.data);
-            // Signal-specific: pre-key objects need the type hint
-            if (type === 'app-state-sync-key' && value) {
-              value = proto.Message.AppStateSyncKeyData.fromObject(value);
+      const missingIds = [];
+
+      for (const id of ids) {
+        const cacheKey = docId(type, id);
+        if (keyCache.has(cacheKey)) {
+          result[id] = keyCache.get(cacheKey);
+        } else {
+          missingIds.push(id);
+        }
+      }
+
+      if (missingIds.length > 0) {
+        await Promise.all(
+          missingIds.map(async (id) => {
+            const cacheKey = docId(type, id);
+            const doc = await Session.findById(cacheKey).lean();
+            if (doc?.data) {
+              try {
+                let value = deserialize(doc.data);
+                if (type === 'app-state-sync-key' && value) {
+                  value = proto.Message.AppStateSyncKeyData.fromObject(value);
+                }
+                keyCache.set(cacheKey, value);
+                result[id] = value;
+              } catch (e) {
+                // Ignore corrupt key
+              }
             }
-            result[id] = value;
-          }
-        })
-      );
+          })
+        );
+      }
       return result;
     },
 
     set: async (data) => {
-      const ops = [];
+      const bulkOps = [];
       for (const [type, ids] of Object.entries(data)) {
         for (const [id, value] of Object.entries(ids || {})) {
           const _id = docId(type, id);
           if (value) {
-            ops.push(
-              Session.findOneAndUpdate(
-                { _id },
-                { _id, data: serialize(value) },
-                { upsert: true }
-              )
-            );
+            keyCache.set(_id, value);
+            bulkOps.push({
+              updateOne: {
+                filter: { _id },
+                update: { $set: { data: serialize(value) } },
+                upsert: true,
+              },
+            });
           } else {
-            // null value means delete the key
-            ops.push(Session.deleteOne({ _id }));
+            keyCache.delete(_id);
+            bulkOps.push({
+              deleteOne: {
+                filter: { _id },
+              },
+            });
           }
         }
       }
-      await Promise.all(ops);
+      if (bulkOps.length > 0) {
+        try {
+          await Session.bulkWrite(bulkOps, { ordered: false });
+        } catch (err) {
+          // Ignore duplicate upsert race conditions
+        }
+      }
     },
   };
 

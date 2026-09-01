@@ -66,6 +66,29 @@ let connectedGroups = []; // Cache of groups after connect
 let connectedChannels = []; // Cache of channels after connect
 const recentForwardedMsgIds = new Map(); // Anti-duplicate deduplication map (id -> timestamp)
 
+// ─── In-Memory Store for Baileys Signal Key Exchanges & Retry Handshakes ─────
+// Fixes "Waiting for this message. This may take a while."
+const messageStore = new Map();
+const msgRetryCounterCache = new Map();
+
+function storeMessage(id, message) {
+  if (!id || !message) return;
+  messageStore.set(id, message);
+  if (messageStore.size > 3000) {
+    const firstKey = messageStore.keys().next().value;
+    messageStore.delete(firstKey);
+  }
+}
+
+async function sendWaMessage(jid, content, options = {}) {
+  if (!sock) throw new Error('WhatsApp socket not initialized');
+  const result = await sock.sendMessage(jid, content, options);
+  if (result?.key?.id && result?.message) {
+    storeMessage(result.key.id, result.message);
+  }
+  return result;
+}
+
 // ─── Auth Middleware ──────────────────────────────────────────────────────────
 function requireApiSecret(req, res, next) {
   const provided = req.headers['x-api-secret'];
@@ -86,9 +109,17 @@ async function connectToWhatsApp() {
     version,
     auth: state,
     printQRInTerminal: true,
-    browser: ['Chrome (Windows)', 'Chrome', '120.0.0'],
+    browser: ['Blackrock Esports (Windows)', 'Chrome', '122.0.0'],
     generateHighQualityLinkPreview: true,
     syncFullHistory: false,
+    markOnlineOnConnect: true,
+    msgRetryCounterCache,
+    getMessage: async (key) => {
+      if (key?.id && messageStore.has(key.id)) {
+        return messageStore.get(key.id);
+      }
+      return undefined;
+    },
     connectTimeoutMs: 60000,
     defaultQueryTimeoutMs: 60000,
     keepAliveIntervalMs: 25000,
@@ -176,6 +207,9 @@ async function connectToWhatsApp() {
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
     for (const msg of (messages || [])) {
       if (!msg || !msg.message) continue;
+      if (msg.key?.id) {
+        storeMessage(msg.key.id, msg.message);
+      }
       // 1. Ignore own outgoing messages
       if (msg.key?.fromMe) continue;
 
@@ -342,24 +376,24 @@ async function connectToWhatsApp() {
           const groupName = matchedGroup?.name || groupJid;
 
           if (mediaBuffer && mediaType === 'image') {
-            await sock.sendMessage(groupJid, {
+            await sendWaMessage(groupJid, {
               image: mediaBuffer,
               caption: finalMsg,
             });
           } else if (mediaBuffer && mediaType === 'video') {
-            await sock.sendMessage(groupJid, {
+            await sendWaMessage(groupJid, {
               video: mediaBuffer,
               caption: finalMsg,
             });
           } else if (mediaBuffer && mediaType === 'document') {
-            await sock.sendMessage(groupJid, {
+            await sendWaMessage(groupJid, {
               document: mediaBuffer,
               caption: finalMsg,
               mimetype: msgObj?.documentMessage?.mimetype || 'application/pdf',
               fileName: msgObj?.documentMessage?.fileName || 'document.pdf',
             });
           } else {
-            await sock.sendMessage(groupJid, { text: finalMsg });
+            await sendWaMessage(groupJid, { text: finalMsg });
           }
 
           console.log(`✅ [Auto-Forwarded to ${groupName} (${groupJid})]`);
@@ -430,7 +464,7 @@ cron.schedule('* * * * *', async () => {
 
       for (const groupJid of item.groupJids) {
         try {
-          await sock.sendMessage(groupJid, { text: item.message });
+          await sendWaMessage(groupJid, { text: item.message });
           console.log(`⏰ Cron message sent to: ${groupJid}`);
           await new Promise((res) => setTimeout(res, 2000));
         } catch (sendErr) {
@@ -560,13 +594,13 @@ app.post('/api/schedule-message', requireApiSecret, async (req, res) => {
 
           if (isValidImageUrl) {
             try {
-              await sock.sendMessage(groupJid, { image: { url: imageUrl }, caption: message });
+              await sendWaMessage(groupJid, { image: { url: imageUrl }, caption: message });
             } catch (imgErr) {
               console.warn(`⚠️ Group image send failed (${imgErr.message}), falling back to text: ${groupJid}`);
-              await sock.sendMessage(groupJid, { text: message });
+              await sendWaMessage(groupJid, { text: message });
             }
           } else {
-            await sock.sendMessage(groupJid, { text: message });
+            await sendWaMessage(groupJid, { text: message });
           }
           sentJids.push(groupJid);
           console.log(`✅ Message sent to group: ${groupJid}`);
@@ -730,19 +764,19 @@ app.post('/api/send-direct', requireApiSecret, async (req, res) => {
     if (isValidImageUrl) {
       try {
         // Send image with caption
-        sendResult = await sock.sendMessage(waJid, {
+        sendResult = await sendWaMessage(waJid, {
           image: { url: imageUrl },
           caption: message,
         });
         console.log(`✅ Image+message sent to: ${waJid}`);
       } catch (imgErr) {
         console.warn(`⚠️ Image send failed (${imgErr.message}), falling back to text: ${waJid}`);
-        sendResult = await sock.sendMessage(waJid, { text: message });
+        sendResult = await sendWaMessage(waJid, { text: message });
         console.log(`✅ Text-only fallback sent to: ${waJid}`);
       }
     } else {
       // Send text only
-      sendResult = await sock.sendMessage(waJid, { text: message });
+      sendResult = await sendWaMessage(waJid, { text: message });
       console.log(`✅ Message sent to: ${waJid}`);
     }
 
@@ -882,9 +916,9 @@ app.post('/api/forward-channel', requireApiSecret, async (req, res) => {
     for (const groupJid of targets) {
       try {
         if (imageUrl && /^https?:\/\//i.test(imageUrl)) {
-          await sock.sendMessage(groupJid, { image: { url: imageUrl }, caption: fullText });
+          await sendWaMessage(groupJid, { image: { url: imageUrl }, caption: fullText });
         } else {
-          await sock.sendMessage(groupJid, { text: fullText });
+          await sendWaMessage(groupJid, { text: fullText });
         }
         sentJids.push(groupJid);
         console.log(`✅ [Manual Channel Forward to ${groupJid}]`);
