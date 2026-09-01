@@ -550,6 +550,26 @@ app.get('/', (req, res) => {
     whatsappConnected: isConnected,
     hasApiSecret: !!process.env.API_SECRET,
     groupsCached: connectedGroups.length,
+    channelsCached: connectedChannels.length,
+  });
+});
+
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    whatsappConnected: isConnected,
+    groups: connectedGroups.length,
+    channels: connectedChannels.length,
+  });
+});
+
+app.get('/api/get-status', (req, res) => {
+  res.json({
+    success: true,
+    isConnected,
+    groupsCount: connectedGroups.length,
+    channelsCount: connectedChannels.length,
+    channels: connectedChannels,
   });
 });
 
