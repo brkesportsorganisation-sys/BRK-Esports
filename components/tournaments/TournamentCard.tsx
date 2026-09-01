@@ -44,11 +44,11 @@ export default function TournamentCard({ tournament, priority = false }: Tournam
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
 
-  const registeredCount = tournament.registeredCount || 0;
+  const effectiveRegisteredCount = Math.max(tournament.registeredCount || 0, participants.length);
   const maxSlots = tournament.maxTeams || 12;
-  const isFull = registeredCount >= maxSlots;
+  const isFull = effectiveRegisteredCount >= maxSlots;
   const isFree = tournament.entryFee === 0 && (!tournament.coinEntryFee || tournament.coinEntryFee === 0);
-  const percentFilled = Math.min(100, Math.round((registeredCount / maxSlots) * 100));
+  const percentFilled = Math.min(100, Math.round((effectiveRegisteredCount / maxSlots) * 100));
 
   const currentStatus = getDynamicTournamentStatus(tournament);
   const isLive = currentStatus === 'LIVE';
@@ -231,7 +231,7 @@ export default function TournamentCard({ tournament, priority = false }: Tournam
           {/* Slots & Progress Bar */}
           <div className="space-y-1">
             <div className="flex items-center justify-between text-[11px] sm:text-xs font-bold text-slate-600">
-              <span>Joined: <strong className="text-slate-900">{registeredCount}</strong></span>
+              <span>Joined: <strong className="text-slate-900">{effectiveRegisteredCount}</strong></span>
               <span>Slots: <strong className="text-slate-900">{maxSlots}</strong></span>
             </div>
             <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200/80">
@@ -355,7 +355,7 @@ export default function TournamentCard({ tournament, priority = false }: Tournam
                       <span className="text-brand-orange">SLOT LIST</span>
                     </h3>
                     <p className="text-xs text-slate-500 font-semibold">
-                      {registeredCount} of {maxSlots} slots occupied
+                      {effectiveRegisteredCount} of {maxSlots} slots occupied
                     </p>
                   </div>
 
