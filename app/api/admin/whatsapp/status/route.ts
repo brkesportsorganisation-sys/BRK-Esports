@@ -18,75 +18,53 @@ export async function GET() {
   try {
     const settings = await getWhatsAppSettings();
 
-    // 1. Node Bot Status Check
-    const nodeBotUrl = settings.nodeBotUrl || process.env.WHATSAPP_BOT_URL || '';
-    if (settings.provider === 'NODE_BOT' && nodeBotUrl) {
+    // 1. Live WhatsApp Bot Status Check (for DIRECT_QR and NODE_BOT)
+    const nodeBotUrl = settings.nodeBotUrl || process.env.WHATSAPP_BOT_URL || 'https://ezbd.onrender.com';
+    if ((settings.provider === 'NODE_BOT' || settings.provider === 'DIRECT_QR') && nodeBotUrl) {
       try {
         const host = nodeBotUrl.replace(/\/+$/, '');
 
         const res = await fetch(`${host}/`, {
-          signal: AbortSignal.timeout(5000),
+          signal: AbortSignal.timeout(6000),
         });
         const json = await res.json().catch(() => ({}));
         const isConnected = json.whatsappConnected === true;
 
         return NextResponse.json({
           connected: isConnected,
-          provider: 'NODE_BOT',
+          provider: settings.provider,
           statusText: isConnected ? 'CONNECTED' : 'DISCONNECTED',
+          groupsCount: json.groupsCached || 0,
+          channelsCount: json.channelsCached || 0,
           account: {
-            projectName: 'ESPORTS ZONE BD (Node Bot)',
-            teamName: 'WhatsApp Render Bot',
+            projectName: 'ESPORTS ZONE BD (WhatsApp Bot)',
+            teamName: isConnected ? 'Live Connected' : 'Waiting for QR Scan',
             instanceId: 'bot_01',
           },
           senders: [
             {
               id: 'node_bot_01',
-              name: 'WhatsApp Bot',
-              phoneNumber: 'Auto-Forwarder',
+              name: 'WhatsApp Account',
+              phoneNumber: isConnected ? 'Linked Device Active' : 'Disconnected',
               isDefault: true,
             },
           ],
           activeSender: {
             id: 'node_bot_01',
-            name: 'WhatsApp Bot',
-            phoneNumber: 'Auto-Forwarder',
+            name: 'WhatsApp Account',
+            phoneNumber: isConnected ? 'Linked Device Active' : 'Disconnected',
           },
         });
       } catch (err: any) {
-        console.warn('[Node Bot Status Check Error]', err?.message);
+        console.warn('[WhatsApp Bot Status Check Error]', err?.message);
         return NextResponse.json({
           connected: false,
-          provider: 'NODE_BOT',
+          provider: settings.provider,
           statusText: 'OFFLINE',
-          error: 'Could not connect to Node Bot API. Is Render app sleeping?',
+          error: 'Could not connect to WhatsApp Bot server. Is Render app starting up?',
         });
       }
     }
-
-    // 2. Direct QR Mode (Default UI mode)
-    return NextResponse.json({
-      connected: true,
-      provider: 'DIRECT_QR',
-      statusText: 'MANUAL_MODE',
-      account: {
-        projectName: 'Direct QR (Manual)',
-        teamName: 'Local Phone',
-      },
-      senders: [
-        {
-          id: 'direct_qr',
-          name: 'Direct WhatsApp Web',
-          phoneNumber: 'Your Phone',
-          isDefault: true,
-        },
-      ],
-      activeSender: {
-        id: 'direct_qr',
-        name: 'Direct WhatsApp Web',
-        phoneNumber: 'Your Phone',
-      },
-    });
 
   } catch (error: any) {
     console.error('[GET /api/admin/whatsapp/status]', error);

@@ -80,13 +80,22 @@ function storeMessage(id, message) {
   }
 }
 
-async function sendWaMessage(jid, content, options = {}) {
+async function sendWaMessage(jid, content, options = {}, attempt = 1) {
   if (!sock) throw new Error('WhatsApp socket not initialized');
-  const result = await sock.sendMessage(jid, content, options);
-  if (result?.key?.id && result?.message) {
-    storeMessage(result.key.id, result.message);
+  try {
+    const result = await sock.sendMessage(jid, content, options);
+    if (result?.key?.id && result?.message) {
+      storeMessage(result.key.id, result.message);
+    }
+    return result;
+  } catch (err) {
+    if (attempt < 2) {
+      console.warn(`⚠️ [sendWaMessage] Attempt ${attempt} failed for ${jid} (${err.message}). Retrying in 1.2s...`);
+      await new Promise((r) => setTimeout(r, 1200));
+      return sendWaMessage(jid, content, options, attempt + 1);
+    }
+    throw err;
   }
-  return result;
 }
 
 // ─── Auth Middleware ──────────────────────────────────────────────────────────
@@ -486,56 +495,215 @@ async function refreshChannelsCache() {
 }
 
 // ─── Scheduled Message Cron (every minute) ───────────────────────────────────
+function calculateServerNextRunTime(schedule) {
+  const now = new Date();
+  const nowMs = now.getTime();
+
+  if (schedule.frequency === 'ONCE') {
+    return null;
+  }
+
+  if (schedule.frequency === 'DAILY') {
+    const timeStr = schedule.scheduledTime || '20:00';
+    const [targetH, targetM] = timeStr.split(':').map(Number);
+    const bdTimeMs = nowMs + 6 * 60 * 60 * 1000;
+    const bdDateObj = new Date(bdTimeMs);
+
+    const bdYear = bdDateObj.getUTCFullYear();
+    const bdMonth = bdDateObj.getUTCMonth();
+    const bdDate = bdDateObj.getUTCDate();
+    const bdHours = bdDateObj.getUTCHours();
+    const bdMinutes = bdDateObj.getUTCMinutes();
+
+    let targetBdDate = new Date(Date.UTC(bdYear, bdMonth, bdDate, targetH || 0, targetM || 0, 0, 0));
+    const currentBdDate = new Date(Date.UTC(bdYear, bdMonth, bdDate, bdHours, bdMinutes, 0, 0));
+
+    if (targetBdDate.getTime() <= currentBdDate.getTime()) {
+      targetBdDate.setUTCDate(targetBdDate.getUTCDate() + 1);
+    }
+
+    const nextUtcMs = targetBdDate.getTime() - 6 * 60 * 60 * 1000;
+    return new Date(nextUtcMs).toISOString();
+  }
+
+  let intervalMs = 60 * 1000;
+  switch (schedule.frequency) {
+    case 'EVERY_1_MIN': intervalMs = 1 * 60 * 1000; break;
+    case 'EVERY_2_MIN': intervalMs = 2 * 60 * 1000; break;
+    case 'EVERY_5_MIN': intervalMs = 5 * 60 * 1000; break;
+    case 'EVERY_10_MIN': intervalMs = 10 * 60 * 1000; break;
+    case 'EVERY_15_MIN': intervalMs = 15 * 60 * 1000; break;
+    case 'EVERY_30_MIN': intervalMs = 30 * 60 * 1000; break;
+    case 'EVERY_1_HOUR': intervalMs = 60 * 60 * 1000; break;
+    case 'EVERY_2_HOURS': intervalMs = 120 * 60 * 1000; break;
+    case 'EVERY_6_HOURS': intervalMs = 360 * 60 * 1000; break;
+    case 'EVERY_12_HOURS': intervalMs = 720 * 60 * 1000; break;
+    case 'INTERVAL_MINUTES': intervalMs = Math.max(1, Number(schedule.intervalMinutes) || 60) * 60 * 1000; break;
+    default: intervalMs = 60 * 60 * 1000;
+  }
+
+  return new Date(nowMs + intervalMs).toISOString();
+}
+
 cron.schedule('* * * * *', async () => {
   if (!isConnected || !sock) return;
 
-  // 1. Trigger Next.js 24/7 automated scheduler runner
+  const now = new Date();
+  const nowIso = now.toISOString();
+
+  // 1. Trigger Next.js 24/7 automated scheduler runner via Webhook
   try {
-    const nextAppUrl = process.env.NEXT_APP_URL || 'https://www.esportszonebd.online';
+    const nextAppUrl = process.env.NEXT_APP_URL || 'https://esportszonebd.online';
     const cronSecret = process.env.CRON_SECRET || 'blackrock_secret_bot_key_2026';
     const cleanUrl = nextAppUrl.replace(/\/+$/, '');
     const res = await fetch(`${cleanUrl}/api/admin/whatsapp/cron?secret=${cronSecret}`, {
       headers: {
         Authorization: `Bearer ${cronSecret}`,
       },
-      signal: AbortSignal.timeout(25000),
+      signal: AbortSignal.timeout(20000),
     }).catch(() => null);
 
     if (res?.ok) {
       const data = await res.json().catch(() => ({}));
       if (data.executedCount > 0) {
-        console.log(`⏰ [24/7 Scheduler] Dispatched ${data.executedCount} due schedule(s)!`);
+        console.log(`⏰ [24/7 Next.js Scheduler] Dispatched ${data.executedCount} due schedule(s)!`);
       }
     }
   } catch (cronErr) {
     console.warn('⚠️ [Next.js Scheduler Trigger Error]:', cronErr.message);
   }
 
-  // 2. Process legacy local MongoDB queue if any
+  // 2. Direct MongoDB whatsapp_schedules Execution (Dual-Redundancy 24/7)
   try {
-    const now = new Date();
+    if (mongoose.connection && mongoose.connection.db) {
+      const schedulesCol = mongoose.connection.db.collection('whatsapp_schedules');
+      const dueSchedules = await schedulesCol.find({
+        $or: [{ status: 'ACTIVE' }, { isActive: true }],
+        nextRunAt: { $lte: nowIso },
+      }).toArray();
+
+      for (const sched of dueSchedules) {
+        try {
+          const currentRuns = sched.runCount || 0;
+          const maxRuns = sched.maxExecutions || 0;
+          const executionNum = currentRuns + 1;
+
+          if (maxRuns > 0 && currentRuns >= maxRuns) {
+            await schedulesCol.updateOne({ _id: sched._id }, { $set: { status: 'COMPLETED', isActive: false } });
+            continue;
+          }
+
+          // Resolve destinations
+          let groupTargets = [];
+          const dest = sched.targetDestination || '';
+          if (dest === 'ALL_GROUPS') {
+            if (connectedGroups.length === 0) await refreshGroupsCache();
+            groupTargets = connectedGroups.map(g => g.id);
+          } else if (dest.includes(',') || dest.includes(';') || dest.includes('\n')) {
+            const rawIds = dest.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
+            for (const rId of rawIds) {
+              const jid = await resolveWhatsAppJid(rId, sock);
+              if (jid && !groupTargets.includes(jid)) groupTargets.push(jid);
+            }
+          } else {
+            const jid = await resolveWhatsAppJid(dest, sock);
+            if (jid) groupTargets.push(jid);
+          }
+
+          if (groupTargets.length === 0) {
+            console.warn(`⚠️ [Cron Schedule ${sched.title || sched._id}] No valid group JIDs found. Skipping.`);
+            continue;
+          }
+
+          // Format message
+          let rawTemplate = sched.messageTemplate || '';
+          if (Array.isArray(sched.messagesSequence) && sched.messagesSequence.length > 0) {
+            const seqIdx = currentRuns % sched.messagesSequence.length;
+            rawTemplate = sched.messagesSequence[seqIdx] || sched.messageTemplate;
+          }
+
+          const nowTimeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+          const nowDateStr = now.toLocaleDateString('en-GB');
+          const remainingCount = maxRuns > 0 ? Math.max(0, maxRuns - executionNum) : 'Unlimited';
+
+          const formattedMessage = rawTemplate
+            .replace(/\{COUNT\}/g, String(executionNum))
+            .replace(/\{MAX_COUNT\}/g, maxRuns > 0 ? String(maxRuns) : 'Unlimited')
+            .replace(/\{REMAINING\}/g, String(remainingCount))
+            .replace(/\{TIME\}/g, nowTimeStr)
+            .replace(/\{DATE\}/g, nowDateStr)
+            .replace(/\{SITE_LINK\}/g, 'https://esportszonebd.online');
+
+          console.log(`⏰ [Direct DB Scheduler] Sending schedule "${sched.title || 'Auto Schedule'}" to ${groupTargets.length} group(s)...`);
+
+          let sentCount = 0;
+          for (let i = 0; i < groupTargets.length; i++) {
+            const targetJid = groupTargets[i];
+            try {
+              if (sched.imageUrl && /^https?:\/\//i.test(sched.imageUrl)) {
+                await sendWaMessage(targetJid, { image: { url: sched.imageUrl }, caption: formattedMessage });
+              } else {
+                await sendWaMessage(targetJid, { text: formattedMessage });
+              }
+              sentCount++;
+              console.log(`✅ [Schedule Message Sent] -> ${targetJid} (${sentCount}/${groupTargets.length})`);
+            } catch (sErr) {
+              console.error(`❌ [Schedule Message Failed] -> ${targetJid}:`, sErr.message);
+            }
+            if (i < groupTargets.length - 1) {
+              await new Promise(r => setTimeout(r, 1800));
+            }
+          }
+
+          const isDone = (sched.frequency === 'ONCE' && sentCount > 0) || (maxRuns > 0 && executionNum >= maxRuns && sentCount > 0);
+          const nextRun = isDone ? undefined : calculateServerNextRunTime(sched);
+
+          await schedulesCol.updateOne(
+            { _id: sched._id },
+            {
+              $set: {
+                runCount: sentCount > 0 ? executionNum : currentRuns,
+                lastRunAt: new Date().toISOString(),
+                nextRunAt: nextRun,
+                lastStatus: sentCount > 0 ? 'SUCCESS' : 'FAILED',
+                status: isDone ? 'COMPLETED' : (sched.status || 'ACTIVE'),
+                isActive: isDone ? false : (sched.isActive !== false),
+                updatedAt: new Date().toISOString(),
+              }
+            }
+          );
+        } catch (itemErr) {
+          console.error(`❌ Error executing schedule ${sched._id}:`, itemErr.message);
+        }
+      }
+    }
+  } catch (mongoCronErr) {
+    console.warn('⚠️ [Direct MongoDB Schedules Runner Error]:', mongoCronErr.message);
+  }
+
+  // 3. Process legacy local MongoDB queue if any
+  try {
     const pendingMessages = await ScheduledMessage.find({
       sendAt: { $lte: now },
       isSent: false,
     }).limit(5);
 
     for (const item of pendingMessages) {
-      // Mark as sent immediately to prevent loop if a single group fails
       item.isSent = true;
       await item.save();
 
       for (const groupJid of item.groupJids) {
         try {
           await sendWaMessage(groupJid, { text: item.message });
-          console.log(`⏰ Cron message sent to: ${groupJid}`);
-          await new Promise((res) => setTimeout(res, 2000));
+          console.log(`⏰ Legacy cron message sent to: ${groupJid}`);
+          await new Promise((res) => setTimeout(res, 1800));
         } catch (sendErr) {
-          console.error(`❌ Cron send failed for ${groupJid}:`, sendErr.message);
+          console.error(`❌ Legacy cron send failed for ${groupJid}:`, sendErr.message);
         }
       }
     }
   } catch (err) {
-    console.error('Cron job error:', err);
+    console.error('Legacy cron error:', err);
   }
 });
 
@@ -732,9 +900,12 @@ async function resolveWhatsAppJid(destination, socketInstance) {
   if (!destination) return null;
   let trimmed = destination.trim();
 
-  // If internal format like grp_120363426443362477_g_us
-  if (trimmed.startsWith('grp_') && trimmed.includes('_g_us')) {
-    trimmed = trimmed.replace('grp_', '').replace('_g_us', '@g.us');
+  // If internal format like grp_120363426443362477_g_us or grp_120363426443362477
+  if (trimmed.startsWith('grp_')) {
+    trimmed = trimmed.replace(/^grp_(waapi_)?/, '').replace('_g_us', '@g.us');
+    if (!trimmed.includes('@') && (/^\d+$/.test(trimmed) || /^\d+-\d+$/.test(trimmed))) {
+      trimmed = `${trimmed}@g.us`;
+    }
   }
 
   // 1. Direct valid WhatsApp JID
@@ -790,13 +961,18 @@ async function resolveWhatsAppJid(destination, socketInstance) {
     } catch {}
   }
 
-  // 5. Detect if numeric group ID (starts with 120 and length >= 16 digits, or timestamp format)
+  // 5. Creator timestamp group format (e.g. 88017xxx-123456)
+  if (/^\d{8,}-\d+$/.test(trimmed)) {
+    return `${trimmed}@g.us`;
+  }
+
+  // 6. Detect if numeric group ID (starts with 120 and length >= 16 digits)
   const digitsOnly = trimmed.replace(/\D/g, '');
-  if (/^120\d{14,}/.test(digitsOnly) || /^\d{10,}-\d+/.test(trimmed)) {
+  if (/^120\d{14,}/.test(digitsOnly)) {
     return `${digitsOnly}@g.us`;
   }
 
-  // 6. If it contains digits (phone number)
+  // 7. If it contains digits (phone number)
   if (digitsOnly.length >= 7) {
     let phoneDigits = digitsOnly;
     if (digitsOnly.startsWith('01') && digitsOnly.length === 11) {

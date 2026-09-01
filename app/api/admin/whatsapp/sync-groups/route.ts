@@ -19,8 +19,8 @@ export async function POST(req: NextRequest) {
   try {
     const settings = await getWhatsAppSettings();
 
-    // Node Bot mode: fetch groups from Render backend
-    if (settings.provider === 'NODE_BOT' && settings.nodeBotUrl && settings.nodeBotSecret) {
+    // Node Bot / Direct QR mode: fetch groups from Render backend
+    if ((settings.provider === 'NODE_BOT' || settings.provider === 'DIRECT_QR') && settings.nodeBotUrl && settings.nodeBotSecret) {
       const host = settings.nodeBotUrl.replace(/\/+$/, '');
       const res = await fetch(`${host}/api/get-groups`, {
         headers: { 'x-api-secret': settings.nodeBotSecret },

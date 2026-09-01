@@ -21,7 +21,7 @@ export function normalizePhoneNumber(rawPhone: string): string {
   }
   if (trimmed.startsWith('grp_')) {
     trimmed = trimmed.replace(/^grp_(waapi_)?/, '');
-    if (/^\d+$/.test(trimmed)) return `${trimmed}@g.us`;
+    if (/^\d+$/.test(trimmed) || /^\d+-\d+$/.test(trimmed)) return `${trimmed}@g.us`;
   }
 
   // Preserve WhatsApp Group JIDs & Channel JIDs (e.g. 120363028392819283@g.us, 120363294829384920@newsletter, @broadcast, @s.whatsapp.net)
@@ -40,10 +40,13 @@ export function normalizePhoneNumber(rawPhone: string): string {
     return trimmed;
   }
 
-  // Check if it's a numeric group ID (starts with 120 and length >= 16 digits)
+  // Check if it's a numeric group ID (starts with 120 and length >= 16 digits, or creator timestamp format e.g. 88017...-123456)
   const rawDigits = trimmed.replace(/\D/g, '');
   if (/^120\d{14,}/.test(rawDigits)) {
     return `${rawDigits}@g.us`;
+  }
+  if (/^\d{8,}-\d+$/.test(trimmed)) {
+    return `${trimmed}@g.us`;
   }
 
   // Preserve Group IDs or targets with letters/spaces (group names)
@@ -734,8 +737,8 @@ export async function sendDirectWhatsappMessage({
   const settings = await getWhatsAppSettings();
   const activeImageUrl = imageUrl || mediaUrl;
 
-  // 1. Send via Node Bot API (Render / Self-hosted Baileys)
-  if (settings.provider === 'NODE_BOT' && settings.nodeBotUrl && settings.nodeBotSecret) {
+  // 1. Send via Node Bot API (Render / Self-hosted Baileys / Direct QR session)
+  if ((settings.provider === 'NODE_BOT' || settings.provider === 'DIRECT_QR') && settings.nodeBotUrl && settings.nodeBotSecret) {
     try {
       const host = settings.nodeBotUrl.replace(/\/+$/, '');
       const endpoint = '/api/send-direct';
@@ -1516,36 +1519,46 @@ export async function executeScheduledJob(schedule: WhatsAppSchedule): Promise<{
             console.warn(`[executeScheduledJob] Skipping group "${g.name}" — identifier is a group invite link, not a JID. Please update to @g.us format.`);
           }
         }
-      } else if (schedule.targetDestination.includes(',')) {
-        const ids = schedule.targetDestination.split(',').map(s => s.trim()).filter(Boolean);
-        for (const id of ids) {
-          const matched = allGroups.find(g => g.id === id || g.identifier === id || g.name === id);
-          const identifier = (matched ? matched.identifier : id)?.trim();
+      } else if (schedule.targetDestination.includes(',') || schedule.targetDestination.includes(';') || schedule.targetDestination.includes('\n')) {
+        const ids = schedule.targetDestination.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
+        for (const rawId of ids) {
+          const normId = normalizePhoneNumber(rawId);
+          const matched = allGroups.find(g => 
+            g.id === rawId || 
+            g.identifier === rawId || 
+            g.identifier === normId ||
+            g.id === normId ||
+            (g.name && g.name.toLowerCase() === rawId.toLowerCase())
+          );
+          const identifier = (matched ? matched.identifier : normId || rawId)?.trim();
+          const cleanIdentifier = normalizePhoneNumber(identifier);
           const resolvedName = matched ? matched.name : (schedule.targetName || 'WhatsApp Group');
-          // Skip invite links and duplicates
+
           if (
-            identifier &&
-            !seenIdentifiers.has(identifier) &&
-            !identifier.includes('chat.whatsapp.com/') &&
-            !identifier.includes('whatsapp.com/channel/')
+            cleanIdentifier &&
+            !seenIdentifiers.has(cleanIdentifier) &&
+            !cleanIdentifier.includes('chat.whatsapp.com/') &&
+            !cleanIdentifier.includes('whatsapp.com/channel/')
           ) {
-            seenIdentifiers.add(identifier);
+            seenIdentifiers.add(cleanIdentifier);
             recipients.push({
-              phone: identifier,
+              phone: cleanIdentifier,
               name: resolvedName,
             });
-          } else if (identifier && (identifier.includes('chat.whatsapp.com/') || identifier.includes('whatsapp.com/channel/'))) {
-            console.warn(`[executeScheduledJob] Skipping group "${resolvedName}" — identifier is a group invite link, not a JID. Please update to @g.us format.`);
+          } else if (cleanIdentifier && (cleanIdentifier.includes('chat.whatsapp.com/') || cleanIdentifier.includes('whatsapp.com/channel/'))) {
+            console.warn(`[executeScheduledJob] Skipping group "${resolvedName}" — identifier is an invite link, not a direct JID.`);
           }
         }
       } else {
+        const normDest = normalizePhoneNumber(schedule.targetDestination);
         const matched = allGroups.find(
-          g => g.id === schedule.targetDestination || g.identifier === schedule.targetDestination || g.name === schedule.targetName
+          g => g.id === schedule.targetDestination || 
+               g.identifier === schedule.targetDestination || 
+               g.identifier === normDest ||
+               g.name === schedule.targetName
         );
-        let identifier = (matched ? matched.identifier : schedule.targetDestination)?.trim();
-        if (identifier && identifier.startsWith('grp_') && identifier.includes('_g_us')) {
-          identifier = identifier.replace('grp_', '').replace('_g_us', '@g.us');
-        }
+        let identifier = (matched ? matched.identifier : normDest || schedule.targetDestination)?.trim();
+        identifier = normalizePhoneNumber(identifier);
         const resolvedName = matched ? matched.name : (schedule.targetName || 'WhatsApp Group');
 
         if (identifier === 'TOURNAMENT_CAPTAINS' || identifier === 'ALL_REGISTERED') {
@@ -1577,7 +1590,7 @@ export async function executeScheduledJob(schedule: WhatsAppSchedule): Promise<{
             name: resolvedName,
           });
         } else if (identifier) {
-          console.warn(`[executeScheduledJob] Skipping group "${resolvedName}" — identifier is a group invite link, not a JID. Please update to @g.us format.`);
+          console.warn(`[executeScheduledJob] Skipping group "${resolvedName}" — identifier is an invite link, not a direct JID.`);
         }
       }
     } else if (schedule.targetType === 'TOURNAMENT_CAPTAINS' || schedule.targetType === 'ALL_REGISTERED') {
@@ -1610,7 +1623,7 @@ export async function executeScheduledJob(schedule: WhatsAppSchedule): Promise<{
       // Single phone number or Custom phone recipient
       if (schedule.targetDestination) {
         recipients.push({
-          phone: schedule.targetDestination,
+          phone: normalizePhoneNumber(schedule.targetDestination),
           name: schedule.targetName || 'WhatsApp Target',
         });
       }
@@ -1640,7 +1653,7 @@ export async function executeScheduledJob(schedule: WhatsAppSchedule): Promise<{
       .replace(/\{DATE\}/g, dateStr)
       .replace(/\{SITE_LINK\}/g, 'https://esportszonebd.online');
 
-    // 3. Dispatch to all resolved recipients
+    // 3. Dispatch to all resolved recipients with auto-retry
     let successCount = 0;
     let failCount = 0;
 
@@ -1650,13 +1663,26 @@ export async function executeScheduledJob(schedule: WhatsAppSchedule): Promise<{
         .replace(/\{PLAYER_NAME\}/g, r.name || 'Player')
         .replace(/\{CAPTAIN_NAME\}/g, r.name || 'Captain');
 
-      const result = await sendDirectWhatsappMessage({
+      let result = await sendDirectWhatsappMessage({
         to: r.phone,
         text: personalizedText,
         imageUrl: schedule.imageUrl || schedule.mediaUrl,
         targetName: r.name || schedule.targetName,
         triggerType: 'SCHEDULED_AUTOMATION',
       });
+
+      // Retry once on failure after 1.5 seconds
+      if (!result.success) {
+        console.warn(`[executeScheduledJob] Retrying send to "${r.name}" (${r.phone})...`);
+        await new Promise(res => setTimeout(res, 1500));
+        result = await sendDirectWhatsappMessage({
+          to: r.phone,
+          text: personalizedText,
+          imageUrl: schedule.imageUrl || schedule.mediaUrl,
+          targetName: r.name || schedule.targetName,
+          triggerType: 'SCHEDULED_AUTOMATION',
+        });
+      }
 
       if (result.success) {
         successCount++;
@@ -1665,9 +1691,9 @@ export async function executeScheduledJob(schedule: WhatsAppSchedule): Promise<{
         console.warn(`[executeScheduledJob] Failed to deliver to "${r.name}" (${r.phone}):`, result.message);
       }
 
-      // Small delay between group messages to prevent gateway rate-limiting
+      // Safe delay between group messages to prevent gateway congestion & rate-limiting
       if (i < recipients.length - 1) {
-        await new Promise(res => setTimeout(res, 2000));
+        await new Promise(res => setTimeout(res, 1800));
       }
     }
 
