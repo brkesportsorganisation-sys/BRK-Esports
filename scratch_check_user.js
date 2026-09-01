@@ -15,18 +15,25 @@ const supabaseKey = env['SUPABASE_SERVICE_ROLE_KEY'];
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-async function checkTour() {
-  const { data: t } = await supabase
-    .from('Tournament')
-    .select('id, title, registeredCount, maxTeams')
-    .ilike('title', '%GIVEAWAY%');
-  console.log("Tournament:", JSON.stringify(t, null, 2));
-
-  const { data: parts } = await supabase
-    .from('Participant')
-    .select('*');
-  console.log("Participants count:", parts?.length);
-  parts?.forEach(p => console.log(JSON.stringify(p)));
+async function checkRegistrationTable() {
+  const { data: regData } = await supabase
+    .from('Registration')
+    .select('*')
+    .eq('tournamentId', 'tour_1787923619380_4czqp');
+    
+  console.log("Registration table records:", regData);
+  if (regData && regData.length > 0) {
+    await supabase
+      .from('Registration')
+      .update({
+        iglName: 'ADMIN',
+        player1Name: 'ADMIN',
+        player2Name: 'ADMIN',
+        player3Name: 'ADMIN',
+        player4Name: 'ADMIN',
+      })
+      .eq('tournamentId', 'tour_1787923619380_4czqp');
+  }
 }
 
-checkTour();
+checkRegistrationTable();
