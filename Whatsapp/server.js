@@ -66,18 +66,45 @@ let connectedGroups = []; // Cache of groups after connect
 let connectedChannels = []; // Cache of channels after connect
 const recentForwardedMsgIds = new Map(); // Anti-duplicate deduplication map (id -> timestamp)
 
-// ─── In-Memory Store for Baileys Signal Key Exchanges & Retry Handshakes ─────
+// ─── Persistent Store for Baileys Signal Key Exchanges & Retry Handshakes ─────
 // Fixes "Waiting for this message. This may take a while."
 const messageStore = new Map();
 const msgRetryCounterCache = new Map();
 
-function storeMessage(id, message) {
+async function storeMessage(id, message) {
   if (!id || !message) return;
   messageStore.set(id, message);
   if (messageStore.size > 3000) {
     const firstKey = messageStore.keys().next().value;
     messageStore.delete(firstKey);
   }
+  try {
+    if (mongoose.connection && mongoose.connection.db) {
+      await mongoose.connection.db.collection('whatsapp_message_store').updateOne(
+        { _id: id },
+        { $set: { message: JSON.stringify(message), createdAt: new Date() } },
+        { upsert: true }
+      );
+    }
+  } catch (e) {}
+}
+
+async function getStoredMessage(key) {
+  if (!key?.id) return undefined;
+  if (messageStore.has(key.id)) {
+    return messageStore.get(key.id);
+  }
+  try {
+    if (mongoose.connection && mongoose.connection.db) {
+      const doc = await mongoose.connection.db.collection('whatsapp_message_store').findOne({ _id: key.id });
+      if (doc?.message) {
+        const parsed = JSON.parse(doc.message);
+        messageStore.set(key.id, parsed);
+        return parsed;
+      }
+    }
+  } catch (e) {}
+  return undefined;
 }
 
 async function sendWaMessage(jid, content, options = {}, attempt = 1) {
@@ -85,7 +112,7 @@ async function sendWaMessage(jid, content, options = {}, attempt = 1) {
   try {
     const result = await sock.sendMessage(jid, content, options);
     if (result?.key?.id && result?.message) {
-      storeMessage(result.key.id, result.message);
+      await storeMessage(result.key.id, result.message);
     }
     return result;
   } catch (err) {
@@ -118,17 +145,12 @@ async function connectToWhatsApp() {
     version,
     auth: state,
     printQRInTerminal: true,
-    browser: ['Blackrock Esports (Windows)', 'Chrome', '122.0.0'],
+    browser: ['Blackrock Esports (Windows)', 'Chrome', '124.0.0.0'],
     generateHighQualityLinkPreview: true,
     syncFullHistory: false,
     markOnlineOnConnect: true,
     msgRetryCounterCache,
-    getMessage: async (key) => {
-      if (key?.id && messageStore.has(key.id)) {
-        return messageStore.get(key.id);
-      }
-      return undefined;
-    },
+    getMessage: getStoredMessage,
     connectTimeoutMs: 60000,
     defaultQueryTimeoutMs: 60000,
     keepAliveIntervalMs: 25000,
@@ -551,29 +573,7 @@ cron.schedule('* * * * *', async () => {
   const now = new Date();
   const nowIso = now.toISOString();
 
-  // 1. Trigger Next.js 24/7 automated scheduler runner via Webhook
-  try {
-    const nextAppUrl = process.env.NEXT_APP_URL || 'https://esportszonebd.online';
-    const cronSecret = process.env.CRON_SECRET || 'blackrock_secret_bot_key_2026';
-    const cleanUrl = nextAppUrl.replace(/\/+$/, '');
-    const res = await fetch(`${cleanUrl}/api/admin/whatsapp/cron?secret=${cronSecret}`, {
-      headers: {
-        Authorization: `Bearer ${cronSecret}`,
-      },
-      signal: AbortSignal.timeout(20000),
-    }).catch(() => null);
-
-    if (res?.ok) {
-      const data = await res.json().catch(() => ({}));
-      if (data.executedCount > 0) {
-        console.log(`⏰ [24/7 Next.js Scheduler] Dispatched ${data.executedCount} due schedule(s)!`);
-      }
-    }
-  } catch (cronErr) {
-    console.warn('⚠️ [Next.js Scheduler Trigger Error]:', cronErr.message);
-  }
-
-  // 2. Direct MongoDB whatsapp_schedules Execution (Dual-Redundancy 24/7)
+  // 1. Direct MongoDB whatsapp_schedules Execution (Accurate 24/7 Engine)
   try {
     if (mongoose.connection && mongoose.connection.db) {
       const schedulesCol = mongoose.connection.db.collection('whatsapp_schedules');

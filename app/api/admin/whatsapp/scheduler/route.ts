@@ -132,28 +132,12 @@ export async function POST(req: NextRequest) {
     schedules.unshift(newSchedule);
     await saveWhatsAppSchedules(schedules);
 
-    // If interval or immediate execution is requested, dispatch the 1st run cleanly!
-    let firstExecResult: any = null;
-    if (schedule.frequency !== 'DAILY' && schedule.frequency !== 'ONCE') {
-      try {
-        firstExecResult = await executeScheduledJob(newSchedule);
-      } catch (err: any) {
-        console.warn('[First Schedule Run Error]', err?.message);
-      }
-    }
-
-    const updatedSchedules = await getWhatsAppSchedules();
-    const finalSchedule = updatedSchedules.find(s => s.id === newId) || newSchedule;
-
     await logAdminAction(session?.sub || session?.email || 'admin', 'CREATE_WHATSAPP_SCHEDULE', `Created schedule: ${newSchedule.title} (Limit: ${maxExecutions || 'Unlimited'})`);
 
     return NextResponse.json({
       success: true,
-      message: firstExecResult?.success
-        ? `Schedule created & 1st message dispatched instantly to ${firstExecResult.sentCount || 1} target(s)!`
-        : 'Automated WhatsApp schedule created successfully!',
-      schedule: finalSchedule,
-      firstExecution: firstExecResult,
+      message: 'Automated WhatsApp schedule created successfully and queued for execution!',
+      schedule: newSchedule,
     });
 
   } catch (error: any) {

@@ -23,7 +23,7 @@ const SessionSchema = new mongoose.Schema(
 );
 const Session =
   mongoose.models.BaileysSession ||
-  mongoose.model('BaileysSession', SessionSchema);
+  mongoose.model('BaileysSession', SessionSchema, 'baileyssessions');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function docId(type, id) {
@@ -56,7 +56,10 @@ async function useMongoAuthState() {
   let creds = (await readCreds()) || initAuthCreds();
 
   // Persist credentials immediately on every update
-  async function saveCreds() {
+  async function saveCreds(updatedCreds) {
+    if (updatedCreds) {
+      Object.assign(creds, updatedCreds);
+    }
     await Session.findOneAndUpdate(
       { _id: 'creds' },
       { _id: 'creds', data: serialize(creds) },
