@@ -4,10 +4,10 @@ import { supabaseAdmin } from '@/lib/supabase';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, milestoneId, rewardType, rewardAmount } = body;
+    const { userId, milestoneId } = body;
 
-    if (!userId || !milestoneId || !rewardType || !rewardAmount) {
-      return NextResponse.json({ message: 'Invalid payload.' }, { status: 400 });
+    if (!userId || !milestoneId) {
+      return NextResponse.json({ message: 'User ID and Milestone ID are required.' }, { status: 400 });
     }
 
     const { data: user, error: userError } = await supabaseAdmin
@@ -69,9 +69,12 @@ export async function POST(request: NextRequest) {
     }
 
     const targetMilestone = milestoneConfig[Number(milestoneId)];
-    const userReferrals = Number(user.totalReferrals) || 0;
+    if (!targetMilestone) {
+      return NextResponse.json({ message: 'Invalid milestone stage.' }, { status: 400 });
+    }
 
-    if (targetMilestone && userReferrals < targetMilestone.required) {
+    const userReferrals = Number(user.totalReferrals) || 0;
+    if (userReferrals < targetMilestone.required) {
       return NextResponse.json({
         message: `You need at least ${targetMilestone.required} referrals to claim this reward. Current: ${userReferrals}`
       }, { status: 400 });
@@ -82,11 +85,13 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date().toISOString(),
     };
 
-    const numAmount = Number(rewardAmount) || (targetMilestone?.amount || 0);
+    // Strictly enforce server-calculated reward amount and type
+    const numAmount = targetMilestone.amount;
+    const actualRewardType = targetMilestone.type;
 
-    if (rewardType === 'COIN') {
+    if (actualRewardType === 'COIN') {
       updates.coinBalance = (Number(user.coinBalance) || 0) + numAmount;
-    } else if (rewardType === 'WALLET') {
+    } else if (actualRewardType === 'WALLET') {
       updates.walletBalance = (Number(user.walletBalance) || 0) + numAmount;
       updates.winningBalance = (Number(user.winningBalance) || 0) + numAmount;
       updates.earnings = (Number(user.earnings) || 0) + numAmount;
@@ -110,7 +115,7 @@ export async function POST(request: NextRequest) {
         id: notifId,
         userId: user.id,
         title: '🎁 রিওয়ার্ড ক্লেইম সফল হয়েছে!',
-        message: `অভিনন্দন! আপনি সফলভাবে ${numAmount} ${rewardType === 'COIN' ? 'কয়েন' : 'টাকা (ক্যাশ)'} রেফারেল মাইলস্টোন প্রাইজ ক্লেইম করেছেন!`,
+        message: `অভিনন্দন! আপনি সফলভাবে ${numAmount} ${actualRewardType === 'COIN' ? 'কয়েন' : 'টাকা (ক্যাশ)'} রেফারেল মাইলস্টোন প্রাইজ ক্লেইম করেছেন!`,
         type: 'REWARD',
         link: '/profile#referral',
         icon: 'gift',

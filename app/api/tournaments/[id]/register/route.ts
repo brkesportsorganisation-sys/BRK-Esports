@@ -47,8 +47,6 @@ export async function POST(
     userId,
     userName,
     userEmail,
-    userWalletBalance,
-    userCoinBalance,
     paymentType = 'WALLET',
     squadName,
     iglName,
@@ -179,8 +177,8 @@ export async function POST(
           id: userId,
           name: userName || 'Player',
           email: userEmail || `${userId}@helian.gg`,
-          walletBalance: typeof userWalletBalance === 'number' ? userWalletBalance : 0,
-          coinBalance: typeof userCoinBalance === 'number' ? userCoinBalance : 0,
+          walletBalance: 0,
+          coinBalance: 0,
           referralCode: `REF_${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
         }])
         .select()
@@ -188,28 +186,6 @@ export async function POST(
 
       if (createErr) throw new Error(createErr.message);
       user = newUser;
-    } else {
-      let updatedWallet = Number(user.walletBalance) || 0;
-      let updatedCoin = Number(user.coinBalance) || 0;
-      let needsUpdate = false;
-
-      if (typeof userWalletBalance === 'number' && updatedWallet < userWalletBalance) {
-        updatedWallet = userWalletBalance;
-        needsUpdate = true;
-      }
-      if (typeof userCoinBalance === 'number' && updatedCoin < userCoinBalance) {
-        updatedCoin = userCoinBalance;
-        needsUpdate = true;
-      }
-
-      if (needsUpdate) {
-        await supabaseAdmin
-          .from('User')
-          .update({ walletBalance: updatedWallet, coinBalance: updatedCoin, updatedAt: new Date().toISOString() })
-          .eq('id', userId);
-        user.walletBalance = updatedWallet;
-        user.coinBalance = updatedCoin;
-      }
     }
 
     // Determine payment mode & fee requirements

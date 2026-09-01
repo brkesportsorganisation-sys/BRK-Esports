@@ -35,6 +35,8 @@ export async function POST(request: NextRequest) {
 
     // Verify password
     let passwordMatches = false;
+    let needsHashUpgrade = false;
+
     if (user.password) {
       // Check bcrypt hash
       if (user.password.startsWith('$2a$') || user.password.startsWith('$2b$')) {
@@ -42,11 +44,27 @@ export async function POST(request: NextRequest) {
       } else {
         // Plaintext match for initial/migrated users
         passwordMatches = user.password === password;
+        if (passwordMatches) {
+          needsHashUpgrade = true;
+        }
       }
     }
 
     if (!passwordMatches) {
       return NextResponse.json({ message: 'Invalid email or password.' }, { status: 401 });
+    }
+
+    // Automatically upgrade plaintext password to bcrypt hash in database
+    if (needsHashUpgrade) {
+      try {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        await supabaseAdmin
+          .from('User')
+          .update({ password: hashedPassword, updatedAt: new Date().toISOString() })
+          .eq('id', user.id);
+      } catch (hashErr) {
+        console.warn('[Login] Password hash upgrade notice:', hashErr);
+      }
     }
 
     // Sanitize response
