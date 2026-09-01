@@ -65,11 +65,7 @@ export default function SquadTeamsHubPage() {
     if (Array.isArray(squad.members)) {
       return squad.members.some(m => 
         (m.status === 'ACTIVE' || !m.status) &&
-        (
-          m.userId === user.id ||
-          (user.accountNumber && m.accountNumber && m.accountNumber.toUpperCase() === user.accountNumber.toUpperCase()) ||
-          (user.freeFireUid && m.freeFireUid && m.freeFireUid === user.freeFireUid)
-        )
+        (m.userId === user.id || m.id === user.id)
       );
     }
     return false;
@@ -404,9 +400,7 @@ export default function SquadTeamsHubPage() {
               <div className="max-w-3xl mx-auto">
                 {mySquads.map((squad) => {
                   const myMembership = squad.members?.find(m => 
-                    m.userId === currentUser?.id || 
-                    (currentUser?.accountNumber && m.accountNumber === currentUser.accountNumber) ||
-                    (currentUser?.freeFireUid && m.freeFireUid === currentUser.freeFireUid)
+                    m.userId === currentUser?.id || m.id === currentUser?.id
                   );
                   const isLeader = Boolean(
                     myMembership?.isLeader || 

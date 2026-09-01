@@ -14,7 +14,6 @@ export function sanitizeSquadsRoster(squads: Squad[]): Squad[] {
 
   // Map user ID -> squad ID
   const userToSquad = new Map<string, string>();
-  const userAccountToSquad = new Map<string, string>();
 
   // Pass 1: Leaders own their squads (Highest priority)
   for (const s of squads) {
@@ -36,19 +35,16 @@ export function sanitizeSquadsRoster(squads: Squad[]): Squad[] {
       seenUserIds.add(m.userId);
 
       const assignedSquad = userToSquad.get(m.userId);
-      const acctKey = m.accountNumber ? m.accountNumber.trim().toUpperCase() : '';
-      const assignedByAcct = acctKey ? userAccountToSquad.get(acctKey) : undefined;
 
-      if (!assignedSquad && !assignedByAcct) {
+      if (!assignedSquad) {
         // Register this user to this squad
         userToSquad.set(m.userId, s.id);
-        if (acctKey) userAccountToSquad.set(acctKey, s.id);
         cleanMembers.push(m);
-      } else if (assignedSquad === s.id || assignedByAcct === s.id) {
+      } else if (assignedSquad === s.id) {
         cleanMembers.push(m);
       } else {
         // User already belongs to another squad, exclude from this one
-        console.log(`[1-Squad Rule] Removed user ${m.userName} (${m.userId}) from squad "${s.name}" (already in squad ${assignedSquad || assignedByAcct})`);
+        console.log(`[1-Squad Rule] Removed user ${m.userName} (${m.userId}) from squad "${s.name}" (already in squad ${assignedSquad})`);
       }
     }
 
@@ -265,28 +261,10 @@ export async function getSquadByInviteToken(token: string): Promise<Squad | null
 export async function getUserSquads(userId: string): Promise<Squad[]> {
   if (!userId) return [];
   const squads = await getSquads();
-  
-  // Also get user profile for exact accountNumber / UID matching
-  let userAccountNumber = '';
-  let userUid = '';
-  try {
-    const { data: dbUser } = await supabaseAdmin
-      .from('User')
-      .select('id, accountNumber, freeFireUid')
-      .eq('id', userId)
-      .maybeSingle();
-    if (dbUser) {
-      userAccountNumber = (dbUser.accountNumber || '').trim().toUpperCase();
-      userUid = (dbUser.freeFireUid || '').trim();
-    }
-  } catch {}
 
   const isUserMember = (m: any) => {
     if (!m) return false;
-    if (m.userId === userId || m.id === userId) return true;
-    if (userAccountNumber && m.accountNumber && m.accountNumber.toUpperCase() === userAccountNumber) return true;
-    if (userUid && m.freeFireUid && m.freeFireUid === userUid) return true;
-    return false;
+    return m.userId === userId || m.id === userId;
   };
 
   const isUserLeader = (s: Squad) => {

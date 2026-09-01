@@ -30,18 +30,14 @@ async function testMatching() {
   console.log("=== SIMULATING resolveIsMySquad FOR ALL USERS ===");
   users.forEach(user => {
     squads.forEach(squad => {
-      // Current resolveIsMySquad implementation:
+      // Updated resolveIsMySquad implementation:
       const resolveIsMySquad = (s, u) => {
         if (!u || !u.id) return false;
         if (s.leaderId === u.id || s.createdBy === u.id) return true;
         if (Array.isArray(s.members)) {
           return s.members.some(m => 
             (m.status === 'ACTIVE' || !m.status) &&
-            (
-              m.userId === u.id ||
-              (u.accountNumber && m.accountNumber && m.accountNumber.toUpperCase() === u.accountNumber.toUpperCase()) ||
-              (u.freeFireUid && m.freeFireUid && m.freeFireUid === u.freeFireUid)
-            )
+            (m.userId === u.id || m.id === u.id)
           );
         }
         return false;
