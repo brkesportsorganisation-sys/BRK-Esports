@@ -16,12 +16,22 @@ const supabaseKey = env['SUPABASE_SERVICE_ROLE_KEY'];
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function checkUser() {
-  const { data: users, error } = await supabase
+  const { data: users } = await supabase
     .from('User')
-    .select('id, accountNumber, name')
-    .ilike('accountNumber', '%529922%');
+    .select('*')
+    .in('email', ['turjo0424@gmail.com', 'ytchannelturjo@gmail.com', 'tsturjo2009@gmail.com', 'tsturjo57@gmail.com']);
     
-  console.log("Users with 529922:", users);
+  console.log("Users:", JSON.stringify(users, null, 2));
+
+  const { data: setting } = await supabase
+    .from('SiteSetting')
+    .select('*')
+    .eq('key', 'EZBD_ESPORTS_SQUADS')
+    .single();
+
+  const squads = JSON.parse(setting.value);
+  const oc = squads.find(s => s.name === 'OLD CLASHERS');
+  console.log("OLD CLASHERS:", JSON.stringify(oc, null, 2));
 }
 
 checkUser();
