@@ -34,11 +34,13 @@ import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import SlotGrid from '@/components/tournaments/SlotGrid';
 import RoomBatchGrid from '@/components/tournaments/RoomBatchGrid';
+import PointsTableView from '@/components/tournaments/PointsTableView';
+import TournamentRoadmapView from '@/components/tournaments/TournamentRoadmapView';
 import TournamentCountdown from '@/components/tournaments/TournamentCountdown';
 import { useRealtimeTournament } from '@/lib/use-realtime';
 import { getTournamentByIdFromDb } from '@/lib/tournament-store';
 import { getDynamicTournamentStatus } from '@/lib/tournament-utils';
-import { Tournament, User as UserType, TournamentStatus } from '@/lib/types';
+import { Tournament, User as UserType, TournamentStatus, TournamentPointsTable, TournamentRoom } from '@/lib/types';
 import { db } from '@/lib/db';
 
 /* ──────────────────────────────────────────────
@@ -190,8 +192,32 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
   }, [tournament, currentStatus]);
 
   const [currentUser, setCurrentUser] = useState<UserType | null>(null);
-  const [activeTab, setActiveTab] = useState<'ROOM' | 'DETAILS'>('ROOM');
+  const [activeTab, setActiveTab] = useState<'ROOM' | 'ROADMAP' | 'POINTS' | 'DETAILS'>('ROOM');
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [pointsTables, setPointsTables] = useState<TournamentPointsTable[]>([]);
+  const [tournamentRooms, setTournamentRooms] = useState<TournamentRoom[]>([]);
+
+  useEffect(() => {
+    if (resolvedParams?.id) {
+      fetch(`/api/tournaments/${resolvedParams.id}/results`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.pointsTables) {
+            setPointsTables(data.pointsTables);
+          }
+        })
+        .catch(() => {});
+
+      fetch(`/api/tournaments/${resolvedParams.id}/rooms`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.rooms) {
+            setTournamentRooms(data.rooms);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [resolvedParams?.id]);
 
   // Modal state
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
@@ -823,6 +849,30 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
           </button>
 
           <button
+            onClick={() => setActiveTab('ROADMAP')}
+            className={`flex-1 sm:flex-initial px-4 sm:px-6 py-2.5 sm:py-3 rounded-2xl font-heading font-black text-xs sm:text-sm transition-all whitespace-nowrap cursor-pointer flex items-center justify-center gap-2 ${
+              activeTab === 'ROADMAP'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white bg-slate-100/80 border border-slate-200'
+            }`}
+          >
+            <Gamepad2 className="w-4 h-4" />
+            <span>Roadmap &amp; Schedule</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('POINTS')}
+            className={`flex-1 sm:flex-initial px-4 sm:px-6 py-2.5 sm:py-3 rounded-2xl font-heading font-black text-xs sm:text-sm transition-all whitespace-nowrap cursor-pointer flex items-center justify-center gap-2 ${
+              activeTab === 'POINTS'
+                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-neon-orange'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white bg-slate-100/80 border border-slate-200'
+            }`}
+          >
+            <Trophy className="w-4 h-4" />
+            <span>Points Table {pointsTables.length > 0 ? `(${pointsTables.length})` : ''}</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('DETAILS')}
             className={`flex-1 sm:flex-initial px-4 sm:px-6 py-2.5 sm:py-3 rounded-2xl font-heading font-black text-xs sm:text-sm transition-all whitespace-nowrap cursor-pointer flex items-center justify-center gap-2 ${
               activeTab === 'DETAILS'
@@ -830,7 +880,7 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                 : 'text-slate-600 hover:text-slate-900 hover:bg-white bg-slate-100/80 border border-slate-200'
             }`}
           >
-            <Trophy className="w-4 h-4" />
+            <Flame className="w-4 h-4" />
             <span>Match Details</span>
           </button>
         </div>
@@ -984,6 +1034,23 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
               </div>
             )}
           </div>
+        )}
+
+        {/* ─── 2. TOURNAMENT ROADMAP & MULTI-STAGE BRACKET TAB ─── */}
+        {activeTab === 'ROADMAP' && (
+          <TournamentRoadmapView
+            tournament={tournament}
+            rooms={tournamentRooms}
+          />
+        )}
+
+        {/* ─── 3. POINTS TABLE & STANDINGS TAB ─── */}
+        {activeTab === 'POINTS' && (
+          <PointsTableView
+            tournament={tournament}
+            pointsTables={pointsTables}
+            defaultAdvancementCount={tournament.defaultAdvancementCount || 3}
+          />
         )}
 
       </main>

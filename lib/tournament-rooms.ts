@@ -317,3 +317,89 @@ export async function advanceSquadsToFinalRoom(
     advancedCount,
   };
 }
+
+/**
+ * Fetch all published points tables for a tournament.
+ */
+export async function getTournamentPointsTables(tournamentId: string): Promise<any[]> {
+  try {
+    const settingKey = `TOURNAMENT_POINTS_${tournamentId}`;
+    const { data: setting } = await supabaseAdmin
+      .from('SiteSetting')
+      .select('value')
+      .eq('key', settingKey)
+      .maybeSingle();
+
+    if (setting?.value) {
+      const parsed = JSON.parse(setting.value);
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+    }
+  } catch (err) {
+    console.warn(`[getTournamentPointsTables] Error loading points for ${tournamentId}:`, err);
+  }
+
+  // MongoDB fallback
+  try {
+    const client = await getMongoClient();
+    if (client) {
+      const db = client.db('blackrock');
+      const docs = await db.collection('tournament_points_tables').find({ tournamentId }).toArray();
+      if (docs && docs.length > 0) {
+        return docs.map((d: any) => ({
+          id: d._id?.toString() || d.id,
+          tournamentId: d.tournamentId,
+          roomId: d.roomId,
+          roomLabel: d.roomLabel,
+          stage: d.stage,
+          matchNumber: d.matchNumber,
+          screenshotUrl: d.screenshotUrl,
+          publishedAt: d.publishedAt,
+          publishedBy: d.publishedBy,
+          scores: d.scores,
+        }));
+      }
+    }
+  } catch {}
+
+  return [];
+}
+
+/**
+ * Save points tables for a tournament to Supabase SiteSetting & MongoDB.
+ */
+export async function saveTournamentPointsTables(tournamentId: string, tables: any[]): Promise<boolean> {
+  let saved = false;
+  try {
+    const settingKey = `TOURNAMENT_POINTS_${tournamentId}`;
+    const { error } = await supabaseAdmin.from('SiteSetting').upsert(
+      {
+        key: settingKey,
+        value: JSON.stringify(tables),
+        updatedAt: new Date().toISOString(),
+      },
+      { onConflict: 'key' }
+    );
+    if (!error) saved = true;
+  } catch (err) {
+    console.warn(`[saveTournamentPointsTables] Supabase save error:`, err);
+  }
+
+  try {
+    const client = await getMongoClient();
+    if (client) {
+      const db = client.db('blackrock');
+      await db.collection('tournament_points_tables').deleteMany({ tournamentId });
+      if (tables.length > 0) {
+        await db.collection('tournament_points_tables').insertMany(
+          tables.map((t) => ({ ...t, updatedAt: new Date() }))
+        );
+      }
+      saved = true;
+    }
+  } catch {}
+
+  return saved;
+}
+

@@ -3,8 +3,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { AlertCircle, CheckCircle2, Coins, Copy, Eye, Filter, Loader2, Plus, PlusCircle, Search, ShieldCheck, Sparkles, Star, Trash2, Trophy, UploadCloud, X, MessageSquare, Send, Layers, UserCheck, Play, ArrowUpRight, Lock, Unlock, Gamepad2, Award } from 'lucide-react';
-import { Tournament, Mode, Format, TournamentStatus, CommunityAccessType, CommunityUnlockMode, PrizeTier, TournamentBatchFormat, TournamentRoom, RoomQualifier } from '@/lib/types';
+import { AlertCircle, CheckCircle2, Coins, Copy, Eye, Filter, Loader2, Plus, PlusCircle, Search, ShieldCheck, Sparkles, Star, Trash2, Trophy, UploadCloud, X, MessageSquare, Send, Layers, UserCheck, Play, ArrowUpRight, Lock, Unlock, Gamepad2, Award, Camera, Scan, CheckSquare, Save, RefreshCw } from 'lucide-react';
+import { Tournament, Mode, Format, TournamentStatus, CommunityAccessType, CommunityUnlockMode, PrizeTier, TournamentBatchFormat, TournamentRoom, RoomQualifier, MatchTeamScore, TournamentPointsTable } from '@/lib/types';
+import { calculateTeamPoints } from '@/lib/ai-scoreboard-ocr';
 import ImageUploadInput from '@/components/ui/ImageUploadInput';
 import 'react-quill-new/dist/quill.snow.css';
 
@@ -171,7 +172,7 @@ export default function AdminTournamentsPage() {
   const [isRoomsLoading, setIsRoomsLoading] = useState(false);
   const [selectedAdvancingIds, setSelectedAdvancingIds] = useState<string[]>([]);
   const [isAdvancing, setIsAdvancing] = useState(false);
-  const [roomActiveTab, setRoomActiveTab] = useState<'ROOMS' | 'QUALIFIERS'>('ROOMS');
+  const [roomActiveTab, setRoomActiveTab] = useState<'ROOMS' | 'POINTS_TABLE' | 'QUALIFIERS'>('ROOMS');
   const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
   const [roomEditForm, setRoomEditForm] = useState<{
     roomIdCredential: string;
@@ -193,13 +194,39 @@ export default function AdminTournamentsPage() {
     matchTime: '',
   });
 
+  // Points Table & AI Scoreboard Studio State
+  const [adminPointsTables, setAdminPointsTables] = useState<TournamentPointsTable[]>([]);
+  const [selectedScoreboardRoomId, setSelectedScoreboardRoomId] = useState<string>('');
+  const [scoreboardImage, setScoreboardImage] = useState<string>('');
+  const [isScanningOCR, setIsScanningOCR] = useState(false);
+  const [ocrConfidence, setOcrConfidence] = useState<number | null>(null);
+  const [editableScores, setEditableScores] = useState<MatchTeamScore[]>([]);
+  const [isSavingPointsTable, setIsSavingPointsTable] = useState(false);
+  const [matchNumberInput, setMatchNumberInput] = useState<number>(1);
+
+  const loadPointsTablesData = async (tournamentId: string) => {
+    try {
+      const res = await fetch(`/api/tournaments/${tournamentId}/results`, { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        setAdminPointsTables(data.pointsTables || []);
+      }
+    } catch (err) {}
+  };
+
   const openRoomModal = async (tournament: Tournament) => {
     setSelectedRoomTournament(tournament);
     setRoomModalOpen(true);
     setRoomActiveTab('ROOMS');
     setEditingRoomId(null);
     setSelectedAdvancingIds([]);
-    await loadTournamentRoomsData(tournament.id);
+    setScoreboardImage('');
+    setEditableScores([]);
+    setOcrConfidence(null);
+    await Promise.all([
+      loadTournamentRoomsData(tournament.id),
+      loadPointsTablesData(tournament.id),
+    ]);
   };
 
   const loadTournamentRoomsData = async (tournamentId: string) => {
@@ -208,13 +235,179 @@ export default function AdminTournamentsPage() {
       const res = await fetch(`/api/tournaments/${tournamentId}/rooms`, { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
-        setTournamentRooms(data.rooms || []);
+        const loadedRooms = data.rooms || [];
+        setTournamentRooms(loadedRooms);
         setRoomQualifiers(data.qualifiers || []);
+        if (loadedRooms.length > 0 && !selectedScoreboardRoomId) {
+          setSelectedScoreboardRoomId(loadedRooms[0].id);
+        }
       }
     } catch (err) {
       console.warn('Failed to load tournament rooms:', err);
     } finally {
       setIsRoomsLoading(false);
+    }
+  };
+
+  const handleScanScoreboard = async () => {
+    if (!selectedRoomTournament || !scoreboardImage) {
+      alert('Please upload or select a match end scoreboard screenshot first.');
+      return;
+    }
+    setIsScanningOCR(true);
+    try {
+      const targetRoom = tournamentRooms.find(r => r.id === selectedScoreboardRoomId) || tournamentRooms[0];
+      const res = await fetch(`/api/tournaments/${selectedRoomTournament.id}/results`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+        credentials: 'include',
+        body: JSON.stringify({
+          action: 'SCAN_SCOREBOARD',
+          screenshot: scoreboardImage,
+          roomId: targetRoom?.id,
+          roomLabel: targetRoom?.roomLabel,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.ocrResult?.teams) {
+        setOcrConfidence(data.ocrResult.confidenceScore || 95);
+        setEditableScores(data.ocrResult.teams.map((t: any) => ({
+          teamName: t.teamName,
+          participantId: t.participantId,
+          rank: t.rank,
+          placementPoints: t.placementPoints,
+          kills: t.kills,
+          killPoints: t.killPoints,
+          totalPoints: t.totalPoints,
+          booyah: t.booyah,
+        })));
+      } else {
+        alert(data.message || 'AI Scoreboard scanning failed. You can enter scores manually.');
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Error scanning scoreboard with AI.');
+    } finally {
+      setIsScanningOCR(false);
+    }
+  };
+
+  const handleUpdateEditableScore = (index: number, field: 'rank' | 'kills' | 'teamName', value: string | number) => {
+    setEditableScores(prev => {
+      const updated = [...prev];
+      if (!updated[index]) return prev;
+      const cur = { ...updated[index] };
+
+      if (field === 'teamName') {
+        cur.teamName = String(value);
+      } else if (field === 'rank') {
+        cur.rank = Math.max(1, Number(value) || 1);
+        const { placementPoints, killPoints, totalPoints } = calculateTeamPoints(cur.rank, cur.kills, selectedRoomTournament?.perKillPrize || 1);
+        cur.placementPoints = placementPoints;
+        cur.killPoints = killPoints;
+        cur.totalPoints = totalPoints;
+        cur.booyah = cur.rank === 1;
+      } else if (field === 'kills') {
+        cur.kills = Math.max(0, Number(value) || 0);
+        const { placementPoints, killPoints, totalPoints } = calculateTeamPoints(cur.rank, cur.kills, selectedRoomTournament?.perKillPrize || 1);
+        cur.placementPoints = placementPoints;
+        cur.killPoints = killPoints;
+        cur.totalPoints = totalPoints;
+      }
+
+      updated[index] = cur;
+      return updated.sort((a, b) => a.rank - b.rank);
+    });
+  };
+
+  const handleAddEditableRow = () => {
+    setEditableScores(prev => {
+      const nextRank = prev.length + 1;
+      const { placementPoints, killPoints, totalPoints } = calculateTeamPoints(nextRank, 0, selectedRoomTournament?.perKillPrize || 1);
+      return [
+        ...prev,
+        {
+          teamName: `Squad #${nextRank}`,
+          rank: nextRank,
+          placementPoints,
+          kills: 0,
+          killPoints,
+          totalPoints,
+          booyah: nextRank === 1,
+        },
+      ];
+    });
+  };
+
+  const handleRemoveEditableRow = (index: number) => {
+    setEditableScores(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handlePublishPointsTable = async () => {
+    if (!selectedRoomTournament || editableScores.length === 0) {
+      alert('Please enter or scan scores before publishing.');
+      return;
+    }
+    setIsSavingPointsTable(true);
+    try {
+      const targetRoom = tournamentRooms.find(r => r.id === selectedScoreboardRoomId) || tournamentRooms[0];
+      const res = await fetch(`/api/tournaments/${selectedRoomTournament.id}/results`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+        credentials: 'include',
+        body: JSON.stringify({
+          action: 'PUBLISH_POINTS_TABLE',
+          tableData: {
+            tournamentId: selectedRoomTournament.id,
+            roomId: targetRoom?.id,
+            roomLabel: targetRoom?.roomLabel || 'A',
+            matchNumber: matchNumberInput,
+            screenshotUrl: scoreboardImage || undefined,
+            scores: editableScores,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.message || 'Points Table published successfully!');
+        await loadPointsTablesData(selectedRoomTournament.id);
+      } else {
+        alert(data.message || 'Failed to publish points table.');
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Failed to publish points table.');
+    } finally {
+      setIsSavingPointsTable(false);
+    }
+  };
+
+  const [isSendingReminder, setIsSendingReminder] = useState<string | null>(null);
+
+  const handleSendPreMatchReminder = async (room: TournamentRoom) => {
+    if (!selectedRoomTournament) return;
+    const confirmMsg = `Send 15-Minute Pre-Match WhatsApp Alert to all squads registered in Room ${room.roomLabel}?`;
+    if (!confirm(confirmMsg)) return;
+
+    setIsSendingReminder(room.id);
+    try {
+      const res = await fetch(`/api/tournaments/${selectedRoomTournament.id}/reminders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+        credentials: 'include',
+        body: JSON.stringify({
+          roomId: room.id,
+          roomLabel: room.roomLabel,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.message || 'WhatsApp pre-match reminders sent successfully!');
+      } else {
+        alert(data.message || 'Failed to send reminders.');
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Error sending reminders.');
+    } finally {
+      setIsSendingReminder(null);
     }
   };
 
@@ -1845,6 +2038,18 @@ export default function AdminTournamentsPage() {
                   <span>Rooms Overview ({tournamentRooms.length})</span>
                 </button>
 
+                <button
+                  onClick={() => setRoomActiveTab('POINTS_TABLE')}
+                  className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
+                    roomActiveTab === 'POINTS_TABLE'
+                      ? 'bg-purple-600 text-white shadow-md'
+                      : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                  }`}
+                >
+                  <Scan className="w-3.5 h-3.5" />
+                  <span>AI Points Table Studio ({adminPointsTables.length})</span>
+                </button>
+
                 {selectedRoomTournament.tournamentBatchFormat === 'QUALIFIER_FINAL' && (
                   <button
                     onClick={() => setRoomActiveTab('QUALIFIERS')}
@@ -1933,6 +2138,19 @@ export default function AdminTournamentsPage() {
                           </div>
 
                           <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleSendPreMatchReminder(room)}
+                              disabled={isSendingReminder === room.id || !room.currentCount}
+                              className="px-2.5 py-1.5 rounded-xl bg-purple-950/80 hover:bg-purple-900 border border-purple-700/80 text-purple-300 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50"
+                              title="Send 15-minute pre-match WhatsApp reminder to this room's players"
+                            >
+                              {isSendingReminder === room.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-400" />
+                              ) : (
+                                <Send className="w-3.5 h-3.5 text-purple-400" />
+                              )}
+                              <span>15m Reminder</span>
+                            </button>
                             {room.roomIdCredential && room.roomPassword && (
                               <button
                                 onClick={() => handleBroadcastRoomWhatsappDirect(room)}
@@ -2061,8 +2279,229 @@ export default function AdminTournamentsPage() {
                   })
                 )}
               </div>
+            ) : roomActiveTab === 'POINTS_TABLE' ? (
+              /* TAB 2: AI SCOREBOARD SCANNER & POINTS TABLE STUDIO */
+              <div className="mt-4 space-y-5">
+                {/* 1. Room Selector & Screenshot Upload Box */}
+                <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                    <div>
+                      <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                        <Scan className="w-4 h-4 text-purple-400" />
+                        <span>AI Match Scoreboard Scanner &amp; Points Publisher</span>
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Upload match end scoreboard screenshot &rarr; click &quot;Scan with AI&quot; &rarr; review &amp; publish live points table.
+                      </p>
+                    </div>
+
+                    {/* Room Selector */}
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs font-bold text-slate-400 shrink-0">Select Room:</label>
+                      <select
+                        value={selectedScoreboardRoomId}
+                        onChange={(e) => setSelectedScoreboardRoomId(e.target.value)}
+                        className="px-3 py-1.5 rounded-xl border border-purple-800/80 bg-slate-900 text-purple-300 font-bold text-xs outline-none focus:border-purple-500 cursor-pointer"
+                      >
+                        {tournamentRooms.map(r => (
+                          <option key={r.id} value={r.id}>
+                            {r.roomType === 'FINAL' || r.roomLabel === 'Final' ? '🏆 Final Room' : `Room ${r.roomLabel}`} ({r.currentCount || 0} squads)
+                          </option>
+                        ))}
+                      </select>
+
+                      <div className="flex items-center gap-1 ml-2">
+                        <label className="text-xs font-bold text-slate-400 shrink-0">Match #:</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="10"
+                          value={matchNumberInput}
+                          onChange={(e) => setMatchNumberInput(Number(e.target.value) || 1)}
+                          className="w-14 px-2 py-1.5 rounded-xl border border-slate-700 bg-slate-900 text-center font-bold text-xs text-white"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Screenshot Input and Scan Trigger */}
+                  <div className="grid gap-4 md:grid-cols-2 items-center">
+                    <div>
+                      <ImageUploadInput
+                        label="Upload Match Scoreboard Screenshot"
+                        theme="dark"
+                        value={scoreboardImage}
+                        onChange={(val) => setScoreboardImage(val)}
+                        placeholder="Paste image URL or upload match screenshot"
+                        helperText="Gemini Vision reads squad names, placement ranks, and kills automatically."
+                      />
+                    </div>
+
+                    <div className="flex flex-col justify-center space-y-3 p-4 rounded-xl bg-slate-900/60 border border-slate-800">
+                      <div className="text-xs text-slate-300 space-y-1">
+                        <div className="font-bold text-white flex items-center gap-1.5">
+                          <Sparkles className="w-4 h-4 text-brand-gold" />
+                          <span>Official Esports Scoring Formula:</span>
+                        </div>
+                        <p className="text-[11px] text-slate-400">
+                          1st: 12 pts • 2nd: 9 pts • 3rd: 8 pts • 4th: 7 pts • 5th: 6 pts • 6th: 5 pts • 7th: 4 pts • 8th: 3 pts • 9th: 2 pts • 10th: 1 pt + 1 pt per Kill.
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={handleScanScoreboard}
+                          disabled={isScanningOCR || !scoreboardImage}
+                          className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 text-white font-black text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                        >
+                          {isScanningOCR ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <span>Scanning Scoreboard with AI...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Scan className="w-4 h-4" />
+                              <span>⚡ Scan Scoreboard with AI</span>
+                            </>
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleAddEditableRow}
+                          className="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs border border-slate-700 transition-colors cursor-pointer"
+                          title="Add row manually"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Editable Scores Spreadsheet */}
+                {editableScores.length > 0 && (
+                  <div className="p-5 rounded-2xl bg-slate-950/90 border border-slate-800 space-y-4 animate-fadeIn">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                          <CheckSquare className="w-4 h-4 text-emerald-400" />
+                          <span>Review &amp; Edit Points Table ({editableScores.length} Squads)</span>
+                          {ocrConfidence && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 font-mono font-bold">
+                              AI Confidence: {ocrConfidence}%
+                            </span>
+                          )}
+                        </h4>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          Admin has 100% control: Click any cell to edit team names, placement rank, or kills. Total points calculate automatically.
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handlePublishPointsTable}
+                        disabled={isSavingPointsTable}
+                        className="py-2 px-5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:brightness-110 text-white font-black text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                      >
+                        {isSavingPointsTable ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        <span>Publish Points Table</span>
+                      </button>
+                    </div>
+
+                    <div className="overflow-x-auto rounded-xl border border-slate-800">
+                      <table className="min-w-full text-left text-xs">
+                        <thead className="bg-slate-900 text-slate-400 uppercase font-black tracking-wider border-b border-slate-800 text-[10px]">
+                          <tr>
+                            <th className="px-3 py-2.5 w-16 text-center">Rank</th>
+                            <th className="px-3 py-2.5">Squad Name</th>
+                            <th className="px-3 py-2.5 w-28 text-center">Placement Pts</th>
+                            <th className="px-3 py-2.5 w-24 text-center">Kills</th>
+                            <th className="px-3 py-2.5 w-28 text-center">Total Points</th>
+                            <th className="px-3 py-2.5 w-12 text-center">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800/80 font-mono">
+                          {editableScores.map((score, idx) => (
+                            <tr key={idx} className="hover:bg-slate-900/60">
+                              <td className="px-3 py-2 text-center">
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="30"
+                                  value={score.rank}
+                                  onChange={(e) => handleUpdateEditableScore(idx, 'rank', e.target.value)}
+                                  className="w-12 px-1.5 py-1 rounded bg-slate-900 border border-slate-700 text-center font-bold text-white"
+                                />
+                              </td>
+                              <td className="px-3 py-2 font-sans font-bold text-white">
+                                <input
+                                  type="text"
+                                  value={score.teamName}
+                                  onChange={(e) => handleUpdateEditableScore(idx, 'teamName', e.target.value)}
+                                  className="w-full px-2.5 py-1 rounded bg-slate-900 border border-slate-700 text-xs font-bold text-white outline-none focus:border-purple-500"
+                                />
+                              </td>
+                              <td className="px-3 py-2 text-center text-slate-300 font-bold">
+                                {score.placementPoints} pts
+                              </td>
+                              <td className="px-3 py-2 text-center">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={score.kills}
+                                  onChange={(e) => handleUpdateEditableScore(idx, 'kills', e.target.value)}
+                                  className="w-16 px-1.5 py-1 rounded bg-slate-900 border border-slate-700 text-center font-bold text-red-400 outline-none focus:border-purple-500"
+                                />
+                              </td>
+                              <td className="px-3 py-2 text-center">
+                                <span className="px-2.5 py-1 rounded-lg bg-slate-900 text-brand-gold font-black border border-slate-700 text-sm">
+                                  {score.totalPoints}
+                                </span>
+                              </td>
+                              <td className="px-3 py-2 text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveEditableRow(idx)}
+                                  className="p-1 text-slate-500 hover:text-red-400 hover:bg-red-950/40 rounded transition-colors cursor-pointer"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. Published Points Tables Archive for this tournament */}
+                {adminPointsTables.length > 0 && (
+                  <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                      <Trophy className="w-3.5 h-3.5 text-brand-gold" />
+                      <span>Published Points Tables ({adminPointsTables.length})</span>
+                    </h4>
+                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                      {adminPointsTables.map(t => (
+                        <div key={t.id} className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-purple-400">Room {t.roomLabel || 'A'} (Match #{t.matchNumber || 1})</span>
+                            <span className="text-[10px] text-slate-500">{new Date(t.publishedAt).toLocaleDateString()}</span>
+                          </div>
+                          <div className="text-[11px] text-slate-300">
+                            Leader: <strong className="text-brand-gold">{t.scores?.[0]?.teamName || 'N/A'}</strong> ({t.scores?.[0]?.totalPoints || 0} pts)
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             ) : (
-              /* TAB 2: QUALIFIER ADVANCEMENT TOOL (Format A) */
+              /* TAB 3: QUALIFIER ADVANCEMENT TOOL (Format A) */
               <div className="mt-4 space-y-4">
                 <div className="p-4 rounded-2xl bg-purple-950/40 border border-purple-800/80 flex items-center justify-between gap-3">
                   <div>

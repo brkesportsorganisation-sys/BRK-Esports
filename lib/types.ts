@@ -244,9 +244,38 @@ export interface Payment {
   updatedAt?: string;
 }
 
+export interface MatchTeamScore {
+  teamName: string;
+  participantId?: string;
+  userId?: string;
+  rank: number;
+  placementPoints: number;
+  kills: number;
+  killPoints: number;
+  totalPoints: number;
+  booyah: boolean;
+  isAdvanced?: boolean;
+  players?: { name: string; kills: number }[];
+}
+
+export interface TournamentPointsTable {
+  id: string;
+  tournamentId: string;
+  roomId?: string;
+  roomLabel?: string;
+  stage?: string;
+  matchNumber?: number;
+  screenshotUrl?: string;
+  publishedAt: string;
+  publishedBy?: string;
+  scores: MatchTeamScore[];
+}
+
 export interface MatchResult {
   id: string;
   tournamentId: string;
+  roomId?: string;
+  roomLabel?: string;
   teamOrPlayerName?: string;
   playerName?: string;
   ffUid?: string;
