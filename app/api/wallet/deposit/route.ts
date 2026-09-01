@@ -63,6 +63,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const MAX_AUTO_CREDIT_BDT = 499;
+    const shouldAutoCredit = numAmount < 500;
+
     // 1. Fetch current player from User table
     const { data: playerUser, error: userFetchErr } = await supabaseAdmin
       .from('User')
@@ -75,8 +78,30 @@ export async function POST(request: NextRequest) {
     }
 
     const currentWallet = Number(playerUser.walletBalance || 0);
+    const currentWinning = Number(playerUser.winningBalance || 0);
+    let newWalletBalance = currentWallet;
+    let newWinningBalance = currentWinning;
 
-    // 2. Create Payment record with PENDING status (Admin Verification Required)
+    // 2. AUTO-CREDIT IF AMOUNT IS UNDER ৳500 (< 500 BDT)
+    if (shouldAutoCredit) {
+      newWalletBalance = currentWallet + numAmount;
+      newWinningBalance = currentWinning + numAmount;
+
+      const { error: balanceUpdateErr } = await supabaseAdmin
+        .from('User')
+        .update({
+          walletBalance: newWalletBalance,
+          winningBalance: newWinningBalance,
+          updatedAt: new Date().toISOString(),
+        })
+        .eq('id', userId);
+
+      if (balanceUpdateErr) {
+        console.error('[POST /api/wallet/deposit] Auto-credit update notice:', balanceUpdateErr);
+      }
+    }
+
+    // 3. Create Payment record with PENDING status
     const paymentId = `pay_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
     const newPayment = {
@@ -88,9 +113,11 @@ export async function POST(request: NextRequest) {
       amount: numAmount,
       trxId: trimmedTrx,
       screenshot: screenshotUrl,
-      status: 'PENDING', // All deposits require verification before crediting
+      status: 'PENDING', // Admin reviews in Admin Panel (can approve or reject & auto-deduct)
       walletType: 'WINNING',
-      notes: `[Deposit Request: ৳${numAmount} via ${method}] TrxID: ${trimmedTrx}. Pending verification.`,
+      notes: shouldAutoCredit
+        ? `[Auto-Credited: ৳${numAmount}] Instant auto-credit (< ৳500). Pending Admin Review.`
+        : `[Manual Approval Required: >= ৳500 (৳${numAmount}) - NOT Auto-Credited] Pending Admin Approval before wallet credit.`,
       communityAccessUnlocked: false,
       communityAccessRevoked: false,
       createdAt: new Date().toISOString(),
@@ -129,25 +156,38 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 3. Send In-App Notification to Player
+    // 4. Send In-App Notification to Player
     try {
       const notifId = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-      await supabaseAdmin.from('Notification').insert([{
-        id: notifId,
-        userId: userId,
-        title: `ডিপোজিট রিকোয়েস্ট জমা হয়েছে (৳${numAmount}) ⏳`,
-        message: `আপনার ${method} ডিপোজিট (TrxID: ${trimmedTrx}) সাবমিট হয়েছে। এডমিন ভেরিফাই করে অ্যাপ্রুভ করার সাথে সাথে আপনার ওয়ালেটে ৳${numAmount} যোগ হয়ে যাবে।`,
-        isRead: false,
-        createdAt: new Date().toISOString(),
-      }]);
+      if (shouldAutoCredit) {
+        await supabaseAdmin.from('Notification').insert([{
+          id: notifId,
+          userId: userId,
+          title: `৳${numAmount} ডিপোজিট ইনস্ট্যান্ট জমা হয়েছে! ⚡`,
+          message: `আপনার ${method} ডিপোজিট (TrxID: ${trimmedTrx}) সাবমিট করায় ৳${numAmount} তাৎক্ষণিকভাবে আপনার ওয়ালেটে যোগ করা হয়েছে। এডমিন প্যানেল থেকে ট্রানজেকশনটি রিভিউ করা হচ্ছে।`,
+          isRead: false,
+          createdAt: new Date().toISOString(),
+        }]);
+      } else {
+        await supabaseAdmin.from('Notification').insert([{
+          id: notifId,
+          userId: userId,
+          title: `ডিপোজিট রিকোয়েস্ট পেন্ডিং (৳${numAmount}) ⏳`,
+          message: `আপনার ${method} ডিপোজিট রিকোয়েস্টটি (TrxID: ${trimmedTrx}) ৳৫০০ বা তার বেশি হওয়ায় এডমিন প্যানেলে অনুমোদনের জন্য পাঠানো হয়েছে। এডমিন ভেরিফাই করে অ্যাপ্রুভ করার সাথে সাথে আপনার ওয়ালেটে ৳${numAmount} যোগ হয়ে যাবে।`,
+          isRead: false,
+          createdAt: new Date().toISOString(),
+        }]);
+      }
     } catch {}
 
     return NextResponse.json({
       success: true,
       payment: createdPayment,
-      isAutoCredited: false,
-      newWalletBalance: currentWallet,
-      message: `আপনার ৳${numAmount} ডিপোজিট রিকোয়েস্টটি সফলভাবে জমা হয়েছে। এডমিন TrxID ভেরিফাই করে অ্যাপ্রুভ করার সাথে সাথে আপনার ওয়ালেটে ব্যালেন্স যোগ হবে।`,
+      isAutoCredited: shouldAutoCredit,
+      newWalletBalance: shouldAutoCredit ? newWalletBalance : currentWallet,
+      message: shouldAutoCredit
+        ? `৳${numAmount} ইনস্ট্যান্ট আপনার ওয়ালেটে যোগ হয়ে গেছে! আপনি এখনই টুর্নামেন্টে জয়েন করতে পারবেন। এডমিন প্যানেল থেকে ট্রানজেকশনটি রিভিউ করা হচ্ছে।`
+        : `আপনার ৳${numAmount} ডিপোজিট রিকোয়েস্টটি সফলভাবে জমা হয়েছে। ৫০০ টাকার বেশি হওয়ায় এটি এডমিন প্যানেলে অনুমোদনের জন্য পাঠানো হয়েছে। এডমিন অ্যাপ্রুভ করার সাথে সাথে ওয়ালেটে টাকা যোগ হবে।`,
     }, { status: 201 });
   } catch (error: any) {
     console.error('[POST /api/wallet/deposit]', error);
