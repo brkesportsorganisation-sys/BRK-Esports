@@ -135,8 +135,16 @@ export default function AdminRegistrationsPage() {
 
   useEffect(() => {
     void loadData();
-    const interval = setInterval(() => void loadData(true), 30000);
-    return () => clearInterval(interval);
+    const handleRegPoll = () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      void loadData(true);
+    };
+    const interval = setInterval(handleRegPoll, 60000);
+    document.addEventListener('visibilitychange', handleRegPoll);
+    return () => {
+      document.removeEventListener('visibilitychange', handleRegPoll);
+      clearInterval(interval);
+    };
   }, [loadData]);
 
   const handleAction = async (regId: string, action: 'APPROVE' | 'REJECT', fee: number) => {

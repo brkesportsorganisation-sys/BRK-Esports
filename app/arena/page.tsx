@@ -123,8 +123,19 @@ export default function ArenaPage() {
 
     loadDuels();
     loadBanner();
-    const interval = setInterval(loadDuels, 20000);
-    return () => clearInterval(interval);
+
+    const handleArenaPoll = () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      loadDuels();
+    };
+
+    const interval = setInterval(handleArenaPoll, 45000);
+    document.addEventListener('visibilitychange', handleArenaPoll);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleArenaPoll);
+      clearInterval(interval);
+    };
   }, []);
 
   useEffect(() => {

@@ -96,12 +96,20 @@ export async function GET(request: NextRequest) {
     const products = await getDynamicProducts();
     const activeProducts = products.filter(p => p.isActive !== false);
 
-    return NextResponse.json({
-      success: true,
-      products: activeProducts,
-      allCount: products.length,
-      userOrders,
-    });
+    const headers: Record<string, string> = {};
+    if (!userId && !validateCoupon) {
+      headers['Cache-Control'] = 'public, s-maxage=30, stale-while-revalidate=120';
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        products: activeProducts,
+        allCount: products.length,
+        userOrders,
+      },
+      { headers }
+    );
   } catch (error: any) {
     return NextResponse.json({ success: true, products: DEFAULT_SHOP_PRODUCTS, userOrders: [] });
   }

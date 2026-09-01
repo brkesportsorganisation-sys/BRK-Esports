@@ -143,8 +143,16 @@ export default function AdminShell({ children }: AdminShellProps) {
       } catch {}
     };
     void loadPending();
-    const interval = setInterval(() => void loadPending(), 30000);
-    return () => clearInterval(interval);
+    const handleAdminShellPoll = () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      void loadPending();
+    };
+    const interval = setInterval(handleAdminShellPoll, 60000);
+    document.addEventListener('visibilitychange', handleAdminShellPoll);
+    return () => {
+      document.removeEventListener('visibilitychange', handleAdminShellPoll);
+      clearInterval(interval);
+    };
   }, [pathname]);
 
   const handleLogout = async () => {

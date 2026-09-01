@@ -50,7 +50,14 @@ export async function GET() {
       earnings: Number(sq.totalEarnings) || 0,
     }));
 
-    return NextResponse.json({ success: true, players, teams });
+    return NextResponse.json(
+      { success: true, players, teams },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120',
+        },
+      }
+    );
   } catch (error: any) {
     console.error('[GET /api/leaderboard]', error);
     return NextResponse.json({ success: false, message: error?.message || 'Failed to fetch leaderboard.' }, { status: 500 });

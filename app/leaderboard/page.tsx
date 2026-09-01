@@ -47,8 +47,19 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     loadLeaderboard();
-    const interval = setInterval(loadLeaderboard, 30000);
-    return () => clearInterval(interval);
+
+    const handleLeaderboardPoll = () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      loadLeaderboard();
+    };
+
+    const interval = setInterval(handleLeaderboardPoll, 60000);
+    document.addEventListener('visibilitychange', handleLeaderboardPoll);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleLeaderboardPoll);
+      clearInterval(interval);
+    };
   }, []);
 
   const currentList = activeTab === 'PLAYERS' ? players : teams;

@@ -182,12 +182,19 @@ function MessagesInboxContent() {
       prevMsgCountRef.current = 0;
       loadMessages(activeConvId, currentUser.id, false);
 
-      // Periodic silent polling for new messages every 5s without reloading spinner
-      const interval = setInterval(() => {
+      // Smart visibility-aware polling for new messages (saves CPU & requests)
+      const handleMessagePoll = () => {
+        if (typeof document !== 'undefined' && document.hidden) return;
         loadMessages(activeConvId, currentUser.id, true);
-      }, 5000);
+      };
 
-      return () => clearInterval(interval);
+      const interval = setInterval(handleMessagePoll, 12000);
+      document.addEventListener('visibilitychange', handleMessagePoll);
+
+      return () => {
+        document.removeEventListener('visibilitychange', handleMessagePoll);
+        clearInterval(interval);
+      };
     }
   }, [activeConvId, currentUser?.id]);
 

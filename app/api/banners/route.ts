@@ -128,17 +128,24 @@ export async function GET(request: NextRequest) {
     const shopBanner = shopBanners[0] || null;
     const arenaBanner = activeBanners.find((b) => b.placement === 'ARENA_BANNER') || null;
 
-    return NextResponse.json({
-      success: true,
-      banners: activeBanners,
-      settings,
-      mainSliders,
-      sideTop,
-      sideBottom,
-      shopBanner,
-      shopBanners,
-      arenaBanner,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        banners: activeBanners,
+        settings,
+        mainSliders,
+        sideTop,
+        sideBottom,
+        shopBanner,
+        shopBanners,
+        arenaBanner,
+      },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120',
+        },
+      }
+    );
   } catch (error: any) {
     console.error('[GET /api/banners]', error);
     return NextResponse.json({ message: error?.message || 'Failed to fetch banners.' }, { status: 500 });

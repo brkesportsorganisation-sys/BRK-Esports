@@ -55,8 +55,16 @@ export default function AdminShopOrdersPage() {
 
   useEffect(() => {
     loadOrders();
-    const interval = setInterval(loadOrders, 10000);
-    return () => clearInterval(interval);
+    const handleOrderPoll = () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      loadOrders();
+    };
+    const interval = setInterval(handleOrderPoll, 30000);
+    document.addEventListener('visibilitychange', handleOrderPoll);
+    return () => {
+      document.removeEventListener('visibilitychange', handleOrderPoll);
+      clearInterval(interval);
+    };
   }, []);
 
   const handleCopy = (text: string, id: string) => {

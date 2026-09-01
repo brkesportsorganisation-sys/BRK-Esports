@@ -23,7 +23,14 @@ export async function GET(request: NextRequest) {
     const { data: announcements, error } = await query;
     if (error) throw new Error(error.message);
 
-    return NextResponse.json({ announcements: announcements || [] });
+    return NextResponse.json(
+      { announcements: announcements || [] },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120',
+        },
+      }
+    );
   } catch (error: any) {
     console.error('[GET /api/announcements]', error);
     return NextResponse.json({ message: error?.message || 'Failed to fetch announcements.' }, { status: 500 });

@@ -137,17 +137,22 @@ export default function Navbar() {
     window.addEventListener('wallet_balance_updated', handleBalanceUpdate);
     window.addEventListener('storage', handleBalanceUpdate);
 
-    // Periodic refresh for notifications every 25 seconds
-    const interval = setInterval(() => {
+    // Smart visibility-aware periodic refresh for notifications (saves CPU & Edge requests)
+    const handleNotificationSync = () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       const activeUser = db.getCurrentUser();
       if (activeUser?.id) {
         loadUserNotifications(activeUser.id);
       }
-    }, 25000);
+    };
+
+    const interval = setInterval(handleNotificationSync, 60000);
+    document.addEventListener('visibilitychange', handleNotificationSync);
 
     return () => {
       window.removeEventListener('wallet_balance_updated', handleBalanceUpdate);
       window.removeEventListener('storage', handleBalanceUpdate);
+      document.removeEventListener('visibilitychange', handleNotificationSync);
       clearInterval(interval);
     };
   }, []);
