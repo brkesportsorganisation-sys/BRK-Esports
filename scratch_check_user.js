@@ -12,28 +12,18 @@ envContent.split('\n').forEach(line => {
 
 const supabaseUrl = env['NEXT_PUBLIC_SUPABASE_URL'];
 const supabaseKey = env['SUPABASE_SERVICE_ROLE_KEY'];
-
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-async function checkRegistrationTable() {
-  const { data: regData } = await supabase
-    .from('Registration')
-    .select('*')
-    .eq('tournamentId', 'tour_1787923619380_4czqp');
-    
-  console.log("Registration table records:", regData);
-  if (regData && regData.length > 0) {
-    await supabase
-      .from('Registration')
-      .update({
-        iglName: 'ADMIN',
-        player1Name: 'ADMIN',
-        player2Name: 'ADMIN',
-        player3Name: 'ADMIN',
-        player4Name: 'ADMIN',
-      })
-      .eq('tournamentId', 'tour_1787923619380_4czqp');
-  }
+async function updateSquadNameToAdmins() {
+  const { data, error } = await supabase
+    .from('Participant')
+    .update({
+      squadName: 'ADMINS',
+    })
+    .eq('id', 'REG-VF5CHHOQ')
+    .select();
+
+  console.log("Updated Participant:", data, error);
 }
 
-checkRegistrationTable();
+updateSquadNameToAdmins();
