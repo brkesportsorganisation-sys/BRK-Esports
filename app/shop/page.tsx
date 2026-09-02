@@ -530,8 +530,8 @@ export default function GamingShopPage() {
                         )}
                       </div>
 
-                      {/* Top Image Box */}
-                      <div className="relative w-full h-44 bg-slate-900 overflow-hidden">
+                      {/* Top Image Box (1:1 Aspect Ratio) */}
+                      <div className="relative w-full aspect-square bg-slate-100 overflow-hidden">
                         <Image
                           src={product.imageUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=500'}
                           alt={product.name}
@@ -539,16 +539,6 @@ export default function GamingShopPage() {
                           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 360px"
                           className="object-cover group-hover:scale-105 transition-transform duration-500"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
-                        
-                        <div className="absolute bottom-3 left-3 flex items-center gap-2">
-                          <span className="w-8 h-8 rounded-xl bg-black/60 backdrop-blur-md border border-white/20 text-white flex items-center justify-center text-base shadow-sm">
-                            {product.icon || '💎'}
-                          </span>
-                          <span className="text-[11px] font-bold text-white uppercase drop-shadow-sm font-heading">
-                            {product.category}
-                          </span>
-                        </div>
                       </div>
 
                       {/* Body Content */}
