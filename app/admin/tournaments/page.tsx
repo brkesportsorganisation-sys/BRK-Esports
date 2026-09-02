@@ -172,6 +172,8 @@ export default function AdminTournamentsPage() {
   const [roomQualifiers, setRoomQualifiers] = useState<RoomQualifier[]>([]);
   const [isRoomsLoading, setIsRoomsLoading] = useState(false);
   const [selectedAdvancingIds, setSelectedAdvancingIds] = useState<string[]>([]);
+  const [advanceTargetRoomId, setAdvanceTargetRoomId] = useState<string>('');
+  const [advanceTargetStageName, setAdvanceTargetStageName] = useState<string>('Grand Finals');
   const [isAdvancing, setIsAdvancing] = useState(false);
   const [roomActiveTab, setRoomActiveTab] = useState<'ROOMS' | 'ROADMAP' | 'ROSTER' | 'POINTS_TABLE' | 'QUALIFIERS'>('ROADMAP');
   const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
@@ -892,11 +894,15 @@ export default function AdminTournamentsPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
         credentials: 'include',
-        body: JSON.stringify({ advancingParticipants: allParticipants }),
+        body: JSON.stringify({
+          advancingParticipants: allParticipants,
+          targetRoomId: advanceTargetRoomId || undefined,
+          targetStageName: advanceTargetStageName || 'Grand Finals',
+        }),
       });
       const data = await res.json();
       if (res.ok) {
-        alert(data.message || 'Squads advanced to Final Room!');
+        alert(data.message || 'Squads advanced to target stage!');
         setSelectedAdvancingIds([]);
         await loadTournamentRoomsData(selectedRoomTournament.id);
       } else {
@@ -3875,55 +3881,122 @@ export default function AdminTournamentsPage() {
                 )}
               </div>
             ) : (
-              /* TAB 3: QUALIFIER ADVANCEMENT TOOL (Format A) */
-              <div className="mt-4 space-y-4">
-                <div className="p-4 rounded-2xl bg-purple-950/40 border border-purple-800/80 flex items-center justify-between gap-3">
-                  <div>
-                    <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                      <Trophy className="w-4 h-4 text-purple-400" />
-                      <span>Format A: Select Advancing Squads for Final Room</span>
-                    </h3>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
-                      Check the winning/qualifying squads from each room below, then click &quot;Advance to Final Room&quot; to auto-populate the Championship Final roster.
-                    </p>
+              /* TAB 5: UNIVERSAL STAGE & ROUND ADVANCEMENT ENGINE */
+              <div className="mt-4 space-y-5">
+                <div className="p-5 rounded-2xl bg-purple-950/40 border border-purple-800/80 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-purple-900/60">
+                    <div>
+                      <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                        <Trophy className="w-4 h-4 text-brand-gold" />
+                        <span>Universal Stage &amp; Round Advancement Engine</span>
+                      </h3>
+                      <p className="text-xs text-slate-300 mt-0.5">
+                        Select qualifying squads from previous rounds &rarr; advance them to the next Round (Round 2, 3, Quarter-Finals, Semi-Finals, or Grand Finals).
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={handleAdvanceSelectedSquads}
+                      disabled={isAdvancing || selectedAdvancingIds.length === 0}
+                      className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-emerald-600 hover:brightness-110 text-white text-xs font-black shadow-lg transition-all disabled:opacity-50 flex items-center gap-2 cursor-pointer shrink-0"
+                    >
+                      {isAdvancing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Award className="w-4 h-4 text-brand-gold" />}
+                      <span>Advance Selected ({selectedAdvancingIds.length}) &rarr; {advanceTargetStageName}</span>
+                    </button>
                   </div>
-                  <button
-                    onClick={handleAdvanceSelectedSquads}
-                    disabled={isAdvancing || selectedAdvancingIds.length === 0}
-                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 text-white text-xs font-black shadow-md transition-all disabled:opacity-50 flex items-center gap-1.5 cursor-pointer shrink-0"
-                  >
-                    {isAdvancing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Award className="w-4 h-4" />}
-                    <span>Advance Selected ({selectedAdvancingIds.length}) to Final</span>
-                  </button>
+
+                  {/* Target Stage & Room Controls */}
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 p-3.5 rounded-xl bg-slate-950/80 border border-purple-900/60 items-center">
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 block mb-1">
+                        Select Target Next Round / Stage:
+                      </label>
+                      <select
+                        value={advanceTargetStageName}
+                        onChange={(e) => setAdvanceTargetStageName(e.target.value)}
+                        className="w-full px-3 py-1.5 rounded-lg border border-purple-800 bg-slate-900 text-xs font-bold text-purple-300 outline-none focus:border-purple-500 cursor-pointer"
+                      >
+                        {(adminRoadmapConfig?.stages || []).map(stg => (
+                          <option key={stg.id} value={stg.name}>{stg.name}</option>
+                        ))}
+                        <option value="Round 2: Group Stage">Round 2: Group Stage</option>
+                        <option value="Round 3: Playoffs">Round 3: Playoffs</option>
+                        <option value="Quarter-Finals">Quarter-Finals</option>
+                        <option value="Semi-Finals">Semi-Finals</option>
+                        <option value="Grand Finals">🏆 Grand Finals</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 block mb-1">
+                        Select Target Room / Group:
+                      </label>
+                      <select
+                        value={advanceTargetRoomId}
+                        onChange={(e) => setAdvanceTargetRoomId(e.target.value)}
+                        className="w-full px-3 py-1.5 rounded-lg border border-purple-800 bg-slate-900 text-xs font-bold text-white outline-none focus:border-purple-500 cursor-pointer"
+                      >
+                        <option value="">Auto-Assign / Default Next Room</option>
+                        {tournamentRooms.map(r => (
+                          <option key={r.id} value={r.id}>
+                            {r.roomType === 'FINAL' || r.roomLabel === 'Final' ? '🏆 Final Room' : `Group ${r.roomLabel}`} ({r.currentCount || 0}/{r.capacity || 12})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-4 sm:pt-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          // Select all non-final squad IDs
+                          const allIds = tournamentRooms
+                            .filter(r => r.roomType !== 'FINAL')
+                            .flatMap(r => ((r as any).participants || []).map((p: any) => p.id));
+                          setSelectedAdvancingIds(allIds);
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-[11px] font-bold text-slate-300 transition-colors cursor-pointer"
+                      >
+                        Select All
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedAdvancingIds([])}
+                        className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-[11px] font-bold text-slate-400 transition-colors cursor-pointer"
+                      >
+                        Clear Selection
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Squads Selector Table */}
-                <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/50">
+                <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/80 shadow-xl">
                   <table className="min-w-full text-left text-xs">
-                    <thead className="bg-slate-900 text-slate-400 uppercase font-bold border-b border-slate-800">
+                    <thead className="bg-slate-900 text-slate-400 uppercase font-black tracking-wider border-b border-slate-800 text-[10px]">
                       <tr>
                         <th className="px-4 py-3 w-12 text-center">Select</th>
                         <th className="px-4 py-3">Source Room</th>
                         <th className="px-4 py-3">Squad Name</th>
-                        <th className="px-4 py-3">IGL</th>
-                        <th className="px-4 py-3">Status</th>
+                        <th className="px-4 py-3">Captain / IGL</th>
+                        <th className="px-4 py-3">WhatsApp</th>
+                        <th className="px-4 py-3">Current Status</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800/80">
+                    <tbody className="divide-y divide-slate-800/60 font-sans">
                       {tournamentRooms
-                        .filter(r => r.roomType !== 'FINAL')
-                        .flatMap(r => ((r as any).participants || []).map((p: any) => ({ ...p, roomLabel: r.roomLabel, roomId: r.id })))
+                        .flatMap(r => ((r as any).participants || []).map((p: any) => ({ ...p, roomLabel: r.roomLabel, roomId: r.id, roomType: r.roomType })))
                         .map((squad: any) => {
                           const isSelected = selectedAdvancingIds.includes(squad.id);
-                          const isAlreadyAdv = roomQualifiers.some(q => q.participantId === squad.id && q.advancedToFinal);
+                          const isAlreadyFinal = squad.roomType === 'FINAL' || squad.roomLabel === 'Final';
 
                           return (
-                            <tr key={squad.id} className="hover:bg-slate-900/80 transition-colors">
+                            <tr key={squad.id} className="hover:bg-slate-900/60 transition-colors">
                               <td className="px-4 py-3 text-center">
                                 <input
                                   type="checkbox"
-                                  checked={isSelected || isAlreadyAdv}
-                                  disabled={isAlreadyAdv}
+                                  checked={isSelected || isAlreadyFinal}
+                                  disabled={isAlreadyFinal}
                                   onChange={(e) => {
                                     if (e.target.checked) {
                                       setSelectedAdvancingIds(prev => [...prev, squad.id]);
@@ -3931,30 +4004,33 @@ export default function AdminTournamentsPage() {
                                       setSelectedAdvancingIds(prev => prev.filter(id => id !== squad.id));
                                     }
                                   }}
-                                  className="accent-purple-600 rounded cursor-pointer"
+                                  className="accent-purple-600 rounded cursor-pointer w-4 h-4"
                                 />
                               </td>
                               <td className="px-4 py-3 font-mono font-bold text-purple-400">
-                                Room {squad.roomLabel}
+                                {isAlreadyFinal ? '🏆 Final Room' : `Group ${squad.roomLabel}`}
                               </td>
                               <td className="px-4 py-3 font-bold text-white">
                                 {squad.squadName}
                               </td>
-                              <td className="px-4 py-3 text-slate-400 font-mono">
+                              <td className="px-4 py-3 text-slate-300 font-medium">
                                 {squad.iglName || 'N/A'}
                               </td>
+                              <td className="px-4 py-3 font-mono text-xs text-slate-400">
+                                {squad.captainWhatsApp || 'N/A'}
+                              </td>
                               <td className="px-4 py-3">
-                                {isAlreadyAdv ? (
-                                  <span className="px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800 font-bold text-[10px]">
-                                    🏆 In Final Room
+                                {isAlreadyFinal ? (
+                                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800 font-bold text-[10px]">
+                                    🏆 In Final Stage
                                   </span>
                                 ) : isSelected ? (
-                                  <span className="px-2 py-0.5 rounded-full bg-purple-950 text-purple-300 border border-purple-700 font-bold text-[10px]">
-                                    Selected to Advance
+                                  <span className="px-2.5 py-0.5 rounded-full bg-purple-950 text-purple-300 border border-purple-700 font-bold text-[10px]">
+                                    Selected &rarr; {advanceTargetStageName}
                                   </span>
                                 ) : (
                                   <span className="text-slate-500 text-[10px]">
-                                    Qualifier Participant
+                                    Active in Group {squad.roomLabel}
                                   </span>
                                 )}
                               </td>
