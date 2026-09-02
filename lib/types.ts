@@ -90,9 +90,50 @@ export type TournamentBatchFormat = 'SINGLE_ROOM' | 'QUALIFIER_FINAL' | 'INDEPEN
 export type RoomType = 'QUALIFIER' | 'FINAL' | 'STANDALONE';
 export type RoomStatus = 'OPEN' | 'FULL' | 'LIVE' | 'COMPLETED';
 
+export interface TournamentStage {
+  id: string;
+  stageNumber: number;
+  name: string; // e.g., "Round 1: Qualifiers", "Quarter Finals", "Semi Finals", "Grand Finals"
+  subtitle?: string; // e.g., "4 Groups • Top 3 Advance to Finals"
+  status: 'UPCOMING' | 'LIVE' | 'COMPLETED';
+  startDate?: string;
+  endDate?: string;
+  matchTime?: string;
+  mapRotation?: string[]; // e.g. ['Bermuda', 'Purgatory', 'Kalahari']
+  advancingPerGroup?: number; // e.g. 3
+  totalAdvancing?: number; // e.g. 12
+  roomIds?: string[]; // list of room IDs belonging to this stage
+  customRules?: string;
+  streamUrl?: string; // YouTube / Facebook live stream link for this stage
+}
+
+export interface TournamentRoadmapRuleItem {
+  stepNumber: number;
+  title: string;
+  description: string;
+}
+
+export interface TournamentRoadmapConfig {
+  enabled: boolean;
+  pipelineTitle?: string; // e.g. "TOURNAMENT ROADMAP & SCHEDULE"
+  pipelineSubtitle?: string; // e.g. "Multi-Stage tournament progression pipeline, group schedules, and map rotations."
+  pipelineFormat?: string; // e.g. "Qualifier → Final" or "Single Room"
+  stages?: TournamentStage[];
+  rules?: TournamentRoadmapRuleItem[];
+  pointSystem?: {
+    booyahPoints?: number;
+    secondPoints?: number;
+    thirdPoints?: number;
+    killPoints?: number;
+    customNotes?: string;
+  };
+}
+
 export interface TournamentRoom {
   id: string;
   tournamentId: string;
+  stageId?: string; // Link room to a specific Stage (e.g. 'STAGE_1', 'STAGE_2', 'FINALS')
+  stageName?: string; // e.g. "Round 1: Qualifiers"
   roomLabel: string; // 'A', 'B', 'C', ... or 'Final'
   roomType: RoomType;
   capacity: number; // e.g. 12 squads for Free Fire
@@ -105,6 +146,8 @@ export interface TournamentRoom {
   prizePool?: number; // for independent standalone rooms or final rooms
   advancementCount?: number; // for qualifier rooms (e.g. top 3 advance)
   matchTime?: string;
+  mapName?: string; // e.g. 'Bermuda', 'Purgatory', 'Kalahari', 'Alpine', 'NexTerra'
+  streamUrl?: string; // Live match stream link (YouTube / FB / Twitch)
   roomNotes?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -215,6 +258,8 @@ export interface Tournament {
   timeZone?: string;
   isPaused?: boolean;
   isGiveaway?: boolean;
+  roadmapConfig?: TournamentRoadmapConfig;
+  stages?: TournamentStage[];
   requiresFullSquad?: boolean;
   minSquadMembers?: number;
   session?: string;

@@ -40,7 +40,7 @@ import TournamentCountdown from '@/components/tournaments/TournamentCountdown';
 import { useRealtimeTournament } from '@/lib/use-realtime';
 import { getTournamentByIdFromDb } from '@/lib/tournament-store';
 import { getDynamicTournamentStatus } from '@/lib/tournament-utils';
-import { Tournament, User as UserType, TournamentStatus, TournamentPointsTable, TournamentRoom } from '@/lib/types';
+import { Tournament, User as UserType, TournamentStatus, TournamentPointsTable, TournamentRoom, TournamentRoadmapConfig } from '@/lib/types';
 import { db } from '@/lib/db';
 
 /* ──────────────────────────────────────────────
@@ -196,6 +196,7 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [pointsTables, setPointsTables] = useState<TournamentPointsTable[]>([]);
   const [tournamentRooms, setTournamentRooms] = useState<TournamentRoom[]>([]);
+  const [tournamentRoadmap, setTournamentRoadmap] = useState<TournamentRoadmapConfig | null>(null);
 
   useEffect(() => {
     if (resolvedParams?.id) {
@@ -213,6 +214,9 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
         .then((data) => {
           if (data?.rooms) {
             setTournamentRooms(data.rooms);
+          }
+          if (data?.roadmap) {
+            setTournamentRoadmap(data.roadmap);
           }
         })
         .catch(() => {});
@@ -1041,6 +1045,7 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
           <TournamentRoadmapView
             tournament={tournament}
             rooms={tournamentRooms}
+            roadmap={tournamentRoadmap}
           />
         )}
 

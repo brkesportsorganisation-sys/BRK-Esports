@@ -1,5 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabase';
-import { Tournament, TournamentRoom, RoomQualifier, Participant } from '@/lib/types';
+import { Tournament, TournamentRoom, RoomQualifier, Participant, TournamentRoadmapConfig, TournamentStage, TournamentRoadmapRuleItem } from '@/lib/types';
 import { getMongoClient } from '@/lib/mongodb';
 
 /**
@@ -402,4 +402,228 @@ export async function saveTournamentPointsTables(tournamentId: string, tables: a
 
   return saved;
 }
+
+/**
+ * Generates smart default stages and roadmap configuration for a tournament
+ */
+export function generateDefaultRoadmap(
+  tournament: Partial<Tournament>,
+  rooms: TournamentRoom[] = []
+): TournamentRoadmapConfig {
+  const isMultiStage = tournament.tournamentBatchFormat === 'QUALIFIER_FINAL';
+  const totalSlots = tournament.maxTeams || 48;
+  const capacity = tournament.roomCapacity || getDefaultRoomCapacity(tournament.game);
+
+  if (!isMultiStage) {
+    const stage1: TournamentStage = {
+      id: 'STAGE_1',
+      stageNumber: 1,
+      name: 'Main Tournament Lobby',
+      subtitle: 'Single / Independent Groups • 12 Squads / Room',
+      status: tournament.status === 'LIVE' ? 'LIVE' : tournament.status === 'FINISHED' ? 'COMPLETED' : 'UPCOMING',
+      matchTime: tournament.matchTime || (tournament.tournamentStart ? String(tournament.tournamentStart) : undefined),
+      mapRotation: ['Bermuda', 'Purgatory', 'Kalahari'],
+      advancingPerGroup: 0,
+      totalAdvancing: 1,
+      roomIds: rooms.map((r) => r.id),
+      customRules: 'Standard Battle Royale Rules apply.',
+    };
+
+    return {
+      enabled: true,
+      pipelineTitle: 'TOURNAMENT ROADMAP & SCHEDULE',
+      pipelineSubtitle: 'Official Match Schedule, Map Rotations & Progression Architecture.',
+      pipelineFormat: 'Standard Tournament',
+      stages: [stage1],
+      rules: [
+        {
+          stepNumber: 1,
+          title: '12 Squads Per Room',
+          description: 'Each custom room hosts 12 squads (48 players). Room ID & Password are time-locked and revealed dynamically only to verified captains.',
+        },
+        {
+          stepNumber: 2,
+          title: 'Official Placement Points',
+          description: '1st (Booyah): 12 pts, 2nd: 9 pts, 3rd: 8 pts, 4th: 7 pts + 1 pt per kill. AI Scoreboard vision scanner calculates standings instantly.',
+        },
+        {
+          stepNumber: 3,
+          title: 'Championship Winner',
+          description: 'Top performing squad with highest total points (Placement + Kills) takes the championship prize pool.',
+        },
+      ],
+      pointSystem: {
+        booyahPoints: 12,
+        secondPoints: 9,
+        thirdPoints: 8,
+        killPoints: 1,
+      },
+    };
+  }
+
+  // Format A: Qualifier -> Final multi-stage progression
+  const r1Groups = Math.max(1, Math.ceil(totalSlots / capacity));
+  const r1Adv = tournament.defaultAdvancementCount || 3;
+  const r2Squads = r1Groups * r1Adv;
+  const r2Groups = Math.max(1, Math.ceil(r2Squads / capacity));
+  const r3Squads = r2Groups * 4;
+  const r3Groups = Math.max(1, Math.ceil(r3Squads / capacity));
+
+  const stages: TournamentStage[] = [
+    {
+      id: 'STAGE_1',
+      stageNumber: 1,
+      name: 'Round 1: Qualifiers',
+      subtitle: `${r1Groups} Groups • Top ${r1Adv} Advance`,
+      status: tournament.status === 'RUNNING' || tournament.status === 'LIVE' ? 'LIVE' : 'UPCOMING',
+      matchTime: tournament.matchTime || (tournament.tournamentStart ? String(tournament.tournamentStart) : undefined),
+      mapRotation: ['Bermuda', 'Purgatory', 'Kalahari'],
+      advancingPerGroup: r1Adv,
+      totalAdvancing: r2Squads,
+      roomIds: rooms.filter((r) => r.roomType !== 'FINAL').map((r) => r.id),
+      customRules: `Top ${r1Adv} squads with highest cumulative match points auto-qualify for next round.`,
+    },
+  ];
+
+  if (r2Squads > 12) {
+    stages.push({
+      id: 'STAGE_2',
+      stageNumber: 2,
+      name: 'Round 2: Quarter-Finals',
+      subtitle: `${r2Groups} Groups • Top 4 Advance`,
+      status: 'UPCOMING',
+      mapRotation: ['Purgatory', 'Kalahari', 'Alpine'],
+      advancingPerGroup: 4,
+      totalAdvancing: Math.min(24, r3Squads),
+      customRules: 'Top 4 squads from each Quarter-Final group advance to Semi-Finals / Finals.',
+    });
+  }
+
+  if (r2Squads > 12 && r3Squads > 12) {
+    stages.push({
+      id: 'STAGE_3',
+      stageNumber: 3,
+      name: 'Round 3: Semi-Finals',
+      subtitle: `${r3Groups} Groups • Top 6 Advance`,
+      status: 'UPCOMING',
+      mapRotation: ['Kalahari', 'Alpine', 'NexTerra'],
+      advancingPerGroup: 6,
+      totalAdvancing: 12,
+      customRules: 'Top 6 squads from each Semi-Final group qualify for Grand Finals.',
+    });
+  }
+
+  stages.push({
+    id: 'FINALS',
+    stageNumber: stages.length + 1,
+    name: 'Grand Finals 🏆',
+    subtitle: '12 Finalist Squads • Championship Match Series',
+    status: tournament.status === 'FINISHED' ? 'COMPLETED' : 'UPCOMING',
+    mapRotation: ['Bermuda', 'Purgatory', 'Kalahari', 'Alpine', 'NexTerra'],
+    advancingPerGroup: 1,
+    totalAdvancing: 1,
+    roomIds: rooms.filter((r) => r.roomType === 'FINAL').map((r) => r.id),
+    customRules: '3-5 match series. Grand champion takes the 1st Place Trophy & Prize Pool!',
+  });
+
+  return {
+    enabled: true,
+    pipelineTitle: 'TOURNAMENT ROADMAP & SCHEDULE',
+    pipelineSubtitle: 'Multi-Stage tournament progression pipeline, group schedules, and map rotations.',
+    pipelineFormat: 'Format A: Qualifier → Final',
+    stages,
+    rules: [
+      {
+        stepNumber: 1,
+        title: '12 Squads Per Room',
+        description: 'Each custom room hosts 12 squads (48 players). Room ID & Password are time-locked and revealed dynamically only to assigned captains.',
+      },
+      {
+        stepNumber: 2,
+        title: 'Official Placement Points',
+        description: '1st (Booyah): 12 pts, 2nd: 9 pts, 3rd: 8 pts, 4th: 7 pts + 1 pt per kill. AI Scoreboard vision scanner calculates standings instantly.',
+      },
+      {
+        stepNumber: 3,
+        title: 'Auto-Advancement to Finals',
+        description: 'Top qualifying squads from each round auto-advance to the Championship Final Room for the grand prize pool showdown.',
+      },
+    ],
+    pointSystem: {
+      booyahPoints: 12,
+      secondPoints: 9,
+      thirdPoints: 8,
+      killPoints: 1,
+    },
+  };
+}
+
+/**
+ * Fetch tournament roadmap configuration from SiteSetting or MongoDB.
+ */
+export async function getTournamentRoadmap(
+  tournamentId: string,
+  defaultTour?: Tournament | null,
+  rooms: TournamentRoom[] = []
+): Promise<TournamentRoadmapConfig> {
+  try {
+    const settingKey = `TOURNAMENT_ROADMAP_${tournamentId}`;
+    const { data: setting } = await supabaseAdmin
+      .from('SiteSetting')
+      .select('value')
+      .eq('key', settingKey)
+      .maybeSingle();
+
+    if (setting?.value) {
+      const parsed = JSON.parse(setting.value);
+      if (parsed && typeof parsed === 'object' && Array.isArray(parsed.stages)) {
+        return parsed;
+      }
+    }
+  } catch (err) {
+    console.warn(`[getTournamentRoadmap] Error loading roadmap for ${tournamentId}:`, err);
+  }
+
+  // Fallback: Generate smart defaults
+  return generateDefaultRoadmap(defaultTour || { id: tournamentId }, rooms);
+}
+
+/**
+ * Save tournament roadmap configuration to Supabase SiteSetting & MongoDB.
+ */
+export async function saveTournamentRoadmap(
+  tournamentId: string,
+  roadmapConfig: TournamentRoadmapConfig
+): Promise<boolean> {
+  try {
+    const settingKey = `TOURNAMENT_ROADMAP_${tournamentId}`;
+    await supabaseAdmin.from('SiteSetting').upsert(
+      {
+        id: `setting_${settingKey}`,
+        key: settingKey,
+        value: JSON.stringify(roadmapConfig),
+        updatedAt: new Date().toISOString(),
+      },
+      { onConflict: 'key' }
+    );
+
+    // Sync to MongoDB if connected
+    try {
+      const mongo = await getMongoClient();
+      if (mongo) {
+        await mongo.db('whatsapp_automation').collection('tournament_roadmaps').updateOne(
+          { _id: tournamentId as any },
+          { $set: { tournamentId, roadmapConfig, updatedAt: new Date() } },
+          { upsert: true }
+        );
+      }
+    } catch {}
+
+    return true;
+  } catch (err) {
+    console.error(`[saveTournamentRoadmap] Failed to save roadmap for ${tournamentId}:`, err);
+    return false;
+  }
+}
+
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { getTournamentByIdFromDb } from '@/lib/tournament-store';
-import { getTournamentRooms, saveTournamentRooms, getRoomQualifiers } from '@/lib/tournament-rooms';
+import { getTournamentRooms, saveTournamentRooms, getRoomQualifiers, getTournamentRoadmap } from '@/lib/tournament-rooms';
 import { verifyAdminSession, requireAdminRole, logAdminAction } from '@/lib/admin-auth';
 import { cookies } from 'next/headers';
 import { TournamentRoom } from '@/lib/types';
@@ -12,7 +12,7 @@ async function getAdminSession() {
   return verifyAdminSession(token);
 }
 
-// 1. GET Public/Redacted Rooms List with Participants roster
+// 1. GET Public/Redacted Rooms List with Participants roster and Roadmap
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -58,12 +58,14 @@ export async function GET(
 
     // Distribute unassigned participants into rooms sequentially
     let currRoomIdx = 0;
-    unassigned.forEach((p) => {
-      while (currRoomIdx < rooms.length && (roomParticipantMap[rooms[currRoomIdx].id]?.length || 0) >= (rooms[currRoomIdx].capacity || defaultCapacity)) {
-        currRoomIdx++;
-      }
-      if (currRoomIdx < rooms.length) {
-        roomParticipantMap[rooms[currRoomIdx].id].push(p);
+    allParticipants.forEach((p) => {
+      if (!p.roomId || !roomParticipantMap[p.roomId]) {
+        while (currRoomIdx < rooms.length && (roomParticipantMap[rooms[currRoomIdx].id]?.length || 0) >= (rooms[currRoomIdx].capacity || defaultCapacity)) {
+          currRoomIdx++;
+        }
+        if (currRoomIdx < rooms.length) {
+          roomParticipantMap[rooms[currRoomIdx].id].push(p);
+        }
       }
     });
 
@@ -79,6 +81,8 @@ export async function GET(
       return {
         id: room.id,
         tournamentId: room.tournamentId,
+        stageId: room.stageId,
+        stageName: room.stageName,
         roomLabel: room.roomLabel,
         roomType: room.roomType,
         capacity: room.capacity || defaultCapacity,
@@ -88,6 +92,9 @@ export async function GET(
         prizePool: room.prizePool,
         advancementCount: room.advancementCount,
         matchTime: room.matchTime || tournament.matchTime,
+        mapName: room.mapName || 'Bermuda',
+        streamUrl: room.streamUrl,
+        roomNotes: room.roomNotes,
         revealAt: room.revealAt,
         // STRICT SECURITY REDACTION: Never reveal room credentials to public!
         roomIdCredential: isAdmin ? room.roomIdCredential : (room.isPublished ? undefined : undefined),
@@ -106,7 +113,10 @@ export async function GET(
       };
     });
 
-    const qualifiers = await getRoomQualifiers(tournamentId);
+    const [qualifiers, roadmap] = await Promise.all([
+      getRoomQualifiers(tournamentId),
+      getTournamentRoadmap(tournamentId, tournament, rooms),
+    ]);
 
     return NextResponse.json({
       tournamentId,
@@ -116,6 +126,7 @@ export async function GET(
       totalRooms: rooms.length,
       rooms: publicRooms,
       qualifiers: qualifiers || [],
+      roadmap: roadmap || null,
     });
   } catch (error: any) {
     console.error('[GET /api/tournaments/[id]/rooms] Error:', error);
@@ -170,6 +181,11 @@ export async function POST(
         prizePool: roomData?.prizePool ? Number(roomData.prizePool) : undefined,
         advancementCount: roomData?.advancementCount ? Number(roomData.advancementCount) : undefined,
         matchTime: roomData?.matchTime || tournament.matchTime,
+        stageId: roomData?.stageId || undefined,
+        stageName: roomData?.stageName || undefined,
+        mapName: roomData?.mapName || 'Bermuda',
+        streamUrl: roomData?.streamUrl || undefined,
+        roomNotes: roomData?.roomNotes || undefined,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };

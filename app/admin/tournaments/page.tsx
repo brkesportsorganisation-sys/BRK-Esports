@@ -3,8 +3,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { AlertCircle, CheckCircle2, Coins, Copy, Eye, Filter, Loader2, Plus, PlusCircle, Search, ShieldCheck, Sparkles, Star, Trash2, Trophy, UploadCloud, X, MessageSquare, Send, Layers, UserCheck, Play, ArrowUpRight, Lock, Unlock, Gamepad2, Award, Camera, Scan, CheckSquare, Save, RefreshCw } from 'lucide-react';
-import { Tournament, Mode, Format, TournamentStatus, CommunityAccessType, CommunityUnlockMode, PrizeTier, TournamentBatchFormat, TournamentRoom, RoomQualifier, MatchTeamScore, TournamentPointsTable } from '@/lib/types';
+import { AlertCircle, CheckCircle2, Coins, Copy, Eye, Filter, Loader2, Plus, PlusCircle, Search, ShieldCheck, Sparkles, Star, Trash2, Trophy, UploadCloud, X, MessageSquare, Send, Layers, UserCheck, Play, ArrowUpRight, Lock, Unlock, Gamepad2, Award, Camera, Scan, CheckSquare, Save, RefreshCw, Calendar, Clock, MapPin, Tv, Edit3, ExternalLink } from 'lucide-react';
+import { Tournament, Mode, Format, TournamentStatus, CommunityAccessType, CommunityUnlockMode, PrizeTier, TournamentBatchFormat, TournamentRoom, RoomQualifier, MatchTeamScore, TournamentPointsTable, TournamentRoadmapConfig, TournamentStage, TournamentRoadmapRuleItem } from '@/lib/types';
+import { generateDefaultRoadmap } from '@/lib/tournament-rooms';
 import { calculateTeamPoints } from '@/lib/ai-scoreboard-ocr';
 import ImageUploadInput from '@/components/ui/ImageUploadInput';
 import 'react-quill-new/dist/quill.snow.css';
@@ -172,7 +173,7 @@ export default function AdminTournamentsPage() {
   const [isRoomsLoading, setIsRoomsLoading] = useState(false);
   const [selectedAdvancingIds, setSelectedAdvancingIds] = useState<string[]>([]);
   const [isAdvancing, setIsAdvancing] = useState(false);
-  const [roomActiveTab, setRoomActiveTab] = useState<'ROOMS' | 'POINTS_TABLE' | 'QUALIFIERS'>('ROOMS');
+  const [roomActiveTab, setRoomActiveTab] = useState<'ROOMS' | 'ROADMAP' | 'POINTS_TABLE' | 'QUALIFIERS'>('ROOMS');
   const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
   const [roomEditForm, setRoomEditForm] = useState<{
     roomIdCredential: string;
@@ -183,6 +184,11 @@ export default function AdminTournamentsPage() {
     capacity: number;
     prizePool: number;
     matchTime: string;
+    stageId: string;
+    stageName: string;
+    mapName: string;
+    streamUrl: string;
+    roomNotes: string;
   }>({
     roomIdCredential: '',
     roomPassword: '',
@@ -192,6 +198,35 @@ export default function AdminTournamentsPage() {
     capacity: 12,
     prizePool: 0,
     matchTime: '',
+    stageId: '',
+    stageName: '',
+    mapName: 'Bermuda',
+    streamUrl: '',
+    roomNotes: '',
+  });
+
+  // Roadmap & Schedule Studio State
+  const [adminRoadmapConfig, setAdminRoadmapConfig] = useState<TournamentRoadmapConfig | null>(null);
+  const [isRoadmapSaving, setIsRoadmapSaving] = useState(false);
+  const [editingStageId, setEditingStageId] = useState<string | null>(null);
+  const [stageEditForm, setStageEditForm] = useState<{
+    name: string;
+    subtitle: string;
+    status: 'UPCOMING' | 'LIVE' | 'COMPLETED';
+    matchTime: string;
+    mapRotation: string;
+    advancingPerGroup: number;
+    streamUrl: string;
+    customRules: string;
+  }>({
+    name: '',
+    subtitle: '',
+    status: 'UPCOMING',
+    matchTime: '',
+    mapRotation: 'Bermuda, Purgatory, Kalahari',
+    advancingPerGroup: 3,
+    streamUrl: '',
+    customRules: '',
   });
 
   // Points Table & AI Scoreboard Studio State
@@ -214,22 +249,23 @@ export default function AdminTournamentsPage() {
     } catch (err) {}
   };
 
-  const openRoomModal = async (tournament: Tournament) => {
+  const openRoomModal = async (tournament: Tournament, initialTab: 'ROOMS' | 'ROADMAP' | 'POINTS_TABLE' | 'QUALIFIERS' = 'ROOMS') => {
     setSelectedRoomTournament(tournament);
     setRoomModalOpen(true);
-    setRoomActiveTab('ROOMS');
+    setRoomActiveTab(initialTab);
     setEditingRoomId(null);
+    setEditingStageId(null);
     setSelectedAdvancingIds([]);
     setScoreboardImage('');
     setEditableScores([]);
     setOcrConfidence(null);
     await Promise.all([
-      loadTournamentRoomsData(tournament.id),
+      loadTournamentRoomsData(tournament.id, tournament),
       loadPointsTablesData(tournament.id),
     ]);
   };
 
-  const loadTournamentRoomsData = async (tournamentId: string) => {
+  const loadTournamentRoomsData = async (tournamentId: string, defaultTour?: Tournament | null) => {
     setIsRoomsLoading(true);
     try {
       const res = await fetch(`/api/tournaments/${tournamentId}/rooms`, { credentials: 'include' });
@@ -238,6 +274,11 @@ export default function AdminTournamentsPage() {
         const loadedRooms = data.rooms || [];
         setTournamentRooms(loadedRooms);
         setRoomQualifiers(data.qualifiers || []);
+        if (data.roadmap) {
+          setAdminRoadmapConfig(data.roadmap);
+        } else {
+          setAdminRoadmapConfig(generateDefaultRoadmap(defaultTour || selectedRoomTournament || { id: tournamentId }, loadedRooms));
+        }
         if (loadedRooms.length > 0 && !selectedScoreboardRoomId) {
           setSelectedScoreboardRoomId(loadedRooms[0].id);
         }
@@ -247,6 +288,118 @@ export default function AdminTournamentsPage() {
     } finally {
       setIsRoomsLoading(false);
     }
+  };
+
+  const handleSaveRoadmap = async (customConfig?: TournamentRoadmapConfig) => {
+    if (!selectedRoomTournament) return;
+    const configToSave = customConfig || adminRoadmapConfig;
+    if (!configToSave) return;
+    setIsRoadmapSaving(true);
+    try {
+      const res = await fetch(`/api/tournaments/${selectedRoomTournament.id}/roadmap`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+        credentials: 'include',
+        body: JSON.stringify({
+          roadmapConfig: configToSave,
+          roomsList: tournamentRooms,
+        }),
+      });
+      if (res.ok) {
+        setFeedbackTone('success');
+        setFeedback('Tournament Roadmap & Stages saved successfully!');
+        await loadTournamentRoomsData(selectedRoomTournament.id);
+      } else {
+        const err = await res.json();
+        setFeedbackTone('error');
+        setFeedback(err?.message || 'Failed to save roadmap');
+      }
+    } catch (err: any) {
+      setFeedbackTone('error');
+      setFeedback(err?.message || 'Failed to save roadmap');
+    } finally {
+      setIsRoadmapSaving(false);
+    }
+  };
+
+  const handleAutoGenerateRoadmap = () => {
+    if (!selectedRoomTournament) return;
+    const generated = generateDefaultRoadmap(selectedRoomTournament, tournamentRooms);
+    setAdminRoadmapConfig(generated);
+    setFeedbackTone('success');
+    setFeedback('Generated default multi-stage progression! Click "Save Roadmap" to publish.');
+  };
+
+  const handleAddStage = () => {
+    if (!adminRoadmapConfig) return;
+    const currentStages = adminRoadmapConfig.stages || [];
+    const newStageNumber = currentStages.length + 1;
+    const newStage: TournamentStage = {
+      id: `STAGE_${Date.now()}`,
+      stageNumber: newStageNumber,
+      name: `Round ${newStageNumber}: ${newStageNumber === 1 ? 'Qualifiers' : newStageNumber === 2 ? 'Quarter-Finals' : 'Semi-Finals'}`,
+      subtitle: `${tournamentRooms.length || 1} Groups • Top 3 Advance`,
+      status: 'UPCOMING',
+      mapRotation: ['Bermuda', 'Purgatory'],
+      advancingPerGroup: 3,
+      totalAdvancing: 12,
+      customRules: 'Standard battle royale progression rules apply.',
+    };
+    const updated = {
+      ...adminRoadmapConfig,
+      stages: [...currentStages, newStage],
+    };
+    setAdminRoadmapConfig(updated);
+  };
+
+  const handleDeleteStage = (stageId: string) => {
+    if (!adminRoadmapConfig) return;
+    const updatedStages = (adminRoadmapConfig.stages || []).filter(s => s.id !== stageId);
+    setAdminRoadmapConfig({ ...adminRoadmapConfig, stages: updatedStages });
+  };
+
+  const startEditStage = (stage: TournamentStage) => {
+    setEditingStageId(stage.id);
+    setStageEditForm({
+      name: stage.name,
+      subtitle: stage.subtitle || '',
+      status: stage.status,
+      matchTime: toLocalISO(stage.matchTime),
+      mapRotation: (stage.mapRotation || []).join(', '),
+      advancingPerGroup: stage.advancingPerGroup || 3,
+      streamUrl: stage.streamUrl || '',
+      customRules: stage.customRules || '',
+    });
+  };
+
+  const handleSaveStageEdit = (stageId: string) => {
+    if (!adminRoadmapConfig) return;
+    const mapArray = stageEditForm.mapRotation
+      .split(',')
+      .map(m => m.trim())
+      .filter(Boolean);
+    const updatedStages = (adminRoadmapConfig.stages || []).map(s => {
+      if (s.id === stageId) {
+        return {
+          ...s,
+          name: stageEditForm.name,
+          subtitle: stageEditForm.subtitle,
+          status: stageEditForm.status,
+          matchTime: stageEditForm.matchTime ? new Date(stageEditForm.matchTime).toISOString() : undefined,
+          mapRotation: mapArray.length > 0 ? mapArray : ['Bermuda'],
+          advancingPerGroup: Number(stageEditForm.advancingPerGroup) || 3,
+          streamUrl: stageEditForm.streamUrl || undefined,
+          customRules: stageEditForm.customRules || undefined,
+        };
+      }
+      return s;
+    });
+    setAdminRoadmapConfig({ ...adminRoadmapConfig, stages: updatedStages });
+    setEditingStageId(null);
+  };
+
+  const handleUpdateRoomField = (roomId: string, field: keyof TournamentRoom, value: any) => {
+    setTournamentRooms(prev => prev.map(r => r.id === roomId ? { ...r, [field]: value } : r));
   };
 
   const handleScanScoreboard = async () => {
@@ -422,6 +575,11 @@ export default function AdminTournamentsPage() {
       capacity: room.capacity || 12,
       prizePool: room.prizePool || 0,
       matchTime: toLocalISO(room.matchTime),
+      stageId: room.stageId || '',
+      stageName: room.stageName || '',
+      mapName: room.mapName || 'Bermuda',
+      streamUrl: room.streamUrl || '',
+      roomNotes: room.roomNotes || '',
     });
   };
 
@@ -1294,7 +1452,8 @@ export default function AdminTournamentsPage() {
                   </td>
                   <td className="px-4 py-4 text-right">
                     <div className="flex flex-wrap justify-end gap-1.5">
-                      <button onClick={() => void openRoomModal(item)} className="rounded-xl border border-purple-800/60 bg-purple-950/60 px-2.5 py-1.5 text-xs font-bold text-purple-300 hover:bg-purple-900 transition-colors cursor-pointer flex items-center gap-1"><Layers className="h-3 w-3 inline text-purple-400" /> Rooms</button>
+                      <button onClick={() => void openRoomModal(item, 'ROADMAP')} className="rounded-xl border border-amber-800/60 bg-amber-950/60 px-2.5 py-1.5 text-xs font-bold text-amber-300 hover:bg-amber-900 transition-colors cursor-pointer flex items-center gap-1"><Trophy className="h-3 w-3 inline text-amber-400" /> Roadmap</button>
+                      <button onClick={() => void openRoomModal(item, 'ROOMS')} className="rounded-xl border border-purple-800/60 bg-purple-950/60 px-2.5 py-1.5 text-xs font-bold text-purple-300 hover:bg-purple-900 transition-colors cursor-pointer flex items-center gap-1"><Layers className="h-3 w-3 inline text-purple-400" /> Rooms</button>
                       <button onClick={() => openEditModal(item)} className="rounded-xl border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs font-bold text-slate-300 hover:text-white transition-colors cursor-pointer">Edit</button>
                       <button onClick={() => void handleQuickAction(item.id, { status: item.status === 'LIVE' ? 'UPCOMING' : 'LIVE', isPublished: true })} className="rounded-xl border border-emerald-800/50 bg-emerald-950/50 px-2.5 py-1.5 text-xs font-bold text-emerald-400 hover:bg-emerald-900 transition-colors cursor-pointer">Publish</button>
                       <button onClick={() => void handleQuickAction(item.id, { isFeatured: !item.isFeatured })} className="rounded-xl border border-orange-800/50 bg-orange-950/50 px-2.5 py-1.5 text-xs font-bold text-orange-400 hover:bg-orange-900 transition-colors cursor-pointer">Feature</button>
@@ -2024,8 +2183,20 @@ export default function AdminTournamentsPage() {
             </div>
 
             {/* Sub-tabs Header */}
-            <div className="flex items-center justify-between gap-3 mt-4 border-b border-slate-800/80 pb-3">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between gap-3 mt-4 border-b border-slate-800/80 pb-3 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={() => setRoomActiveTab('ROADMAP')}
+                  className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
+                    roomActiveTab === 'ROADMAP'
+                      ? 'bg-purple-600 text-white shadow-md'
+                      : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                  }`}
+                >
+                  <Trophy className="w-3.5 h-3.5 text-brand-gold" />
+                  <span>🎯 Roadmap &amp; Stages ({adminRoadmapConfig?.stages?.length || 1})</span>
+                </button>
+
                 <button
                   onClick={() => setRoomActiveTab('ROOMS')}
                   className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
@@ -2091,8 +2262,530 @@ export default function AdminTournamentsPage() {
                 <Loader2 className="w-6 h-6 animate-spin text-purple-400" />
                 <span>Loading room roster &amp; batch data...</span>
               </div>
+            ) : roomActiveTab === 'ROADMAP' ? (
+              /* TAB 1: TOURNAMENT ROADMAP & MULTI-STAGE SCHEDULE STUDIO */
+              <div className="mt-4 space-y-6">
+                {/* 1. Header & Configuration Controls */}
+                <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                    <div>
+                      <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                        <Trophy className="w-4 h-4 text-brand-gold" />
+                        <span>Tournament Progression Pipeline &amp; Stage Scheduler</span>
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Configure multi-stage tournaments, map rotations, group match times, stream links, and advancement rules.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleAutoGenerateRoadmap}
+                        className="px-3 py-1.5 rounded-xl bg-purple-950/80 hover:bg-purple-900 border border-purple-700/80 text-purple-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                        title="Auto-calculate stages based on total slots and format"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-brand-gold" />
+                        <span>Auto-Generate Stages</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleSaveRoadmap()}
+                        disabled={isRoadmapSaving}
+                        className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 text-white text-xs font-black transition-all flex items-center gap-1.5 shadow-md cursor-pointer disabled:opacity-50"
+                      >
+                        {isRoadmapSaving ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Save className="w-3.5 h-3.5" />
+                        )}
+                        <span>Save Roadmap &amp; Stages</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Pipeline Title & Subtitle Settings */}
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 block mb-1">Pipeline Title</label>
+                      <input
+                        type="text"
+                        value={adminRoadmapConfig?.pipelineTitle || ''}
+                        onChange={(e) =>
+                          setAdminRoadmapConfig((prev) =>
+                            prev ? { ...prev, pipelineTitle: e.target.value } : null
+                          )
+                        }
+                        placeholder="TOURNAMENT ROADMAP & SCHEDULE"
+                        className="w-full px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 text-xs font-bold text-white outline-none focus:border-purple-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 block mb-1">Pipeline Format Badge</label>
+                      <input
+                        type="text"
+                        value={adminRoadmapConfig?.pipelineFormat || ''}
+                        onChange={(e) =>
+                          setAdminRoadmapConfig((prev) =>
+                            prev ? { ...prev, pipelineFormat: e.target.value } : null
+                          )
+                        }
+                        placeholder="Format A: Qualifier → Final"
+                        className="w-full px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 text-xs font-bold text-white outline-none focus:border-purple-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 block mb-1">Subtitle / Tagline</label>
+                      <input
+                        type="text"
+                        value={adminRoadmapConfig?.pipelineSubtitle || ''}
+                        onChange={(e) =>
+                          setAdminRoadmapConfig((prev) =>
+                            prev ? { ...prev, pipelineSubtitle: e.target.value } : null
+                          )
+                        }
+                        placeholder="Multi-Stage progression, group schedules, and map rotations."
+                        className="w-full px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 text-xs font-bold text-white outline-none focus:border-purple-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Stages Timeline Manager */}
+                <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                    <div>
+                      <h4 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                        <Layers className="w-4 h-4 text-purple-400" />
+                        <span>Tournament Stages ({adminRoadmapConfig?.stages?.length || 0})</span>
+                      </h4>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Manage stage progression order, match schedules, map pools, and live statuses.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={handleAddStage}
+                      className="px-3 py-1.5 rounded-xl bg-purple-950 hover:bg-purple-900 text-purple-300 text-xs font-bold border border-purple-700/60 transition-all flex items-center gap-1 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Add Stage</span>
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {(!adminRoadmapConfig?.stages || adminRoadmapConfig.stages.length === 0) ? (
+                      <div className="p-6 text-center text-slate-400 bg-slate-900/50 rounded-xl border border-slate-800 text-xs">
+                        No stages configured. Click &quot;Auto-Generate Stages&quot; or &quot;Add Stage&quot; to create one.
+                      </div>
+                    ) : (
+                      adminRoadmapConfig.stages.map((stg, sIdx) => {
+                        const isEditingThisStage = editingStageId === stg.id;
+                        return (
+                          <div
+                            key={stg.id || sIdx}
+                            className="p-4 rounded-xl border border-slate-800 bg-slate-900/60 space-y-3"
+                          >
+                            <div className="flex items-center justify-between gap-3 flex-wrap">
+                              <div className="flex items-center gap-3">
+                                <span className="w-6 h-6 rounded-full bg-purple-600 text-white font-bold text-xs flex items-center justify-center font-mono">
+                                  {stg.stageNumber || sIdx + 1}
+                                </span>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <h5 className="font-bold text-white text-sm">{stg.name}</h5>
+                                    <span
+                                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                        stg.status === 'LIVE'
+                                          ? 'bg-red-950 text-red-400 border border-red-800'
+                                          : stg.status === 'COMPLETED'
+                                          ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
+                                          : 'bg-slate-800 text-slate-400'
+                                      }`}
+                                    >
+                                      {stg.status}
+                                    </span>
+                                  </div>
+                                  <p className="text-[11px] text-slate-400 mt-0.5">
+                                    {stg.subtitle || 'Match Stage'} • Maps:{' '}
+                                    {(stg.mapRotation || ['Bermuda']).join(', ')}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() =>
+                                    isEditingThisStage
+                                      ? setEditingStageId(null)
+                                      : startEditStage(stg)
+                                  }
+                                  className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-white transition-colors cursor-pointer border border-slate-700"
+                                >
+                                  {isEditingThisStage ? 'Cancel' : 'Edit Stage'}
+                                </button>
+
+                                <button
+                                  onClick={() => handleDeleteStage(stg.id)}
+                                  className="p-1.5 rounded-xl bg-red-950/60 hover:bg-red-900 border border-red-800 text-red-400 transition-colors cursor-pointer"
+                                  title="Delete Stage"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Inline Stage Edit Form */}
+                            {isEditingThisStage && (
+                              <div className="mt-3 p-4 bg-slate-950/90 rounded-xl border border-purple-800/60 space-y-3 animate-fadeIn">
+                                <h5 className="text-xs font-bold text-purple-400 uppercase tracking-wider">
+                                  Edit Stage #{stg.stageNumber || sIdx + 1} Properties
+                                </h5>
+
+                                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                  <div>
+                                    <label className="text-[10px] font-bold text-slate-400 block mb-1">
+                                      Stage Name
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={stageEditForm.name}
+                                      onChange={(e) =>
+                                        setStageEditForm((prev) => ({
+                                          ...prev,
+                                          name: e.target.value,
+                                        }))
+                                      }
+                                      placeholder="e.g. Round 1: Qualifiers"
+                                      className="w-full px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 text-xs font-bold text-white outline-none focus:border-purple-500"
+                                    />
+                                  </div>
+
+                                  <div>
+                                    <label className="text-[10px] font-bold text-slate-400 block mb-1">
+                                      Stage Subtitle
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={stageEditForm.subtitle}
+                                      onChange={(e) =>
+                                        setStageEditForm((prev) => ({
+                                          ...prev,
+                                          subtitle: e.target.value,
+                                        }))
+                                      }
+                                      placeholder="e.g. 4 Groups • Top 3 Advance"
+                                      className="w-full px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 text-xs font-bold text-white outline-none focus:border-purple-500"
+                                    />
+                                  </div>
+
+                                  <div>
+                                    <label className="text-[10px] font-bold text-slate-400 block mb-1">
+                                      Stage Status
+                                    </label>
+                                    <select
+                                      value={stageEditForm.status}
+                                      onChange={(e) =>
+                                        setStageEditForm((prev) => ({
+                                          ...prev,
+                                          status: e.target.value as any,
+                                        }))
+                                      }
+                                      className="w-full px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 text-xs font-bold text-white outline-none focus:border-purple-500"
+                                    >
+                                      <option value="UPCOMING">⏳ UPCOMING</option>
+                                      <option value="LIVE">🔴 LIVE</option>
+                                      <option value="COMPLETED">🏁 COMPLETED</option>
+                                    </select>
+                                  </div>
+
+                                  <div>
+                                    <label className="text-[10px] font-bold text-slate-400 block mb-1">
+                                      Match Date &amp; Time
+                                    </label>
+                                    <input
+                                      type="datetime-local"
+                                      value={stageEditForm.matchTime}
+                                      onChange={(e) =>
+                                        setStageEditForm((prev) => ({
+                                          ...prev,
+                                          matchTime: e.target.value,
+                                        }))
+                                      }
+                                      className="w-full px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 text-xs font-bold text-white outline-none focus:border-purple-500"
+                                    />
+                                  </div>
+
+                                  <div>
+                                    <label className="text-[10px] font-bold text-slate-400 block mb-1">
+                                      Map Rotation (comma separated)
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={stageEditForm.mapRotation}
+                                      onChange={(e) =>
+                                        setStageEditForm((prev) => ({
+                                          ...prev,
+                                          mapRotation: e.target.value,
+                                        }))
+                                      }
+                                      placeholder="Bermuda, Purgatory, Kalahari"
+                                      className="w-full px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 text-xs font-bold text-white outline-none focus:border-purple-500"
+                                    />
+                                  </div>
+
+                                  <div>
+                                    <label className="text-[10px] font-bold text-slate-400 block mb-1">
+                                      Live Stream URL
+                                    </label>
+                                    <input
+                                      type="url"
+                                      value={stageEditForm.streamUrl}
+                                      onChange={(e) =>
+                                        setStageEditForm((prev) => ({
+                                          ...prev,
+                                          streamUrl: e.target.value,
+                                        }))
+                                      }
+                                      placeholder="https://youtube.com/live/..."
+                                      className="w-full px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 text-xs font-bold text-white outline-none focus:border-purple-500"
+                                    />
+                                  </div>
+                                </div>
+
+                                <div className="flex justify-end pt-2">
+                                  <button
+                                    onClick={() => handleSaveStageEdit(stg.id)}
+                                    className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-black shadow-md transition-all cursor-pointer"
+                                  >
+                                    Apply Stage Changes
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                {/* 3. Group Schedules & Map Rotation Allocation Matrix */}
+                <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                    <div>
+                      <h4 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                        <Gamepad2 className="w-4 h-4 text-brand-orange" />
+                        <span>Group Schedule &amp; Map Allocation Matrix</span>
+                      </h4>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Assign custom maps, match times, live stream links, and stages for each custom room.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => handleSaveRoadmap()}
+                      className="px-3.5 py-1.5 rounded-xl bg-purple-950 hover:bg-purple-900 text-purple-300 text-xs font-bold border border-purple-700/60 transition-all flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                      <span>Save Room Schedules</span>
+                    </button>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {tournamentRooms.map((room) => {
+                      const isFinal = room.roomType === 'FINAL' || room.roomLabel.toLowerCase() === 'final';
+                      return (
+                        <div
+                          key={room.id}
+                          className={`p-4 rounded-2xl border space-y-3 ${
+                            isFinal
+                              ? 'bg-purple-950/40 border-purple-700/80'
+                              : 'bg-slate-900/70 border-slate-800'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
+                              isFinal ? 'bg-amber-500 text-black' : 'bg-purple-950 text-purple-300 border border-purple-800'
+                            }`}>
+                              Group {room.roomLabel}
+                            </span>
+
+                            <span className="text-[10px] text-slate-400 font-mono">
+                              {room.currentCount || 0}/{room.capacity || 12} Squads
+                            </span>
+                          </div>
+
+                          {/* Stage Selector */}
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-400 block mb-1">
+                              Assign Stage
+                            </label>
+                            <select
+                              value={room.stageId || ''}
+                              onChange={(e) => handleUpdateRoomField(room.id, 'stageId', e.target.value)}
+                              className="w-full px-2.5 py-1.5 rounded-lg border border-slate-700 bg-slate-950 text-xs font-bold text-white outline-none focus:border-purple-500"
+                            >
+                              <option value="">Default / Auto Assign</option>
+                              {(adminRoadmapConfig?.stages || []).map((stg) => (
+                                <option key={stg.id} value={stg.id}>
+                                  {stg.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Map Selector */}
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-400 block mb-1">
+                              Assigned Map
+                            </label>
+                            <select
+                              value={room.mapName || 'Bermuda'}
+                              onChange={(e) => handleUpdateRoomField(room.id, 'mapName', e.target.value)}
+                              className="w-full px-2.5 py-1.5 rounded-lg border border-slate-700 bg-slate-950 text-xs font-bold text-brand-orange outline-none focus:border-purple-500"
+                            >
+                              <option value="Bermuda">🗺️ Bermuda</option>
+                              <option value="Purgatory">🗺️ Purgatory</option>
+                              <option value="Kalahari">🗺️ Kalahari</option>
+                              <option value="Alpine">🗺️ Alpine</option>
+                              <option value="NexTerra">🗺️ NexTerra</option>
+                              <option value="Bermuda Remastered">🗺️ Bermuda Remastered</option>
+                            </select>
+                          </div>
+
+                          {/* Match Time */}
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-400 block mb-1">
+                              Group Match Time
+                            </label>
+                            <input
+                              type="datetime-local"
+                              value={toLocalISO(room.matchTime)}
+                              onChange={(e) =>
+                                handleUpdateRoomField(
+                                  room.id,
+                                  'matchTime',
+                                  e.target.value ? new Date(e.target.value).toISOString() : undefined
+                                )
+                              }
+                              className="w-full px-2.5 py-1.5 rounded-lg border border-slate-700 bg-slate-950 text-xs font-bold text-white outline-none focus:border-purple-500"
+                            />
+                          </div>
+
+                          {/* Stream URL */}
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-400 block mb-1">
+                              Group Stream URL
+                            </label>
+                            <input
+                              type="url"
+                              value={room.streamUrl || ''}
+                              onChange={(e) => handleUpdateRoomField(room.id, 'streamUrl', e.target.value)}
+                              placeholder="https://youtube.com/live/..."
+                              className="w-full px-2.5 py-1.5 rounded-lg border border-slate-700 bg-slate-950 text-xs font-mono text-white outline-none focus:border-purple-500"
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 4. Advancement Architecture & Rules Cards Editor */}
+                <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                    <div>
+                      <h4 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-brand-gold" />
+                        <span>Advancement Rules &amp; Explainer Cards</span>
+                      </h4>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Edit the 3 rule cards displayed at the bottom of the public tournament roadmap.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        if (!adminRoadmapConfig) return;
+                        const currentRules = adminRoadmapConfig.rules || [];
+                        const newRule: TournamentRoadmapRuleItem = {
+                          stepNumber: currentRules.length + 1,
+                          title: `Rule #${currentRules.length + 1}`,
+                          description: 'Rule description goes here.',
+                        };
+                        setAdminRoadmapConfig({
+                          ...adminRoadmapConfig,
+                          rules: [...currentRules, newRule],
+                        });
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-purple-950 hover:bg-purple-900 text-purple-300 text-xs font-bold border border-purple-700/60 transition-all flex items-center gap-1 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Add Rule Card</span>
+                    </button>
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-3">
+                    {(adminRoadmapConfig?.rules || []).map((rule, rIdx) => (
+                      <div
+                        key={rule.stepNumber || rIdx}
+                        className="p-4 rounded-xl border border-slate-800 bg-slate-900/60 space-y-2.5"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="w-5 h-5 rounded-full bg-purple-600 text-white font-bold text-[10px] flex items-center justify-center">
+                            {rule.stepNumber || rIdx + 1}
+                          </span>
+                          <button
+                            onClick={() => {
+                              if (!adminRoadmapConfig) return;
+                              const updatedRules = (adminRoadmapConfig.rules || []).filter((_, idx) => idx !== rIdx);
+                              setAdminRoadmapConfig({ ...adminRoadmapConfig, rules: updatedRules });
+                            }}
+                            className="text-slate-500 hover:text-red-400 transition-colors p-1"
+                            title="Remove Card"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-400 block mb-1">Card Title</label>
+                          <input
+                            type="text"
+                            value={rule.title}
+                            onChange={(e) => {
+                              if (!adminRoadmapConfig) return;
+                              const updatedRules = [...(adminRoadmapConfig.rules || [])];
+                              updatedRules[rIdx] = { ...updatedRules[rIdx], title: e.target.value };
+                              setAdminRoadmapConfig({ ...adminRoadmapConfig, rules: updatedRules });
+                            }}
+                            className="w-full px-2.5 py-1.5 rounded-lg border border-slate-700 bg-slate-950 text-xs font-bold text-white outline-none focus:border-purple-500"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-400 block mb-1">Card Description</label>
+                          <textarea
+                            rows={3}
+                            value={rule.description}
+                            onChange={(e) => {
+                              if (!adminRoadmapConfig) return;
+                              const updatedRules = [...(adminRoadmapConfig.rules || [])];
+                              updatedRules[rIdx] = { ...updatedRules[rIdx], description: e.target.value };
+                              setAdminRoadmapConfig({ ...adminRoadmapConfig, rules: updatedRules });
+                            }}
+                            className="w-full px-2.5 py-1.5 rounded-lg border border-slate-700 bg-slate-950 text-xs text-slate-300 outline-none focus:border-purple-500 resize-none"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             ) : roomActiveTab === 'ROOMS' ? (
-              /* TAB 1: ROOMS LIST & CREDENTIALS EDITOR */
+              /* TAB 2: ROOMS LIST & CREDENTIALS EDITOR */
               <div className="mt-4 space-y-4">
                 {tournamentRooms.length === 0 ? (
                   <div className="p-8 text-center text-slate-400 bg-slate-900/50 rounded-2xl border border-slate-800">
@@ -2132,7 +2825,7 @@ export default function AdminTournamentsPage() {
                                 </span>
                               </span>
                               <span className="text-[10px] text-slate-400 font-mono block">
-                                Status: {room.status} • Match: {room.matchTime ? new Date(room.matchTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Same as Tournament'}
+                                Status: {room.status} • Map: {room.mapName || 'Bermuda'} • Match: {room.matchTime ? new Date(room.matchTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Same as Tournament'}
                               </span>
                             </div>
                           </div>
@@ -2174,7 +2867,7 @@ export default function AdminTournamentsPage() {
                         {isEditing && (
                           <div className="mt-3 p-4 bg-slate-950/80 rounded-xl border border-slate-800 space-y-3 animate-fadeIn">
                             <h4 className="text-xs font-bold uppercase tracking-wider text-purple-400">
-                              Edit Room {room.roomLabel} Credentials &amp; Unlock Settings
+                              Edit Room {room.roomLabel} Credentials &amp; Schedule Settings
                             </h4>
                             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                               <div>
@@ -2219,9 +2912,62 @@ export default function AdminTournamentsPage() {
                                   <option value="COMPLETED">🏁 COMPLETED</option>
                                 </select>
                               </div>
+
+                              <div>
+                                <label className="text-[10px] font-bold text-slate-400 block mb-1">Map Rotation</label>
+                                <select
+                                  value={roomEditForm.mapName || 'Bermuda'}
+                                  onChange={(e) => setRoomEditForm(prev => ({ ...prev, mapName: e.target.value }))}
+                                  className="w-full px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 text-xs font-bold text-brand-orange outline-none focus:border-purple-500"
+                                >
+                                  <option value="Bermuda">🗺️ Bermuda</option>
+                                  <option value="Purgatory">🗺️ Purgatory</option>
+                                  <option value="Kalahari">🗺️ Kalahari</option>
+                                  <option value="Alpine">🗺️ Alpine</option>
+                                  <option value="NexTerra">🗺️ NexTerra</option>
+                                  <option value="Bermuda Remastered">🗺️ Bermuda Remastered</option>
+                                </select>
+                              </div>
+
+                              <div>
+                                <label className="text-[10px] font-bold text-slate-400 block mb-1">Group Match Time</label>
+                                <input
+                                  type="datetime-local"
+                                  value={roomEditForm.matchTime}
+                                  onChange={(e) => setRoomEditForm(prev => ({ ...prev, matchTime: e.target.value }))}
+                                  className="w-full px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 text-xs font-bold text-white outline-none focus:border-purple-500"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="text-[10px] font-bold text-slate-400 block mb-1">Live Stream URL</label>
+                                <input
+                                  type="url"
+                                  value={roomEditForm.streamUrl}
+                                  onChange={(e) => setRoomEditForm(prev => ({ ...prev, streamUrl: e.target.value }))}
+                                  placeholder="https://youtube.com/live/..."
+                                  className="w-full px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 text-xs font-mono text-white outline-none focus:border-purple-500"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="text-[10px] font-bold text-slate-400 block mb-1">Assign Stage</label>
+                                <select
+                                  value={roomEditForm.stageId}
+                                  onChange={(e) => setRoomEditForm(prev => ({ ...prev, stageId: e.target.value }))}
+                                  className="w-full px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 text-xs font-bold text-white outline-none focus:border-purple-500"
+                                >
+                                  <option value="">Default / Auto</option>
+                                  {(adminRoadmapConfig?.stages || []).map(stg => (
+                                    <option key={stg.id} value={stg.id}>
+                                      {stg.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
                             </div>
 
-                            <div className="flex items-center justify-between pt-2">
+                            <div className="flex items-center justify-between pt-2 flex-wrap gap-2">
                               <label className="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer">
                                 <input
                                   type="checkbox"
