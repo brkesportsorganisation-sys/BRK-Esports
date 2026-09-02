@@ -28,10 +28,17 @@ export async function POST(req: NextRequest) {
       }).catch(() => null);
 
       if (!res || !res.ok) {
+        let errorDetail = '';
+        if (res) {
+          try {
+            const errData = await res.json();
+            if (errData?.error) errorDetail = ` (${errData.error})`;
+          } catch {}
+        }
         return NextResponse.json({
           success: false,
           message: res
-            ? `Node Bot returned ${res.status}. Is the Render app running?`
+            ? `Node Bot returned ${res.status}${errorDetail}. Is the Render app running?`
             : 'Could not reach the Node Bot (Render). Is the server sleeping? Wait 30s and try again.',
           syncedChannels: [],
         }, { status: 503 });
@@ -72,6 +79,8 @@ export async function POST(req: NextRequest) {
         success: true,
         message: `Synced ${toAdd.length} new channel(s) from Node Bot. Total: ${updatedConfig.savedChannels.length} channel(s).`,
         syncedChannels: mapped,
+        channels: updatedConfig.savedChannels,
+        config: updatedConfig,
         totalChannels: updatedConfig.savedChannels.length,
       });
     }

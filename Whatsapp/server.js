@@ -65,6 +65,40 @@ let reconnectAttempts = 0;
 let connectedGroups = []; // Cache of groups after connect
 let connectedChannels = []; // Cache of channels after connect
 const recentForwardedMsgIds = new Map(); // Anti-duplicate deduplication map (id -> timestamp)
+let inMemoryForwarderConfig = null;
+
+// ─── Dynamic Forwarder Config Loader from Memory / MongoDB / Next.js ─────────
+async function getDynamicForwarderConfig() {
+  if (inMemoryForwarderConfig) return inMemoryForwarderConfig;
+  try {
+    if (mongoose.connection && mongoose.connection.db) {
+      const doc = await mongoose.connection.db.collection('whatsapp_forwarder').findOne({ _id: 'forwarder_config' });
+      if (doc) {
+        inMemoryForwarderConfig = doc;
+        return doc;
+      }
+    }
+  } catch (e) {}
+  return null;
+}
+
+// ─── Helper: Log forward action to MongoDB ────────────────────────────────────
+async function logForwardToDb(targetJid, groupName, text, status = 'SENT', error = null) {
+  try {
+    if (mongoose.connection && mongoose.connection.db) {
+      await mongoose.connection.db.collection('whatsapp_logs').insertOne({
+        id: `log_fwd_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        targetDestination: targetJid,
+        targetName: groupName || targetJid,
+        messageText: text,
+        triggerType: 'CHANNEL_FORWARD',
+        status,
+        error: error || undefined,
+        sentAt: new Date().toISOString(),
+      });
+    }
+  } catch (e) {}
+}
 
 // ─── Persistent Store for Baileys Signal Key Exchanges & Retry Handshakes ─────
 // Fixes "Waiting for this message. This may take a while."
@@ -201,40 +235,6 @@ async function connectToWhatsApp() {
     }
   });
 
-  // ─── Dynamic Forwarder Config Loader from Memory / MongoDB / Next.js ─────
-  let inMemoryForwarderConfig = null;
-  async function getDynamicForwarderConfig() {
-    if (inMemoryForwarderConfig) return inMemoryForwarderConfig;
-    try {
-      if (mongoose.connection && mongoose.connection.db) {
-        const doc = await mongoose.connection.db.collection('whatsapp_forwarder').findOne({ _id: 'forwarder_config' });
-        if (doc) {
-          inMemoryForwarderConfig = doc;
-          return doc;
-        }
-      }
-    } catch (e) {}
-    return null;
-  }
-
-  // ─── Helper: Log forward action to MongoDB ────────────────────────────────
-  async function logForwardToDb(targetJid, groupName, text, status = 'SENT', error = null) {
-    try {
-      if (mongoose.connection && mongoose.connection.db) {
-        await mongoose.connection.db.collection('whatsapp_logs').insertOne({
-          id: `log_fwd_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-          targetDestination: targetJid,
-          targetName: groupName || targetJid,
-          messageText: text,
-          triggerType: 'CHANNEL_FORWARD',
-          status,
-          error: error || undefined,
-          sentAt: new Date().toISOString(),
-        });
-      }
-    } catch (e) {}
-  }
-
   // ─── Channel & Newsletter Auto-Forwarder Listener ─────────────────────────
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
     for (const msg of (messages || [])) {
@@ -258,6 +258,7 @@ async function connectToWhatsApp() {
       // Ignore regular chats fromMe, but ALLOW channel (@newsletter) messages even if fromMe!
       if (msg.key?.fromMe && !isNewsletter) continue;
 
+      const forwarderConfig = await getDynamicForwarderConfig();
       const configuredChannel = (forwarderConfig?.sourceChannelId || SOURCE_CHANNEL_JID || '').trim();
       const channelInviteCode = configuredChannel.includes('whatsapp.com/channel/')
         ? configuredChannel.split('whatsapp.com/channel/')[1]?.split(/[\?\/]/)[0]?.replace(/[^a-zA-Z0-9]/g, '')
