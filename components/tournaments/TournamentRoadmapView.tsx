@@ -207,17 +207,6 @@ export default function TournamentRoadmapView({
           </div>
 
           <div className="flex items-center gap-3 flex-wrap">
-            {/* Map Rotation Badges */}
-            {selectedStage.mapRotation && selectedStage.mapRotation.length > 0 && (
-              <div className="flex items-center gap-1.5 text-xs bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800">
-                <MapPin className="w-3.5 h-3.5 text-brand-orange shrink-0" />
-                <span className="text-slate-400 text-[11px] font-bold">Maps:</span>
-                <span className="text-white text-[11px] font-bold">
-                  {selectedStage.mapRotation.join(' • ')}
-                </span>
-              </div>
-            )}
-
             {/* Live Stream Button */}
             {selectedStage.streamUrl && (
               <a
