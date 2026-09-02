@@ -50,6 +50,7 @@ export const ALL_PERMISSIONS: AdminPermissionKey[] = [
 
 export const adminAuditLog: Array<{
   id: string;
+  adminUsername: string;
   actor: string;
   action: string;
   details: string;
@@ -104,7 +105,7 @@ function resetRateLimiting(ip: string) {
   loginAttempts.delete(ip);
 }
 
-export function logAdminAction(
+export async function logAdminAction(
   actor: string,
   action: string,
   details: string,
@@ -113,10 +114,12 @@ export function logAdminAction(
 ) {
   const logId = `audit_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
   const now = new Date().toISOString();
+  const safeActor = actor || 'admin';
 
   adminAuditLog.unshift({
     id: logId,
-    actor,
+    adminUsername: safeActor,
+    actor: safeActor,
     action,
     details,
     targetType,
@@ -129,24 +132,22 @@ export function logAdminAction(
     adminAuditLog.pop();
   }
 
-  console.info(`[ADMIN-AUDIT] ${actor} :: ${action} :: ${details}`);
+  console.info(`[ADMIN-AUDIT] ${safeActor} :: ${action} :: ${details}`);
 
-  // Asynchronously insert into Supabase AdminActivityLog table
-  void (async () => {
-    try {
-      await supabaseAdmin.from('AdminActivityLog').insert([{
-        id: logId,
-        adminUsername: actor,
-        action,
-        targetType: targetType || null,
-        targetId: targetId || null,
-        details,
-        createdAt: now,
-      }]);
-    } catch {
-      // Ignore background log write failures
-    }
-  })();
+  // Insert into Supabase AdminActivityLog table
+  try {
+    await supabaseAdmin.from('AdminActivityLog').insert([{
+      id: logId,
+      adminUsername: safeActor,
+      action,
+      targetType: targetType || null,
+      targetId: targetId || null,
+      details,
+      createdAt: now,
+    }]);
+  } catch (err) {
+    console.warn('[logAdminAction] Supabase insert error:', err);
+  }
 }
 
 export async function authenticateAdmin(identifier: string, password: string, request: NextRequest) {

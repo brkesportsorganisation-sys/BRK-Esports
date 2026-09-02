@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { supabaseAdmin } from '@/lib/supabase';
-import { verifyAdminSession, hasPermission } from '@/lib/admin-auth';
+import { verifyAdminSession, hasPermission, logAdminAction } from '@/lib/admin-auth';
 import { DEFAULT_SHOP_PRODUCTS, ShopProduct, ShopCoupon } from '@/lib/types';
 
 async function getSession() {
@@ -147,6 +147,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
+    const adminUsername = session?.sub || session?.email || 'admin';
     const body = await request.json();
     const { action, product, productId, products: newProductsList, coupon, couponId } = body;
 
@@ -179,6 +180,7 @@ export async function POST(request: NextRequest) {
 
       currentProducts = [newProduct, ...currentProducts];
       await saveDynamicProducts(currentProducts);
+      await logAdminAction(adminUsername, 'ADD_PRODUCT', `Added shop product: "${newProduct.name}" (৳${newProduct.priceBdt})`, 'SHOP_PRODUCT', newProduct.id);
       return NextResponse.json({ success: true, message: 'Shop product created successfully!', product: newProduct });
     }
 
@@ -202,44 +204,55 @@ export async function POST(request: NextRequest) {
       });
 
       await saveDynamicProducts(currentProducts);
+      await logAdminAction(adminUsername, 'UPDATE_PRODUCT', `Updated shop product: "${product.name || product.id}"`, 'SHOP_PRODUCT', product.id);
       return NextResponse.json({ success: true, message: 'Shop product updated successfully!' });
     }
 
     if (action === 'DELETE_PRODUCT' && productId) {
+      const deletedItem = currentProducts.find(p => p.id === productId);
       currentProducts = currentProducts.filter(p => p.id !== productId);
       await saveDynamicProducts(currentProducts);
+      await logAdminAction(adminUsername, 'DELETE_PRODUCT', `Deleted shop product: "${deletedItem?.name || productId}"`, 'SHOP_PRODUCT', productId);
       return NextResponse.json({ success: true, message: 'Product deleted from shop inventory.' });
     }
 
     if (action === 'TOGGLE_ACTIVE' && productId) {
+      let targetName = productId;
       currentProducts = currentProducts.map(p => {
         if (p.id === productId) {
+          targetName = p.name;
           return { ...p, isActive: !p.isActive };
         }
         return p;
       });
       await saveDynamicProducts(currentProducts);
+      await logAdminAction(adminUsername, 'TOGGLE_PRODUCT_STATUS', `Toggled active status for product: "${targetName}"`, 'SHOP_PRODUCT', productId);
       return NextResponse.json({ success: true, message: 'Product status updated.' });
     }
 
     if (action === 'TOGGLE_HOME_FEATURED' && productId) {
+      let targetName = productId;
       currentProducts = currentProducts.map(p => {
         if (p.id === productId) {
+          targetName = p.name;
           return { ...p, isFeaturedOnHome: !p.isFeaturedOnHome };
         }
         return p;
       });
       await saveDynamicProducts(currentProducts);
+      await logAdminAction(adminUsername, 'TOGGLE_HOME_FEATURED', `Toggled homepage feature for: "${targetName}"`, 'SHOP_PRODUCT', productId);
       return NextResponse.json({ success: true, message: 'Homepage featured status updated.' });
     }
 
     if (action === 'RESET_DEFAULTS') {
       await saveDynamicProducts(DEFAULT_SHOP_PRODUCTS);
+      await logAdminAction(adminUsername, 'RESET_SHOP_PRODUCTS', 'Reset shop catalog to default gaming inventory', 'SHOP_CATALOG');
       return NextResponse.json({ success: true, message: 'Shop inventory reset to default items.', products: DEFAULT_SHOP_PRODUCTS });
     }
 
     if (action === 'SAVE_ALL' && Array.isArray(newProductsList)) {
       await saveDynamicProducts(newProductsList);
+      await logAdminAction(adminUsername, 'BULK_UPDATE_PRODUCTS', `Saved ${newProductsList.length} products to shop catalog`, 'SHOP_CATALOG');
       return NextResponse.json({ success: true, message: 'All shop products saved!' });
     }
 
@@ -263,18 +276,21 @@ export async function POST(request: NextRequest) {
       };
       currentCoupons = [newCoupon, ...currentCoupons];
       await saveCoupons(currentCoupons);
+      await logAdminAction(adminUsername, 'CREATE_COUPON', `Created promo coupon: ${cleanCode}`, 'COUPON', newCoupon.id);
       return NextResponse.json({ success: true, message: `Coupon "${cleanCode}" created!`, coupon: newCoupon });
     }
 
     if (action === 'DELETE_COUPON' && couponId) {
       currentCoupons = currentCoupons.filter(c => c.id !== couponId);
       await saveCoupons(currentCoupons);
+      await logAdminAction(adminUsername, 'DELETE_COUPON', `Deleted coupon ID: ${couponId}`, 'COUPON', couponId);
       return NextResponse.json({ success: true, message: 'Coupon removed.' });
     }
 
     if (action === 'TOGGLE_COUPON' && couponId) {
       currentCoupons = currentCoupons.map(c => c.id === couponId ? { ...c, isActive: !c.isActive } : c);
       await saveCoupons(currentCoupons);
+      await logAdminAction(adminUsername, 'TOGGLE_COUPON', `Toggled status for coupon ID: ${couponId}`, 'COUPON', couponId);
       return NextResponse.json({ success: true, message: 'Coupon status toggled.' });
     }
 
@@ -292,6 +308,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
+    const adminUsername = session?.sub || session?.email || 'admin';
     const body = await request.json();
     const { orderId, action, redeemCode, note } = body;
 
@@ -339,6 +356,7 @@ export async function PATCH(request: NextRequest) {
         }]);
       } catch {}
 
+      await logAdminAction(adminUsername, 'ORDER_PROCESSING', `Marked top-up order ${orderId} (${itemName}) as processing`, 'SHOP_ORDER', orderId);
       return NextResponse.json({ success: true, message: 'Order marked as processing.' });
     }
 
@@ -369,6 +387,7 @@ export async function PATCH(request: NextRequest) {
         }]);
       } catch {}
 
+      await logAdminAction(adminUsername, 'ORDER_DELIVERED', `Delivered top-up order ${orderId} (${itemName}) to player UID: ${targetUid || order.userId}`, 'SHOP_ORDER', orderId);
       return NextResponse.json({ success: true, message: 'Order marked as delivered and player notified.' });
     }
 
@@ -420,6 +439,7 @@ export async function PATCH(request: NextRequest) {
         }]);
       } catch {}
 
+      await logAdminAction(adminUsername, 'ORDER_REFUNDED', `Cancelled & refunded order ${orderId} (${itemName}) - ${refundAmount} ${isCoins ? 'Coins' : 'BDT'}`, 'SHOP_ORDER', orderId);
       return NextResponse.json({ success: true, message: 'Order refunded and cancelled.' });
     }
 

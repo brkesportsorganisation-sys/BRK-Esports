@@ -126,8 +126,59 @@ export async function saveRoomQualifiers(tournamentId: string, qualifiers: RoomQ
 }
 
 /**
+ * Fetch participant-to-room mappings for a tournament.
+ */
+export async function getTournamentParticipantRooms(
+  tournamentId: string
+): Promise<Record<string, { roomId: string; roomLabel?: string; slotNumber?: number }>> {
+  try {
+    const settingKey = `PARTICIPANT_ROOMS_${tournamentId}`;
+    const { data: setting } = await supabaseAdmin
+      .from('SiteSetting')
+      .select('value')
+      .eq('key', settingKey)
+      .maybeSingle();
+
+    if (setting?.value) {
+      const parsed = JSON.parse(setting.value);
+      if (parsed && typeof parsed === 'object') return parsed;
+    }
+  } catch (err) {
+    console.warn(`[getTournamentParticipantRooms] Error loading participant rooms for ${tournamentId}:`, err);
+  }
+  return {};
+}
+
+/**
+ * Save participant-to-room mappings for a tournament.
+ */
+export async function saveTournamentParticipantRooms(
+  tournamentId: string,
+  mapping: Record<string, { roomId: string; roomLabel?: string; slotNumber?: number }>
+): Promise<boolean> {
+  try {
+    const settingKey = `PARTICIPANT_ROOMS_${tournamentId}`;
+    await supabaseAdmin
+      .from('SiteSetting')
+      .upsert({
+        id: `setting_${settingKey}`,
+        key: settingKey,
+        value: JSON.stringify(mapping),
+        updatedAt: new Date().toISOString(),
+      }, { onConflict: 'key' });
+    return true;
+  } catch (err) {
+    console.error(`[saveTournamentParticipantRooms] Error saving participant rooms for ${tournamentId}:`, err);
+    return false;
+  }
+}
+
+/**
  * Atomic Auto-Room Assignment Logic
- * Assigns registrant to the first open room with capacity or creates Room B, C, etc.
+ * Assigns registrant sequentially:
+ * - 1st to 12th squad -> Group 1 (Slots 1 to 12)
+ * - 13th to 24th squad -> Group 2 (Slots 1 to 12)
+ * - 25th to 36th squad -> Group 3 (Slots 1 to 12), etc.
  */
 export async function assignParticipantToRoom(
   tournament: Tournament,
@@ -144,20 +195,45 @@ export async function assignParticipantToRoom(
   slotNumberInRoom: number;
   isNewRoomCreated: boolean;
 }> {
-  const rooms = await getTournamentRooms(tournament.id, tournament);
+  const [rooms, participantMap] = await Promise.all([
+    getTournamentRooms(tournament.id, tournament),
+    getTournamentParticipantRooms(tournament.id),
+  ]);
+
   const defaultCapacity = tournament.roomCapacity || getDefaultRoomCapacity(tournament.game);
   const maxRooms = tournament.maxRooms && tournament.maxRooms > 0 ? tournament.maxRooms : 100;
   const isQualifierFormat = tournament.tournamentBatchFormat === 'QUALIFIER_FINAL';
   const isIndependentFormat = tournament.tournamentBatchFormat === 'INDEPENDENT_ROOMS';
 
-  // 1. Find the first open room with space (excluding Final Room from initial registration)
+  // Recalculate room counts accurately based on real participant assignments
+  const roomCountMap: Record<string, number> = {};
+  Object.values(participantMap).forEach((entry) => {
+    if (entry.roomId) {
+      roomCountMap[entry.roomId] = (roomCountMap[entry.roomId] || 0) + 1;
+    }
+  });
+
+  rooms.forEach((r) => {
+    if (r.roomType !== 'FINAL') {
+      if (roomCountMap[r.id] !== undefined) {
+        r.currentCount = roomCountMap[r.id];
+      }
+      if (r.currentCount >= (r.capacity || defaultCapacity)) {
+        r.status = 'FULL';
+      } else {
+        r.status = 'OPEN';
+      }
+    }
+  });
+
+  // 1. Find the first open room with space (Group 1, Group 2, etc.)
   let targetRoom = rooms.find(
     (r) => r.roomType !== 'FINAL' && r.status === 'OPEN' && r.currentCount < (r.capacity || defaultCapacity)
   );
 
   let isNewRoomCreated = false;
 
-  // 2. If all existing rooms are full, auto-create the next sequential room
+  // 2. If all existing rooms are full (e.g. 12 squads reached in Group 1), auto-create the next sequential group
   if (!targetRoom) {
     const nonFinalRooms = rooms.filter((r) => r.roomType !== 'FINAL');
     if (nonFinalRooms.length >= maxRooms) {
@@ -192,7 +268,7 @@ export async function assignParticipantToRoom(
     isNewRoomCreated = true;
   }
 
-  // 3. Assign slot and increment room count
+  // 3. Assign slot (1 to 12) and increment room count
   const slotNumberInRoom = targetRoom.currentCount + 1;
   targetRoom.currentCount = slotNumberInRoom;
 
@@ -203,6 +279,14 @@ export async function assignParticipantToRoom(
 
   // 4. Save updated rooms
   await saveTournamentRooms(tournament.id, rooms);
+
+  // 5. Also save in persistent participant-room map
+  participantMap[participantData.id] = {
+    roomId: targetRoom.id,
+    roomLabel: targetRoom.roomLabel,
+    slotNumber: slotNumberInRoom,
+  };
+  await saveTournamentParticipantRooms(tournament.id, participantMap);
 
   return {
     roomId: targetRoom.id,

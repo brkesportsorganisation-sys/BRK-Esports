@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { getTournamentByIdFromDb } from '@/lib/tournament-store';
-import { getTournamentRooms, getRoomQualifiers } from '@/lib/tournament-rooms';
+import { getTournamentRooms, getRoomQualifiers, getTournamentParticipantRooms } from '@/lib/tournament-rooms';
 import { TournamentRoom, RoomQualifier } from '@/lib/types';
 
 export async function GET(
@@ -19,8 +19,8 @@ export async function GET(
     return NextResponse.json({
       isRegistered: false,
       isUnlocked: false,
-      message: 'Please log in to view your assigned match room.',
-    }, { status: 401 });
+      message: 'User authentication required',
+    });
   }
 
   try {
@@ -46,14 +46,18 @@ export async function GET(
     }
 
     // 2. Locate the assigned room & check qualification status
-    const [rooms, qualifiers] = await Promise.all([
+    const [rooms, qualifiers, participantRoomMap] = await Promise.all([
       getTournamentRooms(tournamentId, tournament),
       getRoomQualifiers(tournamentId),
+      getTournamentParticipantRooms(tournamentId),
     ]);
 
-    let assignedRoom = rooms.find((r) => r.id === participant.roomId);
+    const assignedRoomId = participantRoomMap[participant.id]?.roomId || participant.roomId;
+    const assignedRoomLabel = participantRoomMap[participant.id]?.roomLabel || participant.roomLabel;
+
+    let assignedRoom = rooms.find((r) => r.id === assignedRoomId);
     if (!assignedRoom) {
-      assignedRoom = rooms.find((r) => r.roomLabel === participant.roomLabel) || rooms[0];
+      assignedRoom = rooms.find((r) => r.roomLabel === assignedRoomLabel) || rooms[0];
     }
 
     if (!assignedRoom) {

@@ -32,17 +32,25 @@ export default function AdminActivityLogPage() {
   }, []);
 
   const filteredLogs = logs.filter((log) => {
+    const username = (log.adminUsername || (log as any).actor || '').toLowerCase();
+    const action = (log.action || '').toLowerCase();
+    const details = (log.details || '').toLowerCase();
+    const targetType = (log.targetType || '').toLowerCase();
+    const targetId = (log.targetId || '').toLowerCase();
+    const q = search.toLowerCase();
+
     const matchesSearch =
-      log.adminUsername.toLowerCase().includes(search.toLowerCase()) ||
-      log.action.toLowerCase().includes(search.toLowerCase()) ||
-      (log.details && log.details.toLowerCase().includes(search.toLowerCase())) ||
-      (log.targetType && log.targetType.toLowerCase().includes(search.toLowerCase()));
+      username.includes(q) ||
+      action.includes(q) ||
+      details.includes(q) ||
+      targetType.includes(q) ||
+      targetId.includes(q);
 
     const matchesAction = selectedAction === 'ALL' || log.action === selectedAction;
     return matchesSearch && matchesAction;
   });
 
-  const uniqueActions = Array.from(new Set(logs.map((l) => l.action)));
+  const uniqueActions = Array.from(new Set(logs.map((l) => l.action).filter(Boolean)));
 
   return (
     <div className="space-y-6">
@@ -66,7 +74,7 @@ export default function AdminActivityLogPage() {
         <button
           onClick={loadLogs}
           disabled={loading}
-          className="px-4 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-all flex items-center space-x-1.5"
+          className="px-4 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-all flex items-center space-x-1.5 cursor-pointer"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
           <span>REFRESH LOGS</span>
@@ -89,7 +97,7 @@ export default function AdminActivityLogPage() {
         <select
           value={selectedAction}
           onChange={(e) => setSelectedAction(e.target.value)}
-          className="bg-white border border-slate-200 rounded-2xl px-4 py-2.5 text-xs text-slate-800 font-bold shadow-sm focus:outline-none"
+          className="bg-white border border-slate-200 rounded-2xl px-4 py-2.5 text-xs text-slate-800 font-bold shadow-sm focus:outline-none cursor-pointer"
         >
           <option value="ALL">All Actions ({logs.length})</option>
           {uniqueActions.map((act) => (
@@ -128,7 +136,7 @@ export default function AdminActivityLogPage() {
                     <td className="p-4 font-mono font-bold text-indigo-600 text-xs">
                       <div className="flex items-center space-x-2">
                         <UserCheck className="w-4 h-4 text-slate-500" />
-                        <span>@{log.adminUsername}</span>
+                        <span>@{log.adminUsername || (log as any).actor || 'admin'}</span>
                       </div>
                     </td>
                     <td className="p-4">

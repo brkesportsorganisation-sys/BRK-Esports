@@ -261,6 +261,9 @@ ALTER TABLE "Participant" ADD COLUMN IF NOT EXISTS "player2Name" TEXT;
 ALTER TABLE "Participant" ADD COLUMN IF NOT EXISTS "player3Name" TEXT;
 ALTER TABLE "Participant" ADD COLUMN IF NOT EXISTS "player4Name" TEXT;
 ALTER TABLE "Participant" ADD COLUMN IF NOT EXISTS "backupPlayerName" TEXT;
+ALTER TABLE "Participant" ADD COLUMN IF NOT EXISTS "roomId" TEXT;
+ALTER TABLE "Participant" ADD COLUMN IF NOT EXISTS "roomLabel" TEXT;
+ALTER TABLE "Participant" ADD COLUMN IF NOT EXISTS "slotNumberInRoom" INTEGER;
 
 
 -- =========================================================

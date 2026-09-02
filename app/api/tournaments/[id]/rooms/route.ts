@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { getTournamentByIdFromDb } from '@/lib/tournament-store';
-import { getTournamentRooms, saveTournamentRooms, getRoomQualifiers, getTournamentRoadmap } from '@/lib/tournament-rooms';
+import { getTournamentRooms, saveTournamentRooms, getRoomQualifiers, getTournamentRoadmap, getTournamentParticipantRooms, saveTournamentParticipantRooms } from '@/lib/tournament-rooms';
 import { verifyAdminSession, requireAdminRole, logAdminAction } from '@/lib/admin-auth';
 import { cookies } from 'next/headers';
 import { TournamentRoom } from '@/lib/types';
@@ -28,7 +28,10 @@ export async function GET(
       return NextResponse.json({ message: 'Tournament not found' }, { status: 404 });
     }
 
-    const rooms = await getTournamentRooms(tournamentId, tournament);
+    const [rooms, persistentParticipantRooms] = await Promise.all([
+      getTournamentRooms(tournamentId, tournament),
+      getTournamentParticipantRooms(tournamentId),
+    ]);
 
     // Fetch participants for this tournament
     const { data: participants } = await supabaseAdmin
@@ -37,7 +40,18 @@ export async function GET(
       .eq('tournamentId', tournamentId)
       .order('joinedAt', { ascending: true });
 
-    const allParticipants = Array.isArray(participants) ? participants : [];
+    const rawParticipants = Array.isArray(participants) ? participants : [];
+
+    // Overlay persistent room assignments
+    const allParticipants = rawParticipants.map((p) => {
+      const savedAssign = persistentParticipantRooms[p.id];
+      return {
+        ...p,
+        roomId: savedAssign?.roomId || p.roomId,
+        roomLabel: savedAssign?.roomLabel || p.roomLabel,
+        slotNumberInRoom: savedAssign?.slotNumber || p.slotNumberInRoom,
+      };
+    });
 
     // Map participants to rooms
     // If a participant has no explicit roomId, distribute them sequentially into rooms based on capacity
@@ -242,19 +256,29 @@ export async function POST(
 
     // Action 5: Reassign Squad to a specific Room and Slot
     if (action === 'ASSIGN_SQUAD_TO_ROOM' && participantId) {
-      const { error: updateErr } = await supabaseAdmin
-        .from('Participant')
-        .update({
-          roomId: targetRoomId || null,
-          roomLabel: targetRoomLabel || null,
-          slotNumberInRoom: slotNumber ? Number(slotNumber) : null,
-          updatedAt: new Date().toISOString(),
-        })
-        .eq('id', participantId)
-        .eq('tournamentId', tournamentId);
+      // 1. Persist to SiteSetting mapping
+      const pMap = await getTournamentParticipantRooms(tournamentId);
+      pMap[participantId] = {
+        roomId: targetRoomId || '',
+        roomLabel: targetRoomLabel || '',
+        slotNumber: slotNumber ? Number(slotNumber) : undefined,
+      };
+      await saveTournamentParticipantRooms(tournamentId, pMap);
 
-      if (updateErr) {
-        return NextResponse.json({ message: updateErr.message }, { status: 500 });
+      // 2. Also try updating Postgres Participant table if columns exist
+      try {
+        await supabaseAdmin
+          .from('Participant')
+          .update({
+            roomId: targetRoomId || null,
+            roomLabel: targetRoomLabel || null,
+            slotNumberInRoom: slotNumber ? Number(slotNumber) : null,
+            updatedAt: new Date().toISOString(),
+          })
+          .eq('id', participantId)
+          .eq('tournamentId', tournamentId);
+      } catch (err) {
+        console.warn('[ASSIGN_SQUAD_TO_ROOM] Participant column update skipped:', err);
       }
 
       await logAdminAction(
@@ -280,19 +304,16 @@ export async function POST(
 
       let roomIdx = 0;
       let slotIdx = 1;
+      const newPMap: Record<string, { roomId: string; roomLabel?: string; slotNumber?: number }> = {};
 
       for (const p of allParticipants) {
         if (roomIdx < nonFinalRooms.length) {
           const targetRoom = nonFinalRooms[roomIdx];
-          await supabaseAdmin
-            .from('Participant')
-            .update({
-              roomId: targetRoom.id,
-              roomLabel: targetRoom.roomLabel,
-              slotNumberInRoom: slotIdx,
-              updatedAt: new Date().toISOString(),
-            })
-            .eq('id', p.id);
+          newPMap[p.id] = {
+            roomId: targetRoom.id,
+            roomLabel: targetRoom.roomLabel,
+            slotNumber: slotIdx,
+          };
 
           slotIdx++;
           if (slotIdx > (targetRoom.capacity || defaultCap)) {
@@ -300,6 +321,25 @@ export async function POST(
             roomIdx++;
           }
         }
+      }
+
+      await saveTournamentParticipantRooms(tournamentId, newPMap);
+
+      // Also try to update Postgres in background
+      try {
+        for (const [pId, assign] of Object.entries(newPMap)) {
+          await supabaseAdmin
+            .from('Participant')
+            .update({
+              roomId: assign.roomId,
+              roomLabel: assign.roomLabel,
+              slotNumberInRoom: assign.slotNumber,
+              updatedAt: new Date().toISOString(),
+            })
+            .eq('id', pId);
+        }
+      } catch (err) {
+        console.warn('[AUTO_DISTRIBUTE_SQUADS] Participant column update skipped:', err);
       }
 
       await logAdminAction(
@@ -313,8 +353,9 @@ export async function POST(
 
     // Action 7: Add Manual Squad to Room
     if (action === 'ADD_MANUAL_PARTICIPANT' && squadData) {
-      const newParticipant = {
-        id: `part_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      const participantId = `part_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      const cleanParticipant: any = {
+        id: participantId,
         tournamentId,
         userId: session?.sub || session?.email || 'admin',
         squadName: squadData.squadName || 'Manual Squad',
@@ -324,22 +365,41 @@ export async function POST(
         player2Name: squadData.player2Name || 'Player 2',
         player3Name: squadData.player3Name || 'Player 3',
         player4Name: squadData.player4Name || 'Player 4',
-        roomId: squadData.roomId || null,
-        roomLabel: squadData.roomLabel || null,
-        slotNumberInRoom: squadData.slotNumber ? Number(squadData.slotNumber) : null,
         status: 'VERIFIED',
         joinedAt: new Date().toISOString(),
       };
 
-      const { error: insertErr } = await supabaseAdmin.from('Participant').insert(newParticipant);
+      // 1. Try inserting with room info, or fallback without room columns
+      let { error: insertErr } = await supabaseAdmin.from('Participant').insert({
+        ...cleanParticipant,
+        roomId: squadData.roomId || null,
+        roomLabel: squadData.roomLabel || null,
+        slotNumberInRoom: squadData.slotNumber ? Number(squadData.slotNumber) : null,
+      });
+
       if (insertErr) {
-        return NextResponse.json({ message: insertErr.message }, { status: 500 });
+        // Fallback without room columns
+        const { error: fallbackErr } = await supabaseAdmin.from('Participant').insert(cleanParticipant);
+        if (fallbackErr) {
+          return NextResponse.json({ message: fallbackErr.message }, { status: 500 });
+        }
+      }
+
+      // 2. Save room mapping
+      if (squadData.roomId) {
+        const pMap = await getTournamentParticipantRooms(tournamentId);
+        pMap[participantId] = {
+          roomId: squadData.roomId,
+          roomLabel: squadData.roomLabel,
+          slotNumber: squadData.slotNumber ? Number(squadData.slotNumber) : undefined,
+        };
+        await saveTournamentParticipantRooms(tournamentId, pMap);
       }
 
       await logAdminAction(
         session?.sub || session?.email || 'admin',
         'ADD_MANUAL_SQUAD',
-        `Added manual squad "${squadData.squadName}" to Group ${squadData.roomLabel || 'A'}`
+        `Added manual squad "${squadData.squadName}" to Group ${squadData.roomLabel || '1'}`
       );
 
       return NextResponse.json({ success: true, message: `Squad "${squadData.squadName}" added successfully!` });
@@ -347,6 +407,12 @@ export async function POST(
 
     // Action 8: Remove/Delete Participant from Room
     if (action === 'REMOVE_SQUAD_FROM_ROOM' && participantId) {
+      // 1. Remove from mapping
+      const pMap = await getTournamentParticipantRooms(tournamentId);
+      delete pMap[participantId];
+      await saveTournamentParticipantRooms(tournamentId, pMap);
+
+      // 2. Remove from Supabase
       const { error: delErr } = await supabaseAdmin
         .from('Participant')
         .delete()

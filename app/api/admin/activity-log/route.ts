@@ -16,17 +16,33 @@ export async function GET() {
   }
 
   try {
-    const { data: logs, error } = await supabaseAdmin
+    const { data: dbLogs, error } = await supabaseAdmin
       .from('AdminActivityLog')
       .select('*')
       .order('createdAt', { ascending: false })
-      .limit(100);
+      .limit(1000);
 
-    if (error || !logs || logs.length === 0) {
-      return NextResponse.json({ logs: adminAuditLog });
+    const logMap = new Map<string, any>();
+
+    // 1. Add in-memory latest logs
+    if (Array.isArray(adminAuditLog)) {
+      adminAuditLog.forEach(l => {
+        logMap.set(l.id, l);
+      });
     }
 
-    return NextResponse.json({ logs });
+    // 2. Add database logs
+    if (!error && Array.isArray(dbLogs)) {
+      dbLogs.forEach(l => {
+        logMap.set(l.id, l);
+      });
+    }
+
+    const mergedLogs = Array.from(logMap.values()).sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
+    return NextResponse.json({ logs: mergedLogs });
   } catch (error: any) {
     console.warn('[GET /api/admin/activity-log]', error);
     return NextResponse.json({ logs: adminAuditLog });

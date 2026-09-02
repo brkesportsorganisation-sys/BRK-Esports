@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { AlertCircle, CheckCircle2, Coins, Copy, Eye, Filter, Loader2, Plus, PlusCircle, Search, ShieldCheck, Sparkles, Star, Trash2, Trophy, UploadCloud, X, MessageSquare, Send, Layers, UserCheck, Play, ArrowUpRight, Lock, Unlock, Gamepad2, Award, Camera, Scan, CheckSquare, Save, RefreshCw, Calendar, Clock, MapPin, Tv, Edit3, ExternalLink } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Coins, Copy, Eye, Filter, Loader2, Plus, PlusCircle, Search, ShieldCheck, Sparkles, Star, Trash2, Trophy, UploadCloud, X, MessageSquare, Send, Layers, UserCheck, Users, Play, ArrowUpRight, Lock, Unlock, Gamepad2, Award, Camera, Scan, CheckSquare, Save, RefreshCw, Calendar, Clock, MapPin, Tv, Edit3, ExternalLink } from 'lucide-react';
 import { Tournament, Mode, Format, TournamentStatus, CommunityAccessType, CommunityUnlockMode, PrizeTier, TournamentBatchFormat, TournamentRoom, RoomQualifier, MatchTeamScore, TournamentPointsTable, TournamentRoadmapConfig, TournamentStage, TournamentRoadmapRuleItem } from '@/lib/types';
 import { generateDefaultRoadmap, formatRoomLabel } from '@/lib/tournament-rooms-utils';
 import { calculateTeamPoints } from '@/lib/ai-scoreboard-ocr';
@@ -258,7 +258,7 @@ export default function AdminTournamentsPage() {
     player3Name: '',
     player4Name: '',
     roomId: '',
-    roomLabel: 'A',
+    roomLabel: '1',
     slotNumber: 1,
   });
 
@@ -702,7 +702,7 @@ export default function AdminTournamentsPage() {
           player3Name: '',
           player4Name: '',
           roomId: '',
-          roomLabel: 'A',
+          roomLabel: '1',
           slotNumber: 1,
         });
         await loadTournamentRoomsData(selectedRoomTournament.id);
@@ -1662,7 +1662,7 @@ export default function AdminTournamentsPage() {
                   <td className="px-4 py-4 text-right">
                     <div className="flex flex-wrap justify-end gap-1.5">
                       <button onClick={() => void openRoomModal(item, 'ROADMAP')} className="rounded-xl border border-amber-800/60 bg-amber-950/60 px-2.5 py-1.5 text-xs font-bold text-amber-300 hover:bg-amber-900 transition-colors cursor-pointer flex items-center gap-1"><Trophy className="h-3 w-3 inline text-amber-400" /> Roadmap</button>
-                      <button onClick={() => void openRoomModal(item, 'ROOMS')} className="rounded-xl border border-purple-800/60 bg-purple-950/60 px-2.5 py-1.5 text-xs font-bold text-purple-300 hover:bg-purple-900 transition-colors cursor-pointer flex items-center gap-1"><Layers className="h-3 w-3 inline text-purple-400" /> Rooms</button>
+                      <button onClick={() => void openRoomModal(item, 'ROSTER')} className="rounded-xl border border-purple-800/60 bg-purple-950/60 px-2.5 py-1.5 text-xs font-bold text-purple-300 hover:bg-purple-900 transition-colors cursor-pointer flex items-center gap-1"><Users className="h-3 w-3 inline text-purple-400" /> Groups &amp; Rooms</button>
                       <button onClick={() => openEditModal(item)} className="rounded-xl border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs font-bold text-slate-300 hover:text-white transition-colors cursor-pointer">Edit</button>
                       <button onClick={() => void handleQuickAction(item.id, { status: item.status === 'LIVE' ? 'UPCOMING' : 'LIVE', isPublished: true })} className="rounded-xl border border-emerald-800/50 bg-emerald-950/50 px-2.5 py-1.5 text-xs font-bold text-emerald-400 hover:bg-emerald-900 transition-colors cursor-pointer">Publish</button>
                       <button onClick={() => void handleQuickAction(item.id, { isFeatured: !item.isFeatured })} className="rounded-xl border border-orange-800/50 bg-orange-950/50 px-2.5 py-1.5 text-xs font-bold text-orange-400 hover:bg-orange-900 transition-colors cursor-pointer">Feature</button>
@@ -2367,18 +2367,20 @@ export default function AdminTournamentsPage() {
             {/* Modal Header */}
             <div className="flex items-start justify-between pb-4 border-b border-slate-800">
               <div className="flex items-center gap-3">
-                <div className="p-3 rounded-2xl bg-purple-950/80 border border-purple-800/60 text-purple-400">
-                  <Layers className="h-6 w-6" />
+                <div className={`p-3 rounded-2xl border ${roomActiveTab === 'ROADMAP' ? 'bg-amber-950/80 border-amber-800/60 text-amber-400' : 'bg-purple-950/80 border-purple-800/60 text-purple-400'}`}>
+                  {roomActiveTab === 'ROADMAP' ? <Trophy className="h-6 w-6 text-brand-gold" /> : <Layers className="h-6 w-6" />}
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-xl font-heading font-black text-white">ROOM &amp; GROUP BATCHING CENTER</h2>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-xl font-heading font-black text-white">
+                      {roomActiveTab === 'ROADMAP' ? 'TOURNAMENT ROADMAP & SCHEDULE' : 'ROOM & GROUP BATCHING CENTER'}
+                    </h2>
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-900/60 text-purple-300 font-extrabold uppercase border border-purple-700/60">
                       {selectedRoomTournament.tournamentBatchFormat === 'QUALIFIER_FINAL' ? 'Format A: Qualifier → Final' : selectedRoomTournament.tournamentBatchFormat === 'INDEPENDENT_ROOMS' ? 'Format B: Independent Rooms' : 'Single Room'}
                     </span>
                   </div>
                   <p className="text-xs text-slate-400 mt-0.5 font-medium">
-                    {selectedRoomTournament.title} • Capacity: {selectedRoomTournament.roomCapacity || 12} slots/room
+                    {selectedRoomTournament.title} • {roomActiveTab === 'ROADMAP' ? 'Multi-Stage tournament progression, schedules & live streams' : `Capacity: ${selectedRoomTournament.roomCapacity || 12} squads/group (Auto: 1-12 in Group 1, 13-24 in Group 2...)`}
                   </p>
                 </div>
               </div>

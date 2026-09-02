@@ -272,10 +272,10 @@ export async function POST(
       .update(balanceUpdate)
       .eq('id', userId);
 
-    // 2. Assign to room (Auto Room A, B, C batching based on format & room capacity)
+    // 2. Assign to room (Auto Group 1, Group 2, Group 3 batching based on format & room capacity)
     let roomAssignment = {
-      roomId: `room_${tournamentId}_A`,
-      roomLabel: 'A',
+      roomId: `room_${tournamentId}_1`,
+      roomLabel: '1',
       slotNumberInRoom: 1,
       isNewRoomCreated: false,
     };
