@@ -51,7 +51,9 @@ import {
   Database,
   Server,
   Activity,
-  HardDrive
+  HardDrive,
+  Calendar,
+  Layers
 } from 'lucide-react';
 
 import { AdminPermissionKey } from '@/lib/types';
@@ -215,10 +217,12 @@ export default function AdminShell({ children }: AdminShellProps) {
       title: '🏆 TOURNAMENTS & MATCHES',
       links: [
         { href: '/admin/tournaments', label: 'All Tournaments', icon: Trophy, colorClass: 'text-pink-500', permission: 'manage_tournaments' },
-        { href: '/admin/champions', label: 'Hall of Champions (👑)', icon: Crown, colorClass: 'text-amber-500', permission: 'manage_tournaments' },
+        { href: '/admin/roadmaps', label: 'Roadmap & Schedules (🎯)', icon: Calendar, colorClass: 'text-amber-400', permission: 'manage_tournaments' },
+        { href: '/admin/groups', label: 'Groups & Squad Rosters (👥)', icon: Users, colorClass: 'text-purple-400', permission: 'manage_tournaments' },
         { href: '/admin/rooms', label: 'Room ID & Pass (🔑)', icon: KeyRound, colorClass: 'text-emerald-500', permission: 'manage_tournaments' },
-        { href: '/admin/registrations', label: 'Slot Registrations', icon: ClipboardList, colorClass: 'text-purple-500', badge: pendingCount, permission: 'manage_tournaments' },
+        { href: '/admin/registrations', label: 'Slot Registrations', icon: ClipboardList, colorClass: 'text-blue-500', badge: pendingCount, permission: 'manage_tournaments' },
         { href: '/admin/matches', label: 'Match Results & Scores', icon: Gamepad2, colorClass: 'text-amber-600', permission: 'enter_results' },
+        { href: '/admin/champions', label: 'Hall of Champions (👑)', icon: Crown, colorClass: 'text-amber-500', permission: 'manage_tournaments' },
         { href: '/admin/arena', label: '1v1 Arena Duels (⚔️)', icon: Swords, colorClass: 'text-red-500', permission: 'manage_tournaments' },
         { href: '/admin/tournament-settings', label: 'Tournament Match Rules', icon: FileText, colorClass: 'text-pink-500', permission: 'manage_settings' },
       ]
