@@ -6,6 +6,8 @@ import { getTournamentRooms, getTournamentPointsTables, saveTournamentPointsTabl
 import { parseScoreboardWithAI } from '@/lib/ai-scoreboard-ocr';
 import { saveBase64Image } from '@/lib/upload';
 import { TournamentPointsTable } from '@/lib/types';
+import { supabaseAdmin } from '@/lib/supabase';
+import { sendDirectWhatsappMessage, normalizePhoneNumber } from '@/lib/whatsapp';
 
 async function getAdminSession() {
   const cookieStore = await cookies();
@@ -166,6 +168,107 @@ export async function POST(
         success: true,
         message: 'Points Table deleted successfully.',
         pointsTables: filtered,
+      });
+    }
+
+    // ─── ACTION 4: TARGETED BROADCAST TO GROUP SQUADS ONLY ───────────────────
+    if (action === 'BROADCAST_GROUP_POINTS') {
+      const { tableId, roomId, roomLabel, customNote } = body;
+      const pointsTables = await getTournamentPointsTables(tournamentId);
+      const targetTable = tableId
+        ? pointsTables.find(t => t.id === tableId)
+        : pointsTables.find(t => t.roomId === roomId || t.roomLabel === roomLabel);
+
+      if (!targetTable || !Array.isArray(targetTable.scores) || targetTable.scores.length === 0) {
+        return NextResponse.json({ message: 'Points table not found or has no scores to broadcast.' }, { status: 400 });
+      }
+
+      // Fetch participants for this tournament
+      const { data: participants } = await supabaseAdmin
+        .from('Participant')
+        .select('*')
+        .eq('tournamentId', tournamentId);
+
+      const allParticipants = Array.isArray(participants) ? participants : [];
+
+      // Filter STRICTLY to participants of THIS room / group only!
+      const targetParticipants = allParticipants.filter((p) => {
+        if (targetTable.roomId && p.roomId) {
+          return p.roomId === targetTable.roomId;
+        }
+        if (targetTable.roomLabel && p.roomLabel) {
+          return p.roomLabel.toLowerCase() === targetTable.roomLabel.toLowerCase();
+        }
+        return false;
+      });
+
+      if (targetParticipants.length === 0) {
+        return NextResponse.json({
+          message: `No squad participants found assigned to Group ${targetTable.roomLabel || 'A'}. Please ensure squads are assigned to this room before broadcasting.`,
+        }, { status: 400 });
+      }
+
+      // Format top scores summary
+      const sortedScores = [...targetTable.scores].sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0));
+      const standingsSummary = sortedScores.slice(0, 10).map((s, idx) => {
+        const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}.`;
+        return `${medal} *${s.teamName}* — ${s.totalPoints} pts (${s.kills} kills)`;
+      }).join('\n');
+
+      const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://esportszonebd.online';
+      const stageName = targetTable.stage || 'Official Match';
+      const matchNum = targetTable.matchNumber || 1;
+      const groupName = targetTable.roomLabel || 'A';
+
+      let totalSent = 0;
+      let totalFailed = 0;
+
+      for (const p of targetParticipants) {
+        const phone = p.captainWhatsApp || p.phone;
+        if (!phone) {
+          totalFailed++;
+          continue;
+        }
+
+        const msg = `📢 *[ESPORTS ZONE BD — MATCH STANDINGS]*
+
+Hello Captain *${p.iglName || p.squadName}*!
+Match results for your group have been published!
+
+🏆 *Tournament:* ${tournament.title}
+⚔️ *Stage / Round:* ${stageName}
+🎯 *Group:* Group ${groupName} (Match #${matchNum})
+
+📊 *TOP STANDINGS:*
+${standingsSummary}
+
+${customNote ? `\n📌 *Admin Note:* ${customNote}` : ''}
+
+👉 *View Complete Interactive Points Table & Roadmap:*
+${siteUrl}/tournaments/${tournament.id}
+
+_Stay tuned for upcoming round schedules! 🔥_`;
+
+        try {
+          const res = await sendDirectWhatsappMessage({
+            to: normalizePhoneNumber(phone),
+            text: msg,
+            targetName: p.squadName,
+            triggerType: 'ROOM_ALERT',
+          });
+          if (res?.success) totalSent++;
+          else totalFailed++;
+        } catch {
+          totalFailed++;
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `Points table broadcast sent to ${totalSent} squads of Group ${groupName} (${totalFailed} failed/unreachable).`,
+        totalSent,
+        totalFailed,
+        targetSquadsCount: targetParticipants.length,
       });
     }
 

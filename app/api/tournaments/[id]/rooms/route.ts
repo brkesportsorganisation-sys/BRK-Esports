@@ -125,6 +125,21 @@ export async function GET(
       roomCapacity: defaultCapacity,
       totalRooms: rooms.length,
       rooms: publicRooms,
+      allParticipants: allParticipants.map((p, idx) => ({
+        id: p.id,
+        squadName: p.squadName,
+        iglName: p.iglName,
+        captainWhatsApp: isAdmin ? p.captainWhatsApp : undefined,
+        player1Name: p.player1Name,
+        player2Name: p.player2Name,
+        player3Name: p.player3Name,
+        player4Name: p.player4Name,
+        roomId: p.roomId,
+        roomLabel: p.roomLabel,
+        slotNumber: p.slotNumberInRoom || idx + 1,
+        status: p.status,
+        joinedAt: p.joinedAt,
+      })),
       qualifiers: qualifiers || [],
       roadmap: roadmap || null,
     });
@@ -134,7 +149,7 @@ export async function GET(
   }
 }
 
-// 2. POST / PATCH Admin Room Management (Create/Update Room, Set Pass/ID/Reveal Time)
+// 2. POST / PATCH Admin Room & Squad Management
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -147,7 +162,7 @@ export async function POST(
 
   try {
     const body = await req.json();
-    const { action, roomData, roomId, roomsList } = body;
+    const { action, roomData, roomId, roomsList, participantId, targetRoomId, targetRoomLabel, slotNumber, squadData } = body;
 
     const tournament = await getTournamentByIdFromDb(tournamentId);
     if (!tournament) {
@@ -223,6 +238,132 @@ export async function POST(
       await logAdminAction(session?.sub || session?.email || 'admin', 'DELETE_TOURNAMENT_ROOM', `Deleted room ID "${roomId}" from "${tournament.title}"`);
 
       return NextResponse.json({ success: true, message: 'Room deleted successfully!', rooms });
+    }
+
+    // Action 5: Reassign Squad to a specific Room and Slot
+    if (action === 'ASSIGN_SQUAD_TO_ROOM' && participantId) {
+      const { error: updateErr } = await supabaseAdmin
+        .from('Participant')
+        .update({
+          roomId: targetRoomId || null,
+          roomLabel: targetRoomLabel || null,
+          slotNumberInRoom: slotNumber ? Number(slotNumber) : null,
+          updatedAt: new Date().toISOString(),
+        })
+        .eq('id', participantId)
+        .eq('tournamentId', tournamentId);
+
+      if (updateErr) {
+        return NextResponse.json({ message: updateErr.message }, { status: 500 });
+      }
+
+      await logAdminAction(
+        session?.sub || session?.email || 'admin',
+        'REASSIGN_SQUAD_ROOM',
+        `Moved squad participant ${participantId} to Room ${targetRoomLabel || 'Unassigned'} Slot ${slotNumber || 'auto'}`
+      );
+
+      return NextResponse.json({ success: true, message: `Squad successfully assigned to Group ${targetRoomLabel || 'Unassigned'}!` });
+    }
+
+    // Action 6: Auto-Distribute all squads across available rooms
+    if (action === 'AUTO_DISTRIBUTE_SQUADS') {
+      const { data: participants } = await supabaseAdmin
+        .from('Participant')
+        .select('*')
+        .eq('tournamentId', tournamentId)
+        .order('joinedAt', { ascending: true });
+
+      const allParticipants = Array.isArray(participants) ? participants : [];
+      const nonFinalRooms = rooms.filter(r => r.roomType !== 'FINAL');
+      const defaultCap = tournament.roomCapacity || 12;
+
+      let roomIdx = 0;
+      let slotIdx = 1;
+
+      for (const p of allParticipants) {
+        if (roomIdx < nonFinalRooms.length) {
+          const targetRoom = nonFinalRooms[roomIdx];
+          await supabaseAdmin
+            .from('Participant')
+            .update({
+              roomId: targetRoom.id,
+              roomLabel: targetRoom.roomLabel,
+              slotNumberInRoom: slotIdx,
+              updatedAt: new Date().toISOString(),
+            })
+            .eq('id', p.id);
+
+          slotIdx++;
+          if (slotIdx > (targetRoom.capacity || defaultCap)) {
+            slotIdx = 1;
+            roomIdx++;
+          }
+        }
+      }
+
+      await logAdminAction(
+        session?.sub || session?.email || 'admin',
+        'AUTO_DISTRIBUTE_SQUADS',
+        `Auto-distributed ${allParticipants.length} squads across ${nonFinalRooms.length} rooms for "${tournament.title}"`
+      );
+
+      return NextResponse.json({ success: true, message: `Successfully distributed ${allParticipants.length} squads across ${nonFinalRooms.length} groups!` });
+    }
+
+    // Action 7: Add Manual Squad to Room
+    if (action === 'ADD_MANUAL_PARTICIPANT' && squadData) {
+      const newParticipant = {
+        id: `part_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        tournamentId,
+        userId: session?.sub || session?.email || 'admin',
+        squadName: squadData.squadName || 'Manual Squad',
+        iglName: squadData.iglName || 'Captain',
+        captainWhatsApp: squadData.captainWhatsApp || null,
+        player1Name: squadData.player1Name || squadData.iglName || 'Player 1',
+        player2Name: squadData.player2Name || 'Player 2',
+        player3Name: squadData.player3Name || 'Player 3',
+        player4Name: squadData.player4Name || 'Player 4',
+        roomId: squadData.roomId || null,
+        roomLabel: squadData.roomLabel || null,
+        slotNumberInRoom: squadData.slotNumber ? Number(squadData.slotNumber) : null,
+        status: 'VERIFIED',
+        joinedAt: new Date().toISOString(),
+      };
+
+      const { error: insertErr } = await supabaseAdmin.from('Participant').insert(newParticipant);
+      if (insertErr) {
+        return NextResponse.json({ message: insertErr.message }, { status: 500 });
+      }
+
+      await logAdminAction(
+        session?.sub || session?.email || 'admin',
+        'ADD_MANUAL_SQUAD',
+        `Added manual squad "${squadData.squadName}" to Group ${squadData.roomLabel || 'A'}`
+      );
+
+      return NextResponse.json({ success: true, message: `Squad "${squadData.squadName}" added successfully!` });
+    }
+
+    // Action 8: Remove/Delete Participant from Room
+    if (action === 'REMOVE_SQUAD_FROM_ROOM' && participantId) {
+      const { error: delErr } = await supabaseAdmin
+        .from('Participant')
+        .delete()
+        .eq('id', participantId)
+        .eq('tournamentId', tournamentId);
+
+      if (delErr) {
+        return NextResponse.json({ message: delErr.message }, { status: 500 });
+      }
+
+      await logAdminAction(
+        session?.sub || session?.email || 'admin',
+        'DELETE_SQUAD_PARTICIPANT',
+        `Removed squad ${participantId} from "${tournament.title}"`
+      );
+
+      return NextResponse.json({ success: true, message: 'Squad removed from tournament successfully.' });
     }
 
     return NextResponse.json({ message: 'Invalid action provided' }, { status: 400 });

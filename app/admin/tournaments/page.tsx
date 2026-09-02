@@ -173,7 +173,7 @@ export default function AdminTournamentsPage() {
   const [isRoomsLoading, setIsRoomsLoading] = useState(false);
   const [selectedAdvancingIds, setSelectedAdvancingIds] = useState<string[]>([]);
   const [isAdvancing, setIsAdvancing] = useState(false);
-  const [roomActiveTab, setRoomActiveTab] = useState<'ROOMS' | 'ROADMAP' | 'POINTS_TABLE' | 'QUALIFIERS'>('ROOMS');
+  const [roomActiveTab, setRoomActiveTab] = useState<'ROOMS' | 'ROADMAP' | 'ROSTER' | 'POINTS_TABLE' | 'QUALIFIERS'>('ROADMAP');
   const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
   const [roomEditForm, setRoomEditForm] = useState<{
     roomIdCredential: string;
@@ -232,12 +232,33 @@ export default function AdminTournamentsPage() {
   // Points Table & AI Scoreboard Studio State
   const [adminPointsTables, setAdminPointsTables] = useState<TournamentPointsTable[]>([]);
   const [selectedScoreboardRoomId, setSelectedScoreboardRoomId] = useState<string>('');
+  const [selectedScoreboardStage, setSelectedScoreboardStage] = useState<string>('Round 1: Qualifiers');
   const [scoreboardImage, setScoreboardImage] = useState<string>('');
   const [isScanningOCR, setIsScanningOCR] = useState(false);
   const [ocrConfidence, setOcrConfidence] = useState<number | null>(null);
   const [editableScores, setEditableScores] = useState<MatchTeamScore[]>([]);
   const [isSavingPointsTable, setIsSavingPointsTable] = useState(false);
+  const [isBroadcastingPointsTable, setIsBroadcastingPointsTable] = useState<string | null>(null);
   const [matchNumberInput, setMatchNumberInput] = useState<number>(1);
+
+  // Squad Roster Management State
+  const [tournamentAllParticipants, setTournamentAllParticipants] = useState<any[]>([]);
+  const [rosterFilterRoom, setRosterFilterRoom] = useState<string>('ALL');
+  const [rosterSearchQuery, setRosterSearchQuery] = useState<string>('');
+  const [isReassigningSquad, setIsReassigningSquad] = useState<string | null>(null);
+  const [manualSquadModalOpen, setManualSquadModalOpen] = useState(false);
+  const [manualSquadForm, setManualSquadForm] = useState({
+    squadName: '',
+    iglName: '',
+    captainWhatsApp: '',
+    player1Name: '',
+    player2Name: '',
+    player3Name: '',
+    player4Name: '',
+    roomId: '',
+    roomLabel: 'A',
+    slotNumber: 1,
+  });
 
   const loadPointsTablesData = async (tournamentId: string) => {
     try {
@@ -249,7 +270,7 @@ export default function AdminTournamentsPage() {
     } catch (err) {}
   };
 
-  const openRoomModal = async (tournament: Tournament, initialTab: 'ROOMS' | 'ROADMAP' | 'POINTS_TABLE' | 'QUALIFIERS' = 'ROOMS') => {
+  const openRoomModal = async (tournament: Tournament, initialTab: 'ROOMS' | 'ROADMAP' | 'ROSTER' | 'POINTS_TABLE' | 'QUALIFIERS' = 'ROADMAP') => {
     setSelectedRoomTournament(tournament);
     setRoomModalOpen(true);
     setRoomActiveTab(initialTab);
@@ -274,6 +295,7 @@ export default function AdminTournamentsPage() {
         const loadedRooms = data.rooms || [];
         setTournamentRooms(loadedRooms);
         setRoomQualifiers(data.qualifiers || []);
+        setTournamentAllParticipants(data.allParticipants || []);
         if (data.roadmap) {
           setAdminRoadmapConfig(data.roadmap);
         } else {
@@ -513,6 +535,7 @@ export default function AdminTournamentsPage() {
             tournamentId: selectedRoomTournament.id,
             roomId: targetRoom?.id,
             roomLabel: targetRoom?.roomLabel || 'A',
+            stage: selectedScoreboardStage || 'Round 1: Qualifiers',
             matchNumber: matchNumberInput,
             screenshotUrl: scoreboardImage || undefined,
             scores: editableScores,
@@ -530,6 +553,186 @@ export default function AdminTournamentsPage() {
       alert(err?.message || 'Failed to publish points table.');
     } finally {
       setIsSavingPointsTable(false);
+    }
+  };
+
+  const handleBroadcastPointsTable = async (table: TournamentPointsTable) => {
+    if (!selectedRoomTournament) return;
+    const confirmMsg = `Send Points Table WhatsApp message ONLY to registered squads in Group ${table.roomLabel || 'A'} (Stage: ${table.stage || 'Match'})?\n\nNote: Squads in other groups will NOT receive this message.`;
+    if (!confirm(confirmMsg)) return;
+
+    setIsBroadcastingPointsTable(table.id);
+    try {
+      const res = await fetch(`/api/tournaments/${selectedRoomTournament.id}/results`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+        credentials: 'include',
+        body: JSON.stringify({
+          action: 'BROADCAST_GROUP_POINTS',
+          tableId: table.id,
+          roomId: table.roomId,
+          roomLabel: table.roomLabel,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.message || `Points Table broadcast sent to squads of Group ${table.roomLabel || 'A'}!`);
+      } else {
+        alert(data.message || 'Failed to broadcast points table.');
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Error broadcasting points table.');
+    } finally {
+      setIsBroadcastingPointsTable(null);
+    }
+  };
+
+  const handleDeletePointsTable = async (tableId: string) => {
+    if (!selectedRoomTournament) return;
+    if (!confirm('Are you sure you want to delete this points table?')) return;
+    try {
+      const res = await fetch(`/api/tournaments/${selectedRoomTournament.id}/results`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+        credentials: 'include',
+        body: JSON.stringify({
+          action: 'DELETE_POINTS_TABLE',
+          tableId,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        await loadPointsTablesData(selectedRoomTournament.id);
+      } else {
+        alert(data.message || 'Failed to delete points table.');
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Error deleting points table');
+    }
+  };
+
+  const handleAssignSquadToRoom = async (participantId: string, targetRoomId: string, targetRoomLabel: string, slotNumber?: number) => {
+    if (!selectedRoomTournament) return;
+    setIsReassigningSquad(participantId);
+    try {
+      const res = await fetch(`/api/tournaments/${selectedRoomTournament.id}/rooms`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+        credentials: 'include',
+        body: JSON.stringify({
+          action: 'ASSIGN_SQUAD_TO_ROOM',
+          participantId,
+          targetRoomId,
+          targetRoomLabel,
+          slotNumber,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setFeedbackTone('success');
+        setFeedback(data.message || 'Squad reassigned successfully!');
+        await loadTournamentRoomsData(selectedRoomTournament.id);
+      } else {
+        alert(data.message || 'Failed to reassign squad.');
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Error reassigning squad');
+    } finally {
+      setIsReassigningSquad(null);
+    }
+  };
+
+  const handleAutoDistributeSquads = async () => {
+    if (!selectedRoomTournament) return;
+    if (!confirm(`Auto-distribute all ${tournamentAllParticipants.length} registered squads evenly across groups (12 squads per group)?`)) return;
+    setIsRoomsLoading(true);
+    try {
+      const res = await fetch(`/api/tournaments/${selectedRoomTournament.id}/rooms`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'AUTO_DISTRIBUTE_SQUADS' }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setFeedbackTone('success');
+        setFeedback(data.message || 'Squads distributed across groups!');
+        await loadTournamentRoomsData(selectedRoomTournament.id);
+      } else {
+        alert(data.message || 'Failed to auto-distribute squads.');
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Error distributing squads');
+    } finally {
+      setIsRoomsLoading(false);
+    }
+  };
+
+  const handleAddManualSquad = async () => {
+    if (!selectedRoomTournament || !manualSquadForm.squadName.trim()) {
+      alert('Squad Name is required');
+      return;
+    }
+    try {
+      const targetRoom = tournamentRooms.find(r => r.id === manualSquadForm.roomId || r.roomLabel === manualSquadForm.roomLabel) || tournamentRooms[0];
+      const res = await fetch(`/api/tournaments/${selectedRoomTournament.id}/rooms`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+        credentials: 'include',
+        body: JSON.stringify({
+          action: 'ADD_MANUAL_PARTICIPANT',
+          squadData: {
+            ...manualSquadForm,
+            roomId: targetRoom?.id || manualSquadForm.roomId,
+            roomLabel: targetRoom?.roomLabel || manualSquadForm.roomLabel,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setManualSquadModalOpen(false);
+        setManualSquadForm({
+          squadName: '',
+          iglName: '',
+          captainWhatsApp: '',
+          player1Name: '',
+          player2Name: '',
+          player3Name: '',
+          player4Name: '',
+          roomId: '',
+          roomLabel: 'A',
+          slotNumber: 1,
+        });
+        await loadTournamentRoomsData(selectedRoomTournament.id);
+      } else {
+        alert(data.message || 'Failed to add squad.');
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Error adding squad');
+    }
+  };
+
+  const handleRemoveSquadFromRoom = async (participantId: string, squadName: string) => {
+    if (!selectedRoomTournament) return;
+    if (!confirm(`Are you sure you want to remove squad "${squadName}" from this tournament?`)) return;
+    try {
+      const res = await fetch(`/api/tournaments/${selectedRoomTournament.id}/rooms`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+        credentials: 'include',
+        body: JSON.stringify({
+          action: 'REMOVE_SQUAD_FROM_ROOM',
+          participantId,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        await loadTournamentRoomsData(selectedRoomTournament.id);
+      } else {
+        alert(data.message || 'Failed to remove squad.');
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Error removing squad');
     }
   };
 
@@ -2198,6 +2401,18 @@ export default function AdminTournamentsPage() {
                 </button>
 
                 <button
+                  onClick={() => setRoomActiveTab('ROSTER')}
+                  className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
+                    roomActiveTab === 'ROSTER'
+                      ? 'bg-purple-600 text-white shadow-md'
+                      : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                  }`}
+                >
+                  <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>👥 Squads &amp; Roster Matrix ({tournamentAllParticipants.length})</span>
+                </button>
+
+                <button
                   onClick={() => setRoomActiveTab('ROOMS')}
                   className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
                     roomActiveTab === 'ROOMS'
@@ -2784,8 +2999,364 @@ export default function AdminTournamentsPage() {
                   </div>
                 </div>
               </div>
+            ) : roomActiveTab === 'ROSTER' ? (
+              /* TAB 2: SQUADS & ROOM ALLOCATION MATRIX */
+              <div className="mt-4 space-y-5">
+                {/* 1. Header Toolbar */}
+                <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                    <div>
+                      <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                        <UserCheck className="w-4 h-4 text-emerald-400" />
+                        <span>Squads &amp; Room Allocation Roster ({tournamentAllParticipants.length} Teams)</span>
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Manage all registered teams, move teams between Group A, B, C, Final Room, or add manual squads.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        onClick={handleAutoDistributeSquads}
+                        className="px-3.5 py-1.5 rounded-xl bg-purple-950/90 hover:bg-purple-900 border border-purple-700/80 text-purple-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                        title="Auto-distribute all squads evenly into 12-slot groups"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-brand-gold" />
+                        <span>⚡ Auto-Distribute to Groups</span>
+                      </button>
+
+                      <button
+                        onClick={() => setManualSquadModalOpen(true)}
+                        className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:brightness-110 text-white text-xs font-black transition-all flex items-center gap-1.5 shadow-md cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>➕ Add Squad to Room</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Filter Pills & Search */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <button
+                        onClick={() => setRosterFilterRoom('ALL')}
+                        className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                          rosterFilterRoom === 'ALL'
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                        }`}
+                      >
+                        All Teams ({tournamentAllParticipants.length})
+                      </button>
+
+                      <button
+                        onClick={() => setRosterFilterRoom('UNASSIGNED')}
+                        className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                          rosterFilterRoom === 'UNASSIGNED'
+                            ? 'bg-amber-600 text-white'
+                            : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                        }`}
+                      >
+                        ⚠️ Unassigned ({tournamentAllParticipants.filter(p => !p.roomId && !p.roomLabel).length})
+                      </button>
+
+                      {tournamentRooms.map(r => {
+                        const countInRoom = tournamentAllParticipants.filter(p => p.roomId === r.id || p.roomLabel === r.roomLabel).length;
+                        return (
+                          <button
+                            key={r.id}
+                            onClick={() => setRosterFilterRoom(r.id)}
+                            className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                              rosterFilterRoom === r.id
+                                ? 'bg-purple-600 text-white'
+                                : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                            }`}
+                          >
+                            {r.roomType === 'FINAL' || r.roomLabel === 'Final' ? '🏆 Final' : `Group ${r.roomLabel}`} ({countInRoom}/{r.capacity || 12})
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="relative min-w-[220px]">
+                      <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-500" />
+                      <input
+                        type="text"
+                        value={rosterSearchQuery}
+                        onChange={(e) => setRosterSearchQuery(e.target.value)}
+                        placeholder="Search squad or captain..."
+                        className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-slate-700 bg-slate-900 text-xs text-white outline-none focus:border-purple-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Squads Table */}
+                <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/80 shadow-xl">
+                  <table className="min-w-full text-left text-xs">
+                    <thead className="bg-slate-900 text-slate-400 uppercase font-black tracking-wider border-b border-slate-800 text-[10px]">
+                      <tr>
+                        <th className="px-4 py-3 w-14 text-center">Slot</th>
+                        <th className="px-4 py-3">Squad Name</th>
+                        <th className="px-4 py-3">Captain / IGL</th>
+                        <th className="px-4 py-3">WhatsApp Contact</th>
+                        <th className="px-4 py-3 w-48">Assigned Group</th>
+                        <th className="px-4 py-3 w-20 text-center">Slot #</th>
+                        <th className="px-4 py-3 w-20 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60 font-sans">
+                      {tournamentAllParticipants
+                        .filter(p => {
+                          if (rosterFilterRoom === 'UNASSIGNED') {
+                            return !p.roomId && !p.roomLabel;
+                          }
+                          if (rosterFilterRoom !== 'ALL') {
+                            return p.roomId === rosterFilterRoom || p.roomLabel === rosterFilterRoom;
+                          }
+                          return true;
+                        })
+                        .filter(p => {
+                          if (!rosterSearchQuery.trim()) return true;
+                          const q = rosterSearchQuery.toLowerCase();
+                          return (
+                            (p.squadName && p.squadName.toLowerCase().includes(q)) ||
+                            (p.iglName && p.iglName.toLowerCase().includes(q)) ||
+                            (p.captainWhatsApp && p.captainWhatsApp.includes(q))
+                          );
+                        })
+                        .map((p, idx) => {
+                          const assignedRoom = tournamentRooms.find(r => r.id === p.roomId || r.roomLabel === p.roomLabel);
+                          const isAssigned = Boolean(assignedRoom || p.roomLabel);
+
+                          return (
+                            <tr key={p.id || idx} className="hover:bg-slate-900/60 transition-colors">
+                              {/* Slot Number */}
+                              <td className="px-4 py-3 text-center font-mono">
+                                <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 font-bold text-[11px]">
+                                  #{p.slotNumber || idx + 1}
+                                </span>
+                              </td>
+
+                              {/* Squad Name */}
+                              <td className="px-4 py-3 font-bold text-white">
+                                <div>{p.squadName}</div>
+                                {(p.player2Name || p.player3Name) && (
+                                  <div className="text-[10px] text-slate-500 truncate max-w-[200px]">
+                                    {[p.player1Name, p.player2Name, p.player3Name, p.player4Name].filter(Boolean).join(', ')}
+                                  </div>
+                                )}
+                              </td>
+
+                              {/* IGL Name */}
+                              <td className="px-4 py-3 text-slate-300 font-medium">
+                                {p.iglName || 'Captain'}
+                              </td>
+
+                              {/* WhatsApp Contact */}
+                              <td className="px-4 py-3 font-mono text-xs">
+                                {p.captainWhatsApp ? (
+                                  <a
+                                    href={`https://wa.me/${p.captainWhatsApp.replace(/\D/g, '')}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-emerald-400 hover:underline flex items-center gap-1"
+                                    title="Open WhatsApp chat"
+                                  >
+                                    <MessageSquare className="w-3 h-3 text-emerald-400 inline" />
+                                    <span>{p.captainWhatsApp}</span>
+                                  </a>
+                                ) : (
+                                  <span className="text-slate-500 italic">No WhatsApp</span>
+                                )}
+                              </td>
+
+                              {/* Room Reassignment Dropdown */}
+                              <td className="px-4 py-3">
+                                <select
+                                  value={p.roomId || p.roomLabel || ''}
+                                  disabled={isReassigningSquad === p.id}
+                                  onChange={(e) => {
+                                    const selectedVal = e.target.value;
+                                    if (!selectedVal) {
+                                      handleAssignSquadToRoom(p.id, '', '', p.slotNumber);
+                                    } else {
+                                      const targetR = tournamentRooms.find(r => r.id === selectedVal || r.roomLabel === selectedVal);
+                                      if (targetR) {
+                                        handleAssignSquadToRoom(p.id, targetR.id, targetR.roomLabel, p.slotNumber);
+                                      }
+                                    }
+                                  }}
+                                  className={`w-full px-2.5 py-1.5 rounded-lg border text-xs font-bold outline-none cursor-pointer ${
+                                    isAssigned
+                                      ? 'bg-slate-900 border-purple-800/80 text-purple-300 focus:border-purple-500'
+                                      : 'bg-amber-950/40 border-amber-800/80 text-amber-300 focus:border-amber-500'
+                                  }`}
+                                >
+                                  <option value="">⚠️ Unassigned</option>
+                                  {tournamentRooms.map(r => (
+                                    <option key={r.id} value={r.id}>
+                                      {r.roomType === 'FINAL' || r.roomLabel === 'Final' ? '🏆 Final Room' : `Group ${r.roomLabel}`}
+                                    </option>
+                                  ))}
+                                </select>
+                              </td>
+
+                              {/* Slot Number In Room */}
+                              <td className="px-4 py-3 text-center">
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="20"
+                                  value={p.slotNumber || 1}
+                                  onChange={(e) => {
+                                    const newSlot = Number(e.target.value) || 1;
+                                    handleAssignSquadToRoom(p.id, p.roomId || '', p.roomLabel || '', newSlot);
+                                  }}
+                                  className="w-12 px-1.5 py-1 rounded bg-slate-900 border border-slate-700 text-center font-mono font-bold text-white text-xs"
+                                />
+                              </td>
+
+                              {/* Action: Delete / Remove */}
+                              <td className="px-4 py-3 text-right">
+                                <button
+                                  onClick={() => handleRemoveSquadFromRoom(p.id, p.squadName)}
+                                  className="p-1.5 rounded-lg bg-red-950/40 hover:bg-red-900 border border-red-800 text-red-400 transition-colors cursor-pointer"
+                                  title="Remove Squad from tournament"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+
+                  {tournamentAllParticipants.length === 0 && (
+                    <div className="p-8 text-center text-slate-400 text-xs">
+                      No squads registered in this tournament yet. Click &quot;Add Squad to Room&quot; to register one manually.
+                    </div>
+                  )}
+                </div>
+
+                {/* 3. Manual Squad Add Modal Popup */}
+                {manualSquadModalOpen && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 animate-fadeIn">
+                    <div className="w-full max-w-lg rounded-3xl border border-slate-800 bg-[#111827] p-6 shadow-2xl space-y-4 text-slate-200">
+                      <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                        <h4 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                          <Plus className="w-4 h-4 text-emerald-400" />
+                          <span>Add Squad to Group / Room</span>
+                        </h4>
+                        <button
+                          onClick={() => setManualSquadModalOpen(false)}
+                          className="text-slate-400 hover:text-white"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-400 block mb-1">Squad Name *</label>
+                          <input
+                            type="text"
+                            value={manualSquadForm.squadName}
+                            onChange={(e) => setManualSquadForm(prev => ({ ...prev, squadName: e.target.value }))}
+                            placeholder="e.g. Royal Esports"
+                            className="w-full px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 text-xs font-bold text-white outline-none focus:border-purple-500"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-400 block mb-1">Captain / IGL Name *</label>
+                          <input
+                            type="text"
+                            value={manualSquadForm.iglName}
+                            onChange={(e) => setManualSquadForm(prev => ({ ...prev, iglName: e.target.value }))}
+                            placeholder="e.g. Tanvir (IGL)"
+                            className="w-full px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 text-xs font-bold text-white outline-none focus:border-purple-500"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-400 block mb-1">WhatsApp Number *</label>
+                          <input
+                            type="text"
+                            value={manualSquadForm.captainWhatsApp}
+                            onChange={(e) => setManualSquadForm(prev => ({ ...prev, captainWhatsApp: e.target.value }))}
+                            placeholder="017xxxxxxxx"
+                            className="w-full px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 text-xs font-mono font-bold text-white outline-none focus:border-purple-500"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-400 block mb-1">Assign to Room</label>
+                          <select
+                            value={manualSquadForm.roomId}
+                            onChange={(e) => {
+                              const r = tournamentRooms.find(rm => rm.id === e.target.value);
+                              setManualSquadForm(prev => ({
+                                ...prev,
+                                roomId: e.target.value,
+                                roomLabel: r?.roomLabel || 'A',
+                              }));
+                            }}
+                            className="w-full px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 text-xs font-bold text-white outline-none focus:border-purple-500"
+                          >
+                            {tournamentRooms.map(r => (
+                              <option key={r.id} value={r.id}>
+                                {r.roomType === 'FINAL' || r.roomLabel === 'Final' ? '🏆 Final Room' : `Group ${r.roomLabel}`}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-400 block mb-1">Slot # in Group</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="20"
+                            value={manualSquadForm.slotNumber}
+                            onChange={(e) => setManualSquadForm(prev => ({ ...prev, slotNumber: Number(e.target.value) || 1 }))}
+                            className="w-full px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 text-xs font-bold text-white outline-none focus:border-purple-500"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-400 block mb-1">Player 2 Name</label>
+                          <input
+                            type="text"
+                            value={manualSquadForm.player2Name}
+                            onChange={(e) => setManualSquadForm(prev => ({ ...prev, player2Name: e.target.value }))}
+                            placeholder="Player 2"
+                            className="w-full px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 text-xs text-white outline-none focus:border-purple-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+                        <button
+                          onClick={() => setManualSquadModalOpen(false)}
+                          className="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-white cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleAddManualSquad}
+                          className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:brightness-110 text-white text-xs font-black shadow-md cursor-pointer"
+                        >
+                          Save Squad
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             ) : roomActiveTab === 'ROOMS' ? (
-              /* TAB 2: ROOMS LIST & CREDENTIALS EDITOR */
+              /* TAB 3: ROOMS LIST & CREDENTIALS EDITOR */
               <div className="mt-4 space-y-4">
                 {tournamentRooms.length === 0 ? (
                   <div className="p-8 text-center text-slate-400 bg-slate-900/50 rounded-2xl border border-slate-800">
@@ -3026,7 +3597,7 @@ export default function AdminTournamentsPage() {
                 )}
               </div>
             ) : roomActiveTab === 'POINTS_TABLE' ? (
-              /* TAB 2: AI SCOREBOARD SCANNER & POINTS TABLE STUDIO */
+              /* TAB 4: AI SCOREBOARD SCANNER & POINTS TABLE STUDIO */
               <div className="mt-4 space-y-5">
                 {/* 1. Room Selector & Screenshot Upload Box */}
                 <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-4">
@@ -3037,26 +3608,45 @@ export default function AdminTournamentsPage() {
                         <span>AI Match Scoreboard Scanner &amp; Points Publisher</span>
                       </h3>
                       <p className="text-xs text-slate-400 mt-0.5">
-                        Upload match end scoreboard screenshot &rarr; click &quot;Scan with AI&quot; &rarr; review &amp; publish live points table.
+                        Upload match end scoreboard screenshot &rarr; scan with AI &rarr; review &amp; publish points table.
                       </p>
                     </div>
 
-                    {/* Room Selector */}
-                    <div className="flex items-center gap-2">
-                      <label className="text-xs font-bold text-slate-400 shrink-0">Select Room:</label>
-                      <select
-                        value={selectedScoreboardRoomId}
-                        onChange={(e) => setSelectedScoreboardRoomId(e.target.value)}
-                        className="px-3 py-1.5 rounded-xl border border-purple-800/80 bg-slate-900 text-purple-300 font-bold text-xs outline-none focus:border-purple-500 cursor-pointer"
-                      >
-                        {tournamentRooms.map(r => (
-                          <option key={r.id} value={r.id}>
-                            {r.roomType === 'FINAL' || r.roomLabel === 'Final' ? '🏆 Final Room' : `Room ${r.roomLabel}`} ({r.currentCount || 0} squads)
-                          </option>
-                        ))}
-                      </select>
+                    {/* Stage & Room Selectors */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-1.5">
+                        <label className="text-xs font-bold text-slate-400 shrink-0">Stage / Round:</label>
+                        <select
+                          value={selectedScoreboardStage}
+                          onChange={(e) => setSelectedScoreboardStage(e.target.value)}
+                          className="px-2.5 py-1.5 rounded-xl border border-purple-800/80 bg-slate-900 text-purple-300 font-bold text-xs outline-none focus:border-purple-500 cursor-pointer"
+                        >
+                          {(adminRoadmapConfig?.stages || []).map(stg => (
+                            <option key={stg.id} value={stg.name}>{stg.name}</option>
+                          ))}
+                          <option value="Round 1: Qualifiers">Round 1: Qualifiers</option>
+                          <option value="Quarter-Finals">Quarter-Finals</option>
+                          <option value="Semi-Finals">Semi-Finals</option>
+                          <option value="Grand Finals">Grand Finals</option>
+                        </select>
+                      </div>
 
-                      <div className="flex items-center gap-1 ml-2">
+                      <div className="flex items-center gap-1.5">
+                        <label className="text-xs font-bold text-slate-400 shrink-0">Room:</label>
+                        <select
+                          value={selectedScoreboardRoomId}
+                          onChange={(e) => setSelectedScoreboardRoomId(e.target.value)}
+                          className="px-2.5 py-1.5 rounded-xl border border-purple-800/80 bg-slate-900 text-purple-300 font-bold text-xs outline-none focus:border-purple-500 cursor-pointer"
+                        >
+                          {tournamentRooms.map(r => (
+                            <option key={r.id} value={r.id}>
+                              {r.roomType === 'FINAL' || r.roomLabel === 'Final' ? '🏆 Final Room' : `Room ${r.roomLabel}`} ({r.currentCount || 0} squads)
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="flex items-center gap-1">
                         <label className="text-xs font-bold text-slate-400 shrink-0">Match #:</label>
                         <input
                           type="number"
@@ -3064,7 +3654,7 @@ export default function AdminTournamentsPage() {
                           max="10"
                           value={matchNumberInput}
                           onChange={(e) => setMatchNumberInput(Number(e.target.value) || 1)}
-                          className="w-14 px-2 py-1.5 rounded-xl border border-slate-700 bg-slate-900 text-center font-bold text-xs text-white"
+                          className="w-12 px-2 py-1.5 rounded-xl border border-slate-700 bg-slate-900 text-center font-bold text-xs text-white"
                         />
                       </div>
                     </div>
@@ -3223,22 +3813,60 @@ export default function AdminTournamentsPage() {
                   </div>
                 )}
 
-                {/* 3. Published Points Tables Archive for this tournament */}
+                {/* 3. Published Points Tables Archive with Group WhatsApp Broadcast */}
                 {adminPointsTables.length > 0 && (
                   <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                      <Trophy className="w-3.5 h-3.5 text-brand-gold" />
-                      <span>Published Points Tables ({adminPointsTables.length})</span>
-                    </h4>
-                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                        <Trophy className="w-3.5 h-3.5 text-brand-gold" />
+                        <span>Published Points Tables ({adminPointsTables.length})</span>
+                      </h4>
+                      <span className="text-[10px] text-slate-500 font-medium">
+                        Broadcast button sends results strictly &amp; ONLY to that group&apos;s squads.
+                      </span>
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                       {adminPointsTables.map(t => (
-                        <div key={t.id} className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-1">
+                        <div key={t.id} className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-2.5">
                           <div className="flex items-center justify-between">
-                            <span className="font-bold text-purple-400">Room {t.roomLabel || 'A'} (Match #{t.matchNumber || 1})</span>
-                            <span className="text-[10px] text-slate-500">{new Date(t.publishedAt).toLocaleDateString()}</span>
+                            <span className="font-bold text-purple-300 bg-purple-950/80 px-2 py-0.5 rounded-md border border-purple-800/60">
+                              Group {t.roomLabel || 'A'} • Match #{t.matchNumber || 1}
+                            </span>
+                            <span className="text-[10px] text-slate-500">
+                              {new Date(t.publishedAt).toLocaleDateString()}
+                            </span>
                           </div>
+
                           <div className="text-[11px] text-slate-300">
+                            <span className="text-slate-400 block text-[10px]">Stage: <strong>{t.stage || 'Official Match'}</strong></span>
                             Leader: <strong className="text-brand-gold">{t.scores?.[0]?.teamName || 'N/A'}</strong> ({t.scores?.[0]?.totalPoints || 0} pts)
+                          </div>
+
+                          <div className="flex items-center justify-between pt-1 border-t border-slate-800/80">
+                            <button
+                              type="button"
+                              onClick={() => handleBroadcastPointsTable(t)}
+                              disabled={isBroadcastingPointsTable === t.id}
+                              className="px-2.5 py-1.5 rounded-lg bg-emerald-950/90 hover:bg-emerald-900 border border-emerald-700/80 text-emerald-300 text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50"
+                              title="Broadcast Points Table exclusively to this group's squads via WhatsApp"
+                            >
+                              {isBroadcastingPointsTable === t.id ? (
+                                <Loader2 className="w-3 h-3 animate-spin text-emerald-400" />
+                              ) : (
+                                <Send className="w-3 h-3 text-emerald-400" />
+                              )}
+                              <span>Send to Group</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDeletePointsTable(t.id)}
+                              className="p-1.5 rounded-lg bg-red-950/40 hover:bg-red-900 border border-red-800 text-red-400 transition-colors cursor-pointer"
+                              title="Delete Points Table"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                           </div>
                         </div>
                       ))}
