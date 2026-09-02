@@ -222,9 +222,9 @@ export default function AdminGamingShopPage() {
       priceCoins: 500,
       priceBdt: 50,
       originalPriceBdt: 60,
-      diamonds: 100,
-      bonusDiamonds: 10,
-      icon: '💎',
+      diamonds: 0,
+      bonusDiamonds: 0,
+      icon: '🛍️',
       imageUrl: PRESET_SHOP_IMAGES[0].url,
       badge: 'POPULAR',
       stock: '',
@@ -268,8 +268,8 @@ export default function AdminGamingShopPage() {
         priceCoins: Number(formData.priceCoins) || 0,
         priceBdt: Number(formData.priceBdt) || 0,
         originalPriceBdt: formData.originalPriceBdt ? Number(formData.originalPriceBdt) : undefined,
-        diamonds: formData.diamonds ? Number(formData.diamonds) : undefined,
-        bonusDiamonds: formData.bonusDiamonds ? Number(formData.bonusDiamonds) : undefined,
+        diamonds: formData.category === 'DIAMONDS' && formData.diamonds ? Number(formData.diamonds) : undefined,
+        bonusDiamonds: formData.category === 'DIAMONDS' && formData.bonusDiamonds ? Number(formData.bonusDiamonds) : undefined,
         stock: formData.stock !== '' ? Number(formData.stock) : undefined,
       };
 
@@ -1227,6 +1227,34 @@ export default function AdminGamingShopPage() {
                     <option value="PHYSICAL">📦 Physical Parcel Shipping</option>
                   </select>
                 </div>
+
+                {formData.category === 'DIAMONDS' && (
+                  <>
+                    <div>
+                      <label className="block text-cyan-300 font-bold mb-1">Base Diamonds (💎)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={formData.diamonds || ''}
+                        onChange={(e) => setFormData({ ...formData, diamonds: Number(e.target.value) || 0 })}
+                        placeholder="e.g. 115"
+                        className="w-full bg-[#07090E] border border-cyan-800/80 rounded-xl p-3 text-cyan-300 font-mono font-bold focus:outline-none focus:border-cyan-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-cyan-300 font-bold mb-1">Bonus Diamonds (💎)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={formData.bonusDiamonds || ''}
+                        onChange={(e) => setFormData({ ...formData, bonusDiamonds: Number(e.target.value) || 0 })}
+                        placeholder="e.g. 10 (Optional)"
+                        className="w-full bg-[#07090E] border border-cyan-800/80 rounded-xl p-3 text-cyan-300 font-mono font-bold focus:outline-none focus:border-cyan-500"
+                      />
+                    </div>
+                  </>
+                )}
 
                 <div>
                   <label className="block text-slate-300 font-bold mb-1">Sale Price (BDT ৳) *</label>

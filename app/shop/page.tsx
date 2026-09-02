@@ -795,11 +795,22 @@ export default function GamingShopPage() {
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-orange-50 text-brand-orange flex items-center justify-center text-lg shadow-xs">
-                  {selectedProduct.icon || '💎'}
-                </div>
+                {selectedProduct.imageUrl ? (
+                  <div className="relative w-12 h-12 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0 shadow-2xs">
+                    <Image
+                      src={selectedProduct.imageUrl}
+                      alt={selectedProduct.name}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-10 h-10 rounded-2xl bg-orange-50 text-brand-orange flex items-center justify-center text-lg shadow-xs shrink-0">
+                    {selectedProduct.category === 'DIAMONDS' ? '💎' : selectedProduct.icon || '🛍️'}
+                  </div>
+                )}
                 <div>
-                  <h3 className="font-heading font-black text-base sm:text-lg text-slate-900">
+                  <h3 className="font-heading font-black text-base sm:text-lg text-slate-900 leading-tight">
                     {selectedProduct.name}
                   </h3>
                   <p className="text-xs text-slate-500">Official Gaming Shop Item</p>
@@ -869,7 +880,7 @@ export default function GamingShopPage() {
                     <span className="text-slate-500">Category:</span>
                     <strong className="text-slate-800 font-bold">{selectedProduct.category}</strong>
                   </div>
-                  {selectedProduct.diamonds && (
+                  {selectedProduct.category === 'DIAMONDS' && selectedProduct.diamonds && Number(selectedProduct.diamonds) > 0 && (
                     <div className="flex justify-between font-medium">
                       <span className="text-slate-500">Diamonds:</span>
                       <strong className="text-cyan-600 font-bold">{selectedProduct.diamonds} 💎</strong>

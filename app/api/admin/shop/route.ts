@@ -155,6 +155,7 @@ export async function POST(request: NextRequest) {
 
     // Product actions
     if (action === 'ADD_PRODUCT' && product) {
+      const isDiamondCat = (product.category || 'DIAMONDS') === 'DIAMONDS';
       const newProduct: ShopProduct = {
         id: `prod_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
         name: product.name || 'New Gaming Item',
@@ -164,9 +165,9 @@ export async function POST(request: NextRequest) {
         priceCoins: Number(product.priceCoins) || 0,
         priceBdt: Number(product.priceBdt) || 0,
         originalPriceBdt: product.originalPriceBdt ? Number(product.originalPriceBdt) : undefined,
-        diamonds: product.diamonds ? Number(product.diamonds) : undefined,
-        bonusDiamonds: product.bonusDiamonds ? Number(product.bonusDiamonds) : undefined,
-        icon: product.icon || '🛍️',
+        diamonds: isDiamondCat && product.diamonds ? Number(product.diamonds) : undefined,
+        bonusDiamonds: isDiamondCat && product.bonusDiamonds ? Number(product.bonusDiamonds) : undefined,
+        icon: product.icon || (isDiamondCat ? '💎' : '🛍️'),
         imageUrl: product.imageUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=500&auto=format&fit=crop&q=80',
         badge: product.badge || '',
         stock: product.stock !== undefined && product.stock !== '' ? Number(product.stock) : undefined,
@@ -182,6 +183,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === 'UPDATE_PRODUCT' && product && product.id) {
+      const isDiamondCat = (product.category || 'DIAMONDS') === 'DIAMONDS';
       currentProducts = currentProducts.map(p => {
         if (p.id === product.id) {
           return {
@@ -190,8 +192,8 @@ export async function POST(request: NextRequest) {
             priceCoins: Number(product.priceCoins) || 0,
             priceBdt: Number(product.priceBdt) || 0,
             originalPriceBdt: product.originalPriceBdt ? Number(product.originalPriceBdt) : undefined,
-            diamonds: product.diamonds ? Number(product.diamonds) : undefined,
-            bonusDiamonds: product.bonusDiamonds ? Number(product.bonusDiamonds) : undefined,
+            diamonds: isDiamondCat && product.diamonds ? Number(product.diamonds) : undefined,
+            bonusDiamonds: isDiamondCat && product.bonusDiamonds ? Number(product.bonusDiamonds) : undefined,
             stock: product.stock !== undefined && product.stock !== '' ? Number(product.stock) : undefined,
             isFeaturedOnHome: Boolean(product.isFeaturedOnHome),
           };
