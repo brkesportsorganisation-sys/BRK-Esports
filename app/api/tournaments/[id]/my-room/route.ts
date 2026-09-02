@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { getTournamentByIdFromDb } from '@/lib/tournament-store';
-import { getTournamentRooms } from '@/lib/tournament-rooms';
+import { getTournamentRooms, getRoomQualifiers } from '@/lib/tournament-rooms';
+import { TournamentRoom, RoomQualifier } from '@/lib/types';
 
 export async function GET(
   req: NextRequest,
@@ -44,11 +45,13 @@ export async function GET(
       });
     }
 
-    // 2. Locate the assigned room
-    const rooms = await getTournamentRooms(tournamentId, tournament);
-    let assignedRoom = rooms.find((r) => r.id === participant.roomId);
+    // 2. Locate the assigned room & check qualification status
+    const [rooms, qualifiers] = await Promise.all([
+      getTournamentRooms(tournamentId, tournament),
+      getRoomQualifiers(tournamentId),
+    ]);
 
-    // Fallback: If no explicit roomId on legacy record, match by room label or default to Room A
+    let assignedRoom = rooms.find((r) => r.id === participant.roomId);
     if (!assignedRoom) {
       assignedRoom = rooms.find((r) => r.roomLabel === participant.roomLabel) || rooms[0];
     }
@@ -58,6 +61,37 @@ export async function GET(
         isRegistered: true,
         isUnlocked: false,
         message: 'Room allocation is in progress. Please check back shortly.',
+      });
+    }
+
+    const finalRoom = rooms.find(r => r.roomType === 'FINAL' || r.roomLabel.toLowerCase() === 'final');
+    const userQualifier = qualifiers.find(q => q.participantId === participant.id);
+    const isAssignedFinal = assignedRoom.roomType === 'FINAL' || assignedRoom.roomLabel.toLowerCase() === 'final';
+
+    let qualificationStatus: 'ACTIVE' | 'QUALIFIED' | 'ELIMINATED' = 'ACTIVE';
+
+    if (tournament.tournamentBatchFormat === 'QUALIFIER_FINAL') {
+      if (isAssignedFinal || (userQualifier && userQualifier.advancedToFinal)) {
+        qualificationStatus = 'QUALIFIED';
+        if (finalRoom) {
+          assignedRoom = finalRoom; // point to the championship room
+        }
+      } else if (userQualifier && !userQualifier.advancedToFinal && assignedRoom.status === 'COMPLETED') {
+        qualificationStatus = 'ELIMINATED';
+      }
+    }
+
+    // If eliminated, completely block credentials
+    if (qualificationStatus === 'ELIMINATED') {
+      return NextResponse.json({
+        isRegistered: true,
+        isUnlocked: false,
+        qualificationStatus: 'ELIMINATED',
+        roomLabel: assignedRoom.roomLabel,
+        roomType: assignedRoom.roomType,
+        slotNumber: participant.slotNumberInRoom || 1,
+        squadName: participant.squadName,
+        message: 'Match concluded. Your squad did not qualify for the next stage.',
       });
     }
 
@@ -87,6 +121,7 @@ export async function GET(
             userId,
             participantId: participant.id,
             squadName: participant.squadName,
+            qualificationStatus,
             revealedAt: new Date().toISOString(),
             ip: req.headers.get('x-forwarded-for') || 'unknown',
           }),
@@ -98,18 +133,23 @@ export async function GET(
     return NextResponse.json({
       isRegistered: true,
       isUnlocked: isFullyUnlocked,
+      qualificationStatus,
       roomLabel: assignedRoom.roomLabel,
       roomType: assignedRoom.roomType,
+      mapName: assignedRoom.mapName || 'Bermuda',
+      stageName: assignedRoom.stageName || (qualificationStatus === 'QUALIFIED' ? 'Championship Grand Finals' : 'Qualifiers'),
       slotNumber: participant.slotNumberInRoom || 1,
       squadName: participant.squadName,
       revealAt: assignedRoom.revealAt || (revealAtMs ? new Date(revealAtMs).toISOString() : null),
       matchTime: assignedRoom.matchTime || tournament.matchTime,
-      // Credentials ONLY returned if time unlocked and user is verified!
+      // Credentials ONLY returned if time unlocked and player is active/qualified!
       roomIdCredential: isFullyUnlocked ? assignedRoom.roomIdCredential : undefined,
       roomPassword: isFullyUnlocked ? (assignedRoom.roomPassword || 'None') : undefined,
       message: isFullyUnlocked
-        ? `Room ${assignedRoom.roomLabel} credentials unlocked!`
-        : `Room ${assignedRoom.roomLabel} credentials will unlock automatically before match start.`,
+        ? (qualificationStatus === 'QUALIFIED'
+            ? `🏆 Championship Final Room credentials unlocked!`
+            : `Room ${assignedRoom.roomLabel} credentials unlocked!`)
+        : `Credentials will unlock automatically before match start.`,
     });
   } catch (error: any) {
     console.error('[GET /api/tournaments/[id]/my-room] Error:', error);

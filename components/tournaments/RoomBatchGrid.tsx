@@ -53,6 +53,7 @@ interface RoomItem {
 interface MyRoomData {
   isRegistered: boolean;
   isUnlocked: boolean;
+  qualificationStatus?: 'ACTIVE' | 'QUALIFIED' | 'ELIMINATED';
   roomLabel?: string;
   roomType?: string;
   slotNumber?: number;
@@ -292,21 +293,47 @@ export default function RoomBatchGrid({
         )}
       </div>
 
-      {/* ─── 2. "My Assigned Room" Card (Player Exclusive) ───────────────────── */}
+      {/* ─── 2. "My Assigned Room & Match Hub" Card (Player Exclusive) ────────── */}
       {currentUser && (
-        <div className="p-4 bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-red-500/10 border border-orange-300 rounded-2xl shadow-xs space-y-3">
+        <div className={`p-4 rounded-2xl shadow-xs space-y-3 transition-all ${
+          myRoom?.qualificationStatus === 'QUALIFIED'
+            ? 'bg-gradient-to-r from-purple-950/20 via-amber-950/20 to-slate-900/20 border-2 border-amber-500/80'
+            : myRoom?.qualificationStatus === 'ELIMINATED'
+            ? 'bg-slate-50 border border-slate-300'
+            : 'bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-red-500/10 border border-orange-300'
+        }`}>
           <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-xl bg-brand-orange text-white shadow-xs">
-                <Shield className="w-4 h-4" />
+            <div className="flex items-center gap-2.5">
+              <div className={`p-2.5 rounded-xl text-white shadow-xs ${
+                myRoom?.qualificationStatus === 'QUALIFIED'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500'
+                  : myRoom?.qualificationStatus === 'ELIMINATED'
+                  ? 'bg-slate-400'
+                  : 'bg-brand-orange'
+              }`}>
+                {myRoom?.qualificationStatus === 'QUALIFIED' ? (
+                  <Trophy className="w-5 h-5 text-black" />
+                ) : (
+                  <Shield className="w-5 h-5" />
+                )}
               </div>
               <div>
-                <h4 className="text-xs sm:text-sm font-black text-slate-900 flex items-center gap-1.5">
-                  <span>My Match Room</span>
+                <h4 className="text-xs sm:text-sm font-black text-slate-900 flex items-center gap-1.5 flex-wrap">
+                  <span>My Tournament Match Hub</span>
                   {myRoom?.isRegistered ? (
-                    <span className="text-[10px] px-2 py-0.2 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-800 font-black">
-                      Assigned: Room {myRoom.roomLabel || 'A'} • Slot #{myRoom.slotNumber || 1}
-                    </span>
+                    myRoom.qualificationStatus === 'QUALIFIED' ? (
+                      <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-amber-500 text-black font-black uppercase flex items-center gap-1 animate-pulse">
+                        <Trophy className="w-3 h-3" /> QUALIFIED FOR GRAND FINALS!
+                      </span>
+                    ) : myRoom.qualificationStatus === 'ELIMINATED' ? (
+                      <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-700 font-bold uppercase">
+                        Eliminated in Qualifiers
+                      </span>
+                    ) : (
+                      <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-800 font-black">
+                        Assigned: Group {myRoom.roomLabel || 'A'} • Slot #{myRoom.slotNumber || 1}
+                      </span>
+                    )
                   ) : (
                     <span className="text-[10px] px-2 py-0.2 rounded-full bg-slate-100 text-slate-600 font-bold">
                       Not Registered
@@ -315,25 +342,29 @@ export default function RoomBatchGrid({
                 </h4>
                 <p className="text-[11px] text-slate-600">
                   {myRoom?.isRegistered
-                    ? `Your squad "${myRoom.squadName}" is slotted in Room ${myRoom.roomLabel}. Credentials unlock 10-15m before match start.`
+                    ? myRoom.qualificationStatus === 'QUALIFIED'
+                      ? `Congratulations! Squad "${myRoom.squadName}" has qualified for the Grand Finals! Your Championship Final credentials unlock below.`
+                      : myRoom.qualificationStatus === 'ELIMINATED'
+                      ? `Your squad "${myRoom.squadName}" has completed its matches in this tournament. Better luck in the next tournament!`
+                      : `Your squad "${myRoom.squadName}" is slotted in Group ${myRoom.roomLabel}. Credentials unlock 10-15m before match start.`
                     : 'Register for this tournament to get assigned to a match room.'}
                 </p>
               </div>
             </div>
 
-            {myRoom?.isRegistered && (
-              <span className="text-[10px] font-mono font-bold text-slate-500 bg-white px-2 py-1 rounded-lg border border-slate-200">
+            {myRoom?.isRegistered && myRoom.qualificationStatus !== 'ELIMINATED' && (
+              <span className="text-[10px] font-mono font-bold text-slate-600 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
                 Slot #{myRoom.slotNumber}
               </span>
             )}
           </div>
 
-          {/* Unlock / Reveal Box */}
-          {myRoom?.isRegistered ? (
+          {/* Unlock / Reveal Box (Completely Hidden if Eliminated) */}
+          {myRoom?.isRegistered && myRoom.qualificationStatus !== 'ELIMINATED' ? (
             myRoom.isUnlocked && myRoom.roomIdCredential ? (
               hasRevealedLocally ? (
                 <div className="grid grid-cols-2 gap-2 pt-1 animate-fadeIn">
-                  <div className="p-3 bg-white border border-orange-200 rounded-xl flex items-center justify-between">
+                  <div className="p-3 bg-white border-2 border-orange-300 rounded-xl flex items-center justify-between shadow-2xs">
                     <div>
                       <span className="text-[9px] uppercase font-bold text-slate-400 block">Room ID</span>
                       <span className="text-xs sm:text-sm font-mono font-black text-brand-orange tracking-wider">
@@ -349,7 +380,7 @@ export default function RoomBatchGrid({
                     </button>
                   </div>
 
-                  <div className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between">
+                  <div className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between shadow-2xs">
                     <div>
                       <span className="text-[9px] uppercase font-bold text-slate-400 block">Password</span>
                       <span className="text-xs sm:text-sm font-mono font-black text-slate-900 tracking-wider">
@@ -373,7 +404,7 @@ export default function RoomBatchGrid({
                     <Unlock className="w-4 h-4 text-emerald-600 shrink-0" />
                     <div>
                       <span className="text-xs font-bold text-emerald-900 block">
-                        Room {myRoom.roomLabel} credentials are live!
+                        {myRoom.qualificationStatus === 'QUALIFIED' ? '🏆 Grand Finals Room Credentials Live!' : `Group ${myRoom.roomLabel} credentials are live!`}
                       </span>
                       <span className="text-[10px] text-emerald-700">
                         Tap reveal to view your Room ID and Password.
@@ -394,7 +425,7 @@ export default function RoomBatchGrid({
                 <div className="flex items-center gap-2">
                   <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                   <span>
-                    Room ID &amp; Password will unlock automatically <strong>10–15 mins before match</strong> for verified squads in Room {myRoom.roomLabel}.
+                    Room ID &amp; Password will unlock automatically <strong>10–15 mins before match start</strong> exclusively for qualified/assigned squads.
                   </span>
                 </div>
               </div>
