@@ -5,7 +5,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { AlertCircle, CheckCircle2, Coins, Copy, Eye, Filter, Loader2, Plus, PlusCircle, Search, ShieldCheck, Sparkles, Star, Trash2, Trophy, UploadCloud, X, MessageSquare, Send, Layers, UserCheck, Play, ArrowUpRight, Lock, Unlock, Gamepad2, Award, Camera, Scan, CheckSquare, Save, RefreshCw, Calendar, Clock, MapPin, Tv, Edit3, ExternalLink } from 'lucide-react';
 import { Tournament, Mode, Format, TournamentStatus, CommunityAccessType, CommunityUnlockMode, PrizeTier, TournamentBatchFormat, TournamentRoom, RoomQualifier, MatchTeamScore, TournamentPointsTable, TournamentRoadmapConfig, TournamentStage, TournamentRoadmapRuleItem } from '@/lib/types';
-import { generateDefaultRoadmap } from '@/lib/tournament-rooms';
+import { generateDefaultRoadmap, formatRoomLabel } from '@/lib/tournament-rooms-utils';
 import { calculateTeamPoints } from '@/lib/ai-scoreboard-ocr';
 import ImageUploadInput from '@/components/ui/ImageUploadInput';
 import 'react-quill-new/dist/quill.snow.css';
@@ -3078,7 +3078,7 @@ export default function AdminTournamentsPage() {
                                 : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
                             }`}
                           >
-                            {r.roomType === 'FINAL' || r.roomLabel === 'Final' ? '🏆 Final' : `Group ${r.roomLabel}`} ({countInRoom}/{r.capacity || 12})
+                            {r.roomType === 'FINAL' || r.roomLabel === 'Final' ? '🏆 Final' : formatRoomLabel(r.roomLabel, r.roomType)} ({countInRoom}/{r.capacity || 12})
                           </button>
                         );
                       })}
@@ -3202,7 +3202,7 @@ export default function AdminTournamentsPage() {
                                   <option value="">⚠️ Unassigned</option>
                                   {tournamentRooms.map(r => (
                                     <option key={r.id} value={r.id}>
-                                      {r.roomType === 'FINAL' || r.roomLabel === 'Final' ? '🏆 Final Room' : `Group ${r.roomLabel}`}
+                                      {r.roomType === 'FINAL' || r.roomLabel === 'Final' ? '🏆 Final Room' : formatRoomLabel(r.roomLabel, r.roomType)}
                                     </option>
                                   ))}
                                 </select>
@@ -3298,7 +3298,7 @@ export default function AdminTournamentsPage() {
                         </div>
 
                         <div>
-                          <label className="text-[10px] font-bold text-slate-400 block mb-1">Assign to Room</label>
+                          <label className="text-[10px] font-bold text-slate-400 block mb-1">Assign to Group / Room</label>
                           <select
                             value={manualSquadForm.roomId}
                             onChange={(e) => {
@@ -3306,14 +3306,14 @@ export default function AdminTournamentsPage() {
                               setManualSquadForm(prev => ({
                                 ...prev,
                                 roomId: e.target.value,
-                                roomLabel: r?.roomLabel || 'A',
+                                roomLabel: r?.roomLabel || '1',
                               }));
                             }}
                             className="w-full px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 text-xs font-bold text-white outline-none focus:border-purple-500"
                           >
                             {tournamentRooms.map(r => (
                               <option key={r.id} value={r.id}>
-                                {r.roomType === 'FINAL' || r.roomLabel === 'Final' ? '🏆 Final Room' : `Group ${r.roomLabel}`}
+                                {r.roomType === 'FINAL' || r.roomLabel === 'Final' ? '🏆 Final Room' : formatRoomLabel(r.roomLabel, r.roomType)}
                               </option>
                             ))}
                           </select>
@@ -3366,7 +3366,7 @@ export default function AdminTournamentsPage() {
               <div className="mt-4 space-y-4">
                 {tournamentRooms.length === 0 ? (
                   <div className="p-8 text-center text-slate-400 bg-slate-900/50 rounded-2xl border border-slate-800">
-                    No custom rooms configured yet. Click &quot;Add Room&quot; above to create Room A.
+                    No custom groups configured yet. Click &quot;Add Room&quot; above to create Group 1.
                   </div>
                 ) : (
                   tournamentRooms.map((room) => {
@@ -3374,6 +3374,7 @@ export default function AdminTournamentsPage() {
                     const isEditing = editingRoomId === room.id;
                     const participants = (room as any).participants || [];
                     const isFull = participants.length >= (room.capacity || 12);
+                    const groupLabelStr = formatRoomLabel(room.roomLabel, room.roomType);
 
                     return (
                       <div
@@ -3390,11 +3391,11 @@ export default function AdminTournamentsPage() {
                             <span className={`px-3 py-1 rounded-xl text-xs font-mono font-black ${
                               isFinal ? 'bg-purple-600 text-white' : 'bg-brand-orange text-white'
                             }`}>
-                              ROOM {room.roomLabel}
+                              {groupLabelStr.toUpperCase()}
                             </span>
                             <div>
                               <span className="text-xs font-bold text-white flex items-center gap-2">
-                                <span>{isFinal ? '🏆 Championship Final Room' : `Qualifier / Batch Room ${room.roomLabel}`}</span>
+                                <span>{isFinal ? '🏆 Championship Final Room' : `${groupLabelStr}`}</span>
                                 <span className={`text-[9px] px-2 py-0.2 rounded-full font-bold ${
                                   isFull ? 'bg-red-950 text-red-400 border border-red-800' : 'bg-emerald-950 text-emerald-400 border border-emerald-800'
                                 }`}>
@@ -3412,7 +3413,7 @@ export default function AdminTournamentsPage() {
                               onClick={() => handleSendPreMatchReminder(room)}
                               disabled={isSendingReminder === room.id || !room.currentCount}
                               className="px-2.5 py-1.5 rounded-xl bg-purple-950/80 hover:bg-purple-900 border border-purple-700/80 text-purple-300 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50"
-                              title="Send 15-minute pre-match WhatsApp reminder to this room's players"
+                              title="Send 15-minute pre-match reminder to this group's players"
                             >
                               {isSendingReminder === room.id ? (
                                 <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-400" />
@@ -3425,10 +3426,10 @@ export default function AdminTournamentsPage() {
                               <button
                                 onClick={() => handleBroadcastRoomWhatsappDirect(room)}
                                 className="px-2.5 py-1.5 rounded-xl bg-emerald-950 hover:bg-emerald-900 border border-emerald-700/80 text-emerald-300 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"
-                                title="Broadcast Room ID & Pass via WhatsApp to this room's players"
+                                title="Broadcast Room ID & Pass to this group's players"
                               >
                                 <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
-                                <span>WhatsApp Broadcast</span>
+                                <span>Broadcast ID/Pass</span>
                               </button>
                             )}
                             <button
@@ -3444,7 +3445,7 @@ export default function AdminTournamentsPage() {
                         {isEditing && (
                           <div className="mt-3 p-4 bg-slate-950/80 rounded-xl border border-slate-800 space-y-3 animate-fadeIn">
                             <h4 className="text-xs font-bold uppercase tracking-wider text-purple-400">
-                              Edit Room {room.roomLabel} Credentials &amp; Schedule Settings
+                              Edit {groupLabelStr} Credentials &amp; Schedule Settings
                             </h4>
                             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                               <div>
@@ -3837,7 +3838,7 @@ export default function AdminTournamentsPage() {
                         <div key={t.id} className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-2.5">
                           <div className="flex items-center justify-between">
                             <span className="font-bold text-purple-300 bg-purple-950/80 px-2 py-0.5 rounded-md border border-purple-800/60">
-                              Group {t.roomLabel || 'A'} • Match #{t.matchNumber || 1}
+                              {formatRoomLabel(t.roomLabel)} • Match #{t.matchNumber || 1}
                             </span>
                             <span className="text-[10px] text-slate-500">
                               {new Date(t.publishedAt).toLocaleDateString()}
@@ -3939,7 +3940,7 @@ export default function AdminTournamentsPage() {
                         <option value="">Auto-Assign / Default Next Room</option>
                         {tournamentRooms.map(r => (
                           <option key={r.id} value={r.id}>
-                            {r.roomType === 'FINAL' || r.roomLabel === 'Final' ? '🏆 Final Room' : `Group ${r.roomLabel}`} ({r.currentCount || 0}/{r.capacity || 12})
+                            {r.roomType === 'FINAL' || r.roomLabel === 'Final' ? '🏆 Final Room' : formatRoomLabel(r.roomLabel, r.roomType)} ({r.currentCount || 0}/{r.capacity || 12})
                           </option>
                         ))}
                       </select>
@@ -4008,7 +4009,7 @@ export default function AdminTournamentsPage() {
                                 />
                               </td>
                               <td className="px-4 py-3 font-mono font-bold text-purple-400">
-                                {isAlreadyFinal ? '🏆 Final Room' : `Group ${squad.roomLabel}`}
+                                {isAlreadyFinal ? '🏆 Final Room' : formatRoomLabel(squad.roomLabel, squad.roomType)}
                               </td>
                               <td className="px-4 py-3 font-bold text-white">
                                 {squad.squadName}
@@ -4030,7 +4031,7 @@ export default function AdminTournamentsPage() {
                                   </span>
                                 ) : (
                                   <span className="text-slate-500 text-[10px]">
-                                    Active in Group {squad.roomLabel}
+                                    Active in {formatRoomLabel(squad.roomLabel, squad.roomType)}
                                   </span>
                                 )}
                               </td>

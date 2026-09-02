@@ -25,7 +25,7 @@ import {
   Award,
 } from 'lucide-react';
 import { Tournament, TournamentRoom, TournamentRoadmapConfig, TournamentStage } from '@/lib/types';
-import { generateDefaultRoadmap } from '@/lib/tournament-rooms';
+import { formatRoomLabel, generateDefaultRoadmap } from '@/lib/tournament-rooms-utils';
 
 interface TournamentRoadmapViewProps {
   tournament: Tournament;
@@ -286,7 +286,7 @@ export default function TournamentRoadmapView({
                             : 'bg-purple-950 text-purple-300 border border-purple-800/60'
                         }`}
                       >
-                        {isFinal ? '🏆 Championship Final Room' : `Group ${room.roomLabel}`}
+                        {isFinal ? '🏆 Championship Final Room' : formatRoomLabel(room.roomLabel, room.roomType)}
                       </span>
 
                       <span

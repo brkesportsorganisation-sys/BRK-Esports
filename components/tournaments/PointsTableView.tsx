@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { Trophy, Flame, Shield, Award, Medal, CheckCircle2, ChevronRight, Eye, Sparkles, Filter, Layers, Gamepad2 } from 'lucide-react';
 import { Tournament, TournamentPointsTable, TournamentRoom } from '@/lib/types';
+import { formatRoomLabel } from '@/lib/tournament-rooms-utils';
 
 interface PointsTableViewProps {
   tournament: Tournament;
@@ -158,7 +159,7 @@ export default function PointsTableView({
               <option value="ALL">🌐 Overall (All Groups)</option>
               {availableRooms.map(room => (
                 <option key={room.id} value={room.id}>
-                  {room.roomType === 'FINAL' || room.roomLabel.toLowerCase() === 'final' ? '🏆 Final Room' : `Group ${room.roomLabel}`}
+                  {room.roomType === 'FINAL' || room.roomLabel.toLowerCase() === 'final' ? '🏆 Final Room' : formatRoomLabel(room.roomLabel, room.roomType)}
                 </option>
               ))}
             </select>
@@ -315,7 +316,7 @@ export default function PointsTableView({
                       {/* Group / Round Label */}
                       <td className="px-4 py-3 text-[11px] font-sans">
                         <span className="font-bold text-purple-400 block">
-                          Group {score.roomLabel || 'A'}
+                          {formatRoomLabel(score.roomLabel)}
                         </span>
                         <span className="text-[10px] text-slate-500 truncate block">
                           {score.stage || 'Match'}
