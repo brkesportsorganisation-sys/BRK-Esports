@@ -29,6 +29,8 @@ import {
   Award,
   ArrowRight,
   HelpCircle,
+  MessageCircle,
+  Youtube,
 } from 'lucide-react';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
@@ -198,6 +200,33 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
   const [pointsTables, setPointsTables] = useState<TournamentPointsTable[]>([]);
   const [tournamentRooms, setTournamentRooms] = useState<TournamentRoom[]>([]);
   const [tournamentRoadmap, setTournamentRoadmap] = useState<TournamentRoadmapConfig | null>(null);
+
+  // Dynamic Admin-managed Tournament Social & Channel Links
+  const [whatsappUrl, setWhatsappUrl] = useState('');
+  const [whatsappLabel, setWhatsappLabel] = useState('WhatsApp Group');
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [youtubeLabel, setYoutubeLabel] = useState('YouTube Channel');
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then((res) => res.json())
+      .then((data) => {
+        const s = data?.settings || {};
+        if (s.TOURNAMENT_WHATSAPP_URL || s.WHATSAPP_GROUP_URL) {
+          setWhatsappUrl(s.TOURNAMENT_WHATSAPP_URL || s.WHATSAPP_GROUP_URL);
+        }
+        if (s.TOURNAMENT_WHATSAPP_LABEL) {
+          setWhatsappLabel(s.TOURNAMENT_WHATSAPP_LABEL);
+        }
+        if (s.TOURNAMENT_YOUTUBE_URL || s.YOUTUBE_CHANNEL_URL) {
+          setYoutubeUrl(s.TOURNAMENT_YOUTUBE_URL || s.YOUTUBE_CHANNEL_URL);
+        }
+        if (s.TOURNAMENT_YOUTUBE_LABEL) {
+          setYoutubeLabel(s.TOURNAMENT_YOUTUBE_LABEL);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (resolvedParams?.id) {
@@ -839,43 +868,74 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
         {/* Live Registration Countdown Banner (Days, Hours, Minutes, Seconds) */}
         <TournamentCountdown tournament={tournament} variant="hero" />
 
-        {/* Tabs - Room ID & Password positioned on the LEFT as the primary tab */}
-        <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-2">
-          <button
-            onClick={() => setActiveTab('ROOM')}
-            className={`flex-1 sm:flex-initial px-4 sm:px-6 py-2.5 sm:py-3 rounded-2xl font-heading font-black text-xs sm:text-sm transition-all whitespace-nowrap cursor-pointer flex items-center justify-center gap-2 ${
-              activeTab === 'ROOM'
-                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white bg-slate-100/80 border border-slate-200'
-            }`}
-          >
-            <Lock className="w-4 h-4" />
-            <span>Room ID & Password</span>
-          </button>
+        {/* Tabs and External Social Action Links */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setActiveTab('ROOM')}
+              className={`flex-1 sm:flex-initial px-4 sm:px-6 py-2.5 sm:py-3 rounded-2xl font-heading font-black text-xs sm:text-sm transition-all whitespace-nowrap cursor-pointer flex items-center justify-center gap-2 ${
+                activeTab === 'ROOM'
+                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white bg-slate-100/80 border border-slate-200'
+              }`}
+            >
+              <Lock className="w-4 h-4" />
+              <span>Room ID &amp; Password</span>
+            </button>
 
-          <button
-            onClick={() => setActiveTab('ROADMAP')}
-            className={`flex-1 sm:flex-initial px-4 sm:px-6 py-2.5 sm:py-3 rounded-2xl font-heading font-black text-xs sm:text-sm transition-all whitespace-nowrap cursor-pointer flex items-center justify-center gap-2 ${
-              activeTab === 'ROADMAP'
-                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white bg-slate-100/80 border border-slate-200'
-            }`}
-          >
-            <Gamepad2 className="w-4 h-4" />
-            <span>Roadmap &amp; Schedule</span>
-          </button>
+            <button
+              onClick={() => setActiveTab('ROADMAP')}
+              className={`flex-1 sm:flex-initial px-4 sm:px-6 py-2.5 sm:py-3 rounded-2xl font-heading font-black text-xs sm:text-sm transition-all whitespace-nowrap cursor-pointer flex items-center justify-center gap-2 ${
+                activeTab === 'ROADMAP'
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white bg-slate-100/80 border border-slate-200'
+              }`}
+            >
+              <Gamepad2 className="w-4 h-4" />
+              <span>Roadmap &amp; Schedule</span>
+            </button>
 
-          <button
-            onClick={() => setActiveTab('DETAILS')}
-            className={`flex-1 sm:flex-initial px-4 sm:px-6 py-2.5 sm:py-3 rounded-2xl font-heading font-black text-xs sm:text-sm transition-all whitespace-nowrap cursor-pointer flex items-center justify-center gap-2 ${
-              activeTab === 'DETAILS'
-                ? 'bg-gradient-to-r from-brand-red to-brand-orange text-white shadow-neon-red'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white bg-slate-100/80 border border-slate-200'
-            }`}
-          >
-            <Flame className="w-4 h-4" />
-            <span>Match Details</span>
-          </button>
+            <button
+              onClick={() => setActiveTab('DETAILS')}
+              className={`flex-1 sm:flex-initial px-4 sm:px-6 py-2.5 sm:py-3 rounded-2xl font-heading font-black text-xs sm:text-sm transition-all whitespace-nowrap cursor-pointer flex items-center justify-center gap-2 ${
+                activeTab === 'DETAILS'
+                  ? 'bg-gradient-to-r from-brand-red to-brand-orange text-white shadow-neon-red'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white bg-slate-100/80 border border-slate-200'
+              }`}
+            >
+              <Flame className="w-4 h-4" />
+              <span>Match Details</span>
+            </button>
+          </div>
+
+          {/* Dynamic Admin-Managed WhatsApp & YouTube Action Links */}
+          {(whatsappUrl || youtubeUrl) && (
+            <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+              {whatsappUrl && (
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-heading font-bold text-xs flex items-center gap-2 shadow-sm transition-all cursor-pointer hover:shadow-emerald-500/20 active:scale-95"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>{whatsappLabel || 'WhatsApp Group'}</span>
+                </a>
+              )}
+
+              {youtubeUrl && (
+                <a
+                  href={youtubeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-heading font-bold text-xs flex items-center gap-2 shadow-sm transition-all cursor-pointer hover:shadow-red-500/20 active:scale-95"
+                >
+                  <Youtube className="w-4 h-4" />
+                  <span>{youtubeLabel || 'YouTube Channel'}</span>
+                </a>
+              )}
+            </div>
+          )}
         </div>
 
         {/* ROOM & 12-SLOT GRID TAB (Primary Left Side View) */}

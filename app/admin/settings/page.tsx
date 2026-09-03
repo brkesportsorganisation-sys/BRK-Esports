@@ -108,6 +108,12 @@ export default function AdminSettingsPage() {
   const [notifyProcessing, setNotifyProcessing] = useState(false);
   const [notifySuccessMsg, setNotifySuccessMsg] = useState('');
 
+  // Tournament Page Action Links (WhatsApp & YouTube)
+  const [tournamentWhatsappUrl, setTournamentWhatsappUrl] = useState('');
+  const [tournamentWhatsappLabel, setTournamentWhatsappLabel] = useState('WhatsApp Group');
+  const [tournamentYoutubeUrl, setTournamentYoutubeUrl] = useState('');
+  const [tournamentYoutubeLabel, setTournamentYoutubeLabel] = useState('YouTube Channel');
+
   // 3. Welcome Email (Resend) CMS
   const [welcomeEmailEnabled, setWelcomeEmailEnabled] = useState(true);
   const [resendApiKey, setResendApiKey] = useState('');
@@ -221,6 +227,12 @@ Login to your account and book your slot today!`);
         if (s.YOUTUBE_LIVE_TITLE) setYoutubeLiveTitle(s.YOUTUBE_LIVE_TITLE);
         if (s.YOUTUBE_LIVE_DESCRIPTION) setYoutubeLiveDesc(s.YOUTUBE_LIVE_DESCRIPTION);
         if (s.YOUTUBE_CHANNEL_URL) setYoutubeChannelUrl(s.YOUTUBE_CHANNEL_URL);
+
+        // Tournament Page Social & Channel Links
+        if (s.TOURNAMENT_WHATSAPP_URL !== undefined) setTournamentWhatsappUrl(s.TOURNAMENT_WHATSAPP_URL);
+        if (s.TOURNAMENT_WHATSAPP_LABEL) setTournamentWhatsappLabel(s.TOURNAMENT_WHATSAPP_LABEL);
+        if (s.TOURNAMENT_YOUTUBE_URL !== undefined) setTournamentYoutubeUrl(s.TOURNAMENT_YOUTUBE_URL);
+        if (s.TOURNAMENT_YOUTUBE_LABEL) setTournamentYoutubeLabel(s.TOURNAMENT_YOUTUBE_LABEL);
 
         // Welcome Email & SMTP Settings
         if (s.EMAIL_PROVIDER) setEmailProvider(s.EMAIL_PROVIDER as 'RESEND' | 'SMTP');
@@ -339,6 +351,12 @@ Login to your account and book your slot today!`);
         YOUTUBE_LIVE_TITLE: youtubeLiveTitle.trim(),
         YOUTUBE_LIVE_DESCRIPTION: youtubeLiveDesc.trim(),
         YOUTUBE_CHANNEL_URL: youtubeChannelUrl.trim(),
+
+        // Tournament Page Social & Channel Links
+        TOURNAMENT_WHATSAPP_URL: tournamentWhatsappUrl.trim(),
+        TOURNAMENT_WHATSAPP_LABEL: tournamentWhatsappLabel.trim(),
+        TOURNAMENT_YOUTUBE_URL: tournamentYoutubeUrl.trim(),
+        TOURNAMENT_YOUTUBE_LABEL: tournamentYoutubeLabel.trim(),
 
         // Email & SMTP Settings
         EMAIL_PROVIDER: emailProvider,
@@ -1895,6 +1913,148 @@ Login to your account and book your slot today!`);
                       className="w-full px-3.5 py-2.5 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] font-mono font-bold text-xs text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
                     />
                   </div>
+                </div>
+              </div>
+
+              {/* Tournament Page Social & Action Links (WhatsApp & YouTube) */}
+              <div className="bg-white border border-[#E2E8F0]/80 rounded-[24px] p-6 space-y-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+                <div className="flex items-center space-x-2 border-b border-[#F1F5F9] pb-3">
+                  <Flame className="w-5 h-5 text-amber-500" />
+                  <div>
+                    <h2 className="text-[17px] font-bold text-[#0F172A]">Tournament Page Action Links (WhatsApp &amp; YouTube)</h2>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Configure the official WhatsApp Group/Community link and YouTube Channel link displayed next to tournament tabs. Leave URL empty to hide either button.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-1">
+                  {/* WhatsApp Link Configuration */}
+                  <div className="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-200/80 space-y-3">
+                    <div className="flex items-center gap-2 font-bold text-emerald-800 text-sm">
+                      <MessageSquare className="w-4 h-4 text-emerald-600" />
+                      <span>WhatsApp Group / Channel Link</span>
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-700 font-semibold text-xs mb-1">WhatsApp Group URL</label>
+                      <input
+                        type="url"
+                        value={tournamentWhatsappUrl}
+                        onChange={(e) => setTournamentWhatsappUrl(e.target.value)}
+                        placeholder="https://chat.whatsapp.com/..."
+                        className="w-full px-3.5 py-2.5 rounded-[12px] bg-white border border-emerald-200 font-mono text-xs text-[#0F172A] focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-700 font-semibold text-xs mb-1">Button Label</label>
+                      <input
+                        type="text"
+                        value={tournamentWhatsappLabel}
+                        onChange={(e) => setTournamentWhatsappLabel(e.target.value)}
+                        placeholder="WhatsApp Group"
+                        className="w-full px-3.5 py-2.5 rounded-[12px] bg-white border border-emerald-200 font-bold text-xs text-[#0F172A] focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1 text-[11px]">
+                      {tournamentWhatsappUrl ? (
+                        <a
+                          href={tournamentWhatsappUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-emerald-700 font-bold hover:underline flex items-center gap-1"
+                        >
+                          <span>Test WhatsApp Link</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      ) : (
+                        <span className="text-slate-400 italic">Button will be hidden (no URL)</span>
+                      )}
+
+                      {tournamentWhatsappUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setTournamentWhatsappUrl('')}
+                          className="text-red-500 hover:text-red-700 font-bold text-[10px] cursor-pointer"
+                        >
+                          Clear / Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* YouTube Link Configuration */}
+                  <div className="p-4 rounded-2xl bg-red-50/50 border border-red-200/80 space-y-3">
+                    <div className="flex items-center gap-2 font-bold text-red-800 text-sm">
+                      <Radio className="w-4 h-4 text-red-600" />
+                      <span>YouTube Channel / Broadcast Link</span>
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-700 font-semibold text-xs mb-1">YouTube Channel URL</label>
+                      <input
+                        type="url"
+                        value={tournamentYoutubeUrl}
+                        onChange={(e) => setTournamentYoutubeUrl(e.target.value)}
+                        placeholder="https://youtube.com/@ESPORTSZONEBD"
+                        className="w-full px-3.5 py-2.5 rounded-[12px] bg-white border border-red-200 font-mono text-xs text-[#0F172A] focus:outline-none focus:border-red-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-700 font-semibold text-xs mb-1">Button Label</label>
+                      <input
+                        type="text"
+                        value={tournamentYoutubeLabel}
+                        onChange={(e) => setTournamentYoutubeLabel(e.target.value)}
+                        placeholder="YouTube Channel"
+                        className="w-full px-3.5 py-2.5 rounded-[12px] bg-white border border-red-200 font-bold text-xs text-[#0F172A] focus:outline-none focus:border-red-500"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1 text-[11px]">
+                      {tournamentYoutubeUrl ? (
+                        <a
+                          href={tournamentYoutubeUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-red-700 font-bold hover:underline flex items-center gap-1"
+                        >
+                          <span>Test YouTube Link</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      ) : (
+                        <span className="text-slate-400 italic">Button will be hidden (no URL)</span>
+                      )}
+
+                      {tournamentYoutubeUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setTournamentYoutubeUrl('')}
+                          className="text-red-500 hover:text-red-700 font-bold text-[10px] cursor-pointer"
+                        >
+                          Clear / Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                  <span className="text-[11px] text-slate-500">
+                    💡 Changes appear instantly on all tournament pages upon clicking Save.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleSaveAll}
+                    disabled={isSaving}
+                    className="px-5 py-2 rounded-xl bg-[#2563EB] hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                    <span>Save Social Links</span>
+                  </button>
                 </div>
               </div>
             </div>
