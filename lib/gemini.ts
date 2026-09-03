@@ -31,10 +31,27 @@ ROLE & PERSONA:
 - Your primary responsibility is helping users with website features: Tournament booking, Slot reservation, Custom Room ID & Password access, Wallet deposit & withdrawal (bKash/Nagad/Rocket), Diamond Shop orders, LFG squad recruitment, and Account questions.
 - If a user sends a greeting (e.g. "Hi", "Hello", "কেমন আছেন", "আসসালামু আলাইকুম", "Hello bai") or engages in formal/polite conversation, respond warmly, respectfully, and professionally in standard polite Bengali (or English if the user asks in English).
 
-COMMUNICATION GUIDELINES:
-1. Language & Tone: Always respond in polite, clear, natural standard Bengali (প্রমিত ও মার্জিত বাংলা) or English when prompted.
-2. Direct & Helpful: Answer the user's specific questions directly and concisely with clear bullet points.
-3. Clean Format: Use clear Bengali punctuation (দাঁড়ি '।', কমা ',') and clean text suitable for Text-to-Speech (TTS).`;
+CRITICAL LINE-BY-LINE FORMATTING RULES (STRICTLY REQUIRED):
+1. ALWAYS structure your answer line-by-line with clean line breaks and double newlines (\n\n) between distinct topics or bullet points.
+2. NEVER cram multiple points, services, or emojis into a single continuous paragraph or single line.
+3. When listing platform features or answering what the platform does, ALWAYS write EACH feature on its own line with bold title and bullet points, for example:
+   🎮 **টুর্নামেন্ট ও গিভঅ্যাওয়ে:**
+   • Solo, Duo এবং Squad মোডে পেইড টুর্নামেন্ট খেলা যায়।
+   • ফ্রি গিভঅ্যাওয়ে টুর্নামেন্টে প্রাইজমানি জেতার সুযোগ।
+
+   👥 **স্কোয়াড ও প্লেয়ার ফাইন্ডার:**
+   • একসাথে খেলার জন্য নতুন টিমমেট খোঁজার সুবিধা।
+
+   🎁 **রেফার অ্যান্ড আর্ন:**
+   • বন্ধুদের ইনভাইট করে বোনাস কয়েন ও রিওয়ার্ড অর্জন।
+
+   🛍️ **গেমিং শপ:**
+   • ফিঙ্গার স্লিভস, মোবাইল কুলার ও প্রয়োজনীয় গেমিং এক্সেসরিজ।
+
+   💰 **সহজ লেনদেন:**
+   • বিকাশ ও নগদের মাধ্যমে দ্রুত ডিপোজিট এবং উইথড্র।
+4. Always end with a short, polite closing line on a separate new line.
+5. Use clear Bengali punctuation (দাঁড়ি '।', কমা ',') and standard markdown formatting (**bold**, bullet lists, numbered steps).`;
 
 /**
  * Intelligent Multi-Topic NLP Fallback Engine for ESPORTS ZONE BD Platform Queries
@@ -58,6 +75,40 @@ export function getSmartFallback(prompt: string, liveContext?: string): string {
 - 👥 স্কোয়াড মেম্বার খোঁজা (LFG)
 
 আপনার কোনো প্রশ্ন বা সমস্যা থাকলে অনুগ্রহ করে জানান, আমি আপনাকে সহায়তা করতে প্রস্তুত! 😊`;
+  }
+
+  // 0.1 What is done here / Platform Features (কি কি করা হয় / কী কী সুবিধা আছে)
+  if (
+    p.includes('কি কি করা হয়') || 
+    p.includes('কী কী করা হয়') || 
+    p.includes('কি করা হয়') || 
+    p.includes('কি সুবিধা') || 
+    p.includes('কিভাবে কাজ করে') || 
+    p.includes('service') || 
+    p.includes('services') || 
+    p.includes('feature') || 
+    p.includes('এখানে কি')
+  ) {
+    return `🎮 **ESPORTS ZONE BD-তে আপনাকে স্বাগতম! এখানে আপনি যা যা করতে পারবেন:**
+
+🏆 **টুর্নামেন্ট ও গিভঅ্যাওয়ে:**
+• Solo, Duo এবং Squad মোডে নিয়মিত পেইড টুর্নামেন্ট খেলা যায়।
+• ফ্রি গিভঅ্যাওয়ে টুর্নামেন্টে অংশ নিয়ে আকর্ষণীয় প্রাইজমানি জেতার সুযোগ।
+
+👥 **স্কোয়াড ও প্লেয়ার ফাইন্ডার (LFG):**
+• একসাথে ম্যাচ খেলার জন্য নতুন টিমমেট বা শক্তিশালী স্কোয়াড খোঁজার চমৎকার সুবিধা।
+
+🎁 **রেফার অ্যান্ড আর্ন (Refer & Earn):**
+• বন্ধুদের ইনভাইট করে বোনাস কয়েন ও ক্যাশ রিওয়ার্ড অর্জন করার সুযোগ।
+
+🛍️ **গেমিং শপ ও কয়েন শপিং:**
+• ফিঙ্গার স্লিভস, মোবাইল কুলার, ইয়ারফোনসহ আকর্ষণীয় গেমিং এক্সেসরিজ।
+• টুর্নামেন্ট খেলে অর্জিত কয়েন দিয়েও সরাসরি গ্যাজেট কেনা যায়।
+
+💳 **সহজ লেনদেন ও ইনস্ট্যান্ট উইথড্র:**
+• বিকাশ, নগদ ও রকেটের মাধ্যমে দ্রুত ডিপোজিট ও মাত্র ২০ টাকা থেকে ইনস্ট্যান্ট ক্যাশআউট।
+
+আপনার কি কোনো নির্দিষ্ট টুর্নামেন্ট বা বিষয়ে বিস্তারিত তথ্য প্রয়োজন? জানান, সাহায্য করছি! 😊`;
   }
 
   // 1. Slot Booking & Tournament Registration

@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { db } from '@/lib/db';
 import { User as UserType, SupportMessage } from '@/lib/types';
+import FormattedMessage from '@/components/ui/FormattedMessage';
 import Link from 'next/link';
 
 interface Message {
@@ -820,7 +821,7 @@ export default function AIAssistantWidget() {
                   return (
                     <div key={msg.id} className="flex justify-end">
                       <div className="bg-[#2563EB] text-white rounded-2xl rounded-tr-xs px-4 py-3 text-[13.5px] sm:text-sm leading-relaxed max-w-[88%] sm:max-w-[85%] shadow-sm break-words font-normal">
-                        {msg.content}
+                        <FormattedMessage content={msg.content} isUser={true} />
                       </div>
                     </div>
                   );
@@ -847,14 +848,14 @@ export default function AIAssistantWidget() {
                       </div>
 
                       {/* Clean Message Bubble - Crisp High-Contrast Text for Mobile */}
-                      <div className={`rounded-2xl rounded-tl-xs p-3.5 sm:p-4 text-[13.5px] sm:text-sm leading-relaxed whitespace-pre-wrap break-words shadow-sm ${
+                      <div className={`rounded-2xl rounded-tl-xs p-3.5 sm:p-4 text-[13.5px] sm:text-sm leading-relaxed break-words shadow-sm ${
                         isAdmin 
                           ? 'bg-emerald-50 border border-emerald-200 text-slate-900' 
                           : isSystem 
                           ? 'bg-indigo-50 border border-indigo-200 text-slate-900' 
                           : 'bg-white border border-slate-200/90 text-slate-900'
                       }`}>
-                        <div className="select-text font-normal">{msg.content}</div>
+                        <FormattedMessage content={msg.content} isUser={false} isAdmin={isAdmin} />
 
                         {/* Optional Suggested Action */}
                         {msg.suggestedAction && (

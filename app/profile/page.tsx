@@ -50,6 +50,7 @@ import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import { db } from '@/lib/db';
 import { User, Tournament, Team, Squad, Payment, SupportTicket, SupportMessage } from '@/lib/types';
+import FormattedMessage from '@/components/ui/FormattedMessage';
 
 const parseShopOrderDetails = (notes?: string) => {
   if (!notes) return null;
@@ -1647,13 +1648,13 @@ function ProfilePageContent() {
                           </span>
                         </div>
                         <div
-                          className={`max-w-md p-4 rounded-2xl text-xs sm:text-sm font-medium leading-relaxed shadow-2xs whitespace-pre-wrap ${
+                          className={`max-w-md p-4 rounded-2xl text-xs sm:text-sm font-medium leading-relaxed shadow-2xs ${
                             isUser
                               ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-tr-none'
                               : 'bg-slate-900 text-slate-100 rounded-tl-none border border-slate-800'
                           }`}
                         >
-                          {msg.content}
+                          <FormattedMessage content={msg.content} isUser={isUser} isAdmin={isAdmin} />
                         </div>
                       </div>
                     );

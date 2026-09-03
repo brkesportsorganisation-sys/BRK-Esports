@@ -27,6 +27,7 @@ import {
   Crown
 } from 'lucide-react';
 import { SupportTicket, SupportMessage } from '@/lib/types';
+import FormattedMessage from '@/components/ui/FormattedMessage';
 
 const CANNED_REPLIES = [
   '👋 আসসালামু আলাইকুম! ESPORTS ZONE BD সাপোর্ট থেকে অ্যাডমিন বলছি। আপনাকে কীভাবে সহায়তা করতে পারি?',
@@ -547,14 +548,18 @@ export default function AdminSupportPage() {
                               : 'bg-white border border-slate-200 text-slate-900 rounded-tl-none font-medium'
                           }`}>
                             {isAdmin && (
-                              <div className="text-[10px] font-black text-amber-100 flex items-center justify-between gap-1 mb-1 font-heading uppercase">
+                              <div className="text-[10px] font-black text-amber-100 flex items-center justify-between gap-1 mb-1.5 font-heading uppercase tracking-wide">
                                 <div className="flex items-center gap-1">
-                                  <Crown className="w-3 h-3 text-amber-200" />
+                                  <Crown className="w-3.5 h-3.5 text-amber-200" />
                                   <span>Support Admin</span>
                                 </div>
                               </div>
                             )}
-                            <p className="whitespace-pre-wrap">{msg.content}</p>
+                            <FormattedMessage
+                              content={msg.content}
+                              isAdmin={isAdmin}
+                              isUser={!isAdmin}
+                            />
 
                             {/* Delete Button on hover */}
                             <button
@@ -599,23 +604,53 @@ export default function AdminSupportPage() {
                 ))}
               </div>
 
-              {/* Chat Input Box */}
-              <form onSubmit={handleSendReply} className="p-4 bg-white border-t border-slate-200 flex items-center gap-3">
-                <input
-                  type="text"
-                  value={replyText}
-                  onChange={(e) => setReplyText(e.target.value)}
-                  placeholder="Type your official reply to this player..."
-                  className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-brand-orange focus:bg-white"
-                />
-                <button
-                  type="submit"
-                  disabled={!replyText.trim() || sendingReply}
-                  className="px-5 py-3 rounded-2xl bg-gradient-to-r from-red-500 via-orange-500 to-amber-500 text-white font-heading font-black text-xs uppercase shadow-md hover:brightness-110 transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer shrink-0"
-                >
-                  {sendingReply ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                  <span>Send</span>
-                </button>
+              {/* Chat Input Box with Multiline Support & Quick Insert */}
+              <form onSubmit={handleSendReply} className="p-4 bg-white border-t border-slate-200 flex flex-col gap-2">
+                <div className="flex items-end gap-3">
+                  <textarea
+                    rows={2}
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        if (replyText.trim() && !sendingReply) {
+                          handleSendReply(e);
+                        }
+                      }
+                    }}
+                    placeholder="Type official reply... (Press Enter to Send, Shift+Enter for new line)"
+                    className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-brand-orange focus:bg-white resize-none leading-relaxed transition-all"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!replyText.trim() || sendingReply}
+                    className="px-5 py-3 rounded-2xl bg-gradient-to-r from-red-500 via-orange-500 to-amber-500 text-white font-heading font-black text-xs uppercase shadow-md hover:brightness-110 transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer shrink-0 h-[46px]"
+                  >
+                    {sendingReply ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    <span>Send</span>
+                  </button>
+                </div>
+                <div className="flex items-center justify-between text-[10px] text-slate-400 px-1">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setReplyText(prev => prev ? `${prev}\n• ` : '• ')}
+                      className="text-slate-500 hover:text-brand-orange transition-colors font-medium cursor-pointer"
+                    >
+                      + Add Bullet (•)
+                    </button>
+                    <span>•</span>
+                    <button
+                      type="button"
+                      onClick={() => setReplyText(prev => prev ? `${prev}\n\n` : '')}
+                      className="text-slate-500 hover:text-brand-orange transition-colors font-medium cursor-pointer"
+                    >
+                      + Paragraph Break (↵)
+                    </button>
+                  </div>
+                  <span>Shift + Enter for new line</span>
+                </div>
               </form>
             </>
           ) : (
