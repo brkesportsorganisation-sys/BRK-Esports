@@ -34,16 +34,27 @@ export async function GET(request: NextRequest) {
 
     const { password: _, passwordResetOtp: __, passwordResetExpires: ___, ...rest } = user;
 
-    let currentStreak = Number(rest.currentStreak || 0);
-    let lastStreakClaimDate = rest.lastStreakClaimDate || null;
-
-    if (!lastStreakClaimDate && rest.deviceToken && typeof rest.deviceToken === 'string' && rest.deviceToken.startsWith('STREAK:')) {
+    let meta: Record<string, any> = {};
+    if (rest.deviceToken && typeof rest.deviceToken === 'string') {
       try {
-        const parsed = JSON.parse(rest.deviceToken.replace('STREAK:', ''));
-        if (parsed.currentStreak !== undefined) currentStreak = Number(parsed.currentStreak);
-        if (parsed.lastStreakClaimDate) lastStreakClaimDate = parsed.lastStreakClaimDate;
+        if (rest.deviceToken.startsWith('META:')) {
+          meta = JSON.parse(rest.deviceToken.replace('META:', '')) || {};
+        } else if (rest.deviceToken.startsWith('STREAK:')) {
+          meta = JSON.parse(rest.deviceToken.replace('STREAK:', '')) || {};
+        } else if (rest.deviceToken.startsWith('{')) {
+          meta = JSON.parse(rest.deviceToken) || {};
+        }
       } catch {}
     }
+
+    if (!lastStreakClaimDate && meta.lastStreakClaimDate) {
+      lastStreakClaimDate = meta.lastStreakClaimDate;
+    }
+    if (meta.currentStreak !== undefined && !rest.currentStreak) {
+      currentStreak = Number(meta.currentStreak);
+    }
+
+    const inGameRole = rest.inGameRole || meta.inGameRole || 'RUSHER';
 
     const userReferralCode = rest.referralCode || `REF_${(rest.id || '').replace(/[^a-zA-Z0-9]/g, '').slice(-4).toUpperCase() || Math.floor(1000 + Math.random() * 9000)}`;
     if (!rest.referralCode && rest.id) {
@@ -54,6 +65,7 @@ export async function GET(request: NextRequest) {
 
     const sanitizedUser = {
       ...rest,
+      inGameRole,
       referralCode: userReferralCode,
       totalReferrals: Number(rest.totalReferrals) || 0,
       claimedMilestones: Array.isArray(rest.claimedMilestones) ? rest.claimedMilestones : [],

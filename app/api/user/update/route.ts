@@ -22,6 +22,31 @@ export async function PATCH(request: NextRequest) {
     if (phone !== undefined) updates.phone = phone.trim() || null;
     if (bio !== undefined) updates.bio = bio.trim() || null;
 
+    // Fetch existing deviceToken to maintain metadata persistence
+    let meta: Record<string, any> = {};
+    try {
+      const { data: curUser } = await supabaseAdmin
+        .from('User')
+        .select('deviceToken')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (curUser?.deviceToken && typeof curUser.deviceToken === 'string') {
+        if (curUser.deviceToken.startsWith('META:')) {
+          meta = JSON.parse(curUser.deviceToken.replace('META:', '')) || {};
+        } else if (curUser.deviceToken.startsWith('STREAK:')) {
+          meta = JSON.parse(curUser.deviceToken.replace('STREAK:', '')) || {};
+        } else if (curUser.deviceToken.startsWith('{')) {
+          meta = JSON.parse(curUser.deviceToken) || {};
+        }
+      }
+    } catch {}
+
+    if (inGameRole !== undefined) {
+      meta.inGameRole = inGameRole.trim() || 'RUSHER';
+      updates.deviceToken = `META:${JSON.stringify(meta)}`;
+    }
+
     let updatedUser: any = null;
     let retries = 8;
     const workingUpdates = { ...updates };
@@ -60,7 +85,10 @@ export async function PATCH(request: NextRequest) {
     }
 
     // If database returned user, sanitize and merge
-    const sanitizedUser = updatedUser ? { ...updates, ...updatedUser } : { id: userId, ...updates };
+    const finalInGameRole = inGameRole !== undefined ? (inGameRole.trim() || 'RUSHER') : (updatedUser?.inGameRole || meta.inGameRole || 'RUSHER');
+    const sanitizedUser = updatedUser
+      ? { ...updates, ...updatedUser, inGameRole: finalInGameRole }
+      : { id: userId, ...updates, inGameRole: finalInGameRole };
     if (sanitizedUser.password) delete sanitizedUser.password;
 
     return NextResponse.json({ user: sanitizedUser, message: 'Profile updated successfully and saved to database!' });

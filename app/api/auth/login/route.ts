@@ -67,9 +67,27 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    let meta: Record<string, any> = {};
+    if (user.deviceToken && typeof user.deviceToken === 'string') {
+      try {
+        if (user.deviceToken.startsWith('META:')) {
+          meta = JSON.parse(user.deviceToken.replace('META:', '')) || {};
+        } else if (user.deviceToken.startsWith('STREAK:')) {
+          meta = JSON.parse(user.deviceToken.replace('STREAK:', '')) || {};
+        } else if (user.deviceToken.startsWith('{')) {
+          meta = JSON.parse(user.deviceToken) || {};
+        }
+      } catch {}
+    }
+
+    const inGameRole = user.inGameRole || meta.inGameRole || 'RUSHER';
+
     // Sanitize response
     const { password: _, passwordResetOtp: __, passwordResetExpires: ___, ...sanitizedUser } = user;
-    return NextResponse.json({ user: sanitizedUser, message: 'Logged in successfully' });
+    return NextResponse.json({ 
+      user: { ...sanitizedUser, inGameRole }, 
+      message: 'Logged in successfully' 
+    });
   } catch (error: any) {
     console.error('[POST /api/auth/login]', error);
     return NextResponse.json({ message: error?.message || 'Login failed.' }, { status: 500 });
