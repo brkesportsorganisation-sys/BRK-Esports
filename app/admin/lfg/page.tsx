@@ -85,7 +85,7 @@ export default function AdminLFGModerationPage() {
       post.authorName?.toLowerCase().includes(q) ||
       post.description?.toLowerCase().includes(q) ||
       post.squadName?.toLowerCase().includes(q) ||
-      post.contactWhatsApp?.includes(q) ||
+      post.userId?.toLowerCase().includes(q) ||
       post.accountNumber?.toLowerCase().includes(q);
     return matchesType && matchesSearch;
   });
@@ -219,12 +219,10 @@ export default function AdminLFGModerationPage() {
                         <div className="text-xs text-slate-700 italic leading-snug line-clamp-2">
                           &quot;{post.description}&quot;
                         </div>
-                        {post.contactWhatsApp && (
-                          <div className="text-[11px] font-mono text-emerald-600 font-bold mt-1 flex items-center gap-1">
-                            <MessageCircle className="w-3.5 h-3.5" />
-                            <span>{post.contactWhatsApp}</span>
-                          </div>
-                        )}
+                        <div className="text-[11px] font-mono text-brand-orange font-bold mt-1 flex items-center gap-1">
+                          <MessageCircle className="w-3.5 h-3.5" />
+                          <span>Internal Inbox User</span>
+                        </div>
                       </td>
                       <td className="p-4">
                         <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${

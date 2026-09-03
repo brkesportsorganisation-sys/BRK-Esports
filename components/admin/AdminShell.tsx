@@ -53,7 +53,8 @@ import {
   Activity,
   HardDrive,
   Calendar,
-  Layers
+  Layers,
+  CloudDownload
 } from 'lucide-react';
 
 import { AdminPermissionKey } from '@/lib/types';
@@ -284,6 +285,7 @@ export default function AdminShell({ children }: AdminShellProps) {
         { href: '/admin/server/database', label: 'Database Metrics', icon: Database, colorClass: 'text-emerald-500', permission: 'view_dashboard', ownerOnly: true },
         { href: '/admin/server/storage', label: 'Storage & Media Buckets', icon: HardDrive, colorClass: 'text-amber-500', permission: 'view_dashboard', ownerOnly: true },
         { href: '/admin/server/page-speed', label: 'Page Speed & Latency', icon: Activity, colorClass: 'text-rose-500', permission: 'view_dashboard', ownerOnly: true },
+        { href: '/admin/server/backup', label: 'Data Backup', icon: CloudDownload, colorClass: 'text-cyan-600', permission: 'view_dashboard', ownerOnly: true },
       ]
     }
   ];

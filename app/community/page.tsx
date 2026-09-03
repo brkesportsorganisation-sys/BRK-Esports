@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { 
   Users, 
   UserPlus, 
@@ -12,6 +13,7 @@ import {
   Megaphone, 
   Pin, 
   MessageCircle, 
+  MessageSquare,
   Search, 
   Flame, 
   Award, 
@@ -19,15 +21,32 @@ import {
   CheckCircle2, 
   Filter, 
   Sparkles,
-  Phone,
   Zap,
-  X
+  X,
+  ChevronRight,
+  Info
 } from 'lucide-react';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import MobileBottomNav from '@/components/ui/MobileBottomNav';
 import { db } from '@/lib/db';
 import { LFGPost, LFGType, Announcement, User } from '@/lib/types';
+
+// Auto-mask phone numbers, emails, and external links for safety
+function maskSensitiveContacts(text: string): string {
+  if (!text) return '';
+  let sanitized = text;
+  // Mask emails
+  sanitized = sanitized.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi, '****');
+  // Mask chat / external links
+  sanitized = sanitized.replace(/(https?:\/\/)?(www\.)?(wa\.me|whatsapp\.com|facebook\.com|fb\.com|t\.me|telegram\.me)\/[^\s]+/gi, '****');
+  // Mask phone numbers
+  sanitized = sanitized.replace(/(\+?880\s?|0)1[3-9]([\s.-]?\d){8}/g, '****');
+  // Mask Free Fire UIDs / numbers
+  sanitized = sanitized.replace(/(uid\s*[:#-]?\s*)\d{6,12}/gi, '$1****');
+  sanitized = sanitized.replace(/\b\d{6,12}\b/g, '****');
+  return sanitized;
+}
 
 type CommunityTab = 'ALL' | 'ANNOUNCEMENTS' | LFGType;
 
@@ -38,6 +57,7 @@ export default function CommunityPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedPostDetails, setSelectedPostDetails] = useState<LFGPost | null>(null);
 
   // Create Post Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -45,7 +65,6 @@ export default function CommunityPage() {
   const [titleOrSquad, setTitleOrSquad] = useState('');
   const [roleOrRequirement, setRoleOrRequirement] = useState('RUSHER');
   const [gameMode, setGameMode] = useState('BR_SQUAD');
-  const [contactWhatsApp, setContactWhatsApp] = useState('');
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
@@ -80,14 +99,29 @@ export default function CommunityPage() {
     loadData();
   }, []);
 
+  const handleOpenCreateModal = () => {
+    if (!currentUser) {
+      alert('Please sign in to your account first so players and squad captains can message you in your Messages Inbox.');
+      window.location.href = '/login?redirect=/community';
+      return;
+    }
+    setIsModalOpen(true);
+  };
+
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!currentUser) {
+      alert('Please sign in to publish a recruitment post.');
+      return;
+    }
     if (!description.trim()) return;
 
     setSubmitting(true);
     try {
-      const userId = currentUser?.id || `guest_${Date.now()}`;
-      const authorName = currentUser?.name || titleOrSquad || 'Free Fire Warrior';
+      const userId = currentUser.id;
+      const authorName = currentUser.name || titleOrSquad.trim() || 'Free Fire Warrior';
+      const sanitizedDesc = maskSensitiveContacts(description.trim());
+      const sanitizedSquad = titleOrSquad.trim() ? maskSensitiveContacts(titleOrSquad.trim()) : undefined;
 
       const res = await fetch('/api/lfg', {
         method: 'POST',
@@ -98,19 +132,17 @@ export default function CommunityPage() {
           type: postType,
           gameMode,
           roleNeeded: roleOrRequirement,
-          contactWhatsApp,
-          description,
-          squadName: titleOrSquad.trim() || undefined,
+          description: sanitizedDesc,
+          squadName: sanitizedSquad,
         }),
       });
 
       if (res.ok) {
         setIsModalOpen(false);
         setDescription('');
-        setContactWhatsApp('');
         setTitleOrSquad('');
-        setSuccessMsg('Your community post has been published successfully!');
-        setTimeout(() => setSuccessMsg(''), 4000);
+        setSuccessMsg('Your community post has been published! Players can now direct message your website Inbox.');
+        setTimeout(() => setSuccessMsg(''), 5000);
         await loadData();
       } else {
         const err = await res.json();
@@ -121,6 +153,33 @@ export default function CommunityPage() {
       alert('Network error while publishing post.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleJoinSquad = async (postId: string) => {
+    if (!currentUser) {
+      alert('Please log in first to apply.');
+      window.location.href = '/login?redirect=/community';
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/lfg', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          postId,
+          action: 'CONFIRM_SQUAD',
+          candidateUserId: currentUser.id,
+        }),
+      });
+
+      if (res.ok) {
+        alert('Squad application submitted! Player status set to PENDING.');
+        await loadData();
+      }
+    } catch {
+      alert('Failed to join squad.');
     }
   };
 
@@ -178,13 +237,13 @@ export default function CommunityPage() {
             COMMUNITY & RECRUITMENT
           </h1>
           <p className="text-slate-600 text-xs sm:text-sm mt-1 max-w-xl mx-auto leading-relaxed">
-            Find competitive squads, recruit fraggers & snipers, find team managers, request tournament sponsors, and read official announcements.
+            Find competitive squads, recruit fraggers & snipers, find team managers, request tournament sponsors, and chat directly via internal Inbox.
           </p>
 
           <div className="pt-2 flex justify-center">
             <button
-              onClick={() => setIsModalOpen(true)}
-              className="px-6 py-3 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-black text-xs sm:text-sm shadow-xs hover:scale-105 transition-all flex items-center space-x-2"
+              onClick={handleOpenCreateModal}
+              className="px-6 py-3 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-black text-xs sm:text-sm shadow-xs hover:scale-105 transition-all flex items-center space-x-2 cursor-pointer"
             >
               <PlusCircle className="w-4 h-4" />
               <span>POST RECRUITMENT / COMMUNITY AD</span>
@@ -232,7 +291,7 @@ export default function CommunityPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                   activeTab === tab.id
                     ? 'bg-slate-900 text-white shadow-xs'
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
@@ -255,8 +314,8 @@ export default function CommunityPage() {
             <h3 className="font-heading font-black text-xl text-slate-900">No Posts in this Category</h3>
             <p className="text-xs text-slate-600 font-medium">Be the first to post your player form, clan recruitment, or manager/sponsor request!</p>
             <button
-              onClick={() => setIsModalOpen(true)}
-              className="px-5 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition-colors shadow-xs"
+              onClick={handleOpenCreateModal}
+              className="px-5 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition-colors shadow-xs cursor-pointer"
             >
               Post Now
             </button>
@@ -301,6 +360,8 @@ export default function CommunityPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filteredPosts.map((post) => {
                     const badge = getPostTypeBadge(post.type);
+                    const isOwnPost = currentUser?.id === post.userId;
+
                     return (
                       <div
                         key={post.id}
@@ -351,32 +412,45 @@ export default function CommunityPage() {
                             ) : null}
                           </div>
 
-                          {/* Description */}
-                          <p className="text-slate-600 text-xs leading-relaxed line-clamp-3 mt-2 bg-[#F8FAFC] p-3 rounded-2xl border border-slate-100">
-                            &quot;{post.description}&quot;
-                          </p>
+                          {/* Description Clickable Preview */}
+                          <button
+                            type="button"
+                            onClick={() => setSelectedPostDetails(post)}
+                            className="w-full text-left mt-2 p-3 bg-[#F8FAFC] hover:bg-orange-50/60 rounded-2xl border border-slate-100 hover:border-brand-orange/30 transition-all group cursor-pointer"
+                            title="Click to view full post details"
+                          >
+                            <p className="text-slate-600 text-xs leading-relaxed line-clamp-3 group-hover:text-slate-900 font-medium">
+                              &quot;{post.description}&quot;
+                            </p>
+                            <div className="flex items-center gap-1 text-[10px] text-brand-orange font-bold mt-1.5">
+                              <span>View details & requirements</span>
+                              <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                            </div>
+                          </button>
                         </div>
 
-                        {/* Footer Actions */}
+                        {/* Footer Actions: Website Internal Messages Inbox */}
                         <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                          {post.contactWhatsApp ? (
-                            <a
-                              href={`https://wa.me/${post.contactWhatsApp.replace(/\D/g, '')}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex-1 py-2 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold text-xs transition-all flex items-center justify-center space-x-1.5 shadow-2xs"
-                            >
-                              <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
-                              <span>Contact WhatsApp</span>
-                            </a>
-                          ) : (
-                            <span className="text-[11px] text-slate-400 italic">No contact specified</span>
-                          )}
+                          <Link
+                            href={isOwnPost ? '/messages' : `/messages?sellerId=${post.userId}`}
+                            className={`flex-1 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center space-x-1.5 shadow-xs ${
+                              isOwnPost 
+                                ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200' 
+                                : 'bg-slate-900 hover:bg-slate-800 text-white'
+                            }`}
+                          >
+                            <MessageSquare className={`w-3.5 h-3.5 ${isOwnPost ? 'text-slate-500' : 'text-brand-orange'}`} />
+                            <span>{isOwnPost ? 'Your Post (Inbox)' : 'Inbox Message'}</span>
+                          </Link>
 
                           {post.type === 'SQUAD_LOOKING_FOR_PLAYER' && post.status === 'OPEN' && (
-                            <span className="px-3 py-1.5 rounded-xl bg-orange-50 text-brand-orange border border-orange-200 text-xs font-bold">
-                              Slot Open
-                            </span>
+                            <button
+                              onClick={() => handleJoinSquad(post.id)}
+                              className="px-3 py-2 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-black text-xs shadow-xs hover:brightness-110 transition-all flex items-center space-x-1 cursor-pointer"
+                            >
+                              <Zap className="w-3.5 h-3.5" />
+                              <span>JOIN SQUAD</span>
+                            </button>
                           )}
                         </div>
 
@@ -395,7 +469,7 @@ export default function CommunityPage() {
       {/* 4. Create Recruitment / Form Post Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full border border-slate-200 shadow-2xl space-y-5 my-8">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full border border-slate-200 shadow-2xl space-y-5 my-8 animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-heading font-black text-xl text-slate-900 flex items-center gap-2">
                 <Target className="w-5 h-5 text-brand-orange" />
@@ -403,7 +477,7 @@ export default function CommunityPage() {
               </h3>
               <button 
                 onClick={() => setIsModalOpen(false)} 
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -472,16 +546,17 @@ export default function CommunityPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">WhatsApp Contact Number *</label>
-                <input
-                  type="text"
-                  required
-                  value={contactWhatsApp}
-                  onChange={(e) => setContactWhatsApp(e.target.value)}
-                  placeholder="e.g. 017XXXXXXXX or +88017XXXXXXXX"
-                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 font-mono focus:outline-none focus:border-brand-orange"
-                />
+              {/* Internal Inbox Notice */}
+              <div className="p-3.5 bg-orange-50/70 border border-brand-orange/20 rounded-2xl flex items-start gap-3 text-xs">
+                <div className="w-7 h-7 rounded-xl bg-orange-100 flex items-center justify-center shrink-0 text-brand-orange mt-0.5">
+                  <MessageSquare className="w-4 h-4" />
+                </div>
+                <div className="space-y-0.5">
+                  <div className="font-bold text-slate-900">Direct Website Inbox Messaging</div>
+                  <div className="text-[11px] text-slate-600 leading-relaxed">
+                    Interested players & squads can direct message you straight to your website Messages Inbox. No external numbers needed.
+                  </div>
+                </div>
               </div>
 
               <div>
@@ -500,19 +575,103 @@ export default function CommunityPage() {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 py-2.5 rounded-xl bg-slate-100 text-slate-600 font-bold hover:bg-slate-200 transition-colors"
+                  className="flex-1 py-2.5 rounded-xl bg-slate-100 text-slate-600 font-bold hover:bg-slate-200 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-bold flex items-center justify-center space-x-1 disabled:opacity-50 shadow-xs"
+                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-bold flex items-center justify-center space-x-1 disabled:opacity-50 shadow-xs cursor-pointer"
                 >
                   {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>PUBLISH TO COMMUNITY</span>}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 5. Post Details Popup Modal */}
+      {selectedPostDetails && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full border border-slate-200 shadow-2xl space-y-5 my-8 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center space-x-3">
+                <img
+                  src={selectedPostDetails.avatar || 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150'}
+                  alt={selectedPostDetails.authorName}
+                  className="w-12 h-12 rounded-2xl object-cover border border-slate-200"
+                />
+                <div>
+                  <h3 className="font-heading font-black text-lg text-slate-900 flex items-center gap-1.5">
+                    <span>{selectedPostDetails.authorName}</span>
+                    {selectedPostDetails.squadName && (
+                      <span className="text-xs px-2 py-0.5 rounded bg-orange-50 text-brand-orange border border-orange-200 font-mono font-bold">
+                        [{selectedPostDetails.squadName}]
+                      </span>
+                    )}
+                  </h3>
+                  <div className="text-xs font-mono text-slate-400 font-semibold">
+                    {selectedPostDetails.accountNumber || 'EZBD-MEMBER'}
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedPostDetails(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <span className={`px-2.5 py-1 rounded-lg text-xs font-bold border ${getPostTypeBadge(selectedPostDetails.type).bg}`}>
+                {getPostTypeBadge(selectedPostDetails.type).label}
+              </span>
+              <span className="text-xs font-bold px-3 py-1 rounded-lg bg-slate-100 text-slate-700">
+                Role: {selectedPostDetails.roleNeeded}
+              </span>
+              <span className="text-xs font-bold px-3 py-1 rounded-lg bg-slate-100 text-slate-600">
+                Mode: {selectedPostDetails.gameMode.replace('_', ' ')}
+              </span>
+              {selectedPostDetails.winRate ? (
+                <span className="text-xs font-bold px-3 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
+                  <Award className="w-3.5 h-3.5" />
+                  {selectedPostDetails.winRate}% Win Rate
+                </span>
+              ) : null}
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700">Full Description & Requirements</label>
+              <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-slate-200 text-slate-800 text-xs sm:text-sm leading-relaxed whitespace-pre-wrap font-medium">
+                {selectedPostDetails.description}
+              </div>
+            </div>
+
+            <div className="pt-2 flex gap-3">
+              <Link
+                href={currentUser?.id === selectedPostDetails.userId ? '/messages' : `/messages?sellerId=${selectedPostDetails.userId}`}
+                className="flex-1 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-heading font-black text-xs sm:text-sm flex items-center justify-center space-x-2 shadow-xs transition-all"
+              >
+                <MessageSquare className="w-4 h-4 text-brand-orange" />
+                <span>{currentUser?.id === selectedPostDetails.userId ? 'Go To Your Inbox' : 'Direct Message Poster'}</span>
+              </Link>
+
+              {selectedPostDetails.type === 'SQUAD_LOOKING_FOR_PLAYER' && selectedPostDetails.status === 'OPEN' && (
+                <button
+                  onClick={() => {
+                    handleJoinSquad(selectedPostDetails.id);
+                    setSelectedPostDetails(null);
+                  }}
+                  className="px-5 py-3 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange text-white font-heading font-black text-xs sm:text-sm shadow-xs hover:brightness-110 transition-all flex items-center space-x-1.5 cursor-pointer"
+                >
+                  <Zap className="w-4 h-4" />
+                  <span>JOIN SQUAD</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
