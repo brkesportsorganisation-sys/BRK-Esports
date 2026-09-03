@@ -131,6 +131,7 @@ export default function AdminNotificationsPage() {
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [pickerMode, setPickerMode] = useState<'SEARCH' | 'MANUAL'>('SEARCH');
   const [customManualInput, setCustomManualInput] = useState('');
+  const [userPickerModalOpen, setUserPickerModalOpen] = useState(false);
 
   // AI Generator state
   const [aiPrompt, setAiPrompt] = useState('');
@@ -755,7 +756,12 @@ export default function AdminNotificationsPage() {
                       <button
                         key={item.id}
                         type="button"
-                        onClick={() => setAudienceMode(item.id as AudienceMode)}
+                        onClick={() => {
+                          setAudienceMode(item.id as AudienceMode);
+                          if (item.id === 'MULTIPLE') {
+                            setUserPickerModalOpen(true);
+                          }
+                        }}
                         className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
                           audienceMode === item.id
                             ? 'bg-orange-500/15 border-orange-500 text-orange-400 shadow-md ring-1 ring-orange-500/50'
@@ -771,19 +777,31 @@ export default function AdminNotificationsPage() {
 
                 {/* 1. Custom User Selection Panel (When MULTIPLE / SINGLE is active) */}
                 {(audienceMode === 'MULTIPLE' || audienceMode === 'SINGLE') && (
-                  <div className="p-4 sm:p-5 bg-slate-950/70 border border-orange-500/30 rounded-2xl space-y-4 shadow-inner">
+                  <div className="p-4 sm:p-5 bg-slate-950/70 border border-orange-500/30 rounded-2xl space-y-4 shadow-inner animate-fadeIn">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
                       <div>
                         <h4 className="text-xs font-bold text-white flex items-center gap-2">
                           <User className="w-4 h-4 text-orange-400" />
-                          <span>Select Target Players</span>
+                          <span>Target Players Selection</span>
                           <span className="px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 text-[10px] font-mono font-bold border border-orange-500/30">
                             {selectedUserIds.length} Selected
                           </span>
                         </h4>
                         <p className="text-[11px] text-slate-400 mt-0.5">
-                          Choose specific users to receive this direct push notification.
+                          Click &quot;Open Player Picker&quot; or search below to choose recipients.
                         </p>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => setUserPickerModalOpen(true)}
+                          className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-black font-extrabold text-xs shadow-md flex items-center gap-1.5 transition-all cursor-pointer"
+                        >
+                          <Search className="w-3.5 h-3.5" />
+                          <span>Open Player Picker Modal</span>
+                        </button>
                       </div>
 
                       {/* Mode Toggle */}
@@ -1769,6 +1787,186 @@ export default function AdminNotificationsPage() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: Full Screen Interactive User Picker */}
+        {userPickerModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+            <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 sm:p-8 max-w-2xl w-full shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
+              
+              {/* Modal Header */}
+              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-orange-500/20 border border-orange-500/40 text-orange-400 flex items-center justify-center shrink-0">
+                    <Users className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-white flex items-center gap-2">
+                      <span>Pick Target Players</span>
+                      <span className="px-2.5 py-0.5 rounded-full bg-orange-500/20 text-orange-400 text-xs font-mono font-bold border border-orange-500/40">
+                        {selectedUserIds.length} Selected
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Select players to receive this direct push notification.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setUserPickerModalOpen(false)}
+                  className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center font-bold text-xs transition-colors cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Search Bar & Quick Actions */}
+              <div className="space-y-3 shrink-0">
+                <div className="relative">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    autoFocus
+                    placeholder="Search by name, email, account number (EZBD-...), IGN, or UID..."
+                    value={userSearchQuery}
+                    onChange={(e) => setUserSearchQuery(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-2xl pl-11 pr-10 py-3 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 transition-colors"
+                  />
+                  {userSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setUserSearchQuery('')}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-400">
+                    Showing {filteredAvailableUsers.length} player{filteredAvailableUsers.length !== 1 ? 's' : ''}:
+                  </span>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={handleSelectAllFiltered}
+                      className="text-orange-400 hover:text-orange-300 font-bold hover:underline cursor-pointer"
+                    >
+                      + Select All ({filteredAvailableUsers.length})
+                    </button>
+                    {selectedUserIds.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleClearSelectedUsers}
+                        className="text-rose-400 hover:text-rose-300 font-bold hover:underline cursor-pointer"
+                      >
+                        Clear All ({selectedUserIds.length})
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Scrollable Users List */}
+              <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar pr-1 min-h-[220px] max-h-[360px]">
+                {loadingUsers ? (
+                  <div className="py-16 text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-2">
+                    <Loader2 className="w-6 h-6 animate-spin text-orange-400" />
+                    <span>Loading player directory...</span>
+                  </div>
+                ) : filteredAvailableUsers.length === 0 ? (
+                  <div className="py-16 text-center text-xs text-slate-500 bg-slate-950/60 rounded-2xl border border-slate-800">
+                    No players matching &quot;{userSearchQuery}&quot; found.
+                  </div>
+                ) : (
+                  filteredAvailableUsers.map((u) => {
+                    const isSelected = selectedUserIds.includes(u.id);
+                    return (
+                      <div
+                        key={u.id}
+                        onClick={() => handleToggleUser(u.id)}
+                        className={`p-3 rounded-2xl border flex items-center justify-between gap-3 cursor-pointer transition-all ${
+                          isSelected
+                            ? 'bg-orange-500/15 border-orange-500 text-white shadow-xs'
+                            : 'bg-slate-950/60 border-slate-800/80 text-slate-300 hover:bg-slate-800/80'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className={`w-5 h-5 rounded-lg border flex items-center justify-center text-xs shrink-0 transition-colors ${
+                            isSelected
+                              ? 'bg-orange-500 border-orange-500 text-black font-black'
+                              : 'border-slate-600 bg-slate-800'
+                          }`}>
+                            {isSelected && '✓'}
+                          </div>
+                          <img
+                            src={u.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${u.id}`}
+                            alt={u.name}
+                            className="w-10 h-10 rounded-full object-cover border border-slate-700 bg-slate-800 shrink-0"
+                          />
+                          <div className="min-w-0">
+                            <div className="font-bold text-xs sm:text-sm flex items-center gap-2 truncate">
+                              <span className="truncate">{u.name}</span>
+                              {u.inGameName && (
+                                <span className="text-[10px] text-orange-400 bg-orange-500/10 px-1.5 py-0.2 rounded font-mono font-bold">
+                                  {u.inGameName}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-slate-400 flex items-center gap-2 font-mono truncate mt-0.5">
+                              <span>{u.accountNumber || u.id}</span>
+                              {u.email && <span>• {u.email}</span>}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="text-right shrink-0 space-y-0.5">
+                          {u.walletBalance !== undefined && (
+                            <span className="text-xs font-mono text-emerald-400 font-bold block">
+                              ৳{u.walletBalance}
+                            </span>
+                          )}
+                          <span className={`text-[10px] font-bold uppercase ${
+                            isSelected ? 'text-orange-400' : 'text-slate-500'
+                          }`}>
+                            {isSelected ? '✓ Picked' : '+ Pick'}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="border-t border-slate-800 pt-4 flex items-center justify-between gap-3 shrink-0">
+                <div className="text-xs text-slate-400">
+                  <strong className="text-white font-mono">{selectedUserIds.length}</strong> player(s) selected
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setUserPickerModalOpen(false)}
+                    className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUserPickerModalOpen(false)}
+                    className="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-black font-extrabold text-xs rounded-xl shadow-lg shadow-orange-500/25 transition-all cursor-pointer"
+                  >
+                    Done & Apply Selection ({selectedUserIds.length})
+                  </button>
+                </div>
+              </div>
+
             </div>
           </div>
         )}
