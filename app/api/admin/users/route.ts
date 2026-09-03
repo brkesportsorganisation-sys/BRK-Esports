@@ -132,8 +132,26 @@ export async function GET(request: NextRequest) {
         interactionTier = 'HIGH_ROLLER';
       }
 
+      // Extract inGameRole from deviceToken meta if needed
+      let meta: Record<string, any> = {};
+      if (user.deviceToken && typeof user.deviceToken === 'string') {
+        try {
+          if (user.deviceToken.startsWith('META:')) {
+            meta = JSON.parse(user.deviceToken.replace('META:', '')) || {};
+          } else if (user.deviceToken.startsWith('STREAK:')) {
+            meta = JSON.parse(user.deviceToken.replace('STREAK:', '')) || {};
+          } else if (user.deviceToken.startsWith('{')) {
+            meta = JSON.parse(user.deviceToken) || {};
+          }
+        } catch {}
+      }
+
+      const inGameRole = cleanUser.inGameRole || meta.inGameRole || 'RUSHER';
+
       return {
         ...cleanUser,
+        inGameRole,
+        role: cleanUser.role || 'USER',
         accountNumber: cleanUser.accountNumber || `EZBD-${(cleanUser.id || '').replace(/[^a-zA-Z0-9]/g, '').slice(-6).toUpperCase() || Math.floor(100000 + Math.random() * 900000)}`,
         promoBalance: Number(cleanUser.promoBalance) || 0,
         winningBalance: Number(cleanUser.winningBalance) || 0,
@@ -177,6 +195,7 @@ export async function PATCH(request: NextRequest) {
       isBanned, 
       action,
       role, 
+      inGameRole,
       walletBalance, 
       promoBalance, 
       winningBalance, 
@@ -207,28 +226,90 @@ export async function PATCH(request: NextRequest) {
     if (phone !== undefined) updates.phone = phone.trim();
     if (whatsApp !== undefined) updates.whatsApp = whatsApp.trim();
 
-    // 1. Direct Supabase Database Write
-    const { error: updateErr } = await supabaseAdmin
-      .from('User')
-      .update(updates)
-      .eq('id', targetId);
+    // Fetch existing deviceToken to maintain inGameRole metadata persistence
+    let meta: Record<string, any> = {};
+    try {
+      const { data: curUser } = await supabaseAdmin
+        .from('User')
+        .select('deviceToken, inGameRole')
+        .eq('id', targetId)
+        .maybeSingle();
 
-    if (updateErr) {
+      if (curUser?.deviceToken && typeof curUser.deviceToken === 'string') {
+        if (curUser.deviceToken.startsWith('META:')) {
+          meta = JSON.parse(curUser.deviceToken.replace('META:', '')) || {};
+        } else if (curUser.deviceToken.startsWith('STREAK:')) {
+          meta = JSON.parse(curUser.deviceToken.replace('STREAK:', '')) || {};
+        } else if (curUser.deviceToken.startsWith('{')) {
+          meta = JSON.parse(curUser.deviceToken) || {};
+        }
+      }
+    } catch {}
+
+    if (inGameRole !== undefined) {
+      const cleanRole = inGameRole.trim().toUpperCase() || 'RUSHER';
+      updates.inGameRole = cleanRole;
+      meta.inGameRole = cleanRole;
+      updates.deviceToken = `META:${JSON.stringify(meta)}`;
+    }
+
+    // 1. Direct Supabase Database Write with schema error fallback
+    let retries = 5;
+    const workingUpdates = { ...updates };
+    let finalUpdatedUser: any = null;
+
+    while (retries > 0) {
+      const { data, error: updateErr } = await supabaseAdmin
+        .from('User')
+        .update(workingUpdates)
+        .eq('id', targetId)
+        .select()
+        .maybeSingle();
+
+      if (!updateErr) {
+        finalUpdatedUser = data;
+        break;
+      }
+
+      const fullErrStr = `${updateErr.message || ''} ${updateErr.details || ''}`;
+      const match = fullErrStr.match(/Could not find the '([^']+)' column/i) ||
+                    fullErrStr.match(/column '([^']+)' does not exist/i) ||
+                    fullErrStr.match(/column "([^"]+)" does not exist/i);
+
+      if (match && match[1] && workingUpdates[match[1]] !== undefined) {
+        const missingCol = match[1];
+        console.warn(`[PATCH /api/admin/users] Dropping unsupported column '${missingCol}' from DB update.`);
+        delete workingUpdates[missingCol];
+        retries--;
+        continue;
+      }
+
       console.error('[PATCH /api/admin/users] Supabase update error:', updateErr);
       throw new Error(updateErr.message);
     }
 
     // 2. Sync In-memory Fallback DB
-    db.updateUser(targetId, updates);
+    db.updateUser(targetId, { ...updates, inGameRole: inGameRole || meta.inGameRole });
 
-    logAdminAction(session!.email, 'USER_UPDATE', `Updated user ${targetId} (isBanned: ${updates.isBanned})`);
+    logAdminAction(
+      session!.email, 
+      'USER_UPDATE', 
+      `Updated user ${targetId} (role: ${updates.role || 'unchanged'}, inGameRole: ${inGameRole || 'unchanged'}, isBanned: ${updates.isBanned})`
+    );
 
     return NextResponse.json({ 
       success: true, 
-      message: updates.isBanned !== undefined 
+      message: inGameRole !== undefined 
+        ? `Player In-Game Role updated to ${inGameRole} successfully in database!`
+        : role !== undefined 
+        ? `Player System Role updated to ${role} successfully in database!`
+        : updates.isBanned !== undefined 
         ? `Player ${updates.isBanned ? 'banned' : 'unbanned'} successfully in database.`
         : 'User updated successfully.',
       isBanned: updates.isBanned,
+      inGameRole: inGameRole || meta.inGameRole || 'RUSHER',
+      role: updates.role || finalUpdatedUser?.role || 'USER',
+      user: { ...finalUpdatedUser, inGameRole: inGameRole || meta.inGameRole || 'RUSHER' }
     });
   } catch (error: any) {
     console.error('[PATCH /api/admin/users]', error);

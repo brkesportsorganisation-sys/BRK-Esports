@@ -24,10 +24,22 @@ import {
   X,
   FileText,
   ShieldAlert,
-  Crown
+  Crown,
+  ChevronDown
 } from 'lucide-react';
 import { SupportTicket, SupportMessage } from '@/lib/types';
 import FormattedMessage from '@/components/ui/FormattedMessage';
+
+const ESPORTS_ROLES = [
+  { role: 'RUSHER', label: 'Rusher', icon: '⚡' },
+  { role: 'NADER', label: 'Nader', icon: '💥' },
+  { role: 'SUPPORTER', label: 'Supporter', icon: '🛡️' },
+  { role: 'SNIPER', label: 'Sniper', icon: '🎯' },
+  { role: 'FLANKER', label: 'Flanker', icon: '🦅' },
+  { role: 'IGL', label: 'IGL / Leader', icon: '👑' },
+  { role: 'COACH', label: 'Coach', icon: '🧠' },
+  { role: 'ANALYST', label: 'Analyst', icon: '📊' },
+];
 
 const CANNED_REPLIES = [
   '👋 আসসালামু আলাইকুম! ESPORTS ZONE BD সাপোর্ট থেকে অ্যাডমিন বলছি। আপনাকে কীভাবে সহায়তা করতে পারি?',
@@ -48,6 +60,12 @@ export default function AdminSupportPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'ALL' | 'OPEN' | 'RESOLVED'>('ALL');
 
+  // Active user's in-game and system role
+  const [userInGameRole, setUserInGameRole] = useState<string>('RUSHER');
+  const [userSystemRole, setUserSystemRole] = useState<string>('USER');
+  const [roleModalOpen, setRoleModalOpen] = useState(false);
+  const [roleSaving, setRoleSaving] = useState(false);
+
   // Backup & Archive Modal State
   const [backupModalOpen, setBackupModalOpen] = useState(false);
   const [backupStats, setBackupStats] = useState<{
@@ -63,8 +81,61 @@ export default function AdminSupportPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const activeTicketRef = useRef<SupportTicket | null>(null);
 
+  // Fetch active user role when ticket selected
+  const fetchUserRole = async (userId: string) => {
+    if (!userId) return;
+    try {
+      const res = await fetch(`/api/auth/me?id=${userId}`, { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.user) {
+          setUserInGameRole(data.user.inGameRole || 'RUSHER');
+          setUserSystemRole(data.user.role || 'USER');
+        }
+      }
+    } catch {}
+  };
+
+  const handleUpdateRoleFromSupport = async (newInGameRole: string, newSystemRole?: string) => {
+    if (!activeTicket) return;
+    setRoleSaving(true);
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          id: activeTicket.userId,
+          inGameRole: newInGameRole,
+          role: newSystemRole || userSystemRole,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setUserInGameRole(newInGameRole);
+        if (newSystemRole) setUserSystemRole(newSystemRole);
+        setRoleModalOpen(false);
+        alert(`User role updated to ${newInGameRole} successfully in Database!`);
+        // Auto pre-fill confirmation reply text for quick admin response
+        const roleLabel = ESPORTS_ROLES.find(r => r.role === newInGameRole)?.label || newInGameRole;
+        const roleIcon = ESPORTS_ROLES.find(r => r.role === newInGameRole)?.icon || '⚡';
+        setReplyText(`✅ প্রিয় ${activeTicket.userName}, আপনার রোল পরিবর্তন করে "${roleIcon} ${roleLabel}" সেট করে দেওয়া হয়েছে এবং ডাটাবেজে পার্মানেন্ট সেভ করা হয়েছে! ধন্যবাদ।`);
+      } else {
+        alert(data.message || 'Failed to update role.');
+      }
+    } catch {
+      alert('Error updating user role in database.');
+    } finally {
+      setRoleSaving(false);
+    }
+  };
+
   useEffect(() => {
     activeTicketRef.current = activeTicket;
+    if (activeTicket?.userId) {
+      fetchUserRole(activeTicket.userId);
+    }
   }, [activeTicket]);
 
   const scrollToBottom = () => {
@@ -84,6 +155,7 @@ export default function AdminSupportPage() {
           setActiveTicket(list[0]);
           activeTicketRef.current = list[0];
           fetchMessages(list[0].id, isInitial);
+          fetchUserRole(list[0].userId);
         } else if (activeTicketRef.current) {
           // Keep active ticket metadata in sync
           const currentInList = list.find(t => t.id === activeTicketRef.current?.id);
@@ -482,7 +554,18 @@ export default function AdminSupportPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                  {/* Quick In-Game Role Button */}
+                  <button
+                    onClick={() => setRoleModalOpen(true)}
+                    className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 border border-orange-200 text-orange-900 font-bold text-xs transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                    title="Change Player Role in Database"
+                  >
+                    <span className="text-sm">{ESPORTS_ROLES.find(r => r.role === userInGameRole)?.icon || '⚡'}</span>
+                    <span>{ESPORTS_ROLES.find(r => r.role === userInGameRole)?.label || userInGameRole}</span>
+                    <span className="text-[10px] bg-orange-200/80 text-orange-800 px-1.5 py-0.2 rounded font-mono">Change</span>
+                  </button>
+
                   {activeTicket.userPhone && (
                     <a
                       href={`https://wa.me/${activeTicket.userPhone.replace(/[^0-9]/g, '')}`}
@@ -804,15 +887,79 @@ export default function AdminSupportPage() {
               </button>
             </div>
 
-            {/* Footer Close */}
-            <div className="flex justify-end pt-2">
+      {/* 2. Role Change Modal from Live Chat */}
+      {roleModalOpen && activeTicket && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full border border-slate-200 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="font-heading font-black text-lg text-slate-900">
+                  Change Player Role
+                </h3>
+                <p className="text-xs text-slate-500 font-mono">
+                  {activeTicket.userName} ({activeTicket.userId})
+                </p>
+              </div>
               <button
-                type="button"
-                onClick={() => setBackupModalOpen(false)}
-                className="px-6 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
+                onClick={() => setRoleModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700 font-bold cursor-pointer"
               >
-                Close Manager
+                ✕
               </button>
+            </div>
+
+            <div className="space-y-4 text-xs font-medium">
+              <div>
+                <label className="font-bold text-slate-800 block mb-2">
+                  Select In-Game Role (Click to Change & Save):
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {ESPORTS_ROLES.map((r) => {
+                    const isSelected = userInGameRole === r.role;
+                    return (
+                      <button
+                        key={r.role}
+                        type="button"
+                        disabled={roleSaving}
+                        onClick={() => handleUpdateRoleFromSupport(r.role)}
+                        className={`p-3 rounded-2xl border font-bold text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-1 ${
+                          isSelected
+                            ? 'bg-gradient-to-tr from-amber-500 to-orange-500 text-white border-orange-500 shadow-xs scale-102'
+                            : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        <span className="text-xl">{r.icon}</span>
+                        <span className="text-[11px]">{r.label}</span>
+                        {isSelected && (
+                          <span className="text-[9px] bg-white/30 text-white px-1.5 py-0.2 rounded-full mt-0.5">
+                            Active
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-orange-50 border border-orange-200 text-[11px] text-orange-900 space-y-1">
+                <span className="font-bold flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-orange-600" />
+                  <span>Instant Database Sync:</span>
+                </span>
+                <p>
+                  Changing role updates PostgreSQL directly. A confirmation message will also be auto-drafted into the reply box.
+                </p>
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => setRoleModalOpen(false)}
+                  className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>
