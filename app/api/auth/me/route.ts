@@ -47,6 +47,9 @@ export async function GET(request: NextRequest) {
       } catch {}
     }
 
+    let lastStreakClaimDate = rest.lastStreakClaimDate || null;
+    let currentStreak = Number(rest.currentStreak) || 0;
+
     if (!lastStreakClaimDate && meta.lastStreakClaimDate) {
       lastStreakClaimDate = meta.lastStreakClaimDate;
     }

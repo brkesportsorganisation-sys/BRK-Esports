@@ -887,6 +887,20 @@ export default function AdminSupportPage() {
               </button>
             </div>
 
+            {/* Footer Close */}
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setBackupModalOpen(false)}
+                className="px-6 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
+              >
+                Close Manager
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 2. Role Change Modal from Live Chat */}
       {roleModalOpen && activeTicket && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">

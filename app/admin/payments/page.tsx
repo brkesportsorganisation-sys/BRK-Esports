@@ -430,7 +430,8 @@ export default function AdminPaymentsPage() {
                       )}
                     </td>
                   </tr>
-                ))}
+                );
+              })}
               </tbody>
             </table>
           </div>

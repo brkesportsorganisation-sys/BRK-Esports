@@ -15,6 +15,7 @@ export async function GET() {
     return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
   }
 
+  try {
     const [payRes, userRes] = await Promise.all([
       supabaseAdmin
         .from('Payment')
