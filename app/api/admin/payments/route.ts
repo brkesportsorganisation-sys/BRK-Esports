@@ -15,19 +15,49 @@ export async function GET() {
     return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
   }
 
-  try {
-    const { data: payments, error } = await supabaseAdmin
-      .from('Payment')
-      .select('*')
-      .not('trxId', 'ilike', 'WTH-%')
-      .order('createdAt', { ascending: false });
+    const [payRes, userRes] = await Promise.all([
+      supabaseAdmin
+        .from('Payment')
+        .select('*')
+        .not('trxId', 'ilike', 'WTH-%')
+        .order('createdAt', { ascending: false }),
+      supabaseAdmin
+        .from('User')
+        .select('id, name, email, inGameName, accountNumber, phone')
+    ]);
 
-    if (error) {
-      console.warn('[GET /api/admin/payments] Supabase error:', error.message);
+    if (payRes.error) {
+      console.warn('[GET /api/admin/payments] Supabase error:', payRes.error.message);
       return NextResponse.json({ payments: [] });
     }
 
-    return NextResponse.json({ payments: payments || [] });
+    const rawPayments = payRes.data || [];
+    const usersList = userRes.data || [];
+    const userMap: Record<string, any> = {};
+    for (const u of usersList) {
+      userMap[u.id] = u;
+    }
+
+    const enrichedPayments = rawPayments.map((p) => {
+      const u = userMap[p.userId] || {};
+      const resolvedName = (p.userName && p.userName !== 'Player' && p.userName.trim()) 
+        ? p.userName 
+        : (u.name || u.inGameName || 'Player');
+      const resolvedEmail = (p.userEmail && p.userEmail.trim()) 
+        ? p.userEmail 
+        : (u.email || '');
+
+      return {
+        ...p,
+        userName: resolvedName,
+        userEmail: resolvedEmail,
+        accountNumber: u.accountNumber || `EZBD-${(p.userId || '').replace(/[^a-zA-Z0-9]/g, '').slice(-6).toUpperCase()}`,
+        inGameName: u.inGameName || '',
+        userPhone: u.phone || p.senderNumber || '',
+      };
+    });
+
+    return NextResponse.json({ payments: enrichedPayments });
   } catch (error: any) {
     console.error('[GET /api/admin/payments]', error);
     return NextResponse.json({ payments: [] });

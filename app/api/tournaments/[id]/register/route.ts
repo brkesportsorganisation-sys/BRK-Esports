@@ -339,6 +339,8 @@ export async function POST(
       .insert([{
         id: paymentId,
         userId,
+        userName: user.name || iglName.trim() || 'Player',
+        userEmail: user.email || '',
         tournamentId,
         method: isPayingWithCoins ? 'COINS' : 'WALLET',
         amount: requiredFee,
