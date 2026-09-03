@@ -366,6 +366,23 @@ export interface LeaderboardEntry {
   winRate?: number;
 }
 
+export interface ReferralLeaderboardEntry {
+  rank: number;
+  id: string;
+  name: string;
+  inGameName?: string;
+  avatar?: string;
+  referralCode: string;
+  ffUid?: string;
+  totalReferrals: number;
+  claimedMilestones?: number[];
+  tierBadge?: string;
+  coinBalance?: number;
+  promoBalance?: number;
+  earnings?: number;
+  createdAt?: string;
+}
+
 export interface Announcement {
   id: string;
   title: string;

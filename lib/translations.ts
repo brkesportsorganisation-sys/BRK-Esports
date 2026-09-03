@@ -81,12 +81,22 @@ export const translations = {
 
     // Leaderboard
     leaderboard_title: 'TOP ARENA CHAMPIONS',
-    leaderboard_subtitle: 'Leading players and top cash prize earners',
+    leaderboard_subtitle: 'Leading players, top clans, and highest referral champions',
+    tab_players: 'Player Ranking',
+    tab_teams: 'Clan / Squad Ranking',
+    tab_referrals: 'Top Referrers',
+    referral_leaderboard_title: 'REFERRAL CRUSADE CHAMPIONS',
+    referral_leaderboard_subtitle: 'Top players who invited the most squadmates and unlocked maximum rewards',
     rank: 'Rank',
     player: 'Player',
+    referrer: 'Referrer / Player',
+    referral_code: 'Referral Code',
+    friends_invited: 'Friends Invited',
+    milestones_unlocked: 'Pass Tier / Milestones',
     matches: 'Matches',
     wins: 'Wins',
     total_earnings: 'Total Earnings',
+    copy_code: 'Copy Code',
 
     // Footer
     footer_tagline: 'The ultimate competitive esports platform for Free Fire players in South Asia. Compete in daily BR & CS ranked tournaments and build your legacy.',
@@ -188,12 +198,22 @@ export const translations = {
 
     // Leaderboard
     leaderboard_title: 'টপ অ্যারেনা চ্যাম্পিয়নস',
-    leaderboard_subtitle: 'সেরা প্লেয়ার এবং সর্বোচ্চ প্রাইজমানি অর্জনকারী',
+    leaderboard_subtitle: 'সেরা প্লেয়ার, টপ ক্ল্যান এবং সর্বোচ্চ রেফারকারী চ্যাম্পিয়ন',
+    tab_players: 'প্লেয়ার র‍্যাংকিং',
+    tab_teams: 'ক্ল্যান / স্কোয়াড র‍্যাংকিং',
+    tab_referrals: 'টপ রেফারেল লিডারবোর্ড',
+    referral_leaderboard_title: 'রেফারেল চ্যাম্পিয়ন লিডারবোর্ড',
+    referral_leaderboard_subtitle: 'সর্বাধিক বন্ধু ইনভাইট করে সর্বোচ্চ রিওয়ার্ড অর্জনকারী সেরা প্লেয়ারবৃন্দ',
     rank: 'র‍্যাঙ্ক',
     player: 'প্লেয়ার',
+    referrer: 'রেফারার / প্লেয়ার',
+    referral_code: 'রেফারেল কোড',
+    friends_invited: 'মোট রেফার (ইনভাইট)',
+    milestones_unlocked: 'পাস টায়ার / মাইলস্টোন',
     matches: 'ম্যাচ',
     wins: 'জয়',
     total_earnings: 'মোট আয়',
+    copy_code: 'কোড কপি',
 
     // Footer
     footer_tagline: 'দক্ষিণ এশিয়ার ফ্রি ফায়ার প্লেয়ারদের জন্য সেরা প্রতিযোগিতামূলক এস্পোর্টস প্ল্যাটফর্ম। প্রতিদিন খেলুন এবং চ্যাম্পিয়ন হন।',

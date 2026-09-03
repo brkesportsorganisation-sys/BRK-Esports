@@ -197,18 +197,26 @@ export default function ReferralSection() {
         <div className="flex items-center gap-2.5 w-full sm:w-auto">
           <Link
             href={currentUser ? '/profile#referral' : '/login?redirect=/rewards'}
-            className="flex-1 sm:flex-initial px-5 py-3 rounded-xl bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold hover:brightness-110 text-white font-heading font-black text-xs shadow-neon-red transition-all flex items-center justify-center space-x-1.5 whitespace-nowrap cursor-pointer"
+            className="flex-1 sm:flex-initial px-4 sm:px-5 py-3 rounded-xl bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold hover:brightness-110 text-white font-heading font-black text-xs shadow-neon-red transition-all flex items-center justify-center space-x-1.5 whitespace-nowrap cursor-pointer"
           >
             <Users className="w-4 h-4" />
             <span>{currentUser ? (siteSettings.ref_btn_1_text || 'VIEW REFERRAL PASS') : 'GET REFERRAL LINK'}</span>
           </Link>
 
           <Link
+            href="/leaderboard?tab=referrals"
+            className="flex-1 sm:flex-initial px-4 py-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 font-heading font-black text-xs border border-amber-300 transition-all flex items-center justify-center space-x-1.5 whitespace-nowrap cursor-pointer shadow-xs"
+          >
+            <Trophy className="w-4 h-4 text-amber-600" />
+            <span>{isBangla ? 'লিডারবোর্ড দেখুন' : 'LEADERBOARD'}</span>
+          </Link>
+
+          <Link
             href={siteSettings.ref_btn_2_link || '/lfg'}
-            className="flex-1 sm:flex-initial px-4 py-3 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-heading font-bold text-xs border border-slate-200 hover:border-slate-300 transition-all flex items-center justify-center space-x-1.5 whitespace-nowrap cursor-pointer shadow-xs"
+            className="flex-1 sm:flex-initial px-3.5 py-3 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-heading font-bold text-xs border border-slate-200 hover:border-slate-300 transition-all flex items-center justify-center space-x-1.5 whitespace-nowrap cursor-pointer shadow-xs"
           >
             <Users className="w-4 h-4 text-brand-orange" />
-            <span>{siteSettings.ref_btn_2_text || 'FIND SQUAD (LFG)'}</span>
+            <span>{siteSettings.ref_btn_2_text || 'LFG'}</span>
           </Link>
         </div>
       </div>

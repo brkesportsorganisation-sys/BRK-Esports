@@ -239,9 +239,81 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, message: 'Ticket resolved.' });
     }
 
+    // Action 4: Delete Single Message
+    if (action === 'DELETE_MESSAGE') {
+      const messageId = body.messageId;
+      if (!messageId) {
+        return NextResponse.json({ error: 'Message ID is required.' }, { status: 400 });
+      }
+
+      db.deleteSupportMessage(messageId);
+      try {
+        await supabaseAdmin.from('SupportMessage').delete().eq('id', messageId);
+        if (ticketId) {
+          const { data: latestMsg } = await supabaseAdmin
+            .from('SupportMessage')
+            .select('content')
+            .eq('ticketId', ticketId)
+            .order('createdAt', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          await supabaseAdmin.from('SupportTicket').update({
+            lastMessage: latestMsg?.content || '',
+            updatedAt: new Date().toISOString(),
+          }).eq('id', ticketId);
+        }
+      } catch (supaErr) {
+        console.warn('[DELETE_MESSAGE] Supabase notice:', supaErr);
+      }
+
+      const allMessages = ticketId ? db.getSupportMessages(ticketId) : [];
+      return NextResponse.json({ success: true, messages: allMessages });
+    }
+
     return NextResponse.json({ error: 'Invalid action.' }, { status: 400 });
   } catch (error: any) {
     console.error('[POST /api/support] Error:', error);
     return NextResponse.json({ error: 'Failed to process support request.' }, { status: 500 });
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const messageId = searchParams.get('messageId');
+    const ticketId = searchParams.get('ticketId');
+
+    if (!messageId) {
+      return NextResponse.json({ error: 'Message ID is required.' }, { status: 400 });
+    }
+
+    db.deleteSupportMessage(messageId);
+    try {
+      await supabaseAdmin.from('SupportMessage').delete().eq('id', messageId);
+      if (ticketId) {
+        const { data: latestMsg } = await supabaseAdmin
+          .from('SupportMessage')
+          .select('content')
+          .eq('ticketId', ticketId)
+          .order('createdAt', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        await supabaseAdmin.from('SupportTicket').update({
+          lastMessage: latestMsg?.content || '',
+          updatedAt: new Date().toISOString(),
+        }).eq('id', ticketId);
+      }
+    } catch (supaErr) {
+      console.warn('[DELETE /api/support] Supabase notice:', supaErr);
+    }
+
+    const messages = ticketId ? db.getSupportMessages(ticketId) : [];
+    return NextResponse.json({ success: true, message: 'Message deleted.', messages });
+  } catch (error: any) {
+    console.error('[DELETE /api/support] Error:', error);
+    return NextResponse.json({ error: 'Failed to delete message.' }, { status: 500 });
+  }
+}
+

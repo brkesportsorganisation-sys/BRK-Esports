@@ -267,6 +267,23 @@ export default function AdminSupportPage() {
     } catch {}
   };
 
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!window.confirm('Delete this message?')) return;
+    try {
+      const res = await fetch(`/api/support?messageId=${messageId}&ticketId=${activeTicket?.id || ''}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        setMessages((prev) => prev.filter((m) => m.id !== messageId));
+        fetchTickets(false);
+      } else {
+        alert('Failed to delete message.');
+      }
+    } catch {
+      alert('Error deleting message.');
+    }
+  };
+
   const filteredTickets = tickets.filter(t => {
     if (filterStatus !== 'ALL' && t.status !== filterStatus) return false;
     if (searchQuery) {
@@ -511,7 +528,7 @@ export default function AdminSupportPage() {
                     return (
                       <div
                         key={msg.id}
-                        className={`flex gap-2.5 max-w-[85%] sm:max-w-[75%] ${
+                        className={`group/msg relative flex gap-2.5 max-w-[85%] sm:max-w-[75%] ${
                           isAdmin ? 'ml-auto flex-row-reverse' : 'mr-auto'
                         }`}
                       >
@@ -523,19 +540,31 @@ export default function AdminSupportPage() {
                           />
                         )}
 
-                        <div className="space-y-1">
-                          <div className={`p-3.5 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-2xs ${
+                        <div className="space-y-1 relative">
+                          <div className={`p-3.5 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-2xs relative ${
                             isAdmin
                               ? 'bg-gradient-to-r from-red-500 via-orange-500 to-amber-500 text-white rounded-tr-none font-medium'
                               : 'bg-white border border-slate-200 text-slate-900 rounded-tl-none font-medium'
                           }`}>
                             {isAdmin && (
-                              <div className="text-[10px] font-black text-amber-100 flex items-center gap-1 mb-1 font-heading uppercase">
-                                <Crown className="w-3 h-3 text-amber-200" />
-                                <span>Support Admin</span>
+                              <div className="text-[10px] font-black text-amber-100 flex items-center justify-between gap-1 mb-1 font-heading uppercase">
+                                <div className="flex items-center gap-1">
+                                  <Crown className="w-3 h-3 text-amber-200" />
+                                  <span>Support Admin</span>
+                                </div>
                               </div>
                             )}
                             <p className="whitespace-pre-wrap">{msg.content}</p>
+
+                            {/* Delete Button on hover */}
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteMessage(msg.id)}
+                              title="Delete this message"
+                              className={`absolute -top-2 ${isAdmin ? '-left-2' : '-right-2'} opacity-0 group-hover/msg:opacity-100 bg-slate-900 hover:bg-red-600 text-white p-1 rounded-full shadow-md transition-all duration-150 cursor-pointer z-10`}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
                           </div>
 
                           <div className={`text-[9px] text-slate-400 font-mono px-1 flex items-center gap-1 ${

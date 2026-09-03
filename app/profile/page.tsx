@@ -761,9 +761,18 @@ function ProfilePageContent() {
                     <Clock className="w-3.5 h-3.5" /> Note: This Referral Pass resets monthly. Ends in: {passTimeLeft}
                   </div>
                 </div>
-                <div className="bg-orange-50 border border-orange-200 px-4 py-2 rounded-xl text-center self-start sm:self-auto">
-                  <div className="text-[10px] text-orange-600 font-bold uppercase">Total Referrals</div>
-                  <div className="font-heading font-black text-2xl text-orange-500">{user.totalReferrals || 0}</div>
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <Link
+                    href="/leaderboard?tab=referrals"
+                    className="bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-900 px-3.5 py-2 rounded-xl text-center flex flex-col items-center justify-center transition-colors shadow-xs group"
+                  >
+                    <Trophy className="w-4 h-4 text-amber-600 mb-0.5 group-hover:scale-110 transition-transform" />
+                    <span className="text-[10px] font-black uppercase text-amber-800">Leaderboard</span>
+                  </Link>
+                  <div className="bg-orange-50 border border-orange-200 px-4 py-2 rounded-xl text-center">
+                    <div className="text-[10px] text-orange-600 font-bold uppercase">Total Referrals</div>
+                    <div className="font-heading font-black text-2xl text-orange-500">{user.totalReferrals || 0}</div>
+                  </div>
                 </div>
               </div>
 

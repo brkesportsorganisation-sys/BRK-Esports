@@ -707,6 +707,27 @@ class LocalDatabase {
     return deletedCount;
   }
 
+  deleteSupportMessage(id: string): boolean {
+    const initialCount = this.supportMessages.length;
+    const msg = this.supportMessages.find((m) => m.id === id);
+    this.supportMessages = this.supportMessages.filter((m) => m.id !== id);
+    if (msg && msg.ticketId) {
+      const remainingForTicket = this.getSupportMessages(msg.ticketId);
+      const ticketIdx = this.supportTickets.findIndex((t) => t.id === msg.ticketId);
+      if (ticketIdx !== -1) {
+        this.supportTickets[ticketIdx].lastMessage = remainingForTicket.length > 0
+          ? remainingForTicket[remainingForTicket.length - 1].content
+          : '';
+        this.supportTickets[ticketIdx].updatedAt = new Date().toISOString();
+      }
+    }
+    if (this.supportMessages.length !== initialCount) {
+      this.save();
+      return true;
+    }
+    return false;
+  }
+
   purgeAllSupportMessages(): number {
     const count = this.supportMessages.length;
     this.supportMessages = [];
