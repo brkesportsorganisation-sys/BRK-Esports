@@ -127,6 +127,11 @@ export default function AdminNotificationsPage() {
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [selectedTournamentId, setSelectedTournamentId] = useState<string>('');
 
+  // Target users search and input state
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [pickerMode, setPickerMode] = useState<'SEARCH' | 'MANUAL'>('SEARCH');
+  const [customManualInput, setCustomManualInput] = useState('');
+
   // AI Generator state
   const [aiPrompt, setAiPrompt] = useState('');
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
@@ -195,6 +200,38 @@ export default function AdminNotificationsPage() {
     }
   };
 
+  // Load users directory for direct target selection
+  const loadUsers = async () => {
+    setLoadingUsers(true);
+    try {
+      const res = await fetch('/api/admin/users', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        setAvailableUsers(data.users || []);
+      }
+    } catch (err) {
+      console.warn('Failed to load users for notifications:', err);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  // Load tournaments for target selection
+  const loadTournaments = async () => {
+    setLoadingTournaments(true);
+    try {
+      const res = await fetch('/api/tournaments', { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        setAvailableTournaments(data.tournaments || []);
+      }
+    } catch (err) {
+      console.warn('Failed to load tournaments for notifications:', err);
+    } finally {
+      setLoadingTournaments(false);
+    }
+  };
+
   // Load AI schedules
   const loadSchedules = async () => {
     setLoadingSchedules(true);
@@ -214,9 +251,70 @@ export default function AdminNotificationsPage() {
     }
   };
 
+  // Computed filtered users list
+  const filteredAvailableUsers = useMemo(() => {
+    if (!userSearchQuery.trim()) return availableUsers.slice(0, 60);
+    const q = userSearchQuery.toLowerCase();
+    return availableUsers.filter(u =>
+      u.name?.toLowerCase().includes(q) ||
+      u.email?.toLowerCase().includes(q) ||
+      u.accountNumber?.toLowerCase().includes(q) ||
+      u.inGameName?.toLowerCase().includes(q) ||
+      u.freeFireUid?.toLowerCase().includes(q) ||
+      u.id?.toLowerCase().includes(q)
+    ).slice(0, 60);
+  }, [availableUsers, userSearchQuery]);
+
+  const handleToggleUser = (userId: string) => {
+    setSelectedUserIds(prev =>
+      prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]
+    );
+  };
+
+  const handleSelectAllFiltered = () => {
+    const idsToAdd = filteredAvailableUsers.map(u => u.id);
+    setSelectedUserIds(prev => Array.from(new Set([...prev, ...idsToAdd])));
+  };
+
+  const handleClearSelectedUsers = () => {
+    setSelectedUserIds([]);
+  };
+
+  const handleApplyManualInput = () => {
+    if (!customManualInput.trim()) return;
+    const tokens = customManualInput
+      .split(/[\n,; ]+/)
+      .map(t => t.trim())
+      .filter(Boolean);
+
+    const matchedIds: string[] = [];
+    tokens.forEach(token => {
+      const found = availableUsers.find(
+        u => u.id === token || u.email?.toLowerCase() === token.toLowerCase() || u.accountNumber === token
+      );
+      if (found) {
+        matchedIds.push(found.id);
+      } else if (token.startsWith('usr_')) {
+        matchedIds.push(token);
+      }
+    });
+
+    if (matchedIds.length > 0) {
+      setSelectedUserIds(prev => Array.from(new Set([...prev, ...matchedIds])));
+      setCustomManualInput('');
+      setPickerMode('SEARCH');
+      setFeedbackMsg(`✅ Added ${matchedIds.length} player(s) to target recipients!`);
+      setTimeout(() => setFeedbackMsg(''), 3000);
+    } else {
+      alert('No matching user IDs or emails found. Please verify the IDs.');
+    }
+  };
+
   useEffect(() => {
     loadNotifications();
     loadSchedules();
+    loadUsers();
+    loadTournaments();
   }, []);
 
   useEffect(() => {
@@ -353,6 +451,16 @@ export default function AdminNotificationsPage() {
     e.preventDefault();
     if (!title.trim() || !message.trim()) {
       alert('Please provide both Title and Message.');
+      return;
+    }
+
+    if ((audienceMode === 'MULTIPLE' || audienceMode === 'SINGLE') && selectedUserIds.length === 0) {
+      alert('⚠️ Please select at least 1 player from the list to receive this notification.');
+      return;
+    }
+
+    if (audienceMode === 'TOURNAMENT' && !selectedTournamentId) {
+      alert('⚠️ Please select a tournament to notify its registered players.');
       return;
     }
 
@@ -648,9 +756,9 @@ export default function AdminNotificationsPage() {
                         key={item.id}
                         type="button"
                         onClick={() => setAudienceMode(item.id as AudienceMode)}
-                        className={`p-3 rounded-2xl border text-left transition-all ${
+                        className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
                           audienceMode === item.id
-                            ? 'bg-orange-500/10 border-orange-500/50 text-orange-400 shadow-sm'
+                            ? 'bg-orange-500/15 border-orange-500 text-orange-400 shadow-md ring-1 ring-orange-500/50'
                             : 'bg-slate-800/40 border-slate-700/50 text-slate-400 hover:bg-slate-800/80 hover:text-slate-200'
                         }`}
                       >
@@ -660,6 +768,264 @@ export default function AdminNotificationsPage() {
                     ))}
                   </div>
                 </div>
+
+                {/* 1. Custom User Selection Panel (When MULTIPLE / SINGLE is active) */}
+                {(audienceMode === 'MULTIPLE' || audienceMode === 'SINGLE') && (
+                  <div className="p-4 sm:p-5 bg-slate-950/70 border border-orange-500/30 rounded-2xl space-y-4 shadow-inner">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                      <div>
+                        <h4 className="text-xs font-bold text-white flex items-center gap-2">
+                          <User className="w-4 h-4 text-orange-400" />
+                          <span>Select Target Players</span>
+                          <span className="px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 text-[10px] font-mono font-bold border border-orange-500/30">
+                            {selectedUserIds.length} Selected
+                          </span>
+                        </h4>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          Choose specific users to receive this direct push notification.
+                        </p>
+                      </div>
+
+                      {/* Mode Toggle */}
+                      <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800 self-start sm:self-auto">
+                        <button
+                          type="button"
+                          onClick={() => setPickerMode('SEARCH')}
+                          className={`px-3 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                            pickerMode === 'SEARCH'
+                              ? 'bg-orange-500 text-black shadow-xs'
+                              : 'text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          🔍 Search & Pick
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPickerMode('MANUAL')}
+                          className={`px-3 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                            pickerMode === 'MANUAL'
+                              ? 'bg-orange-500 text-black shadow-xs'
+                              : 'text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          ✍️ Paste IDs/Emails
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Selected Users Pill Chips */}
+                    {selectedUserIds.length > 0 && (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-slate-400 font-medium">Selected Recipients:</span>
+                          <button
+                            type="button"
+                            onClick={handleClearSelectedUsers}
+                            className="text-rose-400 hover:text-rose-300 font-bold hover:underline cursor-pointer"
+                          >
+                            Clear All ({selectedUserIds.length})
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto custom-scrollbar p-2 bg-slate-900/90 rounded-xl border border-slate-800">
+                          {selectedUserIds.map((uid) => {
+                            const u = availableUsers.find(user => user.id === uid);
+                            return (
+                              <span
+                                key={uid}
+                                className="inline-flex items-center gap-1.5 pl-2 pr-1 py-1 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-300 text-xs font-medium"
+                              >
+                                <span>{u?.name || u?.inGameName || uid}</span>
+                                {u?.accountNumber && (
+                                  <span className="text-[10px] text-orange-400/70 font-mono">({u.accountNumber})</span>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleUser(uid)}
+                                  className="w-4 h-4 rounded-full bg-orange-500/20 hover:bg-orange-500 hover:text-black text-orange-300 flex items-center justify-center text-[10px] transition-colors cursor-pointer"
+                                  title="Remove player"
+                                >
+                                  ✕
+                                </button>
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Picker Mode 1: Search & Interactive Select */}
+                    {pickerMode === 'SEARCH' && (
+                      <div className="space-y-3">
+                        <div className="relative">
+                          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                          <input
+                            type="text"
+                            placeholder="Search by name, email, account number (EZBD-...), or IGN..."
+                            value={userSearchQuery}
+                            onChange={(e) => setUserSearchQuery(e.target.value)}
+                            className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
+                          />
+                          {userSearchQuery && (
+                            <button
+                              type="button"
+                              onClick={() => setUserSearchQuery('')}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs cursor-pointer"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-slate-400">
+                            Showing {filteredAvailableUsers.length} player{filteredAvailableUsers.length !== 1 ? 's' : ''}:
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={handleSelectAllFiltered}
+                              className="text-orange-400 hover:text-orange-300 font-bold cursor-pointer"
+                            >
+                              + Select All ({filteredAvailableUsers.length})
+                            </button>
+                          </div>
+                        </div>
+
+                        {loadingUsers ? (
+                          <div className="py-8 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+                            <Loader2 className="w-4 h-4 animate-spin text-orange-400" />
+                            <span>Loading users directory...</span>
+                          </div>
+                        ) : filteredAvailableUsers.length === 0 ? (
+                          <div className="py-6 text-center text-xs text-slate-500 bg-slate-900/50 rounded-xl border border-slate-800">
+                            No matching players found.
+                          </div>
+                        ) : (
+                          <div className="max-h-56 overflow-y-auto space-y-1.5 custom-scrollbar pr-1">
+                            {filteredAvailableUsers.map((u) => {
+                              const isSelected = selectedUserIds.includes(u.id);
+                              return (
+                                <div
+                                  key={u.id}
+                                  onClick={() => handleToggleUser(u.id)}
+                                  className={`p-2.5 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-all ${
+                                    isSelected
+                                      ? 'bg-orange-500/15 border-orange-500/50 text-white'
+                                      : 'bg-slate-900/60 border-slate-800/80 text-slate-300 hover:bg-slate-800/80'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <div className={`w-4 h-4 rounded border flex items-center justify-center text-[10px] shrink-0 ${
+                                      isSelected
+                                        ? 'bg-orange-500 border-orange-500 text-black font-black'
+                                        : 'border-slate-600 bg-slate-800'
+                                    }`}>
+                                      {isSelected && '✓'}
+                                    </div>
+                                    <img
+                                      src={u.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${u.id}`}
+                                      alt={u.name}
+                                      className="w-8 h-8 rounded-full object-cover border border-slate-700 bg-slate-800 shrink-0"
+                                    />
+                                    <div className="min-w-0">
+                                      <div className="font-bold text-xs flex items-center gap-1.5 truncate">
+                                        <span className="truncate">{u.name}</span>
+                                        {u.inGameName && (
+                                          <span className="text-[10px] text-orange-400 bg-orange-500/10 px-1 rounded font-mono">
+                                            {u.inGameName}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="text-[10px] text-slate-400 flex items-center gap-2 font-mono truncate">
+                                        <span>{u.accountNumber || u.id}</span>
+                                        {u.email && <span>• {u.email}</span>}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="text-right shrink-0">
+                                    {u.walletBalance !== undefined && (
+                                      <span className="text-[10px] font-mono text-emerald-400 font-bold block">
+                                        ৳{u.walletBalance}
+                                      </span>
+                                    )}
+                                    <span className={`text-[9px] font-bold uppercase ${
+                                      isSelected ? 'text-orange-400' : 'text-slate-500'
+                                    }`}>
+                                      {isSelected ? 'Selected' : 'Click to pick'}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Picker Mode 2: Manual IDs / Emails Paste */}
+                    {pickerMode === 'MANUAL' && (
+                      <div className="space-y-3">
+                        <textarea
+                          rows={3}
+                          placeholder="Paste user IDs or emails (separated by commas, spaces, or newlines)...&#10;e.g. usr_1788446198699_77z3f, ronyr01978121744@gmail.com, EZBD-826628"
+                          value={customManualInput}
+                          onChange={(e) => setCustomManualInput(e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 resize-none font-mono"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleApplyManualInput}
+                          className="w-full py-2.5 bg-orange-500 hover:bg-orange-600 text-black font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Add to Selected Recipients</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 2. Tournament Selection Panel (When TOURNAMENT is active) */}
+                {audienceMode === 'TOURNAMENT' && (
+                  <div className="p-4 sm:p-5 bg-slate-950/70 border border-orange-500/30 rounded-2xl space-y-3 shadow-inner">
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                      <h4 className="text-xs font-bold text-white flex items-center gap-2">
+                        <Trophy className="w-4 h-4 text-orange-400" />
+                        <span>Select Tournament to Notify Participants</span>
+                      </h4>
+                      <span className="text-[10px] text-slate-400">
+                        {availableTournaments.length} Tournaments Available
+                      </span>
+                    </div>
+
+                    <div className="space-y-2">
+                      <select
+                        value={selectedTournamentId}
+                        onChange={(e) => setSelectedTournamentId(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-orange-500 cursor-pointer"
+                      >
+                        <option value="">-- Choose a tournament match --</option>
+                        {availableTournaments.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.title} ({t.registeredCount || 0}/{t.maxTeams || 48} Teams Registered) • Status: {t.status}
+                          </option>
+                        ))}
+                      </select>
+
+                      {selectedTournamentId && (
+                        <div className="p-3 rounded-xl bg-orange-500/10 border border-orange-500/30 text-xs text-orange-300 flex items-center justify-between">
+                          <span>
+                            🎯 All registered players in this tournament will receive this push notification.
+                          </span>
+                          <span className="font-mono font-bold text-orange-400">
+                            ID: {selectedTournamentId.slice(0, 10)}...
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Category & Priority Selector */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -836,9 +1202,22 @@ export default function AdminNotificationsPage() {
                 </div>
 
                 <div className="p-4 bg-slate-800/30 border border-slate-800 rounded-2xl text-xs space-y-2 text-slate-400">
-                  <div className="flex justify-between">
+                  <div className="flex justify-between items-center">
                     <span>Target Audience:</span>
-                    <span className="font-bold text-white">{audienceMode}</span>
+                    <span className="font-bold text-white text-right">
+                      {audienceMode === 'ALL' && 'All Players (Broadcast)'}
+                      {audienceMode === 'ACTIVE_PLAYERS' && 'Active Gamers (Top 200)'}
+                      {audienceMode === 'TOURNAMENT' && (
+                        selectedTournamentId 
+                          ? `Tournament (${availableTournaments.find(t => t.id === selectedTournamentId)?.title || 'Selected'})` 
+                          : 'Tournament (Pick one)'
+                      )}
+                      {(audienceMode === 'MULTIPLE' || audienceMode === 'SINGLE') && (
+                        selectedUserIds.length > 0
+                          ? `Custom (${selectedUserIds.length} Player${selectedUserIds.length !== 1 ? 's' : ''})`
+                          : 'Custom (0 Selected)'
+                      )}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span>Category:</span>
