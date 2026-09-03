@@ -192,7 +192,8 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
   }, [tournament, currentStatus]);
 
   const [currentUser, setCurrentUser] = useState<UserType | null>(null);
-  const [activeTab, setActiveTab] = useState<'ROOM' | 'ROADMAP' | 'POINTS' | 'DETAILS'>('ROOM');
+  const [activeTab, setActiveTab] = useState<'ROOM' | 'ROADMAP' | 'DETAILS'>('ROOM');
+  const [pointsModalOpen, setPointsModalOpen] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [pointsTables, setPointsTables] = useState<TournamentPointsTable[]>([]);
   const [tournamentRooms, setTournamentRooms] = useState<TournamentRoom[]>([]);
@@ -865,18 +866,6 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
           </button>
 
           <button
-            onClick={() => setActiveTab('POINTS')}
-            className={`flex-1 sm:flex-initial px-4 sm:px-6 py-2.5 sm:py-3 rounded-2xl font-heading font-black text-xs sm:text-sm transition-all whitespace-nowrap cursor-pointer flex items-center justify-center gap-2 ${
-              activeTab === 'POINTS'
-                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-neon-orange'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white bg-slate-100/80 border border-slate-200'
-            }`}
-          >
-            <Trophy className="w-4 h-4" />
-            <span>Points Table {pointsTables.length > 0 ? `(${pointsTables.length})` : ''}</span>
-          </button>
-
-          <button
             onClick={() => setActiveTab('DETAILS')}
             className={`flex-1 sm:flex-initial px-4 sm:px-6 py-2.5 sm:py-3 rounded-2xl font-heading font-black text-xs sm:text-sm transition-all whitespace-nowrap cursor-pointer flex items-center justify-center gap-2 ${
               activeTab === 'DETAILS'
@@ -923,6 +912,17 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                     <span className="text-slate-600 font-bold uppercase">Slots Registered</span>
                     <span className="font-bold text-amber-600">{tournament.registeredCount} / {tournament.maxTeams} Teams</span>
                   </div>
+                </div>
+
+                {/* Standings & Points Table Quick Button */}
+                <div className="pt-2">
+                  <button
+                    onClick={() => setPointsModalOpen(true)}
+                    className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:brightness-110 text-white font-heading font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md shadow-amber-500/20 transition-all cursor-pointer"
+                  >
+                    <Trophy className="w-4 h-4" />
+                    <span>View Points Table &amp; Standings {pointsTables.length > 0 ? `(${pointsTables.length})` : ''}</span>
+                  </button>
                 </div>
               </div>
 
@@ -1042,20 +1042,34 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
 
         {/* ─── 2. TOURNAMENT ROADMAP & MULTI-STAGE BRACKET TAB ─── */}
         {activeTab === 'ROADMAP' && (
-          <TournamentRoadmapView
-            tournament={tournament}
-            rooms={tournamentRooms}
-            roadmap={tournamentRoadmap}
-          />
-        )}
+          <div className="space-y-8">
+            <TournamentRoadmapView
+              tournament={tournament}
+              rooms={tournamentRooms}
+              roadmap={tournamentRoadmap}
+            />
 
-        {/* ─── 3. POINTS TABLE & STANDINGS TAB ─── */}
-        {activeTab === 'POINTS' && (
-          <PointsTableView
-            tournament={tournament}
-            pointsTables={pointsTables}
-            defaultAdvancementCount={tournament.defaultAdvancementCount || 3}
-          />
+            {/* Stage Standings / Points Table integrated inside Roadmap */}
+            {pointsTables.length > 0 && (
+              <div className="space-y-4 pt-4 border-t border-slate-200">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-heading font-black text-xl text-slate-900 flex items-center gap-2">
+                    <Trophy className="w-6 h-6 text-amber-500" />
+                    <span>Stage Standings &amp; Points Table</span>
+                  </h3>
+                  <span className="px-3 py-1 rounded-full bg-amber-50 text-amber-600 border border-amber-200 text-xs font-bold font-mono">
+                    {pointsTables.length} Published
+                  </span>
+                </div>
+                <PointsTableView
+                  tournament={tournament}
+                  rooms={tournamentRooms}
+                  pointsTables={pointsTables}
+                  defaultAdvancementCount={tournament.defaultAdvancementCount || 3}
+                />
+              </div>
+            )}
+          </div>
         )}
 
       </main>
@@ -1635,6 +1649,52 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                     </div>
                   )}
                 </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ═══════════════════════════════════════════
+          POINTS TABLE & STANDINGS POPUP MODAL
+      ═══════════════════════════════════════════ */}
+      <AnimatePresence>
+        {pointsModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-sm animate-fadeIn">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white rounded-3xl max-w-5xl w-full border border-slate-200 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="flex items-center justify-between p-4 sm:p-6 border-b border-slate-100 bg-slate-50/80">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center">
+                    <Trophy className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-black text-base sm:text-lg text-slate-900">
+                      Official Tournament Standings &amp; Points Table
+                    </h3>
+                    <p className="text-xs text-slate-500">{tournament.title}</p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setPointsModalOpen(false)}
+                  className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-4 sm:p-6 overflow-y-auto custom-scrollbar">
+                <PointsTableView
+                  tournament={tournament}
+                  rooms={tournamentRooms}
+                  pointsTables={pointsTables}
+                  defaultAdvancementCount={tournament.defaultAdvancementCount || 3}
+                />
               </div>
             </motion.div>
           </div>
