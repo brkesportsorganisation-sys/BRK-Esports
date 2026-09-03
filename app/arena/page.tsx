@@ -168,7 +168,7 @@ export default function ArenaPage() {
           creatorId: currentUser.id,
           creatorName: currentUser.name,
           creatorIgn: creatorIgn.trim() || currentUser.inGameName || currentUser.name,
-          creatorUid: creatorUid.trim() || currentUser.freeFireUid || '',
+          creatorUid: currentUser.freeFireUid || '',
           mode,
           customRules,
           roomCardProvider,
@@ -566,17 +566,6 @@ export default function ArenaPage() {
                             </div>
                           </div>
                         </div>
-
-                        {duel.creatorUid && (
-                          <button
-                            onClick={() => handleCopy(duel.creatorUid || '', `uid_c_${duel.id}`)}
-                            className="text-[10px] font-mono text-slate-600 hover:text-slate-900 px-2 py-1 rounded-lg bg-white border border-slate-200 flex items-center gap-1 shadow-2xs cursor-pointer"
-                            title="Copy UID"
-                          >
-                            <span>UID: {duel.creatorUid}</span>
-                            {copiedId === `uid_c_${duel.id}` ? <Check className="w-2.5 h-2.5 text-emerald-600" /> : <Copy className="w-2.5 h-2.5" />}
-                          </button>
-                        )}
                       </div>
 
                       {/* VS Divider */}
@@ -589,33 +578,20 @@ export default function ArenaPage() {
                       {/* Challenger */}
                       <div className="flex items-center justify-between">
                         {duel.challengerName ? (
-                          <>
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <div className="w-8 h-8 rounded-xl bg-blue-100 border border-blue-200 text-blue-600 font-bold text-xs flex items-center justify-center flex-shrink-0">
-                                ⚔️
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-8 h-8 rounded-xl bg-blue-100 border border-blue-200 text-blue-600 font-bold text-xs flex items-center justify-center flex-shrink-0">
+                              ⚔️
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-xs font-bold text-slate-900 truncate flex items-center gap-1">
+                                <span>{duel.challengerName}</span>
+                                {isChallenger && <span className="text-[9px] text-blue-600 font-mono font-bold">(You)</span>}
                               </div>
-                              <div className="min-w-0">
-                                <div className="text-xs font-bold text-slate-900 truncate flex items-center gap-1">
-                                  <span>{duel.challengerName}</span>
-                                  {isChallenger && <span className="text-[9px] text-blue-600 font-mono font-bold">(You)</span>}
-                                </div>
-                                <div className="text-[10px] text-slate-500 font-mono truncate">
-                                  IGN: <strong className="text-slate-800">{duel.challengerIgn}</strong>
-                                </div>
+                              <div className="text-[10px] text-slate-500 font-mono truncate">
+                                IGN: <strong className="text-slate-800">{duel.challengerIgn}</strong>
                               </div>
                             </div>
-
-                            {duel.challengerUid && (
-                              <button
-                                onClick={() => handleCopy(duel.challengerUid || '', `uid_ch_${duel.id}`)}
-                                className="text-[10px] font-mono text-slate-600 hover:text-slate-900 px-2 py-1 rounded-lg bg-white border border-slate-200 flex items-center gap-1 shadow-2xs cursor-pointer"
-                                title="Copy UID"
-                              >
-                                <span>UID: {duel.challengerUid}</span>
-                                {copiedId === `uid_ch_${duel.id}` ? <Check className="w-2.5 h-2.5 text-emerald-600" /> : <Copy className="w-2.5 h-2.5" />}
-                              </button>
-                            )}
-                          </>
+                          </div>
                         ) : (
                           <div className="py-1 text-center w-full text-xs text-slate-400 font-medium">
                             ⏳ Waiting for opponent to accept...
@@ -751,30 +727,17 @@ export default function ArenaPage() {
                 </select>
               </div>
 
-              {/* Creator In-Game Name & UID */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">Your Free Fire IGN *</label>
-                  <input
-                    type="text"
-                    required
-                    value={creatorIgn}
-                    onChange={(e) => setCreatorIgn(e.target.value)}
-                    placeholder="e.g. OP_ASHIK"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-900 font-bold focus:bg-white focus:outline-none focus:border-brand-orange transition-colors"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">Your FF Player UID</label>
-                  <input
-                    type="text"
-                    value={creatorUid}
-                    onChange={(e) => setCreatorUid(e.target.value)}
-                    placeholder="e.g. 2938472910"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-900 font-mono focus:bg-white focus:outline-none focus:border-brand-orange transition-colors"
-                  />
-                </div>
+              {/* Creator In-Game Name */}
+              <div>
+                <label className="block text-slate-700 font-bold mb-1">Your Free Fire IGN *</label>
+                <input
+                  type="text"
+                  required
+                  value={creatorIgn}
+                  onChange={(e) => setCreatorIgn(e.target.value)}
+                  placeholder="e.g. OP_ASHIK"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-900 font-bold focus:bg-white focus:outline-none focus:border-brand-orange transition-colors"
+                />
               </div>
 
               {/* Custom Rules */}
