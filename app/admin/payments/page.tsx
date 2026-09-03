@@ -87,10 +87,12 @@ export default function AdminPaymentsPage() {
     setTimeout(() => setCopiedTrx(null), 2000);
   };
 
-  const pendingCount = payments.filter((p) => p.status === 'PENDING').length;
-  const verifiedCount = payments.filter((p) => p.status === 'VERIFIED').length;
+  const [typeFilter, setTypeFilter] = useState<'ALL' | 'DEPOSITS' | 'MATCH_ENTRIES'>('ALL');
+
+  const pendingCount = payments.filter((p) => p.status === 'PENDING' && (p.method === 'BKASH' || p.method === 'NAGAD' || p.method === 'ROCKET')).length;
+  const verifiedCount = payments.filter((p) => p.status === 'VERIFIED' && (p.method === 'BKASH' || p.method === 'NAGAD' || p.method === 'ROCKET')).length;
   const totalDepositAmount = payments
-    .filter((p) => p.status === 'VERIFIED')
+    .filter((p) => p.status === 'VERIFIED' && (p.method === 'BKASH' || p.method === 'NAGAD' || p.method === 'ROCKET'))
     .reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
 
   const filteredPayments = payments.filter((p) => {
@@ -98,9 +100,20 @@ export default function AdminPaymentsPage() {
       p.userName?.toLowerCase().includes(search.toLowerCase()) ||
       p.userEmail?.toLowerCase().includes(search.toLowerCase()) ||
       p.trxId?.toLowerCase().includes(search.toLowerCase()) ||
+      (p as any).accountNumber?.toLowerCase().includes(search.toLowerCase()) ||
+      (p as any).inGameName?.toLowerCase().includes(search.toLowerCase()) ||
+      p.notes?.toLowerCase().includes(search.toLowerCase()) ||
       p.method?.toLowerCase().includes(search.toLowerCase());
+
     const matchesStatus = statusFilter === 'ALL' || p.status === statusFilter;
-    return matchesSearch && matchesStatus;
+
+    const isMatchEntry = p.trxId?.startsWith('WAL_') || p.notes?.toLowerCase().includes('squad registration') || p.notes?.toLowerCase().includes('tournament');
+    const matchesType = 
+      typeFilter === 'ALL' ? true :
+      typeFilter === 'DEPOSITS' ? (p.method === 'BKASH' || p.method === 'NAGAD' || p.method === 'ROCKET') && !isMatchEntry :
+      typeFilter === 'MATCH_ENTRIES' ? isMatchEntry : true;
+
+    return matchesSearch && matchesStatus && matchesType;
   });
 
   return (
@@ -110,10 +123,10 @@ export default function AdminPaymentsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-[28px] sm:text-[32px] font-bold text-[#0F172A] tracking-tight leading-tight">
-            Deposit Verification Queue
+            Deposit & Payment Logs
           </h1>
           <p className="text-[13px] text-[#64748B] font-normal mt-1">
-            Review and verify manual bKash, Nagad, and Rocket mobile deposits.
+            Review manual mobile deposits (bKash/Nagad) and tournament match fee entry logs.
           </p>
         </div>
 
@@ -141,7 +154,7 @@ export default function AdminPaymentsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
         <div className="bg-white border border-[#E2E8F0]/80 p-5 rounded-[20px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex items-center justify-between">
           <div>
-            <div className="text-xs font-medium text-[#64748B]">Pending Verifications</div>
+            <div className="text-xs font-medium text-[#64748B]">Pending Mobile Deposits</div>
             <div className="text-2xl font-bold text-amber-600 mt-1">{pendingCount}</div>
           </div>
           <div className="w-10 h-10 rounded-[12px] bg-amber-50 text-amber-600 flex items-center justify-center">
@@ -151,7 +164,7 @@ export default function AdminPaymentsPage() {
 
         <div className="bg-white border border-[#E2E8F0]/80 p-5 rounded-[20px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex items-center justify-between">
           <div>
-            <div className="text-xs font-medium text-[#64748B]">Approved Deposits</div>
+            <div className="text-xs font-medium text-[#64748B]">Approved Mobile Deposits</div>
             <div className="text-2xl font-bold text-emerald-600 mt-1">{verifiedCount}</div>
           </div>
           <div className="w-10 h-10 rounded-[12px] bg-emerald-50 text-emerald-600 flex items-center justify-center">
@@ -161,7 +174,7 @@ export default function AdminPaymentsPage() {
 
         <div className="bg-white border border-[#E2E8F0]/80 p-5 rounded-[20px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex items-center justify-between">
           <div>
-            <div className="text-xs font-medium text-[#64748B]">Total Verified Volume</div>
+            <div className="text-xs font-medium text-[#64748B]">Total Deposit Volume</div>
             <div className="text-2xl font-bold text-[#0F172A] mt-1">৳ {totalDepositAmount.toLocaleString()}</div>
           </div>
           <div className="w-10 h-10 rounded-[12px] bg-blue-50 text-[#2563EB] flex items-center justify-center">
@@ -170,33 +183,64 @@ export default function AdminPaymentsPage() {
         </div>
       </div>
 
-      {/* 3. Search and Status Filter */}
+      {/* 3. Search and Multi-Filter Bar */}
       <div className="bg-white border border-[#E2E8F0]/80 rounded-[20px] p-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="relative w-full sm:w-80">
           <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search by player, TrxID, email..."
+            placeholder="Search by player, IGN, email, TrxID..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2 rounded-[12px] bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-medium text-[#0F172A] placeholder-slate-500 focus:outline-none focus:border-[#2563EB] transition-colors"
           />
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto">
-          {(['ALL', 'PENDING', 'VERIFIED', 'REJECTED'] as const).map((st) => (
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          {/* Type Filter */}
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-[12px]">
             <button
-              key={st}
-              onClick={() => setStatusFilter(st)}
-              className={`px-3.5 py-1.5 rounded-[10px] text-xs font-semibold transition-colors ${
-                statusFilter === st
-                  ? 'bg-[#2563EB] text-white shadow-xs'
-                  : 'bg-[#F8FAFC] border border-[#E2E8F0] text-[#475569] hover:text-[#0F172A]'
+              onClick={() => setTypeFilter('ALL')}
+              className={`px-3 py-1.5 rounded-[9px] text-[11px] font-bold transition-all cursor-pointer ${
+                typeFilter === 'ALL' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              {st}
+              All Logs
             </button>
-          ))}
+            <button
+              onClick={() => setTypeFilter('DEPOSITS')}
+              className={`px-3 py-1.5 rounded-[9px] text-[11px] font-bold transition-all cursor-pointer ${
+                typeFilter === 'DEPOSITS' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Cash Deposits
+            </button>
+            <button
+              onClick={() => setTypeFilter('MATCH_ENTRIES')}
+              className={`px-3 py-1.5 rounded-[9px] text-[11px] font-bold transition-all cursor-pointer ${
+                typeFilter === 'MATCH_ENTRIES' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Match Entries (৳0)
+            </button>
+          </div>
+
+          {/* Status Filter */}
+          <div className="flex items-center gap-1">
+            {(['ALL', 'PENDING', 'VERIFIED', 'REJECTED'] as const).map((st) => (
+              <button
+                key={st}
+                onClick={() => setStatusFilter(st)}
+                className={`px-3 py-1.5 rounded-[10px] text-xs font-semibold transition-colors cursor-pointer ${
+                  statusFilter === st
+                    ? 'bg-[#2563EB] text-white shadow-xs'
+                    : 'bg-[#F8FAFC] border border-[#E2E8F0] text-[#475569] hover:text-[#0F172A]'
+                }`}
+              >
+                {st}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -209,7 +253,7 @@ export default function AdminPaymentsPage() {
         ) : filteredPayments.length === 0 ? (
           <div className="p-16 text-center text-[#475569] space-y-2">
             <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto" />
-            <div className="font-bold text-[#0F172A] text-base">No Deposits Found</div>
+            <div className="font-bold text-[#0F172A] text-base">No Transactions Found</div>
             <div className="text-xs">No payment records matching the selected filter in Supabase.</div>
           </div>
         ) : (
@@ -217,9 +261,9 @@ export default function AdminPaymentsPage() {
             <table className="w-full text-left text-sm">
               <thead className="bg-[#F8FAFC] text-slate-700 text-[11px] uppercase font-bold border-b border-[#E2E8F0]">
                 <tr>
-                  <th className="py-3.5 px-5">Player Details</th>
-                  <th className="py-3.5 px-5">Method & Amount</th>
-                  <th className="py-3.5 px-5">TrxID</th>
+                  <th className="py-3.5 px-5">Player Profile</th>
+                  <th className="py-3.5 px-5">Type / Method & Amount</th>
+                  <th className="py-3.5 px-5">Transaction ID & Details</th>
                   <th className="py-3.5 px-5">Receipt Proof</th>
                   <th className="py-3.5 px-5">Status</th>
                   <th className="py-3.5 px-5">Submitted At</th>
@@ -227,42 +271,75 @@ export default function AdminPaymentsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#F1F5F9]">
-                {filteredPayments.map((p) => (
-                  <tr key={p.id} className="hover:bg-[#F8FAFC] transition-colors">
-                    <td className="py-4 px-5">
-                      <div className="font-bold text-[#0F172A] text-xs">{p.userName || 'Player'}</div>
-                      <div className="text-[11px] text-slate-600 font-medium">{p.userEmail}</div>
-                      <div className="text-[10px] font-mono text-slate-500 font-bold">ID: {p.userId}</div>
-                    </td>
+                {filteredPayments.map((p) => {
+                  const isMatchEntry = p.trxId?.startsWith('WAL_') || p.notes?.toLowerCase().includes('squad registration') || p.notes?.toLowerCase().includes('tournament');
+                  const pAny = p as any;
 
-                    <td className="py-4 px-5">
-                      <div className="flex items-center space-x-2">
-                        <span className="px-2 py-0.5 rounded bg-blue-50 text-[#2563EB] font-bold text-[10px] uppercase border border-blue-100">
-                          {p.method}
-                        </span>
-                        <span className="font-bold text-[#0F172A] text-sm">
-                          ৳ {Number(p.amount).toLocaleString()}
-                        </span>
-                      </div>
-                    </td>
+                  return (
+                    <tr key={p.id} className="hover:bg-[#F8FAFC] transition-colors">
+                      <td className="py-4 px-5">
+                        <div className="font-bold text-[#0F172A] text-xs flex items-center gap-1.5">
+                          <span>{p.userName || 'Player'}</span>
+                          {pAny.inGameName && (
+                            <span className="text-[10px] text-indigo-600 bg-indigo-50 px-1.5 py-0.2 rounded font-mono font-bold">
+                              IGN: {pAny.inGameName}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-slate-600 font-medium">{p.userEmail || 'No email attached'}</div>
+                        <div className="text-[10px] font-mono text-slate-500 font-bold flex items-center gap-1 mt-0.5">
+                          <span>{pAny.accountNumber || `ID: ${p.userId}`}</span>
+                        </div>
+                      </td>
 
-                    <td className="py-4 px-5">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-mono text-xs font-bold text-[#0F172A] bg-slate-100 px-2 py-0.5 rounded">
-                          {p.trxId}
-                        </span>
-                        <button
-                          onClick={() => copyToClipboard(p.trxId)}
-                          className="text-slate-500 hover:text-[#2563EB] p-1 transition-colors"
-                          title="Copy TrxID"
-                        >
-                          <Copy className="w-3.5 h-3.5" />
-                        </button>
-                        {copiedTrx === p.trxId && (
-                          <span className="text-[10px] text-emerald-600 font-bold">Copied!</span>
-                        )}
-                      </div>
-                    </td>
+                      <td className="py-4 px-5">
+                        <div className="space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <span className={`px-2 py-0.5 rounded font-bold text-[10px] uppercase border ${
+                              p.method === 'BKASH' ? 'bg-pink-50 text-pink-700 border-pink-200' :
+                              p.method === 'NAGAD' ? 'bg-orange-50 text-orange-700 border-orange-200' :
+                              p.method === 'ROCKET' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                              isMatchEntry ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
+                              'bg-blue-50 text-blue-700 border-blue-200'
+                            }`}>
+                              {isMatchEntry ? 'MATCH ENTRY' : p.method}
+                            </span>
+                            <span className="font-bold text-[#0F172A] text-sm font-mono">
+                              ৳ {Number(p.amount).toLocaleString()}
+                            </span>
+                          </div>
+                          {isMatchEntry && (
+                            <div className="text-[10px] text-indigo-600 font-semibold">
+                              Tournament Slot Registration
+                            </div>
+                          )}
+                        </div>
+                      </td>
+
+                      <td className="py-4 px-5">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono text-xs font-bold text-[#0F172A] bg-slate-100 px-2 py-0.5 rounded">
+                              {p.trxId}
+                            </span>
+                            <button
+                              onClick={() => copyToClipboard(p.trxId)}
+                              className="text-slate-500 hover:text-[#2563EB] p-1 transition-colors cursor-pointer"
+                              title="Copy TrxID"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                            </button>
+                            {copiedTrx === p.trxId && (
+                              <span className="text-[10px] text-emerald-600 font-bold">Copied!</span>
+                            )}
+                          </div>
+                          {p.notes && (
+                            <div className="text-[10px] text-slate-500 max-w-[220px] truncate" title={p.notes}>
+                              {p.notes}
+                            </div>
+                          )}
+                        </div>
+                      </td>
 
                     <td className="py-4 px-5">
                       {p.screenshot ? (
