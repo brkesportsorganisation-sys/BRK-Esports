@@ -767,7 +767,7 @@ function MessagesInboxContent() {
                 </div>
               ) : isSearchingPlayers ? (
                 <div className="p-8 text-center text-slate-400 text-xs font-medium">
-                  Searching player database...
+                  Searching players...
                 </div>
               ) : searchResults.length === 0 ? (
                 <div className="p-8 text-center text-slate-500 text-xs font-medium space-y-1">

@@ -115,7 +115,7 @@ export default function SquadDetailsPage({ params }: { params: Promise<{ id: str
       });
       const data = await res.json();
       if (res.ok) {
-        alert('Squad logo successfully updated and saved in database!');
+        alert('Squad logo successfully updated!');
         setLogoModalOpen(false);
         loadSquad();
       } else {

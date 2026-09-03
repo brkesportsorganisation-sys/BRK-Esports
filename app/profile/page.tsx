@@ -400,7 +400,7 @@ function ProfilePageContent() {
         };
         setUser(updated);
         db.setCurrentUser(updated);
-        setSaveSuccessMsg('Profile updated and saved to database successfully!');
+        setSaveSuccessMsg('Profile updated successfully!');
         setTimeout(() => {
           setIsEditModalOpen(false);
           setSaveSuccessMsg('');
@@ -1865,7 +1865,7 @@ function ProfilePageContent() {
                   className="flex-1 py-3 rounded-xl bg-gradient-to-r from-red-500 to-orange-500 text-white font-bold text-xs shadow-md hover:brightness-110 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
                 >
                   {isSavingProfile ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                  <span>{isSavingProfile ? 'Saving to Database...' : 'Save Changes'}</span>
+                  <span>{isSavingProfile ? 'Saving...' : 'Save Changes'}</span>
                 </button>
               </div>
             </form>

@@ -460,22 +460,41 @@ export default function LeaderboardPage() {
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
               {loading ? (
-                <tr>
-                  <td colSpan={5} className="py-14 text-center text-slate-500 text-xs font-medium">
-                    <Loader2 className="w-6 h-6 text-brand-orange animate-spin mx-auto mb-2" />
-                    <div>{isBangla ? 'ডাটাবেজ থেকে লাইভ লিডারবোর্ড লোড হচ্ছে...' : 'Loading live rankings from database...'}</div>
-                  </td>
-                </tr>
+                Array.from({ length: 6 }).map((_, idx) => (
+                  <tr key={idx} className="animate-pulse">
+                    <td className="py-3.5 px-2 sm:px-4 text-center">
+                      <div className="w-6 h-6 sm:w-7 sm:h-7 bg-slate-200 rounded-lg mx-auto" />
+                    </td>
+                    <td className="py-3.5 px-2 sm:px-4">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-200 shrink-0" />
+                        <div className="space-y-1.5 flex-1">
+                          <div className="h-3.5 bg-slate-200 rounded w-24 sm:w-32" />
+                          <div className="h-2.5 bg-slate-100 rounded w-16 sm:w-20" />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-2 sm:px-4 text-center">
+                      <div className="h-6 bg-slate-200 rounded-lg w-20 mx-auto" />
+                    </td>
+                    <td className="py-3.5 px-2 sm:px-4 text-center">
+                      <div className="h-5 bg-slate-200 rounded-full w-24 mx-auto" />
+                    </td>
+                    <td className="py-3.5 px-2 sm:px-4 text-right">
+                      <div className="h-4 bg-slate-200 rounded w-12 ml-auto" />
+                    </td>
+                  </tr>
+                ))
               ) : currentList.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-14 text-center text-slate-500 text-xs font-medium">
                     <Shield className="w-8 h-8 text-slate-300 mx-auto mb-2" />
                     <div className="font-bold text-slate-700">
                       {activeTab === 'REFERRALS'
-                        ? (isBangla ? 'কোনো রেফারেল রেকর্ড খুঁজে পাওয়া যায়নি। আপনার রেফারেল লিংক শেয়ার করে প্রথম চ্যাম্পিয়ন হোন!' : 'No referral records found matching your search. Share your link to be the first!')
+                        ? (isBangla ? 'কোনো রেফারেল রেকর্ড খুঁজে পাওয়া যায়নি।' : 'No referral records found.')
                         : activeTab === 'PLAYERS'
-                        ? 'No player tournament rankings recorded yet in the database.'
-                        : 'No squads registered yet in the database.'}
+                        ? (isBangla ? 'কোনো প্লেয়ার র‍্যাংকিং পাওয়া যায়নি।' : 'No player rankings found.')
+                        : (isBangla ? 'কোনো স্কোয়াড পাওয়া যায়নি।' : 'No squad rankings found.')}
                     </div>
                   </td>
                 </tr>
