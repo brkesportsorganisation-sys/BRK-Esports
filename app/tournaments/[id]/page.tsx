@@ -202,9 +202,9 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
   const [tournamentRoadmap, setTournamentRoadmap] = useState<TournamentRoadmapConfig | null>(null);
 
   // Dynamic Admin-managed Tournament Social & Channel Links
-  const [whatsappUrl, setWhatsappUrl] = useState('');
+  const [whatsappUrl, setWhatsappUrl] = useState('https://chat.whatsapp.com/sample');
   const [whatsappLabel, setWhatsappLabel] = useState('WhatsApp Group');
-  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [youtubeUrl, setYoutubeUrl] = useState('https://youtube.com/@ESPORTSZONEBD');
   const [youtubeLabel, setYoutubeLabel] = useState('YouTube Channel');
 
   useEffect(() => {
@@ -212,15 +212,16 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
       .then((res) => res.json())
       .then((data) => {
         const s = data?.settings || {};
-        if (s.TOURNAMENT_WHATSAPP_URL || s.WHATSAPP_GROUP_URL) {
-          setWhatsappUrl(s.TOURNAMENT_WHATSAPP_URL || s.WHATSAPP_GROUP_URL);
-        }
+        const wa = s.TOURNAMENT_WHATSAPP_URL ?? s.WHATSAPP_GROUP_URL ?? (s.helpline ? `https://wa.me/${s.helpline.replace(/[^0-9]/g, '')}` : 'https://chat.whatsapp.com/sample');
+        setWhatsappUrl(wa);
+
         if (s.TOURNAMENT_WHATSAPP_LABEL) {
           setWhatsappLabel(s.TOURNAMENT_WHATSAPP_LABEL);
         }
-        if (s.TOURNAMENT_YOUTUBE_URL || s.YOUTUBE_CHANNEL_URL) {
-          setYoutubeUrl(s.TOURNAMENT_YOUTUBE_URL || s.YOUTUBE_CHANNEL_URL);
-        }
+
+        const yt = s.TOURNAMENT_YOUTUBE_URL ?? s.YOUTUBE_CHANNEL_URL ?? 'https://youtube.com/@ESPORTSZONEBD';
+        setYoutubeUrl(yt);
+
         if (s.TOURNAMENT_YOUTUBE_LABEL) {
           setYoutubeLabel(s.TOURNAMENT_YOUTUBE_LABEL);
         }
@@ -869,11 +870,11 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
         <TournamentCountdown tournament={tournament} variant="hero" />
 
         {/* Tabs and External Social Action Links */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-slate-200 pb-3">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
             <button
               onClick={() => setActiveTab('ROOM')}
-              className={`flex-1 sm:flex-initial px-4 sm:px-6 py-2.5 sm:py-3 rounded-2xl font-heading font-black text-xs sm:text-sm transition-all whitespace-nowrap cursor-pointer flex items-center justify-center gap-2 ${
+              className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-2xl font-heading font-black text-xs sm:text-sm transition-all whitespace-nowrap cursor-pointer flex items-center justify-center gap-2 ${
                 activeTab === 'ROOM'
                   ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-white bg-slate-100/80 border border-slate-200'
@@ -885,7 +886,7 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
 
             <button
               onClick={() => setActiveTab('ROADMAP')}
-              className={`flex-1 sm:flex-initial px-4 sm:px-6 py-2.5 sm:py-3 rounded-2xl font-heading font-black text-xs sm:text-sm transition-all whitespace-nowrap cursor-pointer flex items-center justify-center gap-2 ${
+              className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-2xl font-heading font-black text-xs sm:text-sm transition-all whitespace-nowrap cursor-pointer flex items-center justify-center gap-2 ${
                 activeTab === 'ROADMAP'
                   ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-white bg-slate-100/80 border border-slate-200'
@@ -897,7 +898,7 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
 
             <button
               onClick={() => setActiveTab('DETAILS')}
-              className={`flex-1 sm:flex-initial px-4 sm:px-6 py-2.5 sm:py-3 rounded-2xl font-heading font-black text-xs sm:text-sm transition-all whitespace-nowrap cursor-pointer flex items-center justify-center gap-2 ${
+              className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-2xl font-heading font-black text-xs sm:text-sm transition-all whitespace-nowrap cursor-pointer flex items-center justify-center gap-2 ${
                 activeTab === 'DETAILS'
                   ? 'bg-gradient-to-r from-brand-red to-brand-orange text-white shadow-neon-red'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-white bg-slate-100/80 border border-slate-200'
@@ -910,16 +911,16 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
 
           {/* Dynamic Admin-Managed WhatsApp & YouTube Action Links */}
           {(whatsappUrl || youtubeUrl) && (
-            <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full lg:w-auto">
               {whatsappUrl && (
                 <a
                   href={whatsappUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-heading font-bold text-xs flex items-center gap-2 shadow-sm transition-all cursor-pointer hover:shadow-emerald-500/20 active:scale-95"
+                  className="flex-1 sm:flex-initial px-4 py-2.5 sm:py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-heading font-black text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer hover:shadow-emerald-500/20 active:scale-95"
                 >
-                  <MessageCircle className="w-4 h-4" />
-                  <span>{whatsappLabel || 'WhatsApp Group'}</span>
+                  <MessageCircle className="w-4 h-4 shrink-0" />
+                  <span className="truncate">{whatsappLabel || 'WhatsApp Group'}</span>
                 </a>
               )}
 
@@ -928,10 +929,10 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                   href={youtubeUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-heading font-bold text-xs flex items-center gap-2 shadow-sm transition-all cursor-pointer hover:shadow-red-500/20 active:scale-95"
+                  className="flex-1 sm:flex-initial px-4 py-2.5 sm:py-3 rounded-2xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-heading font-black text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer hover:shadow-red-500/20 active:scale-95"
                 >
-                  <Youtube className="w-4 h-4" />
-                  <span>{youtubeLabel || 'YouTube Channel'}</span>
+                  <Youtube className="w-4 h-4 shrink-0" />
+                  <span className="truncate">{youtubeLabel || 'YouTube Channel'}</span>
                 </a>
               )}
             </div>

@@ -265,29 +265,58 @@ export async function createTournamentInDb(input: Record<string, any>) {
     communityIsDisabled: Boolean(input.community?.isDisabled ?? input.communityIsDisabled),
   };
 
-  let { data, error } = await supabaseAdmin
-    .from('Tournament')
-    .insert([payload])
-    .select()
-    .single();
+  // Resilient insert with auto-column-stripping fallback if columns don't exist yet in Supabase
+  let data: any = null;
+  let currentPayload = { ...payload };
+  let attempts = 0;
 
-  // Graceful fallback if database schema does not yet have prizeDistribution/isGiveaway column
-  if (error && (error.message?.includes('prizeDistribution') || error.message?.includes('isGiveaway') || error.message?.includes('requiresFullSquad') || error.message?.includes('schema cache'))) {
-    const fallbackPayload = { ...payload };
-    delete (fallbackPayload as any).prizeDistribution;
-    delete (fallbackPayload as any).isGiveaway;
-    delete (fallbackPayload as any).requiresFullSquad;
-    const retry = await supabaseAdmin
+  while (attempts < 8) {
+    attempts++;
+    const res = await supabaseAdmin
       .from('Tournament')
-      .insert([fallbackPayload])
+      .insert([currentPayload])
       .select()
       .single();
-    data = retry.data;
-    error = retry.error;
-  }
 
-  if (error) {
-    throw new Error(error.message);
+    if (!res.error) {
+      data = res.data;
+      break;
+    }
+
+    const missingColMatch =
+      res.error.message?.match(/Could not find the '([^']+)' column/i) ||
+      res.error.message?.match(/column "([^"]+)" of relation "Tournament" does not exist/i) ||
+      res.error.message?.match(/column "([^"]+)" does not exist/i);
+
+    if (missingColMatch && missingColMatch[1] && currentPayload[missingColMatch[1]] !== undefined) {
+      console.warn(`[Tournament insert fallback] Column '${missingColMatch[1]}' not in schema cache. Removing and retrying...`);
+      delete currentPayload[missingColMatch[1]];
+      continue;
+    }
+
+    let stripped = false;
+    const knownOptional = [
+      'defaultAdvancementCount',
+      'tournamentBatchFormat',
+      'roomCapacity',
+      'maxRooms',
+      'prizeDistribution',
+      'isGiveaway',
+      'requiresFullSquad',
+      'allowCoinEntry',
+      'coinEntryFee',
+      'entryFeeType'
+    ];
+    for (const key of knownOptional) {
+      if (currentPayload[key] !== undefined && (res.error.message?.includes(key) || res.error.message?.includes('schema cache'))) {
+        delete currentPayload[key];
+        stripped = true;
+      }
+    }
+
+    if (stripped) continue;
+
+    throw new Error(res.error.message);
   }
 
   return serializeTournament(data);
@@ -382,31 +411,59 @@ export async function updateTournamentInDb(id: string, input: Record<string, any
     updateData.communityIsDisabled = Boolean(input.community?.isDisabled ?? input.communityIsDisabled);
   }
 
-  let { data, error } = await supabaseAdmin
-    .from('Tournament')
-    .update(updateData)
-    .eq('id', id)
-    .select()
-    .single();
+  // Resilient update with auto-column-stripping fallback if columns don't exist yet in Supabase
+  let data: any = null;
+  let currentUpdate = { ...updateData };
+  let attempts = 0;
 
-  // Graceful fallback if database schema does not yet have prizeDistribution/isGiveaway column
-  if (error && (error.message?.includes('prizeDistribution') || error.message?.includes('isGiveaway') || error.message?.includes('requiresFullSquad') || error.message?.includes('schema cache'))) {
-    const fallbackUpdateData = { ...updateData };
-    delete fallbackUpdateData.prizeDistribution;
-    delete fallbackUpdateData.isGiveaway;
-    delete fallbackUpdateData.requiresFullSquad;
-    const retry = await supabaseAdmin
+  while (attempts < 8) {
+    attempts++;
+    const res = await supabaseAdmin
       .from('Tournament')
-      .update(fallbackUpdateData)
+      .update(currentUpdate)
       .eq('id', id)
       .select()
       .single();
-    data = retry.data;
-    error = retry.error;
-  }
 
-  if (error) {
-    throw new Error(error.message);
+    if (!res.error) {
+      data = res.data;
+      break;
+    }
+
+    const missingColMatch =
+      res.error.message?.match(/Could not find the '([^']+)' column/i) ||
+      res.error.message?.match(/column "([^"]+)" of relation "Tournament" does not exist/i) ||
+      res.error.message?.match(/column "([^"]+)" does not exist/i);
+
+    if (missingColMatch && missingColMatch[1] && currentUpdate[missingColMatch[1]] !== undefined) {
+      console.warn(`[Tournament update fallback] Column '${missingColMatch[1]}' not in schema cache. Removing and retrying...`);
+      delete currentUpdate[missingColMatch[1]];
+      continue;
+    }
+
+    let stripped = false;
+    const knownOptional = [
+      'defaultAdvancementCount',
+      'tournamentBatchFormat',
+      'roomCapacity',
+      'maxRooms',
+      'prizeDistribution',
+      'isGiveaway',
+      'requiresFullSquad',
+      'allowCoinEntry',
+      'coinEntryFee',
+      'entryFeeType'
+    ];
+    for (const key of knownOptional) {
+      if (currentUpdate[key] !== undefined && (res.error.message?.includes(key) || res.error.message?.includes('schema cache'))) {
+        delete currentUpdate[key];
+        stripped = true;
+      }
+    }
+
+    if (stripped) continue;
+
+    throw new Error(res.error.message);
   }
 
   return serializeTournament(data);

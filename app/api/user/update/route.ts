@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { saveBase64Image } from '@/lib/upload';
 
 export async function PATCH(request: NextRequest) {
   try {
@@ -15,7 +16,9 @@ export async function PATCH(request: NextRequest) {
     };
 
     if (name !== undefined && name.trim()) updates.name = name.trim();
-    if (avatar !== undefined) updates.avatar = avatar;
+    if (avatar !== undefined) {
+      updates.avatar = await saveBase64Image(avatar, 'avatars');
+    }
     if (freeFireUid !== undefined) updates.freeFireUid = freeFireUid.trim() || null;
     if (inGameName !== undefined) updates.inGameName = inGameName.trim() || null;
     if (inGameRole !== undefined) updates.inGameRole = inGameRole.trim() || 'RUSHER';

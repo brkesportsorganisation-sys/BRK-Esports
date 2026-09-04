@@ -227,6 +227,12 @@ ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "allowCoinEntry" BOOLEAN NOT N
 ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "coinEntryFee" DOUBLE PRECISION;
 ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "entryFeeType" TEXT NOT NULL DEFAULT 'BOTH';
 ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "prizeDistribution" JSONB;
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "tournamentBatchFormat" TEXT DEFAULT 'SINGLE_ROOM';
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "roomCapacity" INTEGER DEFAULT 12;
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "maxRooms" INTEGER;
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "defaultAdvancementCount" INTEGER DEFAULT 3;
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "isGiveaway" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Tournament" ADD COLUMN IF NOT EXISTS "requiresFullSquad" BOOLEAN NOT NULL DEFAULT false;
 
 
 -- =========================================================

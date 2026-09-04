@@ -1,17 +1,16 @@
 import { supabaseAdmin } from '@/lib/supabase';
 import crypto from 'crypto';
+import sharp from 'sharp';
 
 /**
- * Uploads a base64-encoded image to Supabase Storage.
- * Returns the public URL of the uploaded file.
- * If the input is already a URL (not base64), returns it as-is.
- *
- * NOTE: Requires a Supabase Storage bucket named "tournament-images" to exist
- * with public access enabled.
+ * Uploads a base64-encoded image to Supabase Storage with automated WebP compression.
+ * Returns the public CDN URL of the uploaded file.
+ * If Supabase Storage upload fails, returns a highly compressed lightweight WebP data URI.
  */
 export async function saveBase64Image(
   base64Data: string | undefined | null,
-  prefix: string = 'squad-logos/logo'
+  prefix: string = 'squad-logos/logo',
+  options: { maxWidth?: number; maxHeight?: number; quality?: number } = {}
 ): Promise<string | null> {
   if (!base64Data) return null;
 
@@ -27,47 +26,57 @@ export async function saveBase64Image(
   }
 
   try {
-    const mimeType = matches[1];
-    const base64Content = matches[2];
-    const buffer = Buffer.from(base64Content, 'base64');
+    const rawBase64 = matches[2];
+    const rawBuffer = Buffer.from(rawBase64, 'base64');
 
-    // Determine file extension
-    let extension = 'webp';
-    if (mimeType.includes('png')) extension = 'png';
-    else if (mimeType.includes('jpeg') || mimeType.includes('jpg')) extension = 'jpg';
-    else if (mimeType.includes('gif')) extension = 'gif';
-    else if (mimeType.includes('svg')) extension = 'svg';
+    const isAvatarOrLogo = prefix.includes('avatar') || prefix.includes('logo');
+    const maxWidth = options.maxWidth || (isAvatarOrLogo ? 250 : 1280);
+    const maxHeight = options.maxHeight || (isAvatarOrLogo ? 250 : 720);
+    const quality = options.quality || 80;
+
+    // Compress to WebP using sharp
+    let compressedBuffer: Buffer;
+    try {
+      compressedBuffer = await sharp(rawBuffer)
+        .resize(maxWidth, maxHeight, { fit: 'inside', withoutEnlargement: true })
+        .webp({ quality })
+        .toBuffer();
+    } catch {
+      compressedBuffer = rawBuffer;
+    }
 
     // Generate unique filename
     const uniqueId = crypto.randomBytes(8).toString('hex');
     const cleanPrefix = prefix.replace(/^\/+|\/+$/g, '');
     const filename = cleanPrefix.includes('/')
-      ? `${cleanPrefix}_${Date.now()}_${uniqueId}.${extension}`
-      : `${cleanPrefix}/${cleanPrefix}_${Date.now()}_${uniqueId}.${extension}`;
+      ? `${cleanPrefix}_${Date.now()}_${uniqueId}.webp`
+      : `${cleanPrefix}/${cleanPrefix}_${Date.now()}_${uniqueId}.webp`;
     const bucketName = 'tournament-images';
 
     // Upload to Supabase Storage
     const { data, error } = await supabaseAdmin.storage
       .from(bucketName)
-      .upload(filename, buffer, {
-        contentType: mimeType,
+      .upload(filename, compressedBuffer, {
+        contentType: 'image/webp',
         upsert: true,
       });
 
-    if (error) {
-      console.warn(`[UPLOAD] Supabase Storage upload error:`, error.message);
-      return base64Data; // fallback
+    if (!error && data?.path) {
+      const { data: publicUrlData } = supabaseAdmin.storage
+        .from(bucketName)
+        .getPublicUrl(data.path);
+
+      if (publicUrlData?.publicUrl) {
+        console.info(`[UPLOAD] Image uploaded successfully: ${publicUrlData.publicUrl}`);
+        return publicUrlData.publicUrl;
+      }
     }
 
-    // Get public URL
-    const { data: publicUrlData } = supabaseAdmin.storage
-      .from(bucketName)
-      .getPublicUrl(data.path);
-
-    console.info(`[UPLOAD] Image uploaded successfully: ${publicUrlData.publicUrl}`);
-    return publicUrlData.publicUrl;
+    console.warn(`[UPLOAD] Supabase Storage upload note: ${error?.message || 'Fallback to compressed WebP'}`);
+    return `data:image/webp;base64,${compressedBuffer.toString('base64')}`;
   } catch (err: any) {
     console.warn(`[UPLOAD] Failed to save base64 image:`, err?.message);
     return base64Data;
   }
 }
+
