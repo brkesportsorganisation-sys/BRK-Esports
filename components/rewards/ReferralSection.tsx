@@ -178,9 +178,19 @@ export default function ReferralSection() {
             {/* High-Contrast Resets-in Pill */}
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-red-200/80 text-orange-600 text-xs font-mono font-bold shadow-xs">
               <Timer className="w-3.5 h-3.5 text-brand-orange animate-spin" />
-              <span className="text-[10px] text-slate-500 font-sans uppercase font-bold">{isBangla ? 'রিসেট:' : 'RESETS:'}</span>
+              <span className="text-[10px] text-slate-700 font-sans uppercase font-bold">{isBangla ? 'রিসেট:' : 'RESETS:'}</span>
               <span className="text-slate-900 font-black">
                 {timeLeft.days}d {String(timeLeft.hours).padStart(2, '0')}h {String(timeLeft.minutes).padStart(2, '0')}m <span className="text-brand-orange">{String(timeLeft.seconds).padStart(2, '0')}s</span>
+              </span>
+            </div>
+
+            {/* Note clarifying that only reward claims reset, not total referrals */}
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-900 text-[11px] font-bold shadow-2xs">
+              <span className="text-xs">💡</span>
+              <span>
+                {isBangla 
+                  ? 'শুধু রিওয়ার্ড ক্লেইম রিসেট হবে, আপনার রেফারেল কখনোই রিসেট হবে না।' 
+                  : 'Only reward claims reset monthly, your referrals never reset.'}
               </span>
             </div>
           </div>
@@ -327,10 +337,10 @@ export default function ReferralSection() {
                   FREE PASS
                 </span>
               </h3>
-              <p className="text-[11px] text-slate-500 font-medium">
+              <p className="text-[11px] text-slate-600 font-medium">
                 {isBangla 
-                  ? 'রেফারেল মাইলস্টোন পূরণ করে ক্যাশ ও কয়েন প্রাইজ সংগ্রহ করুন।' 
-                  : 'Reach invite milestones to unlock Cash & Coin prizes.'}
+                  ? 'রেফারেল মাইলস্টোন পূরণ করে ক্যাশ ও কয়েন প্রাইজ সংগ্রহ করুন (প্রতি মাসে শুধু রিওয়ার্ড ক্লেইম রিসেট হয়, আপনার রেফারেল কখনোই রিসেট হবে না)।' 
+                  : 'Reach invite milestones to unlock Cash & Coin prizes (Only reward claims reset monthly, your referrals never reset).'}
               </p>
             </div>
           </div>

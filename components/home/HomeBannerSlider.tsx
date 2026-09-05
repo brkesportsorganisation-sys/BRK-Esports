@@ -195,44 +195,45 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
           </AnimatePresence>
 
           {/* Left & Right Slider Arrow Controls */}
+          {/* Left & Right Slider Arrow Controls */}
           {slidesToDisplay.length > 1 && (
             <>
               <button
                 type="button"
                 onClick={handlePrev}
                 aria-label="Previous Banner"
-                className="absolute left-2.5 top-1/2 -translate-y-1/2 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-black/40 hover:bg-black/80 backdrop-blur-xs text-white border border-white/15 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 z-20 cursor-pointer shadow-md hover:scale-105"
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-10 sm:h-10 min-w-[36px] min-h-[36px] rounded-full bg-black/60 hover:bg-black/90 backdrop-blur-xs text-white border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all duration-200 z-20 cursor-pointer shadow-md hover:scale-105"
               >
-                <ChevronLeft className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+                <ChevronLeft className="w-5 h-5" />
               </button>
 
               <button
                 type="button"
                 onClick={handleNext}
                 aria-label="Next Banner"
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-black/40 hover:bg-black/80 backdrop-blur-xs text-white border border-white/15 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 z-20 cursor-pointer shadow-md hover:scale-105"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-10 sm:h-10 min-w-[36px] min-h-[36px] rounded-full bg-black/60 hover:bg-black/90 backdrop-blur-xs text-white border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all duration-200 z-20 cursor-pointer shadow-md hover:scale-105"
               >
-                <ChevronRight className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+                <ChevronRight className="w-5 h-5" />
               </button>
             </>
           )}
 
           {/* Slider Pagination Pill Indicators */}
           {slidesToDisplay.length > 1 && (
-            <div className="absolute bottom-2 sm:bottom-3 right-3 sm:right-4 z-20 flex items-center gap-1 bg-black/35 backdrop-blur-xs px-2 py-0.5 rounded-full border border-white/10 shadow-xs">
+            <div className="absolute bottom-2.5 sm:bottom-3.5 right-3 sm:right-4 z-20 flex items-center gap-2 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/20 shadow-md">
               {slidesToDisplay.map((_, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => setCurrentIndex(idx)}
                   aria-label={`Go to slide ${idx + 1}`}
-                  className="p-0.5 cursor-pointer flex items-center justify-center focus:outline-none"
+                  className="min-w-[32px] min-h-[32px] sm:min-w-[36px] sm:min-h-[36px] cursor-pointer flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white rounded-full transition-transform active:scale-90"
                 >
                   <span
-                    className={`block transition-all duration-300 rounded-full ${
+                    className={`block transition-all duration-300 rounded-full pointer-events-none ${
                       idx === currentIndex
-                        ? 'w-4 h-1.5 bg-white shadow-xs'
-                        : 'w-1.5 h-1.5 bg-white/40 hover:bg-white/70'
+                        ? 'w-5 h-2 bg-white shadow-xs'
+                        : 'w-2 h-2 bg-white/60 hover:bg-white/95'
                     }`}
                   />
                 </button>

@@ -39,6 +39,208 @@ h1, h2, h3, h4, h5, h6, .font-heading {
   letter-spacing: 0.04em;
 }
 
+/* ============================================================
+   ACCESSIBILITY — WCAG 2.1 AA
+   ============================================================ */
+
+/* Visible focus indicator for keyboard navigation */
+:focus-visible {
+  outline: 3px solid #FF6B00;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Remove focus ring for mouse users only */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Minimum touch target size (WCAG 2.5.5) */
+a, button, [role="button"], input[type="checkbox"], input[type="radio"], select {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Exception: inline links in prose don't need 44px height */
+p a, li a, .prose a {
+  min-height: unset;
+  min-width: unset;
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .animate-spin-slow,
+  .animate-spin-gentle,
+  .animate-pulse,
+  .animate-ping,
+  .animate-bounce {
+    animation: none !important;
+  }
+}
+
+/* ============================================================ */
+
+/* Glassmorphism ESL Esports primitives (Light Theme) */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.glass-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 249, 250, 1) 100%);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(226, 232, 240, 1); /* slate-200 */
+  border-radius: 1.5rem; /* 24px rounded corners */
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+}
+
+.glass-card:hover {
+  border-color: rgba(255, 107, 0, 0.4);
+  box-shadow: 0 14px 40px -10px rgba(255, 107, 0, 0.15);
+  transform: translateY(-5px);
+}
+
+/* Custom Esports Scrollbar (Light Theme) */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #F1F5F9;
+}
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #FF6B00;
+}
+
+/* Custom Sleek Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+/* Cyber text effects */
+.text-glow-red {
+  text-shadow: 0 0 16px rgba(255, 30, 66, 0.7);
+}
+
+.text-glow-orange {
+  text-shadow: 0 0 16px rgba(255, 107, 0, 0.7);
+}
+
+.text-glow-cyan {
+  text-shadow: 0 0 16px rgba(0, 240, 255, 0.7);
+}
+
+.clip-cyber-corner {
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+}
+
+.prose {
+  max-width: 100% !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+  color: #1e293b !important;
+}
+.prose * {
+  background-color: transparent !important;
+}
+.prose p, .prose span, .prose div, .prose li, .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6, .prose strong, .prose b, .prose em, .prose a {
+  max-width: 100% !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+  white-space: normal !important;
+  background-color: transparent !important;
+  color: #1e293b !important;
+}
+.prose pre, .prose code {
+  max-width: 100% !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+  white-space: pre-wrap !important;
+  overflow-x: auto;
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+}
+.prose table { width: 100%; border-collapse: collapse; margin: 1rem 0; display: block; overflow-x: auto; max-width: 100%; }
+.prose th, .prose td { border: 1px solid #cbd5e1; padding: .65rem; text-align: left; }
+.prose th { background: #f8fafc !important; color: #0f172a !important; }
+.prose img, .prose iframe { max-width: 100%; border-radius: .75rem; height: auto; }
+.prose iframe { aspect-ratio: 16 / 9; width: 100%; height: auto; min-height: 240px; }
+
+/* Continuous Smooth Spin Animation for Lucky Wheel */
+@keyframes spin-continuous {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-continuous 22s linear infinite;
+}
+
+.animate-spin-gentle {
+  animation: spin-continuous 14s linear infinite;
+}
+
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  /* Smooth scrolling without jank */
+  scroll-behavior: smooth;
+  /* Prevent text size adjustments on mobile orientation change */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  background-color: #F8F9FA;
+  color: #0F172A;
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  overflow-x: clip;
+  max-width: 100vw;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  /* Improve font rendering */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeSpeed;
+}
+
+h1, h2, h3, h4, h5, h6, .font-heading {
+  font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
+  letter-spacing: 0.04em;
+}
+
 /* Glassmorphism ESL Esports primitives (Light Theme) */
 .glass-panel {
   background: rgba(255, 255, 255, 0.85);

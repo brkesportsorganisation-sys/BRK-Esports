@@ -53,20 +53,22 @@ export default function MobileBottomNav() {
             <Link
               key={tab.href}
               href={tab.href}
-              className={`flex-1 flex flex-col items-center py-0.5 px-0.5 rounded-xl transition-all duration-200 cursor-pointer select-none ${
+              aria-label={tab.name}
+              aria-current={isActive ? 'page' : undefined}
+              className={`flex-1 flex flex-col items-center justify-center min-h-[44px] min-w-[44px] py-1 px-1 rounded-xl transition-all duration-200 cursor-pointer select-none ${
                 isActive
                   ? 'scale-105'
                   : 'hover:opacity-90 active:scale-95'
               }`}
             >
-              <div className={`relative p-1 rounded-xl transition-all ${
+              <div className={`relative p-1.5 rounded-xl transition-all ${
                 isActive 
                   ? 'bg-gradient-to-r from-brand-red to-brand-orange text-white shadow-md shadow-orange-500/25' 
-                  : 'bg-transparent text-slate-700'
+                  : 'bg-transparent text-slate-600'
               }`}>
-                <Icon className={`w-4.5 h-4.5 ${tab.isLive ? 'text-red-600 animate-pulse' : ''}`} />
+                <Icon className={`w-5 h-5 ${tab.isLive ? 'text-red-600 animate-pulse' : ''}`} aria-hidden="true" />
                 {tab.isLive && (
-                  <span className="absolute top-0.5 right-0.5 flex h-2 w-2">
+                  <span className="absolute top-0.5 right-0.5 flex h-2 w-2" aria-hidden="true">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>
                   </span>
@@ -74,8 +76,8 @@ export default function MobileBottomNav() {
               </div>
               <span className={`text-[10px] font-sans font-bold mt-0.5 leading-none tracking-tight text-center truncate max-w-[72px] ${
                 isActive 
-                  ? 'text-orange-700 font-black' 
-                  : 'text-slate-800 font-bold'
+                  ? 'text-red-700 font-black' 
+                  : 'text-slate-700 font-bold'
               }`}>
                 {tab.name}
               </span>

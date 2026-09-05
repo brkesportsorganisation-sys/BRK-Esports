@@ -80,14 +80,16 @@ export default function RootLayout({
 
         {/* Supabase connection for realtime */}
         <link rel="dns-prefetch" href="https://supabase.co" />
+        <link rel="preconnect" href="https://amjenxlohtloytdjvird.supabase.co" crossOrigin="anonymous" />
 
         {/* PWA metas */}
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
-        {/* Global error barrier to suppress cross-origin browser extension / Gemini blob injection */}
+        {/* Global error barrier — async so it does NOT block rendering */}
         <script
+          async
           dangerouslySetInnerHTML={{
             __html: `
 (function() {
@@ -122,8 +124,9 @@ export default function RootLayout({
           }}
         />
 
-        {/* Service Worker registration — non-blocking */}
+        {/* Service Worker registration — non-blocking, fires after load */}
         <script
+          async
           dangerouslySetInnerHTML={{
             __html: `
 if ('serviceWorker' in navigator) {
