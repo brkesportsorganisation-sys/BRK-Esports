@@ -260,23 +260,6 @@ export default function TournamentsPage() {
         <HomeBannerSlider />
       </section>
 
-      {/* Header Banner */}
-      <div className="bg-white border-b border-slate-200 py-6 sm:py-8 relative overflow-hidden">
-        <div className="absolute -top-20 left-1/4 w-96 h-96 bg-gradient-to-r from-brand-red/10 to-brand-orange/10 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center space-y-2">
-          <span className="text-[11px] font-bold text-brand-orange uppercase tracking-widest inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 border border-brand-orange/20">
-            <Trophy className="w-3.5 h-3.5 text-brand-orange" />
-            <span>Multi-Game Esports Championship Hub</span>
-          </span>
-          <h1 className="font-heading font-black text-2xl sm:text-4xl text-slate-900 tracking-tight">
-            ESPORTS TOURNAMENTS
-          </h1>
-          <p className="text-slate-600 text-xs sm:text-sm mt-1 max-w-xl mx-auto leading-relaxed">
-            Free Fire, eFootball, PUBG Mobile, Valorant & more! Enter room credentials, eliminate enemies, and earn real cash payouts.
-          </p>
-        </div>
-      </div>
-
       {/* Main Content Area */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full space-y-5">
         
