@@ -766,7 +766,7 @@ function ProfilePageContent() {
                   </h3>
                   <p className="text-xs sm:text-sm text-slate-600 mt-1 mb-1">Invite friends using your Referral Code to unlock rewards!</p>
                   <div className="text-[11px] sm:text-xs text-red-600 font-bold flex items-center gap-1.5 bg-red-50 px-2.5 py-1 rounded-lg inline-flex">
-                    <Clock className="w-3.5 h-3.5" /> Note: This Referral Pass resets monthly. Ends in: {passTimeLeft}
+                    <Clock className="w-3.5 h-3.5" /> Note: Monthly rewards reset — your referral count stays. Ends in: {passTimeLeft}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 self-start sm:self-auto">
