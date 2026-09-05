@@ -18,6 +18,17 @@ interface HomeBannerSliderProps {
 export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps) {
   const [banners, setBanners] = useState<Banner[]>(() => {
     if (initialData?.banners && initialData.banners.length > 0) return initialData.banners;
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('helian_banners');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.some((b: any) => b.placement === 'MAIN_SLIDER' && b.isActive !== false)) {
+            return parsed;
+          }
+        }
+      } catch {}
+    }
     return initialBanners;
   });
 

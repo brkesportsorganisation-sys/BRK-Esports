@@ -5,6 +5,7 @@ import { Search, Trophy, Filter, X, RotateCcw, Sparkles, Gamepad2, ChevronDown }
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import TournamentCard from '@/components/tournaments/TournamentCard';
+import HomeBannerSlider from '@/components/home/HomeBannerSlider';
 import { Tournament } from '@/lib/types';
 
 interface GameFilterConfig {
@@ -253,8 +254,14 @@ export default function TournamentsPage() {
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 flex flex-col font-body">
       <Navbar />
 
+      {/* Top Banner Slider */}
+      <section className="relative pt-3 pb-3 sm:pt-4 sm:pb-4 overflow-hidden border-b border-slate-200 bg-slate-50/50">
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-gradient-to-r from-brand-red/10 via-brand-orange/10 to-brand-purple/10 rounded-full blur-[100px] pointer-events-none" aria-hidden="true" />
+        <HomeBannerSlider />
+      </section>
+
       {/* Header Banner */}
-      <div className="bg-white border-b border-slate-200 py-8 sm:py-12 relative overflow-hidden">
+      <div className="bg-white border-b border-slate-200 py-6 sm:py-8 relative overflow-hidden">
         <div className="absolute -top-20 left-1/4 w-96 h-96 bg-gradient-to-r from-brand-red/10 to-brand-orange/10 rounded-full blur-3xl pointer-events-none"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center space-y-2">
           <span className="text-[11px] font-bold text-brand-orange uppercase tracking-widest inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 border border-brand-orange/20">
