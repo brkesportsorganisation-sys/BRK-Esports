@@ -1,35 +1,44 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Flame, Lock, Mail, ArrowRight, Loader2 } from 'lucide-react';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import { db } from '@/lib/db';
 import { auth, googleProvider, signInWithPopup, getFirebaseAuth } from '@/lib/firebase';
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams?.get('redirect') || '/';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Auto redirect already logged-in users to Home page
+  const getRedirectDestination = (user: any) => {
+    if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') {
+      return '/admin';
+    }
+    if (user.role === 'VENDOR') {
+      return '/vendor';
+    }
+    if (redirectUrl && redirectUrl.startsWith('/') && !redirectUrl.startsWith('//') && !redirectUrl.startsWith('/login')) {
+      return redirectUrl;
+    }
+    return '/';
+  };
+
+  // Auto redirect already logged-in users to destination page
   useEffect(() => {
     const user = db.getCurrentUser();
     if (user) {
-      if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') {
-        router.replace('/admin');
-      } else if (user.role === 'VENDOR') {
-        router.replace('/vendor');
-      } else {
-        router.replace('/');
-      }
+      router.replace(getRedirectDestination(user));
     }
-  }, [router]);
+  }, [router, redirectUrl]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,13 +59,7 @@ export default function LoginPage() {
         const localFound = db.loginWithEmailAndPassword(email, password);
         if (localFound) {
           db.setCurrentUser(localFound);
-          if (localFound.role === 'ADMIN' || localFound.role === 'SUPER_ADMIN') {
-            router.push('/admin');
-          } else if (localFound.role === 'VENDOR') {
-            router.push('/vendor');
-          } else {
-            router.push('/');
-          }
+          router.push(getRedirectDestination(localFound));
           return;
         }
         setErrorMsg(data.message || 'Invalid email or password.');
@@ -66,14 +69,7 @@ export default function LoginPage() {
 
       // Save user in local state & localStorage
       db.setCurrentUser(data.user);
-
-      if (data.user.role === 'ADMIN' || data.user.role === 'SUPER_ADMIN') {
-        router.push('/admin');
-      } else if (data.user.role === 'VENDOR') {
-        router.push('/vendor');
-      } else {
-        router.push('/');
-      }
+      router.push(getRedirectDestination(data.user));
     } catch {
       setErrorMsg('Failed to connect to server. Please try again.');
     } finally {
@@ -119,14 +115,7 @@ export default function LoginPage() {
 
       // Save user in local storage/state
       db.setCurrentUser(data.user);
-
-      if (data.user.role === 'ADMIN' || data.user.role === 'SUPER_ADMIN') {
-        router.push('/admin');
-      } else if (data.user.role === 'VENDOR') {
-        router.push('/vendor');
-      } else {
-        router.push('/');
-      }
+      router.push(getRedirectDestination(data.user));
     } catch (err: any) {
       console.error('Google Sign-In Error:', err);
       if (err.code === 'auth/popup-closed-by-user') {
@@ -279,5 +268,13 @@ export default function LoginPage() {
 
       <Footer />
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center text-slate-900 font-bold">Loading...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }

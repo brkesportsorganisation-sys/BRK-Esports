@@ -45,7 +45,30 @@ export async function POST(request: NextRequest) {
         .update(updates)
         .eq('id', existingUser.id);
 
-      const { password: _, passwordResetOtp: __, passwordResetExpires: ___, ...sanitized } = { ...existingUser, ...updates };
+      let meta: Record<string, any> = {};
+      if (existingUser.deviceToken && typeof existingUser.deviceToken === 'string') {
+        try {
+          if (existingUser.deviceToken.startsWith('META:')) {
+            meta = JSON.parse(existingUser.deviceToken.replace('META:', '')) || {};
+          } else if (existingUser.deviceToken.startsWith('{')) {
+            meta = JSON.parse(existingUser.deviceToken) || {};
+          }
+        } catch {}
+      }
+      const inGameRole = existingUser.inGameRole || meta.inGameRole || 'RUSHER';
+      const whatsapp = existingUser.whatsapp || existingUser.whatsApp || existingUser.phone || null;
+
+      const { password: _, passwordResetOtp: __, passwordResetExpires: ___, ...sanitized } = {
+        ...existingUser,
+        ...updates,
+        inGameRole,
+        whatsapp,
+        whatsApp: whatsapp,
+      };
+      delete (sanitized as any).password;
+      delete (sanitized as any).passwordResetOtp;
+      delete (sanitized as any).passwordResetExpires;
+
       return NextResponse.json({
         user: sanitized,
         message: 'Logged in successfully with Google!',
@@ -207,7 +230,13 @@ export async function POST(request: NextRequest) {
     const { password: _, passwordResetOtp: __, passwordResetExpires: ___, ...sanitizedUser } = {
       ...userPayload,
       ...insertedData,
+      inGameRole: insertedData?.inGameRole || userPayload.inGameRole || 'RUSHER',
+      whatsapp: insertedData?.whatsapp || insertedData?.whatsApp || null,
+      whatsApp: insertedData?.whatsapp || insertedData?.whatsApp || null,
     };
+    delete (sanitizedUser as any).password;
+    delete (sanitizedUser as any).passwordResetOtp;
+    delete (sanitizedUser as any).passwordResetExpires;
 
     return NextResponse.json({
       user: sanitizedUser,

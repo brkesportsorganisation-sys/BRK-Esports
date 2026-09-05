@@ -12,20 +12,32 @@ export async function GET(request: NextRequest) {
     }
 
     let user: any = null;
+    let queryError: any = null;
+
     try {
       const { data, error } = await supabaseAdmin
         .from('User')
-        .select('id, name, email, avatar, role, freeFireUid, inGameName, inGameRole, walletBalance, winningBalance, coinBalance, promoBalance, totalKills, totalWins, earnings, isBanned, referralCode, totalReferrals, claimedMilestones, currentStreak, lastStreakClaimDate, accountNumber, phone, whatsapp, deviceToken, createdAt, updatedAt')
+        .select('*')
         .eq('id', userId)
         .maybeSingle();
 
-      if (!error && data) {
+      if (error) {
+        queryError = error;
+        console.error('[GET /api/auth/me] Supabase query error:', error);
+      } else if (data) {
         user = data;
       }
-    } catch {}
+    } catch (e: any) {
+      queryError = e;
+      console.error('[GET /api/auth/me] Supabase exception:', e);
+    }
 
-    if (!user) {
+    if (!user && !queryError) {
       user = db.getUserById ? db.getUserById(userId) : null;
+    }
+
+    if (queryError) {
+      return NextResponse.json({ message: 'Failed to fetch user due to database error.' }, { status: 500 });
     }
 
     if (!user) {
@@ -58,6 +70,7 @@ export async function GET(request: NextRequest) {
     }
 
     const inGameRole = rest.inGameRole || meta.inGameRole || 'RUSHER';
+    const whatsapp = rest.whatsapp || rest.whatsApp || rest.phone || null;
 
     const userReferralCode = rest.referralCode || `REF_${(rest.id || '').replace(/[^a-zA-Z0-9]/g, '').slice(-4).toUpperCase() || Math.floor(1000 + Math.random() * 9000)}`;
     if (!rest.referralCode && rest.id) {
@@ -68,6 +81,8 @@ export async function GET(request: NextRequest) {
 
     const sanitizedUser = {
       ...rest,
+      whatsapp,
+      whatsApp: whatsapp,
       inGameRole,
       referralCode: userReferralCode,
       totalReferrals: Number(rest.totalReferrals) || 0,
@@ -76,6 +91,11 @@ export async function GET(request: NextRequest) {
       lastStreakClaimDate,
       accountNumber: rest.accountNumber || `EZBD-${(rest.id || '').replace(/[^a-zA-Z0-9]/g, '').slice(-6).toUpperCase() || Math.floor(100000 + Math.random() * 900000)}`,
     };
+
+    delete sanitizedUser.password;
+    delete sanitizedUser.passwordResetOtp;
+    delete sanitizedUser.passwordResetExpires;
+
     return NextResponse.json({ user: sanitizedUser });
   } catch (error: any) {
     console.error('[GET /api/auth/me]', error);

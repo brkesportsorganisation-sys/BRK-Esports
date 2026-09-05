@@ -81,11 +81,12 @@ export async function POST(request: NextRequest) {
     }
 
     const inGameRole = user.inGameRole || meta.inGameRole || 'RUSHER';
+    const whatsapp = user.whatsapp || user.whatsApp || user.phone || null;
 
     // Sanitize response
     const { password: _, passwordResetOtp: __, passwordResetExpires: ___, ...sanitizedUser } = user;
     return NextResponse.json({ 
-      user: { ...sanitizedUser, inGameRole }, 
+      user: { ...sanitizedUser, inGameRole, whatsapp, whatsApp: whatsapp }, 
       message: 'Logged in successfully' 
     });
   } catch (error: any) {

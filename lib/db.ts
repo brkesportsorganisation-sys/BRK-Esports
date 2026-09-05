@@ -150,6 +150,16 @@ class LocalDatabase {
 
   // User Auth & Management
   getCurrentUser(): User | null {
+    if (!this.currentUser && typeof window !== 'undefined') {
+      try {
+        const savedUser = localStorage.getItem('helian_current_user');
+        if (savedUser) {
+          this.currentUser = JSON.parse(savedUser);
+        }
+      } catch {
+        this.currentUser = null;
+      }
+    }
     return this.currentUser;
   }
 
@@ -174,12 +184,27 @@ class LocalDatabase {
       }
     }
     this.save();
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('auth_state_changed', { detail: { user: this.currentUser } }));
+      if (this.currentUser) {
+        window.dispatchEvent(new CustomEvent('wallet_balance_updated', {
+          detail: {
+            walletBalance: this.currentUser.walletBalance,
+            winningBalance: this.currentUser.winningBalance,
+            coinBalance: this.currentUser.coinBalance,
+            promoBalance: this.currentUser.promoBalance,
+          }
+        }));
+      }
+    }
   }
 
   logout() {
     this.currentUser = null;
     if (typeof window !== 'undefined') {
       localStorage.removeItem('helian_current_user');
+      window.dispatchEvent(new CustomEvent('auth_state_changed', { detail: { user: null } }));
     }
   }
 

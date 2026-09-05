@@ -84,14 +84,28 @@ export default function Navbar() {
     }
   };
 
+  // Sync current user on route changes
   useEffect(() => {
     const cur = db.getCurrentUser();
     setCurrentUser(cur);
+    if (cur?.id) {
+      loadUserNotifications(cur.id);
+    }
+  }, [pathname]);
+
+  useEffect(() => {
+    // Initial sync
+    const initialUser = db.getCurrentUser();
+    setCurrentUser(initialUser);
+    if (initialUser?.id) {
+      loadUserNotifications(initialUser.id);
+    }
     
     async function loadLiveNavbarData() {
       try {
+        const cur = db.getCurrentUser();
         const [userRes, setRes] = await Promise.all([
-          cur ? fetch(`/api/auth/me?id=${cur.id}`) : Promise.resolve(null),
+          cur?.id ? fetch(`/api/auth/me?id=${cur.id}`) : Promise.resolve(null),
           fetch('/api/settings')
         ]);
 
@@ -106,36 +120,48 @@ export default function Navbar() {
           if (userRes.ok) {
             const uData = await userRes.json();
             if (uData.user) {
+              if (uData.user.isBanned) {
+                db.logout();
+                setCurrentUser(null);
+                return;
+              }
               setCurrentUser(uData.user);
               db.setCurrentUser(uData.user);
               loadUserNotifications(uData.user.id);
             }
-          } else if (userRes.status === 404 || userRes.status === 401) {
+          } else if (userRes.status === 401) {
+            db.logout();
             setCurrentUser(null);
-            db.setCurrentUser(null);
           }
+          // Note: Do NOT clear local session on 404 or 500 error to guard against transient network/query glitches.
         }
       } catch (err) {
         console.warn('Navbar live load error:', err);
       }
     }
 
-    if (cur?.id) {
-      loadUserNotifications(cur.id);
-    }
-
     loadLiveNavbarData();
+
+    // Instant auth state change listener (cross-component within same tab)
+    const handleAuthChange = (e: any) => {
+      const user = e?.detail?.user !== undefined ? e.detail.user : db.getCurrentUser();
+      setCurrentUser(user);
+      if (user?.id) {
+        loadUserNotifications(user.id);
+      }
+    };
 
     // Instant wallet balance listener for zero-delay UI sync
     const handleBalanceUpdate = (e: any) => {
       const u = e?.detail || db.getCurrentUser();
       if (u) {
-        setCurrentUser((prev) => ({ ...(prev || {}), ...u }));
+        setCurrentUser((prev) => (prev ? { ...prev, ...u } : prev));
       }
     };
 
+    window.addEventListener('auth_state_changed', handleAuthChange);
     window.addEventListener('wallet_balance_updated', handleBalanceUpdate);
-    window.addEventListener('storage', handleBalanceUpdate);
+    window.addEventListener('storage', handleAuthChange);
 
     // Smart visibility-aware periodic refresh for notifications (saves CPU & Edge requests)
     const handleNotificationSync = () => {
@@ -150,8 +176,9 @@ export default function Navbar() {
     document.addEventListener('visibilitychange', handleNotificationSync);
 
     return () => {
+      window.removeEventListener('auth_state_changed', handleAuthChange);
       window.removeEventListener('wallet_balance_updated', handleBalanceUpdate);
-      window.removeEventListener('storage', handleBalanceUpdate);
+      window.removeEventListener('storage', handleAuthChange);
       document.removeEventListener('visibilitychange', handleNotificationSync);
       clearInterval(interval);
     };
