@@ -40,12 +40,12 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/logo.png?v=3", type: "image/png", sizes: "32x32" },
-      { url: "/icon-192.png?v=3", type: "image/png", sizes: "192x192" },
-      { url: "/favicon.ico?v=3" },
+      { url: "/logo.png", type: "image/png", sizes: "32x32" },
+      { url: "/icon-192.png", type: "image/png", sizes: "192x192" },
+      { url: "/favicon.ico" },
     ],
-    shortcut: "/logo.png?v=3",
-    apple: "/apple-touch-icon.png?v=3",
+    shortcut: "/logo.png",
+    apple: "/apple-touch-icon.png",
   },
 };
 
@@ -63,13 +63,13 @@ export default function RootLayout({
   return (
     <html lang="en" className={`dark ${inter.variable} ${rajdhani.variable}`} suppressHydrationWarning>
       <head>
-        <link rel="icon" href="/logo.png?v=3" type="image/png" sizes="32x32" />
-        <link rel="icon" href="/icon-192.png?v=3" type="image/png" sizes="192x192" />
-        <link rel="shortcut icon" href="/favicon.ico?v=3" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3" />
+        <link rel="icon" href="/logo.png" type="image/png" sizes="32x32" />
+        <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192" />
+        <link rel="shortcut icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
         {/* Preload critical LCP image — logo */}
-        <link rel="preload" href="/logo.png?v=3" as="image" type="image/png" fetchPriority="high" />
+        <link rel="preload" href="/logo.png" as="image" type="image/png" fetchPriority="high" />
 
         {/* DNS prefetch & preconnect for external image CDNs */}
         <link rel="preconnect" href="https://images.unsplash.com" crossOrigin="anonymous" />

@@ -156,7 +156,7 @@ export default function LoginPage() {
           
           <div className="text-center space-y-2">
             <div className="w-14 h-14 rounded-2xl overflow-hidden mx-auto shadow-md border border-slate-700/50 bg-slate-950 p-0.5 flex items-center justify-center">
-              <img src="/logo.png?v=3" alt="ESPORTS ZONE BD" className="w-full h-full object-cover rounded-[14px]" />
+              <img src="/logo.png" alt="ESPORTS ZONE BD" className="w-full h-full object-cover rounded-[14px]" />
             </div>
             <h2 className="font-heading font-black text-3xl text-slate-900 tracking-wide">PLAYER LOGIN</h2>
             <p className="text-xs text-slate-600 font-medium">Welcome back to ESPORTS ZONE BD Arena</p>

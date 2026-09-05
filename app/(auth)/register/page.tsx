@@ -196,7 +196,7 @@ function RegisterContent() {
           {/* Header Banner with Crystal Clear JOIN ARENA title */}
           <div className="text-center space-y-2 pb-2">
             <div className="w-16 h-16 rounded-2xl overflow-hidden mx-auto shadow-md border border-slate-700/50 bg-slate-950 p-0.5 flex items-center justify-center">
-              <img src="/logo.png?v=3" alt="ESPORTS ZONE BD" className="w-full h-full object-cover rounded-[14px]" />
+              <img src="/logo.png" alt="ESPORTS ZONE BD" className="w-full h-full object-cover rounded-[14px]" />
             </div>
             
             <h1 className="font-heading font-black text-4xl text-slate-900 tracking-wider uppercase drop-shadow-sm">
