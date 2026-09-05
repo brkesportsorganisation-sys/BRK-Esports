@@ -362,7 +362,7 @@ export default function WalletPage() {
               className="w-full py-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-heading font-black text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center space-x-2 cursor-pointer active:scale-[0.99]"
             >
               <ArrowUpRight className="w-5 h-5 text-amber-400" />
-              <span>WITHDRAW / CASHOUT (Min ৳{minWithdraw})</span>
+              <span>WITHDRAW / CASHOUT (Min ৳{minWithdraw} • No Max Limit)</span>
             </button>
           </div>
         </div>
@@ -751,7 +751,7 @@ export default function WalletPage() {
                 <span className="text-base text-amber-700">৳{walletBalance.toLocaleString()}</span>
               </div>
               <div className="text-[11px] text-slate-600">
-                আপনার একাউন্ট ওয়ালেট ব্যালেন্স সরাসরি ক্যাশআউট করুন। <strong>ন্যূনতম উইথড্র: ৳{minWithdraw}</strong>
+                আপনার একাউন্ট ওয়ালেট ব্যালেন্স সরাসরি ক্যাশআউট করুন। <strong>ন্যূনতম উইথড্র: ৳{minWithdraw}</strong> • <strong className="text-emerald-700">কোনো সর্বোচ্চ লিমিট নেই (No Max Limit)</strong>
               </div>
             </div>
 
@@ -793,9 +793,14 @@ export default function WalletPage() {
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="font-bold text-slate-700">Withdraw Amount (৳ BDT) *</label>
-                  <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200">
-                    Min: ৳{minWithdraw}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200">
+                      Min: ৳{minWithdraw}
+                    </span>
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200">
+                      Max: কোনো লিমিট নেই (Unlimited)
+                    </span>
+                  </div>
                 </div>
                 <input
                   type="number"
@@ -803,13 +808,12 @@ export default function WalletPage() {
                   onChange={(e) => setWithdrawAmount(Number(e.target.value))}
                   required
                   min={minWithdraw}
-                  max={walletBalance}
                   className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 font-black text-base focus:outline-none focus:border-amber-500"
                 />
 
                 {/* Quick Chips for Withdrawal */}
                 <div className="flex flex-wrap gap-1.5 mt-2">
-                  {[minWithdraw, 200, 500, 1000]
+                  {[minWithdraw, 200, 500, 1000, 2000, 5000]
                     .filter((amt, i, arr) => amt >= minWithdraw && arr.indexOf(amt) === i && amt <= (walletBalance || minWithdraw))
                     .map((amt) => (
                       <button
@@ -831,7 +835,7 @@ export default function WalletPage() {
                         withdrawAmount === walletBalance ? 'bg-amber-600 text-white' : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
                       }`}
                     >
-                      Max (৳{walletBalance})
+                      সব ব্যালেন্স (৳{walletBalance.toLocaleString()})
                     </button>
                   )}
                 </div>
@@ -844,7 +848,7 @@ export default function WalletPage() {
                   <span>ক্যাশআউট প্রসেসিং তথ্য:</span>
                 </div>
                 <p>
-                  উইথড্র রিকোয়েস্ট করার পর অ্যাডমিন আপনার প্রদত্ত <strong>{withdrawMethod}</strong> নাম্বারে টাকা পাঠিয়ে রিকোয়েস্ট Approve করবেন।
+                  উইথড্র রিকোয়েস্ট করার পর অ্যাডমিন আপনার প্রদত্ত <strong>{withdrawMethod}</strong> নাম্বারে টাকা পাঠিয়ে রিকোয়েস্ট Approve করবেন। উইথড্রতে কোনো সর্বোচ্চ লিমিট (Max Limit) নেই, আপনার একাউন্টের যেকোনো পরিমাণ ব্যালেন্স ক্যাশআউট করতে পারবেন।
                 </p>
               </div>
 

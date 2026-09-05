@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // 2. Fetch user balances
+    // 2. Fetch user balances (No maximum withdrawal limit/cap is enforced; users can cash out any amount up to available balance)
     const { data: user, error: userError } = await supabaseAdmin
       .from('User')
       .select('*')

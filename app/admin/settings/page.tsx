@@ -1799,7 +1799,7 @@ Login to your account and book your slot today!`);
                       min={1}
                       className="w-full px-3.5 py-2.5 rounded-[12px] bg-white border border-[#E2E8F0] font-black text-sm text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
                     />
-                    <p className="text-[10px] text-slate-500">Players cannot request a Winning Wallet cashout below this amount.</p>
+                    <p className="text-[10px] text-slate-500">Players cannot request a Winning Wallet cashout below this amount. উইথড্রতে কোনো সর্বোচ্চ লিমিট নেই (No maximum limit enforced).</p>
                   </div>
                 </div>
               </div>
