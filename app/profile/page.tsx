@@ -182,11 +182,18 @@ function ProfilePageContent() {
     setIsLoadingSupport(true);
     fetchSupportChat(user.id);
 
-    const interval = setInterval(() => {
+    const handleSupportPoll = () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       fetchSupportChat(user.id);
-    }, 4000);
+    };
 
-    return () => clearInterval(interval);
+    const interval = setInterval(handleSupportPoll, 20000);
+    document.addEventListener('visibilitychange', handleSupportPoll);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleSupportPoll);
+      clearInterval(interval);
+    };
   }, [activeTab, user?.id]);
 
   const handleSendSupportMessage = async (e?: React.FormEvent) => {

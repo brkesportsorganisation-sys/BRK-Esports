@@ -1,10 +1,13 @@
 import { supabaseAdmin } from './supabase';
 import { Squad, SquadMember, SquadMemberType, InGameRole, SquadMemberStatus, User } from './types';
+import { serverCache, CACHE_TTL } from './server-cache';
 
 // Initial squads store (empty by default - 100% real database driven)
 export const INITIAL_SQUADS: Squad[] = [];
 
 let inMemorySquads: Squad[] = [];
+
+const SQUADS_CACHE_KEY = 'squads:EZBD_ESPORTS_SQUADS';
 
 /**
  * Strict 1-Squad Policy: Sanitizes squad rosters to ensure every player ID exists in AT MOST 1 squad.
@@ -55,9 +58,15 @@ export function sanitizeSquadsRoster(squads: Squad[]): Squad[] {
 }
 
 /**
- * Loads all squads from Supabase SiteSetting store or in-memory fallback.
+ * Loads all squads from cache → Supabase SiteSetting store → in-memory fallback.
+ * Cached for CACHE_TTL.SQUADS seconds to dramatically reduce Supabase egress.
  */
 export async function getSquads(): Promise<Squad[]> {
+  // 1. Return from cache if available
+  const cached = serverCache.get<Squad[]>(SQUADS_CACHE_KEY);
+  if (cached) return cached;
+
+  // 2. Fetch from Supabase
   try {
     const { data } = await supabaseAdmin
       .from('SiteSetting')
@@ -70,6 +79,8 @@ export async function getSquads(): Promise<Squad[]> {
       if (Array.isArray(parsed)) {
         const sanitized = sanitizeSquadsRoster(parsed);
         inMemorySquads = sanitized;
+        // Cache so subsequent requests don't hit DB
+        serverCache.set(SQUADS_CACHE_KEY, sanitized, CACHE_TTL.SQUADS);
         return sanitized;
       }
     }
@@ -82,10 +93,13 @@ export async function getSquads(): Promise<Squad[]> {
 
 /**
  * Saves squads list to Supabase with persistent database storage.
+ * Also invalidates the in-memory cache so the next read fetches fresh data.
  */
 export async function saveSquads(squads: Squad[]): Promise<boolean> {
   const sanitized = sanitizeSquadsRoster(squads);
   inMemorySquads = sanitized;
+  // Invalidate cache so next read fetches fresh from DB
+  serverCache.invalidate(SQUADS_CACHE_KEY);
   try {
     const { error } = await supabaseAdmin
       .from('SiteSetting')
@@ -106,6 +120,7 @@ export async function saveSquads(squads: Squad[]): Promise<boolean> {
     return false;
   }
 }
+
 
 /**
  * Converts a legacy Team record from Supabase to Squad format on the fly.

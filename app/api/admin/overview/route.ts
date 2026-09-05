@@ -16,14 +16,24 @@ export async function GET() {
   }
 
   try {
-    const [tournamentsRes, usersRes, paymentsRes] = await Promise.all([
-      supabaseAdmin.from('Tournament').select('*').order('createdAt', { ascending: false }),
-      supabaseAdmin.from('User').select('id, isBanned, role, createdAt'),
-      supabaseAdmin.from('Payment').select('*').order('createdAt', { ascending: false }),
+    const [tournamentsRes, usersCountRes, paymentsRes] = await Promise.all([
+      supabaseAdmin
+        .from('Tournament')
+        .select('id, title, game, mode, format, entryFee, prizePool, maxTeams, registeredCount, matchTime, status, createdAt')
+        .order('createdAt', { ascending: false })
+        .limit(100),
+      supabaseAdmin
+        .from('User')
+        .select('*', { count: 'exact', head: true }),
+      supabaseAdmin
+        .from('Payment')
+        .select('id, amount, status, trxId, tournamentTitle, userName, method, createdAt')
+        .order('createdAt', { ascending: false })
+        .limit(200),
     ]);
 
     const tournaments = tournamentsRes.data || [];
-    const users = usersRes.data || [];
+    const totalUsersCount = usersCountRes.count || 0;
     const payments = paymentsRes.data || [];
 
     const activeTournaments = tournaments.filter(t => t.status === 'UPCOMING' || t.status === 'LIVE').length;
@@ -97,7 +107,7 @@ export async function GET() {
     return NextResponse.json({
       totalTournaments: tournaments.length,
       activeTournaments,
-      totalUsers: users.length,
+      totalUsers: totalUsersCount,
       pendingPayments,
       totalRevenue,
       monthlySales,

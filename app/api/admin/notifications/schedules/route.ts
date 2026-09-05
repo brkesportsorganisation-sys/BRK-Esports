@@ -4,6 +4,9 @@ import { verifyAdminSession, requireAdminRole, logAdminAction } from '@/lib/admi
 import { supabaseAdmin } from '@/lib/supabase';
 import { generateAINotification, dispatchNotificationToDatabase } from '@/lib/ai-notification';
 import { NotificationSchedule } from '@/lib/types';
+import { serverCache, CACHE_TTL } from '@/lib/server-cache';
+
+const SCHEDULES_CACHE_KEY = 'admin:notification-schedules';
 
 async function getSession() {
   const cookieStore = await cookies();
@@ -11,11 +14,12 @@ async function getSession() {
   return verifyAdminSession(token);
 }
 
-// Fallback helper to get schedules from SiteSetting if table is not yet created
+// Helper to get schedules: tries table first, falls back to SiteSetting ONLY on table failure
 async function getSchedulesFromStore(): Promise<NotificationSchedule[]> {
   const schedulesMap = new Map<string, NotificationSchedule>();
 
-  // 1. Try reading from NotificationSchedule table
+  // 1. Try reading from NotificationSchedule table (primary source)
+  let tableOk = false;
   try {
     const { data: tableData, error: tableErr } = await supabaseAdmin
       .from('NotificationSchedule')
@@ -23,6 +27,7 @@ async function getSchedulesFromStore(): Promise<NotificationSchedule[]> {
       .order('createdAt', { ascending: false });
 
     if (!tableErr && Array.isArray(tableData)) {
+      tableOk = true;
       for (const item of tableData) {
         if (item?.id) schedulesMap.set(item.id, item);
       }
@@ -31,26 +36,28 @@ async function getSchedulesFromStore(): Promise<NotificationSchedule[]> {
     console.warn('[getSchedulesFromStore] table query warning:', err);
   }
 
-  // 2. Try reading from SiteSetting store (always check and merge)
-  try {
-    const { data: setting, error: settingErr } = await supabaseAdmin
-      .from('SiteSetting')
-      .select('value')
-      .eq('key', 'AI_NOTIFICATION_SCHEDULES')
-      .maybeSingle();
+  // 2. Only fall back to SiteSetting when table query failed (saves 1 DB query per request)
+  if (!tableOk) {
+    try {
+      const { data: setting, error: settingErr } = await supabaseAdmin
+        .from('SiteSetting')
+        .select('value')
+        .eq('key', 'AI_NOTIFICATION_SCHEDULES')
+        .maybeSingle();
 
-    if (!settingErr && setting?.value) {
-      const parsed = typeof setting.value === 'string' ? JSON.parse(setting.value) : setting.value;
-      if (Array.isArray(parsed)) {
-        for (const item of parsed) {
-          if (item?.id && !schedulesMap.has(item.id)) {
-            schedulesMap.set(item.id, item);
+      if (!settingErr && setting?.value) {
+        const parsed = typeof setting.value === 'string' ? JSON.parse(setting.value) : setting.value;
+        if (Array.isArray(parsed)) {
+          for (const item of parsed) {
+            if (item?.id && !schedulesMap.has(item.id)) {
+              schedulesMap.set(item.id, item);
+            }
           }
         }
       }
+    } catch (err) {
+      console.warn('[getSchedulesFromStore] SiteSetting query warning:', err);
     }
-  } catch (err) {
-    console.warn('[getSchedulesFromStore] SiteSetting query warning:', err);
   }
 
   return Array.from(schedulesMap.values());
@@ -84,7 +91,14 @@ export async function GET() {
   }
 
   try {
+    // Return from cache if available
+    const cached = serverCache.get<NotificationSchedule[]>(SCHEDULES_CACHE_KEY);
+    if (cached) {
+      return NextResponse.json({ schedules: cached });
+    }
+
     const schedules = await getSchedulesFromStore();
+    serverCache.set(SCHEDULES_CACHE_KEY, schedules, CACHE_TTL.NOTIFICATION_SCHEDULES);
     return NextResponse.json({ schedules });
   } catch (error: any) {
     console.error('Error fetching notification schedules:', error);
@@ -212,6 +226,9 @@ export async function POST(req: NextRequest) {
       `Created AI schedule "${name}" (Interval: ${interval}m)`
     );
 
+    // Invalidate cache so next GET returns fresh schedules
+    serverCache.invalidate(SCHEDULES_CACHE_KEY);
+
     return NextResponse.json({
       success: true,
       schedule: schedulePayload,
@@ -285,6 +302,9 @@ export async function PATCH(req: NextRequest) {
       const updatedList = currentSchedules.map(s => s.id === id ? updatedSched : s);
       await saveSchedulesToSettingStore(updatedList);
 
+      // Invalidate cache after trigger
+      serverCache.invalidate(SCHEDULES_CACHE_KEY);
+
       return NextResponse.json({
         success: true,
         dispatchResult,
@@ -309,6 +329,9 @@ export async function PATCH(req: NextRequest) {
 
     const updatedList = currentSchedules.map(s => s.id === id ? updatedSched : s);
     await saveSchedulesToSettingStore(updatedList);
+
+    // Invalidate cache
+    serverCache.invalidate(SCHEDULES_CACHE_KEY);
 
     return NextResponse.json({ success: true, schedule: updatedSched, message: 'Schedule updated successfully.' });
   } catch (error: any) {
@@ -342,6 +365,9 @@ export async function DELETE(req: NextRequest) {
     const currentSchedules = await getSchedulesFromStore();
     const updatedList = currentSchedules.filter(s => s.id !== id);
     await saveSchedulesToSettingStore(updatedList);
+
+    // Invalidate cache
+    serverCache.invalidate(SCHEDULES_CACHE_KEY);
 
     return NextResponse.json({ success: true, message: 'Schedule deleted successfully.' });
   } catch (error: any) {

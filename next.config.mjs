@@ -94,7 +94,10 @@ const nextConfig = {
   },
 
   images: {
-    unoptimized: true,
+    // NOTE: unoptimized was previously true — this caused full-size images to be served
+    // directly from Vercel Origin instead of going through the CDN image optimizer,
+    // which was inflating Fast Origin Transfer bandwidth. Now enabled for CDN caching.
+    unoptimized: false,
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 2592000, // 30 days
     deviceSizes: [360, 480, 640, 750, 828, 1080, 1200, 1920],
@@ -110,6 +113,7 @@ const nextConfig = {
       },
     ],
   },
+
 };
 
 export default nextConfig;

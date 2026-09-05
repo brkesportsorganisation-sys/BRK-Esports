@@ -24,22 +24,28 @@ export async function GET() {
       tournamentMap.set(t.id, t);
     });
 
-    // 2. Fetch all Participants from Supabase
+    // 2. Fetch recent Participants from Supabase
     const { data: participants, error: partError } = await supabaseAdmin
       .from('Participant')
-      .select('*')
-      .order('joinedAt', { ascending: false });
+      .select('id, tournamentId, userId, teamId, registrationId, status, entryFee, squadName, iglName, captainWhatsApp, player1Name, player2Name, player3Name, player4Name, backupPlayerName, joinedAt, createdAt')
+      .order('joinedAt', { ascending: false })
+      .limit(300);
 
     if (partError) {
       console.warn('[GET /api/admin/registrations] Supabase Participant error:', partError.message);
     }
 
-    // 3. Fetch user profiles for captain contact metadata
-    const { data: users } = await supabaseAdmin
-      .from('User')
-      .select('id, name, inGameName, email, phone, whatsapp');
+    // 3. Fetch user profiles ONLY for the active participant user IDs
+    const userIds = Array.from(new Set((participants || []).map((p: any) => p.userId).filter(Boolean)));
     const userMap = new Map<string, any>();
-    (users || []).forEach((u) => userMap.set(u.id, u));
+
+    if (userIds.length > 0) {
+      const { data: users } = await supabaseAdmin
+        .from('User')
+        .select('id, name, inGameName, email, phone, whatsapp')
+        .in('id', userIds.slice(0, 200));
+      (users || []).forEach((u) => userMap.set(u.id, u));
+    }
 
     // Deduplicated list of participants
     const regMap = new Map<string, any>();

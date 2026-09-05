@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { supabaseAdmin } from '@/lib/supabase';
 import { verifyAdminSession, hasPermission } from '@/lib/admin-auth';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabaseAdmin
       .from('Announcement')
-      .select('*')
+      .select('id, title, content, category, isPinned, createdAt')
       .order('isPinned', { ascending: false })
       .order('createdAt', { ascending: false });
 

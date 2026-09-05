@@ -77,11 +77,17 @@ export default function AdminDashboardPage() {
     const clockInterval = setInterval(updateClock, 1000);
 
     loadLiveOverview();
-    const refreshInterval = setInterval(loadLiveOverview, 30000);
+    const handleOverviewPoll = () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      loadLiveOverview();
+    };
+    const refreshInterval = setInterval(handleOverviewPoll, 60000);
+    document.addEventListener('visibilitychange', handleOverviewPoll);
 
     return () => {
       clearInterval(clockInterval);
       clearInterval(refreshInterval);
+      document.removeEventListener('visibilitychange', handleOverviewPoll);
     };
   }, []);
 

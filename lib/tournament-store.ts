@@ -1,6 +1,9 @@
 import { supabaseAdmin, supabase } from '@/lib/supabase';
 import type { Tournament, TournamentCommunityConfig, TournamentStatus, CommunityAccessType, CommunityUnlockMode, PrizeTier } from '@/lib/types';
 import { getDynamicTournamentStatus } from '@/lib/tournament-utils';
+import { serverCache, CACHE_TTL } from '@/lib/server-cache';
+
+const TOURNAMENTS_LIST_CACHE_KEY = 'tournaments:list';
 
 function parsePrizeDistribution(value: unknown, fallbackRules?: string): PrizeTier[] {
   if (Array.isArray(value) && value.length > 0) return value;
@@ -130,6 +133,10 @@ function serializeTournament(record: Record<string, any>): Tournament {
 }
 
 export async function listTournamentsFromDb() {
+  // Return from cache if available
+  const cached = serverCache.get<Tournament[]>(TOURNAMENTS_LIST_CACHE_KEY);
+  if (cached) return cached;
+
   const { data, error } = await supabaseAdmin
     .from('Tournament')
     .select('*')
@@ -140,31 +147,15 @@ export async function listTournamentsFromDb() {
     return [];
   }
 
-  // Calculate 100% REAL verified participant counts directly from Participant table
-  let realCounts: Record<string, number> = {};
-  try {
-    const { data: participants } = await supabaseAdmin
-      .from('Participant')
-      .select('tournamentId, status');
-
-    if (participants && Array.isArray(participants)) {
-      participants.forEach((p: any) => {
-        if (p.tournamentId && p.status !== 'REJECTED' && p.status !== 'CANCELLED') {
-          realCounts[p.tournamentId] = (realCounts[p.tournamentId] || 0) + 1;
-        }
-      });
-    }
-  } catch (err) {
-    console.warn('Failed to query live participant counts:', err);
-  }
-
-  return (data || []).map((record: any) => {
-    const realJoined = realCounts[record.id] !== undefined ? realCounts[record.id] : (Number(record.registeredCount) || 0);
+  const result = (data || []).map((record: any) => {
     return serializeTournament({
       ...record,
-      registeredCount: realJoined,
+      registeredCount: Number(record.registeredCount) || 0,
     });
   });
+
+  serverCache.set(TOURNAMENTS_LIST_CACHE_KEY, result, CACHE_TTL.TOURNAMENTS);
+  return result;
 }
 
 export async function getTournamentByIdFromDb(id: string) {
@@ -198,7 +189,7 @@ export async function getTournamentByIdFromDb(id: string) {
 
 export async function createTournamentInDb(input: Record<string, any>) {
   const id = input.id || `tour_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-  const payload = {
+  const payload: Record<string, any> = {
     id,
     title: String(input.title || ''),
     description: String(input.description || ''),
@@ -319,6 +310,8 @@ export async function createTournamentInDb(input: Record<string, any>) {
     throw new Error(res.error.message);
   }
 
+  // Invalidate tournament list cache so next read fetches fresh data
+  serverCache.invalidate(TOURNAMENTS_LIST_CACHE_KEY);
   return serializeTournament(data);
 }
 
@@ -466,6 +459,8 @@ export async function updateTournamentInDb(id: string, input: Record<string, any
     throw new Error(res.error.message);
   }
 
+  // Invalidate tournament list cache so next read fetches fresh data
+  serverCache.invalidate(TOURNAMENTS_LIST_CACHE_KEY);
   return serializeTournament(data);
 }
 
@@ -478,5 +473,6 @@ export async function deleteTournamentInDb(id: string) {
   if (error) {
     throw new Error(error.message);
   }
-  return true;
+  // Invalidate tournament list cache
+  serverCache.invalidate(TOURNAMENTS_LIST_CACHE_KEY);
 }

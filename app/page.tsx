@@ -21,8 +21,9 @@ import { listTournamentsFromDb } from '@/lib/tournament-store';
 import { supabaseAdmin } from '@/lib/supabase';
 import { db } from '@/lib/db';
 
-// Revalidate every 60 seconds (ISR)
-export const revalidate = 60;
+// Revalidate every 5 minutes (ISR) — reduced from 60s to cut Supabase DB hits & Vercel CPU
+export const revalidate = 300;
+
 
 // Direct Server-side DB Loaders (Instant 0-10ms response, zero HTTP roundtrip delay)
 async function fetchTournaments(): Promise<Tournament[]> {

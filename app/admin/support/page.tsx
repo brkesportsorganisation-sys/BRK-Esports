@@ -255,17 +255,24 @@ export default function AdminSupportPage() {
 
   useEffect(() => {
     fetchTickets(true);
-    const interval = setInterval(() => {
+    const handleTicketPoll = () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       fetchTickets(false);
-    }, 5000);
-    return () => clearInterval(interval);
+    };
+    const interval = setInterval(handleTicketPoll, 25000);
+    document.addEventListener('visibilitychange', handleTicketPoll);
+    return () => {
+      document.removeEventListener('visibilitychange', handleTicketPoll);
+      clearInterval(interval);
+    };
   }, []);
 
   // Poll messages silently for active ticket
   useEffect(() => {
     if (!activeTicket?.id) return;
     const ticketId = activeTicket.id;
-    const interval = setInterval(async () => {
+    const handleMsgPoll = async () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       try {
         const res = await fetch(`/api/support?ticketId=${ticketId}`);
         if (res.ok) {
@@ -280,8 +287,13 @@ export default function AdminSupportPage() {
           });
         }
       } catch {}
-    }, 3000);
-    return () => clearInterval(interval);
+    };
+    const interval = setInterval(handleMsgPoll, 12000);
+    document.addEventListener('visibilitychange', handleMsgPoll);
+    return () => {
+      document.removeEventListener('visibilitychange', handleMsgPoll);
+      clearInterval(interval);
+    };
   }, [activeTicket?.id]);
 
   const handleSelectTicket = (ticket: SupportTicket) => {

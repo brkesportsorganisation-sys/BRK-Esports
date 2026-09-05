@@ -21,8 +21,9 @@ export async function GET(request: NextRequest) {
       // Try Supabase first
       const { data: supaTickets } = await supabaseAdmin
         .from('SupportTicket')
-        .select('*')
-        .order('updatedAt', { ascending: false });
+        .select('id, userId, userName, userEmail, userPhone, lastMessage, status, unreadCountAdmin, unreadCountUser, createdAt, updatedAt')
+        .order('updatedAt', { ascending: false })
+        .limit(100);
 
       let tickets: SupportTicket[] = (supaTickets && supaTickets.length > 0)
         ? supaTickets
@@ -37,7 +38,10 @@ export async function GET(request: NextRequest) {
       }
       const uniqueTickets = Array.from(uniqueUserMap.values());
 
-      return NextResponse.json({ tickets: uniqueTickets });
+      return NextResponse.json(
+        { tickets: uniqueTickets },
+        { headers: { 'Cache-Control': 'private, no-cache, no-store' } }
+      );
     }
 
     // 2. Fetching specific ticket or user's ticket
@@ -47,7 +51,7 @@ export async function GET(request: NextRequest) {
     if (targetTicketId) {
       const { data: supaT } = await supabaseAdmin
         .from('SupportTicket')
-        .select('*')
+        .select('id, userId, userName, userEmail, userPhone, lastMessage, status, unreadCountAdmin, unreadCountUser, createdAt, updatedAt')
         .eq('id', targetTicketId)
         .maybeSingle();
 
@@ -55,7 +59,7 @@ export async function GET(request: NextRequest) {
     } else if (userId) {
       const { data: supaT } = await supabaseAdmin
         .from('SupportTicket')
-        .select('*')
+        .select('id, userId, userName, userEmail, userPhone, lastMessage, status, unreadCountAdmin, unreadCountUser, createdAt, updatedAt')
         .eq('userId', userId)
         .order('updatedAt', { ascending: false })
         .limit(1)
@@ -68,25 +72,34 @@ export async function GET(request: NextRequest) {
     }
 
     if (!targetTicketId) {
-      return NextResponse.json({ ticket: null, messages: [] });
+      return NextResponse.json(
+        { ticket: null, messages: [] },
+        { headers: { 'Cache-Control': 'private, no-cache, no-store' } }
+      );
     }
 
     // Fetch messages from Supabase or Local DB
     const { data: supaMsgs } = await supabaseAdmin
       .from('SupportMessage')
-      .select('*')
+      .select('id, ticketId, userId, userName, senderRole, content, createdAt')
       .eq('ticketId', targetTicketId)
-      .order('createdAt', { ascending: true });
+      .order('createdAt', { ascending: false })
+      .limit(60);
 
-    const rawMessages = supaMsgs && supaMsgs.length > 0 ? supaMsgs : db.getSupportMessages(targetTicketId);
+    const rawMessages = supaMsgs && supaMsgs.length > 0 
+      ? [...supaMsgs].reverse() 
+      : db.getSupportMessages(targetTicketId);
 
     // 30-Day Auto Retention: Only return active messages from the last 30 days
     const activeMessages = (rawMessages || []).filter(m => new Date(m.createdAt).getTime() >= cutoffTime);
 
-    return NextResponse.json({
-      ticket: targetTicket,
-      messages: activeMessages,
-    });
+    return NextResponse.json(
+      {
+        ticket: targetTicket,
+        messages: activeMessages,
+      },
+      { headers: { 'Cache-Control': 'private, no-cache, no-store' } }
+    );
   } catch (error: any) {
     console.error('[GET /api/support] Error:', error);
     return NextResponse.json({ error: 'Failed to fetch support data.' }, { status: 500 });

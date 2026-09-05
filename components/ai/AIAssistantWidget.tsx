@@ -107,7 +107,8 @@ export default function AIAssistantWidget() {
     if (!isOpen) return;
     const uid = currentUser ? currentUser.id : 'guest_user';
 
-    const interval = setInterval(async () => {
+    const checkAdminReplies = async () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       try {
         const res = await fetch(`/api/support?userId=${uid}`);
         if (res.ok) {
@@ -139,9 +140,15 @@ export default function AIAssistantWidget() {
           }
         }
       } catch {}
-    }, 15000);
+    };
 
-    return () => clearInterval(interval);
+    const interval = setInterval(checkAdminReplies, 45000);
+    document.addEventListener('visibilitychange', checkAdminReplies);
+
+    return () => {
+      document.removeEventListener('visibilitychange', checkAdminReplies);
+      clearInterval(interval);
+    };
   }, [isOpen, currentUser?.id]);
 
   useEffect(() => {

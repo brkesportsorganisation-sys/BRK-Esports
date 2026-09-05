@@ -10,13 +10,13 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ message: 'User ID is required' }, { status: 400 });
     }
 
-    const limitParam = parseInt(searchParams.get('limit') || '50', 10);
-    const limit = isNaN(limitParam) ? 50 : Math.min(limitParam, 100);
+    const limitParam = parseInt(searchParams.get('limit') || '30', 10);
+    const limit = isNaN(limitParam) ? 30 : Math.min(limitParam, 60);
 
     // Fetch user notifications (personal + broadcast notifications)
     const { data: notifications, error } = await supabaseAdmin
       .from('Notification')
-      .select('*')
+      .select('id, userId, title, message, type, priority, link, imageUrl, icon, isRead, createdAt')
       .or(`userId.eq.${userId},userId.eq.ALL,userId.eq.BROADCAST,userId.is.null`)
       .order('createdAt', { ascending: false })
       .limit(limit);

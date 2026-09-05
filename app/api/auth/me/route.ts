@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     try {
       const { data, error } = await supabaseAdmin
         .from('User')
-        .select('*')
+        .select('id, name, email, avatar, role, freeFireUid, inGameName, inGameRole, walletBalance, winningBalance, coinBalance, promoBalance, totalKills, totalWins, earnings, isBanned, referralCode, totalReferrals, claimedMilestones, currentStreak, lastStreakClaimDate, accountNumber, phone, whatsapp, deviceToken, createdAt, updatedAt')
         .eq('id', userId)
         .maybeSingle();
 

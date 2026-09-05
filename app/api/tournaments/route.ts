@@ -8,7 +8,7 @@ export async function GET() {
       { tournaments },
       {
         headers: {
-          'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=59',
+          'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120',
         },
       }
     );

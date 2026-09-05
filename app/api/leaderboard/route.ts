@@ -1,9 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { getSquads } from '@/lib/squads';
+import { serverCache, CACHE_TTL } from '@/lib/server-cache';
+
+const LEADERBOARD_CACHE_KEY = 'api:leaderboard';
 
 export async function GET() {
   try {
+    // 1. Serve from cache if available (reduces DB egress dramatically)
+    const cached = serverCache.get<{ players: any[]; teams: any[]; referrals: any[] }>(LEADERBOARD_CACHE_KEY);
+    if (cached) {
+      return NextResponse.json(
+        { success: true, ...cached },
+        { headers: { 'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300', 'X-Cache': 'HIT' } }
+      );
+    }
+
+    // 2. Fetch from DB
     const [playersRes, squads, referralsRes] = await Promise.all([
       supabaseAdmin
         .from('User')
@@ -86,11 +99,17 @@ export async function GET() {
       };
     });
 
+    const payload = { players, teams, referrals };
+
+    // 3. Store in cache for next requests
+    serverCache.set(LEADERBOARD_CACHE_KEY, payload, CACHE_TTL.LEADERBOARD);
+
     return NextResponse.json(
-      { success: true, players, teams, referrals },
+      { success: true, ...payload },
       {
         headers: {
-          'Cache-Control': 'public, s-maxage=15, stale-while-revalidate=60',
+          'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300',
+          'X-Cache': 'MISS',
         },
       }
     );

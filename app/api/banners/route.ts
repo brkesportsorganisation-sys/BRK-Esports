@@ -5,7 +5,7 @@ import { initialBanners } from '@/lib/mock-data';
 import { supabaseAdmin } from '@/lib/supabase';
 import { saveBase64Image } from '@/lib/upload';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 // Helper to sanitize standard Banner columns for the SQL table
 function sanitizeSqlBanner(b: Banner): Record<string, any> {
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     try {
       const { data: dbBanners, error } = await supabaseAdmin
         .from('Banner')
-        .select('*')
+        .select('id, title, subtitle, badge, badgeText, imageUrl, mobileImageUrl, targetDevice, linkUrl, link, buttonText, placement, order, displayOrder, isActive, createdAt, updatedAt')
         .order('order', { ascending: true });
 
       if (!error && dbBanners && dbBanners.length > 0) {
