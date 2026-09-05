@@ -23,15 +23,18 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
 
   useEffect(() => {
     try {
-      const cached = localStorage.getItem('helian_banners');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setBanners(parsed);
+      const initialHasSliders = initialData?.banners?.some((b) => b.placement === 'MAIN_SLIDER' && b.isActive !== false);
+      if (!initialHasSliders) {
+        const cached = localStorage.getItem('helian_banners');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.some((b: any) => b.placement === 'MAIN_SLIDER' && b.isActive !== false)) {
+            setBanners(parsed);
+          }
         }
       }
     } catch {}
-  }, []);
+  }, [initialData?.banners]);
 
   const [slideInterval, setSlideInterval] = useState<number>(() => {
     return initialData?.settings?.autoSlideInterval || 4000;
@@ -39,7 +42,7 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
   
   const [overlayOpacity, setOverlayOpacity] = useState<number>(() => {
     // @ts-ignore
-    return initialData?.settings?.overlayOpacity ?? 60;
+    return initialData?.settings?.overlayOpacity ?? 0;
   });
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -50,16 +53,19 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
   useEffect(() => {
     async function loadBanners() {
       try {
-        const res = await fetch('/api/banners', { cache: 'no-store' });
+        const res = await fetch(`/api/banners?t=${Date.now()}`, { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
           if (data.banners && data.banners.length > 0) {
-            setBanners(data.banners);
-            try {
-              if (typeof window !== 'undefined') {
-                localStorage.setItem('helian_banners', JSON.stringify(data.banners));
-              }
-            } catch {}
+            const hasMain = data.banners.some((b: any) => b.placement === 'MAIN_SLIDER' && b.isActive !== false);
+            if (hasMain) {
+              setBanners(data.banners);
+              try {
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('helian_banners', JSON.stringify(data.banners));
+                }
+              } catch {}
+            }
           }
           if (data.settings?.autoSlideInterval) {
             setSlideInterval(data.settings.autoSlideInterval);

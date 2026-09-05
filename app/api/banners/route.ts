@@ -5,7 +5,8 @@ import { initialBanners } from '@/lib/mock-data';
 import { supabaseAdmin } from '@/lib/supabase';
 import { saveBase64Image } from '@/lib/upload';
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 // Helper to sanitize standard Banner columns for the SQL table
 function sanitizeSqlBanner(b: Banner): Record<string, any> {
@@ -41,11 +42,18 @@ export async function GET(request: NextRequest) {
     try {
       const { data: dbBanners, error } = await supabaseAdmin
         .from('Banner')
-        .select('id, title, subtitle, badge, badgeText, imageUrl, mobileImageUrl, targetDevice, linkUrl, link, buttonText, placement, order, displayOrder, isActive, createdAt, updatedAt')
+        .select('*')
         .order('order', { ascending: true });
 
       if (!error && dbBanners && dbBanners.length > 0) {
-        banners = dbBanners as Banner[];
+        banners = dbBanners.map((b: any) => ({
+          ...b,
+          badgeText: b.badgeText || b.badge || '',
+          link: b.link || b.linkUrl || '',
+          displayOrder: b.displayOrder ?? b.order ?? 1,
+        })) as Banner[];
+      } else if (error) {
+        console.warn('[GET /api/banners] Supabase Banner query error:', error.message);
       }
     } catch (e) {
       console.warn('[GET /api/banners] Supabase fetch error:', e);
@@ -142,7 +150,7 @@ export async function GET(request: NextRequest) {
       },
       {
         headers: {
-          'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
         },
       }
     );

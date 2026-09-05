@@ -22,7 +22,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { db } from '@/lib/db';
 
 // Revalidate every 5 minutes (ISR) — reduced from 60s to cut Supabase DB hits & Vercel CPU
-export const revalidate = 300;
+export const revalidate = 60;
 
 
 // Direct Server-side DB Loaders (Instant 0-10ms response, zero HTTP roundtrip delay)
@@ -72,25 +72,45 @@ async function fetchShopItems(): Promise<ShopProduct[]> {
 
 async function fetchBanners(): Promise<{ banners: Banner[]; shopBanner: Banner | null; settings?: any }> {
   try {
-    const { data: dbBanners } = await supabaseAdmin
-      .from('Banner')
-      .select('*')
-      .order('order', { ascending: true });
+    const [bannersRes, settingsRes] = await Promise.all([
+      supabaseAdmin
+        .from('Banner')
+        .select('*')
+        .order('order', { ascending: true }),
+      supabaseAdmin
+        .from('SiteSetting')
+        .select('key, value')
+        .in('key', ['banner_slide_speed', 'banner_overlay_opacity'])
+    ]);
 
+    const dbBanners = bannersRes.data;
     const bannersList: Banner[] = dbBanners && dbBanners.length > 0 ? (dbBanners as Banner[]) : initialBanners;
     const activeBanners = bannersList.filter((b) => b.isActive !== false);
     const shopBanner = activeBanners.find((b) => b.placement === 'SHOP_BANNER') || null;
 
+    let autoSlideInterval = 4000;
+    let overlayOpacity = 0;
+    (settingsRes.data || []).forEach((s) => {
+      if (s.key === 'banner_slide_speed') {
+        const val = parseInt(s.value, 10);
+        if (!isNaN(val) && val > 0) autoSlideInterval = val;
+      }
+      if (s.key === 'banner_overlay_opacity') {
+        const val = parseInt(s.value, 10);
+        if (!isNaN(val) && val >= 0 && val <= 100) overlayOpacity = val;
+      }
+    });
+
     return {
       banners: activeBanners,
       shopBanner,
-      settings: { autoSlideInterval: 4000, isEnabled: true, overlayOpacity: 50 },
+      settings: { autoSlideInterval, isEnabled: true, overlayOpacity },
     };
   } catch {
     return {
       banners: initialBanners,
       shopBanner: null,
-      settings: { autoSlideInterval: 4000, isEnabled: true, overlayOpacity: 50 },
+      settings: { autoSlideInterval: 4000, isEnabled: true, overlayOpacity: 0 },
     };
   }
 }
