@@ -57,13 +57,27 @@ const nextConfig = {
           },
         ],
       },
-      // Static public assets (images, fonts, icons)
+      // PWA Manifest — must revalidate so updates to icons or app name are detected immediately
       {
-        source: '/:all*(png|jpg|jpeg|gif|webp|avif|svg|ico|woff|woff2)',
+        source: '/manifest.json',
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
+            value: 'public, max-age=0, must-revalidate',
+          },
+          {
+            key: 'Content-Type',
+            value: 'application/manifest+json; charset=utf-8',
+          },
+        ],
+      },
+      // PWA & brand icons — 1 hour cache with stale-while-revalidate (prevents permanent stale caching)
+      {
+        source: '/icons/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=3600, stale-while-revalidate=86400',
           },
         ],
       },
@@ -72,7 +86,26 @@ const nextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
+            value: 'public, max-age=3600, stale-while-revalidate=86400',
+          },
+        ],
+      },
+      {
+        source: '/(apple-touch-icon.*|icon-.*|favicon.ico)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=3600, stale-while-revalidate=86400',
+          },
+        ],
+      },
+      // Static public assets (fonts and general media)
+      {
+        source: '/:all*(png|jpg|jpeg|gif|webp|avif|svg|ico|woff|woff2)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400, stale-while-revalidate=604800',
           },
         ],
       },

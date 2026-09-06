@@ -1,7 +1,7 @@
-// ESPORTS ZONE BD — Service Worker v4
+// ESPORTS ZONE BD — Service Worker v5
 // Caching Strategy: Cache-First for static assets, Network-First for API
 
-const CACHE_VERSION = 'ezbd-v4';
+const CACHE_VERSION = 'ezbd-v5';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
 const API_CACHE = `${CACHE_VERSION}-api`;
@@ -12,7 +12,13 @@ const PRECACHE_URLS = [
   '/manifest.json',
   '/favicon.ico',
   '/logo.png',
+  '/icons/icon-192x192.png',
+  '/icons/icon-512x512.png',
+  '/icons/maskable-icon-192x192.png',
+  '/icons/maskable-icon-512x512.png',
+  '/icons/apple-touch-icon.png',
   '/icon-192.png',
+  '/icon-512.png',
 ];
 
 // ── Install: pre-cache critical resources ──────────────────────────────────

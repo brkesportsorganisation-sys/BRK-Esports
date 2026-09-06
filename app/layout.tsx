@@ -25,11 +25,11 @@ export const metadata: Metadata = {
   title: "ESPORTS ZONE BD | Free Fire Esports Platform",
   description: "Join daily Free Fire BR Squad, Duo & CS 4v4 tournaments. Win instant cash payouts via bKash & Nagad.",
   manifest: "/manifest.json",
-  metadataBase: new URL("https://esportszonebd.online"),
+  metadataBase: new URL("https://www.esportszonebd.online"),
   openGraph: {
     title: "ESPORTS ZONE BD | Free Fire Esports Platform",
     description: "Join daily Free Fire BR Squad, Duo & CS 4v4 tournaments. Win instant cash payouts via bKash & Nagad.",
-    url: "https://esportszonebd.online",
+    url: "https://www.esportszonebd.online",
     siteName: "ESPORTS ZONE BD",
     type: "website",
   },
@@ -40,17 +40,21 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/logo.png", type: "image/png", sizes: "32x32" },
-      { url: "/icon-192.png", type: "image/png", sizes: "192x192" },
-      { url: "/favicon.ico" },
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icons/icon-192x192.png", type: "image/png", sizes: "192x192" },
+      { url: "/icons/icon-512x512.png", type: "image/png", sizes: "512x512" },
+      { url: "/logo.png", type: "image/png", sizes: "512x512" },
     ],
-    shortcut: "/logo.png",
-    apple: "/apple-touch-icon.png",
+    shortcut: "/icons/icon-192x192.png",
+    apple: [
+      { url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#FF1E42",
+  themeColor: "#0B0E14",
   width: "device-width",
   initialScale: 1,
 };
@@ -63,10 +67,12 @@ export default function RootLayout({
   return (
     <html lang="en" className={`dark ${inter.variable} ${rajdhani.variable}`} suppressHydrationWarning>
       <head>
-        <link rel="icon" href="/logo.png" type="image/png" sizes="32x32" />
-        <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192" />
-        <link rel="shortcut icon" href="/favicon.ico" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/icons/icon-192x192.png" type="image/png" sizes="192x192" />
+        <link rel="icon" href="/icons/icon-512x512.png" type="image/png" sizes="512x512" />
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" sizes="180x180" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
+        <link rel="manifest" href="/manifest.json" />
 
         {/* Preload critical LCP image — logo */}
         <link rel="preload" href="/logo.png" as="image" type="image/png" fetchPriority="high" />

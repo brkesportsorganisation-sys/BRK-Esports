@@ -112,8 +112,11 @@ export function inspectRequestSecurity(request: NextRequest): { blocked: boolean
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/static') ||
+    pathname.startsWith('/icons/') ||
     pathname.includes('/favicon.ico') ||
     pathname.includes('/manifest.json') ||
+    pathname.includes('/logo.png') ||
+    pathname.includes('/apple-touch-icon') ||
     pathname.includes('/icon-') ||
     pathname.includes('/uploads/')
   ) {
