@@ -69,9 +69,17 @@ export default function Navbar() {
     setUnreadCount((prev) => prev + 1);
   });
 
-  // Load user notifications from API
-  const loadUserNotifications = async (userId: string) => {
+  const lastNotifFetchRef = useRef<number>(0);
+  const lastLiveFetchRef = useRef<number>(0);
+
+  // Load user notifications from API (throttled to max once per 60 seconds to save Vercel CPU & Supabase DB)
+  const loadUserNotifications = async (userId: string, force = false) => {
     if (!userId) return;
+    const now = Date.now();
+    if (!force && now - lastNotifFetchRef.current < 60000) {
+      return;
+    }
+    lastNotifFetchRef.current = now;
     try {
       const res = await fetch(`/api/notifications?userId=${userId}&limit=30`);
       if (res.ok) {
@@ -84,13 +92,10 @@ export default function Navbar() {
     }
   };
 
-  // Sync current user on route changes
+  // Sync current user on route changes (instant local sync without network delay)
   useEffect(() => {
     const cur = db.getCurrentUser();
     setCurrentUser(cur);
-    if (cur?.id) {
-      loadUserNotifications(cur.id);
-    }
   }, [pathname]);
 
   useEffect(() => {
@@ -101,7 +106,12 @@ export default function Navbar() {
       loadUserNotifications(initialUser.id);
     }
     
-    async function loadLiveNavbarData() {
+    async function loadLiveNavbarData(force = false) {
+      const now = Date.now();
+      if (!force && now - lastLiveFetchRef.current < 180000) {
+        return; // Only re-fetch live navbar data every 3 minutes
+      }
+      lastLiveFetchRef.current = now;
       try {
         const cur = db.getCurrentUser();
         const [userRes, setRes] = await Promise.all([
@@ -127,7 +137,6 @@ export default function Navbar() {
               }
               setCurrentUser(uData.user);
               db.setCurrentUser(uData.user);
-              loadUserNotifications(uData.user.id);
             }
           } else if (userRes.status === 401) {
             db.logout();

@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   description: 'Watch live Free Fire tournaments and championship matches on ESPORTS ZONE BD.',
 };
 
-export const revalidate = 5; // revalidate every 5 seconds for live stream updates
+export const revalidate = 60; // revalidate every 60 seconds (reduces Vercel serverless CPU & Supabase DB hits by 92%)
 
 export default async function LivePage() {
   const { data: settings } = await supabaseAdmin

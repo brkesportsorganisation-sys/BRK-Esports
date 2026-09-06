@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 
-export const revalidate = 60;
+export const revalidate = 300;
 
 const EXCLUDED_HEAVY_KEYS = [
   'WHATSAPP_MESSAGE_LOGS',
@@ -36,7 +36,7 @@ export async function GET() {
       { settings: settingsMap },
       {
         headers: {
-          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
         },
       }
     );
