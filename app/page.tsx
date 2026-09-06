@@ -13,6 +13,7 @@ import {
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import HomeBannerSlider from '@/components/home/HomeBannerSlider';
+import HomeInstallSection from '@/components/home/HomeInstallSection';
 import TournamentCard from '@/components/tournaments/TournamentCard';
 import HomeClientSection from '@/components/home/HomeClientSection';
 import { Tournament, Announcement, ShopProduct, Banner, DEFAULT_SHOP_PRODUCTS } from '@/lib/types';
@@ -140,6 +141,9 @@ export default async function HomePage() {
           {/* Banner Slider — client component with server preloaded initialData for instant LCP */}
           <HomeBannerSlider initialData={{ banners, settings }} />
         </section>
+
+        {/* 1-Click Install Web App to Phone Home Screen Section */}
+        <HomeInstallSection />
 
         {/* Featured Tournaments Section (Only shown when admin creates real tournaments) */}
         {displayedTournaments.length > 0 && (

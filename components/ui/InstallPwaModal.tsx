@@ -18,6 +18,8 @@ export default function InstallPwaModal() {
     const handler = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
+      (window as any).deferredPwaPrompt = e;
+      window.dispatchEvent(new CustomEvent('pwa-prompt-ready', { detail: e }));
       // Check if user dismissed recently
       const dismissed = localStorage.getItem('pwa_prompt_dismissed');
       if (!dismissed) {
