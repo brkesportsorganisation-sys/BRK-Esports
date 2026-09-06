@@ -47,7 +47,10 @@ export default function TournamentCard({ tournament, priority = false }: Tournam
   const effectiveRegisteredCount = Math.max(tournament.registeredCount || 0, participants.length);
   const maxSlots = tournament.maxTeams || 12;
   const isFull = effectiveRegisteredCount >= maxSlots;
-  const isFree = tournament.entryFee === 0 && (!tournament.coinEntryFee || tournament.coinEntryFee === 0);
+  const isCoinOnly = tournament.entryFeeType === 'COINS';
+  const isFree = tournament.entryFeeType === 'FREE' || (
+    isCoinOnly ? false : (Number(tournament.entryFee || 0) === 0 && (!tournament.coinEntryFee || Number(tournament.coinEntryFee) === 0))
+  );
   const percentFilled = Math.min(100, Math.round((effectiveRegisteredCount / maxSlots) * 100));
 
   const currentStatus = getDynamicTournamentStatus(tournament);
@@ -217,9 +220,13 @@ export default function TournamentCard({ tournament, priority = false }: Tournam
                 <span className="text-xs sm:text-sm font-black text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-300">
                   FREE ENTRY
                 </span>
-              ) : tournament.entryFeeType === 'COINS' ? (
+              ) : isCoinOnly ? (
                 <span className="text-xs sm:text-sm font-black text-amber-900 bg-amber-100 px-2.5 py-1 rounded-lg border border-amber-300">
-                  {tournament.coinEntryFee || (tournament.entryFee * 10)} 🪙
+                  {tournament.coinEntryFee || (tournament.entryFee * 10) || 500} 🪙
+                </span>
+              ) : tournament.entryFeeType === 'BOTH' && tournament.allowCoinEntry !== false ? (
+                <span className="text-xs sm:text-sm font-black text-slate-900 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-300">
+                  ৳{tournament.entryFee} / {tournament.coinEntryFee || (tournament.entryFee * 10) || 500} 🪙
                 </span>
               ) : (
                 <span className="text-xs sm:text-sm font-black text-slate-900 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-300">
@@ -480,7 +487,15 @@ export default function TournamentCard({ tournament, priority = false }: Tournam
                     <div className="grid grid-cols-2 gap-2 text-slate-700 font-semibold border-b border-slate-200 pb-2">
                       <div>Mode: <strong className="text-slate-900">{tournament.mode || 'SQUAD'}</strong></div>
                       <div>Format: <strong className="text-slate-900">{tournament.format?.replace('_', ' ') || 'BR'}</strong></div>
-                      <div>Entry: <strong className="text-slate-900">{isFree ? 'FREE' : `৳${tournament.entryFee}`}</strong></div>
+                      <div>Entry: <strong className="text-slate-900">{
+                        isFree 
+                          ? 'FREE' 
+                          : isCoinOnly 
+                          ? `${tournament.coinEntryFee || (tournament.entryFee * 10) || 500} 🪙` 
+                          : tournament.entryFeeType === 'BOTH' && tournament.allowCoinEntry !== false
+                          ? `৳${tournament.entryFee} / ${tournament.coinEntryFee || (tournament.entryFee * 10) || 500} 🪙`
+                          : `৳${tournament.entryFee}`
+                      }</strong></div>
                       <div>Pool: <strong className="text-emerald-600">৳{tournament.prizePool}</strong></div>
                     </div>
 

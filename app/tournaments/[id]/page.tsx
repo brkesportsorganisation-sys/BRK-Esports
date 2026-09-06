@@ -292,7 +292,9 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
   const isSoloMatch = tMode === 'SOLO' || tTitle.includes('solo') || tTitle.includes('1v1');
   const isDuoMatch = tMode === 'DUO' || tTitle.includes('duo');
 
-  const isFreeMatch = Number(tournament?.entryFee || 0) === 0 && (!tournament?.coinEntryFee || Number(tournament?.coinEntryFee) === 0);
+  const isFreeMatch = tournament?.entryFeeType === 'FREE' || (
+    tournament?.entryFeeType !== 'COINS' && Number(tournament?.entryFee || 0) === 0 && (!tournament?.coinEntryFee || Number(tournament?.coinEntryFee) === 0)
+  );
   const isGiveawayTournament = !isSoloMatch && Boolean(
     tournament?.isGiveaway || 
     tournament?.requiresFullSquad || 
@@ -508,12 +510,16 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
   
   const allowCoins = tournament.allowCoinEntry !== false && tournament.entryFeeType !== 'CASH';
   const isCoinOnly = tournament.entryFeeType === 'COINS';
-  const isFree = tournament.entryFee === 0 && (!tournament.coinEntryFee || tournament.coinEntryFee === 0);
+  const isFree = tournament.entryFeeType === 'FREE' || (
+    isCoinOnly
+      ? (!tournament.coinEntryFee || Number(tournament.coinEntryFee) === 0)
+      : (Number(tournament.entryFee || 0) === 0 && (!tournament.coinEntryFee || Number(tournament.coinEntryFee) === 0))
+  );
 
-  const requiredCash = Number(tournament.entryFee) || 0;
-  const requiredCoins = tournament.coinEntryFee !== undefined && tournament.coinEntryFee !== null && tournament.coinEntryFee > 0
+  const requiredCash = isCoinOnly ? 0 : (Number(tournament.entryFee) || 0);
+  const requiredCoins = tournament.coinEntryFee !== undefined && tournament.coinEntryFee !== null && Number(tournament.coinEntryFee) > 0
     ? Number(tournament.coinEntryFee)
-    : (requiredCash * 10 || 500);
+    : (requiredCash > 0 ? requiredCash * 10 : 500);
 
   const currentRequiredFee = paymentMethod === 'COINS' ? requiredCoins : requiredCash;
 
@@ -894,7 +900,15 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                 className="px-7 py-3.5 sm:px-8 sm:py-4 rounded-2xl text-white font-heading font-black text-sm sm:text-base shadow-neon-cyan hover:scale-105 active:scale-95 transition-all flex items-center space-x-2.5 cursor-pointer bg-gradient-to-r from-green-600 to-emerald-600"
               >
                 <Check className="w-5 h-5 sm:w-6 sm:h-6" />
-                <span>{isSoloMatch ? 'ALREADY JOINED (JOIN AGAIN)' : `REGISTER ANOTHER SQUAD (৳${tournament.entryFee})`}</span>
+                <span>{isSoloMatch ? 'ALREADY JOINED (JOIN AGAIN)' : `REGISTER ANOTHER SQUAD (${
+                  isFree 
+                    ? 'FREE' 
+                    : isCoinOnly 
+                    ? `${requiredCoins.toLocaleString()} 🪙` 
+                    : (tournament.entryFeeType === 'BOTH' && allowCoins)
+                    ? `৳${requiredCash} / ${requiredCoins.toLocaleString()} 🪙`
+                    : `৳${requiredCash}`
+                })`}</span>
               </button>
             ) : (
               <button
@@ -902,7 +916,15 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                 className="px-7 py-3.5 sm:px-8 sm:py-4 rounded-2xl text-white font-heading font-black text-sm sm:text-base shadow-neon-red hover:scale-105 active:scale-95 transition-all flex items-center space-x-2.5 cursor-pointer bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold"
               >
                 <Trophy className="w-5 h-5 sm:w-6 sm:h-6" />
-                <span>{isSoloMatch ? 'JOIN SOLO' : 'JOIN'} ({isFree ? 'FREE' : `৳${tournament.entryFee}`})</span>
+                <span>{isSoloMatch ? 'JOIN SOLO' : 'JOIN'} ({
+                  isFree 
+                    ? 'FREE' 
+                    : isCoinOnly 
+                    ? `${requiredCoins.toLocaleString()} 🪙` 
+                    : (tournament.entryFeeType === 'BOTH' && allowCoins)
+                    ? `৳${requiredCash} / ${requiredCoins.toLocaleString()} 🪙`
+                    : `৳${requiredCash}`
+                })</span>
               </button>
             )}
           </div>

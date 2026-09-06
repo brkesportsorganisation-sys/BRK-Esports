@@ -1229,7 +1229,7 @@ export default function AdminTournamentsPage() {
       liveMatchToggle: item.liveMatchToggle || false,
       allowCoinEntry: item.allowCoinEntry !== false,
       coinEntryFee: item.coinEntryFee !== undefined && item.coinEntryFee !== null ? Number(item.coinEntryFee) : (item.entryFee ? item.entryFee * 10 : 1000),
-      entryFeeType: item.entryFeeType || (item.allowCoinEntry === false ? 'CASH' : (item.entryFee === 0 ? 'FREE' : 'BOTH')),
+      entryFeeType: item.entryFeeType || (item.allowCoinEntry === false ? 'CASH' : (item.entryFee === 0 && Number(item.coinEntryFee || 0) > 0 ? 'COINS' : (item.entryFee === 0 ? 'FREE' : 'BOTH'))),
       isGiveaway: Boolean(item.isGiveaway || item.requiresFullSquad),
       requiresFullSquad: Boolean(item.requiresFullSquad || item.isGiveaway),
       communityEnabled: item.community?.enabled || false,
@@ -1365,6 +1365,11 @@ export default function AdminTournamentsPage() {
       liveMatchToggle: form.liveMatchToggle,
       isGiveaway: Boolean(form.isGiveaway || form.requiresFullSquad),
       requiresFullSquad: Boolean(form.requiresFullSquad || form.isGiveaway),
+      allowCoinEntry: form.entryFeeType === 'BOTH' || form.entryFeeType === 'COINS',
+      coinEntryFee: form.entryFeeType === 'FREE' || form.entryFeeType === 'CASH'
+        ? null
+        : (form.coinEntryFee !== undefined && form.coinEntryFee !== null ? Number(form.coinEntryFee) : 1000),
+      entryFeeType: form.entryFeeType,
       community: {
         enabled: form.communityEnabled,
         accessType: form.communityAccessType,
@@ -1484,6 +1489,9 @@ export default function AdminTournamentsPage() {
       showOnHomepage: true,
       registrationOpen: true,
       liveMatchToggle: false,
+      entryFeeType: item.entryFeeType || 'BOTH',
+      allowCoinEntry: item.allowCoinEntry !== false,
+      coinEntryFee: item.coinEntryFee,
       community: {
         enabled: false,
         accessType: 'WHATSAPP' as const,
@@ -1794,17 +1802,22 @@ export default function AdminTournamentsPage() {
                         key={mode.id}
                         type="button"
                         onClick={() => {
-                          setForm(prev => ({
-                            ...prev,
-                            entryFeeType: mode.id as any,
-                            allowCoinEntry: mode.id === 'BOTH' || mode.id === 'COINS',
-                            entryFee: mode.id === 'FREE' ? 0 : (prev.entryFee || 100),
-                            coinEntryFee: mode.id === 'FREE' ? 0 : (prev.coinEntryFee || 1000),
-                          }));
+                          setForm(prev => {
+                            const isFree = mode.id === 'FREE';
+                            const isCoinOnly = mode.id === 'COINS';
+                            const isCashOnly = mode.id === 'CASH';
+                            return {
+                              ...prev,
+                              entryFeeType: mode.id as any,
+                              allowCoinEntry: mode.id === 'BOTH' || mode.id === 'COINS',
+                              entryFee: isFree || isCoinOnly ? 0 : (prev.entryFee > 0 ? prev.entryFee : 100),
+                              coinEntryFee: isFree || isCashOnly ? 0 : (prev.coinEntryFee > 0 ? prev.coinEntryFee : (prev.entryFee ? prev.entryFee * 10 : 1000)),
+                            };
+                          });
                         }}
                         className={`p-2.5 rounded-xl border text-xs font-bold text-center transition-all cursor-pointer ${
                           form.entryFeeType === mode.id
-                            ? 'bg-slate-900 text-white border-slate-900 shadow-xs font-black'
+                            ? 'bg-slate-900 text-white border-slate-900 shadow-xs font-black ring-2 ring-amber-400/60'
                             : 'bg-white border-amber-200 text-slate-700 hover:bg-amber-100/50'
                         }`}
                       >
@@ -1822,8 +1835,8 @@ export default function AdminTournamentsPage() {
                         type="number"
                         min="0"
                         disabled={form.entryFeeType === 'COINS' || form.entryFeeType === 'FREE'}
-                        value={form.entryFee}
-                        onChange={(e) => setForm(prev => ({ ...prev, entryFee: Number(e.target.value) }))}
+                        value={form.entryFeeType === 'COINS' || form.entryFeeType === 'FREE' ? 0 : form.entryFee}
+                        onChange={(e) => setForm(prev => ({ ...prev, entryFee: Math.max(0, Number(e.target.value)) }))}
                         className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-bold text-slate-900 outline-none focus:border-brand-orange disabled:bg-slate-100 disabled:text-slate-400"
                       />
                     </div>
@@ -1836,8 +1849,8 @@ export default function AdminTournamentsPage() {
                         type="number"
                         min="0"
                         disabled={form.entryFeeType === 'CASH' || form.entryFeeType === 'FREE'}
-                        value={form.coinEntryFee}
-                        onChange={(e) => setForm(prev => ({ ...prev, coinEntryFee: Number(e.target.value) }))}
+                        value={form.entryFeeType === 'CASH' || form.entryFeeType === 'FREE' ? 0 : form.coinEntryFee}
+                        onChange={(e) => setForm(prev => ({ ...prev, coinEntryFee: Math.max(0, Number(e.target.value)) }))}
                         placeholder="e.g. 500 or 1000 Coins"
                         className="w-full rounded-xl border border-amber-300 bg-white px-3 py-2 text-sm font-bold text-amber-900 outline-none focus:border-brand-orange disabled:bg-slate-100 disabled:text-slate-400"
                       />

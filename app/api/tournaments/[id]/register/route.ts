@@ -454,13 +454,14 @@ export async function POST(
     } catch {}
 
     return NextResponse.json({
-      message: `Registration successful! ${tournament.entryFee} ${currencyUnit} has been deducted.`,
+      message: `Registration successful! ${requiredFee} ${currencyUnit} has been deducted.`,
       registrationId,
       teamId,
       squadName: finalSquadName,
       tournamentTitle: tournament.title,
-      entryFee: tournament.entryFee,
-      remainingBalance: balanceUpdate.walletBalance ?? balanceUpdate.coinBalance ?? 0,
+      entryFee: isPayingWithCoins ? requiredFee : tournament.entryFee,
+      currencyUnit,
+      remainingBalance: isPayingWithCoins ? (balanceUpdate.coinBalance ?? 0) : (balanceUpdate.walletBalance ?? 0),
       status: 'VERIFIED',
     }, { status: 201 });
 
