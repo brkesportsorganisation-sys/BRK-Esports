@@ -188,7 +188,7 @@ function MessagesInboxContent() {
         loadMessages(activeConvId, currentUser.id, true);
       };
 
-      const interval = setInterval(handleMessagePoll, 12000);
+      const interval = setInterval(handleMessagePoll, 30000);
       document.addEventListener('visibilitychange', handleMessagePoll);
 
       return () => {

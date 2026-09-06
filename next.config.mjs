@@ -94,10 +94,10 @@ const nextConfig = {
   },
 
   images: {
-    // NOTE: unoptimized was previously true — this caused full-size images to be served
-    // directly from Vercel Origin instead of going through the CDN image optimizer,
-    // which was inflating Fast Origin Transfer bandwidth. Now enabled for CDN caching.
-    unoptimized: false,
+    // unoptimized: true prevents Vercel Serverless Function (_next/image) invocations,
+    // which directly saves Fluid compute CPU time and eliminates Fast Origin Transfer bandwidth.
+    // Images are served directly by Supabase Storage / Edge CDN instead of Vercel Compute.
+    unoptimized: true,
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 2592000, // 30 days
     deviceSizes: [360, 480, 640, 750, 828, 1080, 1200, 1920],

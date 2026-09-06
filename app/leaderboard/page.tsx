@@ -95,7 +95,7 @@ export default function LeaderboardPage() {
       loadLeaderboard();
     };
 
-    const interval = setInterval(handleLeaderboardPoll, 30000);
+    const interval = setInterval(handleLeaderboardPoll, 120000);
     document.addEventListener('visibilitychange', handleLeaderboardPoll);
 
     return () => {
