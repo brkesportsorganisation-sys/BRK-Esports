@@ -485,20 +485,20 @@ export default function AdminUsersPage() {
   const totalTournamentsJoinedAll = users.reduce((sum, u) => sum + (u.totalTournamentsPlayed || 0), 0);
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12 font-sans">
+    <div className="space-y-6 w-full mx-auto pb-12 font-sans">
       
       {/* 1. Header Banner */}
-      <div className="bg-white rounded-[24px] p-6 sm:p-8 border border-[#E2E8F0] shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="bg-white rounded-[24px] p-6 sm:p-7 border border-[#E2E8F0] shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center space-x-4">
           <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 shadow-sm flex-shrink-0">
             <Activity className="w-6 h-6" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h1 className="font-heading font-black text-2xl sm:text-3xl text-slate-900 leading-tight">
-                USER ACTIVITY & FINANCIAL AUDIT HUB
+                USER ACTIVITY &amp; FINANCIAL AUDIT HUB
               </h1>
-              <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
+              <span className="flex items-center gap-1 text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                 LIVE RADAR
               </span>
@@ -512,7 +512,7 @@ export default function AdminUsersPage() {
         <button
           onClick={refreshUsers}
           disabled={loading}
-          className="p-3 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 transition-colors cursor-pointer flex items-center gap-2 text-xs font-bold shadow-xs"
+          className="p-3 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 transition-colors cursor-pointer flex items-center gap-2 text-xs font-bold shadow-xs shrink-0"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-indigo-600' : ''}`} />
           <span>Refresh Live</span>
@@ -528,7 +528,7 @@ export default function AdminUsersPage() {
             <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Players</div>
             <div className="text-2xl font-black text-slate-900 mt-1">{totalUsers}</div>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
             <Users className="w-5 h-5" />
           </div>
         </div>
@@ -542,7 +542,7 @@ export default function AdminUsersPage() {
             </div>
             <div className="text-2xl font-black text-emerald-600 mt-1">{onlineUsers} Active</div>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
             <Zap className="w-5 h-5" />
           </div>
         </div>
@@ -553,7 +553,7 @@ export default function AdminUsersPage() {
             <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">System Wallet BDT</div>
             <div className="text-2xl font-black text-indigo-600 mt-1 font-mono">৳ {totalWalletSystem.toLocaleString()}</div>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
             <Wallet className="w-5 h-5" />
           </div>
         </div>
@@ -564,7 +564,7 @@ export default function AdminUsersPage() {
             <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Coins Circulating</div>
             <div className="text-2xl font-black text-amber-600 mt-1 font-mono">🪙 {totalCoinsSystem.toLocaleString()}</div>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
             <Coins className="w-5 h-5" />
           </div>
         </div>
@@ -573,57 +573,58 @@ export default function AdminUsersPage() {
 
       {/* 3. Filter Bar and Search */}
       <div className="bg-white border border-[#E2E8F0] rounded-[24px] p-4 sm:p-5 shadow-sm space-y-3.5">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-3">
-          <div className="relative w-full md:w-96">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search by IGN, Name, Phone, Free Fire UID, Account ID..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-600 transition-colors"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
-                title="Clear search"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-
-          {/* Quick Activity Filter Tabs */}
-          <div className="flex flex-wrap items-center gap-1.5 w-full md:w-auto text-xs font-semibold">
-            {[
-              { key: 'ALL', label: `All (${users.length})` },
-              { key: 'ONLINE', label: `Online (${onlineUsers}) 🟢` },
-              { key: 'ACTIVE_TOURNAMENTS', label: `Tournaments (${tournamentPlayersCount}) 🎮` },
-              { key: 'HIGH_BALANCE', label: `High Balance (${highBalanceCount}) 💎` },
-              { key: 'FREE_AGENTS', label: `Free Agents (${freeAgentsCount}) 🦅` },
-              { key: 'IN_SQUAD', label: `In Squad (${inSquadCount}) 🛡️` },
-              { key: 'HAS_UID', label: `Has UID (${hasUidCount}) 🔥` },
-              { key: 'BANNED', label: `Banned (${bannedUsersCount}) 🚫` },
-            ].map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setFilterTab(tab.key as any)}
-                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
-                  filterTab === tab.key
-                    ? 'bg-slate-900 text-white shadow-xs font-bold'
-                    : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+        
+        {/* Row 1: Full-Width Search Input */}
+        <div className="relative w-full">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Search by IGN, Name, Phone, Free Fire UID, Account ID..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs sm:text-sm font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all shadow-2xs"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-200 transition-colors cursor-pointer"
+              title="Clear search"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
 
-        {/* Advanced Filters & Sort Toolbar */}
-        <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2.5 text-xs">
+        {/* Row 2: Quick Activity Filter Pills (Horizontal clean scrollable bar) */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs font-semibold scrollbar-none">
+          {[
+            { key: 'ALL', label: `All (${users.length})` },
+            { key: 'ONLINE', label: `Online (${onlineUsers}) 🟢` },
+            { key: 'ACTIVE_TOURNAMENTS', label: `Tournaments (${tournamentPlayersCount}) 🎮` },
+            { key: 'HIGH_BALANCE', label: `High Balance (${highBalanceCount}) 💎` },
+            { key: 'FREE_AGENTS', label: `Free Agents (${freeAgentsCount}) 🦅` },
+            { key: 'IN_SQUAD', label: `In Squad (${inSquadCount}) 🛡️` },
+            { key: 'HAS_UID', label: `Has UID (${hasUidCount}) 🔥` },
+            { key: 'BANNED', label: `Banned (${bannedUsersCount}) 🚫` },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setFilterTab(tab.key as any)}
+              className={`px-3.5 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                filterTab === tab.key
+                  ? 'bg-slate-900 text-white shadow-xs font-bold'
+                  : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Row 3: Advanced Filters & Sort Toolbar */}
+        <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs">
           <div className="flex flex-wrap items-center gap-2">
+            
             {/* Sort Dropdown */}
             <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 focus-within:border-indigo-500 shadow-2xs">
               <ArrowUpDown className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
@@ -765,318 +766,328 @@ export default function AdminUsersPage() {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-slate-700 text-[11px] uppercase font-bold border-b border-slate-200 select-none">
-                <tr>
-                  <th
-                    onClick={() => handleToggleSort('NAME')}
-                    className="py-4 px-5 cursor-pointer hover:bg-slate-100/80 transition-colors group"
-                    title="Click to sort by Name (A-Z / Z-A)"
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <span>Player Profile &amp; Status</span>
-                      <span className="text-slate-400 group-hover:text-slate-700">
-                        {sortBy === 'NAME_ASC' ? <ArrowUp className="w-3.5 h-3.5 text-indigo-600" /> : sortBy === 'NAME_DESC' ? <ArrowDown className="w-3.5 h-3.5 text-indigo-600" /> : <ArrowUpDown className="w-3 h-3 opacity-40" />}
-                      </span>
-                    </div>
-                  </th>
-                  <th className="py-4 px-5">Free Fire IGN &amp; UID</th>
-                  <th className="py-4 px-5">In-Game &amp; System Role</th>
-                  <th
-                    onClick={() => handleToggleSort('WALLET')}
-                    className="py-4 px-5 cursor-pointer hover:bg-slate-100/80 transition-colors group"
-                    title="Click to sort by Wallet / Coin Balance"
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <span>Wallet &amp; Coin Balances</span>
-                      <span className="text-slate-400 group-hover:text-slate-700">
-                        {sortBy === 'WALLET_DESC' ? <ArrowDown className="w-3.5 h-3.5 text-indigo-600" /> : sortBy === 'WALLET_ASC' ? <ArrowUp className="w-3.5 h-3.5 text-indigo-600" /> : sortBy === 'COINS_DESC' ? <Coins className="w-3.5 h-3.5 text-amber-500" /> : <ArrowUpDown className="w-3 h-3 opacity-40" />}
-                      </span>
-                    </div>
-                  </th>
-                  <th
-                    onClick={() => handleToggleSort('TOURNAMENTS')}
-                    className="py-4 px-5 cursor-pointer hover:bg-slate-100/80 transition-colors group"
-                    title="Click to sort by Tournaments Played"
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <span>Tournaments Played</span>
-                      <span className="text-slate-400 group-hover:text-slate-700">
-                        {sortBy === 'TOURNAMENTS_DESC' ? <ArrowDown className="w-3.5 h-3.5 text-indigo-600" /> : <ArrowUpDown className="w-3 h-3 opacity-40" />}
-                      </span>
-                    </div>
-                  </th>
-                  <th
-                    onClick={() => handleToggleSort('PERFORMANCE')}
-                    className="py-4 px-5 cursor-pointer hover:bg-slate-100/80 transition-colors group"
-                    title="Click to sort by Kills or Wins"
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <span>Player Performance</span>
-                      <span className="text-slate-400 group-hover:text-slate-700">
-                        {sortBy === 'KILLS_DESC' ? <Flame className="w-3.5 h-3.5 text-rose-500" /> : sortBy === 'WINS_DESC' ? <Trophy className="w-3.5 h-3.5 text-amber-500" /> : <ArrowUpDown className="w-3 h-3 opacity-40" />}
-                      </span>
-                    </div>
-                  </th>
-                  <th className="py-4 px-5">Interaction Badge</th>
-                  <th className="py-4 px-5 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {paginatedUsers.map((u) => {
-                  const tournamentsCount = u.tournamentsJoined?.length || 0;
-                  const currentInGameRoleObj = ESPORTS_ROLES.find(r => r.role === (u.inGameRole || 'RUSHER')) || { role: u.inGameRole || 'RUSHER', label: u.inGameRole || 'Rusher', icon: '⚡' };
-                  const currentSystemRoleObj = SYSTEM_ROLES.find(r => r.role === (u.role || 'USER')) || { role: u.role || 'USER', label: u.role || 'Player', color: 'bg-slate-100 text-slate-700 border-slate-200' };
+            <div className="overflow-x-auto w-full">
+              <table className="min-w-[1300px] w-full text-left text-sm border-collapse">
+                <colgroup>
+                  <col style={{ width: '230px' }} />
+                  <col style={{ width: '170px' }} />
+                  <col style={{ width: '160px' }} />
+                  <col style={{ width: '150px' }} />
+                  <col style={{ width: '160px' }} />
+                  <col style={{ width: '140px' }} />
+                  <col style={{ width: '130px' }} />
+                  <col style={{ width: '160px' }} />
+                </colgroup>
+                <thead className="bg-slate-50 text-slate-700 text-[11px] uppercase font-bold border-b border-slate-200 select-none">
+                  <tr>
+                    <th
+                      onClick={() => handleToggleSort('NAME')}
+                      className="py-3.5 px-4 cursor-pointer hover:bg-slate-100/80 transition-colors group whitespace-nowrap"
+                      title="Click to sort by Name (A-Z / Z-A)"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span>Player Profile &amp; Status</span>
+                        <span className="text-slate-400 group-hover:text-slate-700">
+                          {sortBy === 'NAME_ASC' ? <ArrowUp className="w-3.5 h-3.5 text-indigo-600" /> : sortBy === 'NAME_DESC' ? <ArrowDown className="w-3.5 h-3.5 text-indigo-600" /> : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+                        </span>
+                      </div>
+                    </th>
+                    <th className="py-3.5 px-4 whitespace-nowrap">Free Fire IGN &amp; UID</th>
+                    <th className="py-3.5 px-4 whitespace-nowrap">In-Game &amp; System Role</th>
+                    <th
+                      onClick={() => handleToggleSort('WALLET')}
+                      className="py-3.5 px-4 cursor-pointer hover:bg-slate-100/80 transition-colors group whitespace-nowrap"
+                      title="Click to sort by Wallet / Coin Balance"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span>Wallet &amp; Coin Balances</span>
+                        <span className="text-slate-400 group-hover:text-slate-700">
+                          {sortBy === 'WALLET_DESC' ? <ArrowDown className="w-3.5 h-3.5 text-indigo-600" /> : sortBy === 'WALLET_ASC' ? <ArrowUp className="w-3.5 h-3.5 text-indigo-600" /> : sortBy === 'COINS_DESC' ? <Coins className="w-3.5 h-3.5 text-amber-500" /> : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+                        </span>
+                      </div>
+                    </th>
+                    <th
+                      onClick={() => handleToggleSort('TOURNAMENTS')}
+                      className="py-3.5 px-4 cursor-pointer hover:bg-slate-100/80 transition-colors group whitespace-nowrap"
+                      title="Click to sort by Tournaments Played"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span>Tournaments Played</span>
+                        <span className="text-slate-400 group-hover:text-slate-700">
+                          {sortBy === 'TOURNAMENTS_DESC' ? <ArrowDown className="w-3.5 h-3.5 text-indigo-600" /> : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+                        </span>
+                      </div>
+                    </th>
+                    <th
+                      onClick={() => handleToggleSort('PERFORMANCE')}
+                      className="py-3.5 px-4 cursor-pointer hover:bg-slate-100/80 transition-colors group whitespace-nowrap"
+                      title="Click to sort by Kills or Wins"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span>Player Performance</span>
+                        <span className="text-slate-400 group-hover:text-slate-700">
+                          {sortBy === 'KILLS_DESC' ? <Flame className="w-3.5 h-3.5 text-rose-500" /> : sortBy === 'WINS_DESC' ? <Trophy className="w-3.5 h-3.5 text-amber-500" /> : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+                        </span>
+                      </div>
+                    </th>
+                    <th className="py-3.5 px-4 whitespace-nowrap">Interaction Badge</th>
+                    <th className="py-3.5 px-4 text-right whitespace-nowrap">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {paginatedUsers.map((u) => {
+                    const tournamentsCount = u.tournamentsJoined?.length || 0;
+                    const currentInGameRoleObj = ESPORTS_ROLES.find(r => r.role === (u.inGameRole || 'RUSHER')) || { role: u.inGameRole || 'RUSHER', label: u.inGameRole || 'Rusher', icon: '⚡' };
+                    const currentSystemRoleObj = SYSTEM_ROLES.find(r => r.role === (u.role || 'USER')) || { role: u.role || 'USER', label: u.role || 'Player', color: 'bg-slate-100 text-slate-700 border-slate-200' };
 
-                  return (
-                    <tr key={u.id} className="hover:bg-slate-50/80 transition-colors">
-                      
-                      {/* Player Profile & Status */}
-                      <td className="py-4 px-5">
-                        <div className="flex items-center space-x-3">
-                          <div className="relative">
-                            <img
-                              src={u.avatar || 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=150'}
-                              alt={u.name}
-                              className="w-10 h-10 rounded-full object-cover border border-slate-200 shadow-2xs"
-                            />
-                            {u.isOnline ? (
-                              <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white" title="Online Now" />
-                            ) : (
-                              <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-slate-300 border-2 border-white" title="Offline" />
+                    return (
+                      <tr key={u.id} className="hover:bg-slate-50/80 transition-colors">
+                        
+                        {/* Player Profile & Status */}
+                        <td className="py-3.5 px-4 align-middle">
+                          <div className="flex items-center space-x-3">
+                            <div className="relative shrink-0">
+                              <img
+                                src={u.avatar || 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=150'}
+                                alt={u.name}
+                                className="w-10 h-10 rounded-full object-cover border border-slate-200 shadow-2xs"
+                              />
+                              {u.isOnline ? (
+                                <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white" title="Online Now" />
+                              ) : (
+                                <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-slate-300 border-2 border-white" title="Offline" />
+                              )}
+                            </div>
+                            <div className="min-w-0 max-w-[150px]">
+                              <div className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
+                                <span className="truncate">{u.name}</span>
+                                {u.isBanned && (
+                                  <span className="px-1.5 py-0.2 rounded bg-red-100 text-red-700 text-[9px] font-bold shrink-0">
+                                    BANNED
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[11px] text-slate-500 font-mono flex items-center gap-1">
+                                <span className="truncate">{u.accountNumber || u.id}</span>
+                                <button
+                                  onClick={() => handleCopyId(u.accountNumber || u.id)}
+                                  className="text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer shrink-0"
+                                  title="Copy ID"
+                                >
+                                  {copiedId === (u.accountNumber || u.id) ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                                </button>
+                              </div>
+                              <div className="text-[10px] text-slate-400 whitespace-nowrap">
+                                {u.isOnline ? (
+                                  <span className="text-emerald-600 font-bold">🟢 Active right now</span>
+                                ) : (
+                                  <span>Last seen: {new Date(u.lastActive || u.createdAt).toLocaleDateString()}</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* IGN & UID */}
+                        <td className="py-3.5 px-4 align-middle">
+                          <div className="space-y-0.5 min-w-0 max-w-[145px]">
+                            <div className="font-bold text-slate-900 text-xs flex items-center gap-1">
+                              <Gamepad2 className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                              <span className="truncate">{u.inGameName || 'No IGN'}</span>
+                            </div>
+                            <div className="text-[11px] text-slate-500 font-mono truncate">
+                              UID: <strong className="text-slate-700">{u.freeFireUid || '-'}</strong>
+                            </div>
+                            {u.phone && (
+                              <div className="text-[10px] text-slate-400 flex items-center gap-1 truncate">
+                                <Phone className="w-3 h-3 text-slate-400 shrink-0" />
+                                <span>{u.phone}</span>
+                              </div>
                             )}
                           </div>
-                          <div>
-                            <div className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
-                              <span>{u.name}</span>
-                              {u.isBanned && (
-                                <span className="px-1.5 py-0.2 rounded bg-red-100 text-red-700 text-[9px] font-bold">
-                                  BANNED
-                                </span>
-                              )}
+                        </td>
+
+                        {/* In-Game & System Role */}
+                        <td className="py-3.5 px-4 align-middle">
+                          <div className="space-y-1">
+                            <div>
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-gradient-to-r from-amber-50 to-orange-50 border border-orange-200 text-orange-800 text-xs font-bold shadow-2xs whitespace-nowrap">
+                                <span>{currentInGameRoleObj.icon}</span>
+                                <span>{currentInGameRoleObj.label}</span>
+                              </span>
                             </div>
-                            <div className="text-[11px] text-slate-500 font-mono flex items-center gap-1">
-                              <span>{u.accountNumber || u.id}</span>
-                              <button
-                                onClick={() => handleCopyId(u.accountNumber || u.id)}
-                                className="text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
-                                title="Copy ID"
-                              >
-                                {copiedId === (u.accountNumber || u.id) ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                              </button>
+                            <div>
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border whitespace-nowrap ${currentSystemRoleObj.color}`}>
+                                {currentSystemRoleObj.label}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Balances */}
+                        <td className="py-3.5 px-4 align-middle whitespace-nowrap">
+                          <div className="space-y-0.5 font-mono">
+                            <div className="flex items-center gap-1.5 text-xs font-black text-slate-900">
+                              <Wallet className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                              <span>৳ {(u.walletBalance || 0).toLocaleString()}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-[11px] font-bold text-amber-600">
+                              <Coins className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                              <span>🪙 {(u.coinBalance || 0).toLocaleString()}</span>
+                            </div>
+                            {(u.promoBalance || u.winningBalance) ? (
+                              <div className="text-[9px] text-slate-400 space-x-1">
+                                <span>Promo: ৳{u.promoBalance || 0}</span>
+                                <span>•</span>
+                                <span className="text-emerald-600 font-bold">Win: ৳{u.winningBalance || 0}</span>
+                              </div>
+                            ) : null}
+                          </div>
+                        </td>
+
+                        {/* Tournaments Played */}
+                        <td className="py-3.5 px-4 align-middle">
+                          <div className="space-y-1 min-w-0 max-w-[145px]">
+                            <button
+                              onClick={() => { setInspectUser(u); setInspectTab('TOURNAMENTS'); }}
+                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                                tournamentsCount > 0
+                                  ? 'bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100'
+                                  : 'bg-slate-100 text-slate-500 border border-slate-200'
+                              }`}
+                            >
+                              <Trophy className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                              <span>{tournamentsCount} Tournament{tournamentsCount !== 1 ? 's' : ''}</span>
+                            </button>
+                            
+                            {tournamentsCount > 0 && u.tournamentsJoined && u.tournamentsJoined.length > 0 && (
+                              <div className="text-[10px] text-slate-500 truncate" title={u.tournamentsJoined[0].tournamentTitle}>
+                                Latest: <strong>{u.tournamentsJoined[0].tournamentTitle}</strong>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Player Performance */}
+                        <td className="py-3.5 px-4 align-middle whitespace-nowrap">
+                          <div className="space-y-0.5 text-xs font-mono">
+                            <div className="text-slate-700">
+                              Kills: <strong className="text-slate-900 font-bold">{u.totalKills || 0}</strong>
+                            </div>
+                            <div className="text-slate-700">
+                              Wins: <strong className="text-emerald-600 font-bold">{u.totalWins || 0}</strong>
                             </div>
                             <div className="text-[10px] text-slate-400">
-                              {u.isOnline ? (
-                                <span className="text-emerald-600 font-bold">🟢 Active right now</span>
-                              ) : (
-                                <span>Last seen: {new Date(u.lastActive || u.createdAt).toLocaleDateString()}</span>
-                              )}
+                              Total Earned: ৳{u.earnings || 0}
                             </div>
                           </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* IGN & UID */}
-                      <td className="py-4 px-5">
-                        <div className="space-y-0.5">
-                          <div className="font-bold text-slate-900 text-xs flex items-center gap-1">
-                            <Gamepad2 className="w-3.5 h-3.5 text-indigo-500" />
-                            <span>{u.inGameName || 'No IGN'}</span>
-                          </div>
-                          <div className="text-[11px] text-slate-500 font-mono">
-                            UID: <strong className="text-slate-700">{u.freeFireUid || '-'}</strong>
-                          </div>
-                          {u.phone && (
-                            <div className="text-[10px] text-slate-400 flex items-center gap-1">
-                              <Phone className="w-3 h-3 text-slate-400" />
-                              <span>{u.phone}</span>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* In-Game & System Role */}
-                      <td className="py-4 px-5">
-                        <div className="space-y-1.5">
-                          <div className="flex items-center gap-1.5">
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gradient-to-r from-amber-50 to-orange-50 border border-orange-200 text-orange-800 text-xs font-bold shadow-2xs">
-                              <span>{currentInGameRoleObj.icon}</span>
-                              <span>{currentInGameRoleObj.label}</span>
+                        {/* Interaction Badge */}
+                        <td className="py-3.5 px-4 align-middle whitespace-nowrap">
+                          {u.interactionTier === 'PRO_CHAMPION' ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] font-black uppercase shadow-xs">
+                              <Sparkles className="w-3 h-3 shrink-0" />
+                              <span>Pro Champion</span>
                             </span>
-                          </div>
-                          <div>
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border ${currentSystemRoleObj.color}`}>
-                              {currentSystemRoleObj.label}
+                          ) : u.interactionTier === 'HIGH_ROLLER' ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-violet-100 text-violet-800 text-[10px] font-black uppercase">
+                              <DollarSign className="w-3 h-3 shrink-0" />
+                              <span>High Roller</span>
                             </span>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Balances */}
-                      <td className="py-4 px-5">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1 text-xs font-black text-slate-900 font-mono">
-                            <Wallet className="w-3.5 h-3.5 text-indigo-600" />
-                            <span>৳ {(u.walletBalance || 0).toLocaleString()}</span>
-                          </div>
-                          <div className="flex items-center gap-1 text-[11px] font-bold text-amber-600 font-mono">
-                            <Coins className="w-3.5 h-3.5 text-amber-500" />
-                            <span>🪙 {(u.coinBalance || 0).toLocaleString()}</span>
-                          </div>
-                          {(u.promoBalance || u.winningBalance) ? (
-                            <div className="text-[9px] text-slate-400 space-x-1 font-mono">
-                              <span>Promo: ৳{u.promoBalance || 0}</span>
-                              <span>•</span>
-                              <span className="text-emerald-600 font-bold">Win: ৳{u.winningBalance || 0}</span>
-                            </div>
-                          ) : null}
-                        </div>
-                      </td>
-
-                      {/* Tournaments Played */}
-                      <td className="py-4 px-5">
-                        <div className="space-y-1">
-                          <button
-                            onClick={() => { setInspectUser(u); setInspectTab('TOURNAMENTS'); }}
-                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                              tournamentsCount > 0
-                                ? 'bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100'
-                                : 'bg-slate-100 text-slate-500 border border-slate-200'
-                            }`}
-                          >
-                            <Trophy className="w-3.5 h-3.5 text-indigo-600" />
-                            <span>{tournamentsCount} Tournament{tournamentsCount !== 1 ? 's' : ''}</span>
-                          </button>
-                          
-                          {tournamentsCount > 0 && u.tournamentsJoined && u.tournamentsJoined.length > 0 && (
-                            <div className="text-[10px] text-slate-500 truncate max-w-[160px]">
-                              Latest: <strong>{u.tournamentsJoined[0].tournamentTitle}</strong>
-                            </div>
+                          ) : u.interactionTier === 'ACTIVE_GAMER' ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-black uppercase">
+                              <Flame className="w-3 h-3 text-emerald-600 shrink-0" />
+                              <span>Active Gamer</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-100 text-slate-600 text-[10px] font-semibold">
+                              <span>Casual</span>
+                            </span>
                           )}
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* Player Performance */}
-                      <td className="py-4 px-5">
-                        <div className="space-y-0.5 text-xs font-mono">
-                          <div className="text-slate-700">
-                            Kills: <strong className="text-slate-900 font-bold">{u.totalKills || 0}</strong>
-                          </div>
-                          <div className="text-slate-700">
-                            Wins: <strong className="text-emerald-600 font-bold">{u.totalWins || 0}</strong>
-                          </div>
-                          <div className="text-[10px] text-slate-400">
-                            Total Earned: ৳{u.earnings || 0}
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Interaction Badge */}
-                      <td className="py-4 px-5">
-                        {u.interactionTier === 'PRO_CHAMPION' ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] font-black uppercase shadow-xs">
-                            <Sparkles className="w-3 h-3" />
-                            <span>Pro Champion</span>
-                          </span>
-                        ) : u.interactionTier === 'HIGH_ROLLER' ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-violet-100 text-violet-800 text-[10px] font-black uppercase">
-                            <DollarSign className="w-3 h-3" />
-                            <span>High Roller</span>
-                          </span>
-                        ) : u.interactionTier === 'ACTIVE_GAMER' ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-black uppercase">
-                            <Flame className="w-3 h-3 text-emerald-600" />
-                            <span>Active Gamer</span>
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-100 text-slate-600 text-[10px] font-semibold">
-                            <span>Casual</span>
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Actions */}
-                      <td className="py-4 px-5 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          
-                          {/* Quick Change Role Button */}
-                          <button
-                            onClick={() => setRoleModal({
-                              isOpen: true,
-                              userId: u.id,
-                              userName: u.name,
-                              playerUniqueId: u.accountNumber || u.id,
-                              systemRole: u.role || 'USER',
-                              inGameRole: u.inGameRole || 'RUSHER',
-                            })}
-                            className="p-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 transition-colors cursor-pointer"
-                            title="Change Role (In-Game / System)"
-                          >
-                            <ShieldCheck className="w-4 h-4" />
-                          </button>
-
-                          {/* Inspect Full Dossier */}
-                          <button
-                            onClick={() => { setInspectUser(u); setInspectTab('SQUAD'); }}
-                            className="p-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition-colors cursor-pointer"
-                            title="Inspect User Activity & Squad Dossier"
-                          >
-                            <Eye className="w-4 h-4 text-indigo-600" />
-                          </button>
-
-                          {/* Quick Adjust Balance */}
-                          <button
-                            onClick={() => setFundModal({
-                              isOpen: true,
-                              userId: u.id,
-                              userName: u.name,
-                              playerUniqueId: u.accountNumber || u.id,
-                              type: 'WALLET',
-                              amount: 100,
-                              action: 'ADD',
-                            })}
-                            className="p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition-colors cursor-pointer"
-                            title="Adjust Balance / Coins"
-                          >
-                            <DollarSign className="w-4 h-4" />
-                          </button>
-
-                          {/* WhatsApp Direct */}
-                          {u.phone && (
-                            <a
-                              href={`https://wa.me/${u.phone.replace(/[^0-9]/g, '')}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition-colors cursor-pointer"
-                              title="Direct WhatsApp"
+                        {/* Actions */}
+                        <td className="py-3.5 px-4 align-middle text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1.5">
+                            
+                            {/* Quick Change Role Button */}
+                            <button
+                              onClick={() => setRoleModal({
+                                isOpen: true,
+                                userId: u.id,
+                                userName: u.name,
+                                playerUniqueId: u.accountNumber || u.id,
+                                systemRole: u.role || 'USER',
+                                inGameRole: u.inGameRole || 'RUSHER',
+                              })}
+                              className="p-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200/60 transition-colors cursor-pointer"
+                              title="Change Role (In-Game / System)"
                             >
-                              <MessageCircle className="w-4 h-4 text-emerald-600" />
-                            </a>
-                          )}
+                              <ShieldCheck className="w-4 h-4" />
+                            </button>
 
-                          {/* Ban / Unban */}
-                          <button
-                            onClick={() => handleBanToggle(u.id, u.isBanned)}
-                            className={`p-2 rounded-xl transition-colors cursor-pointer ${
-                              u.isBanned
-                                ? 'bg-red-100 hover:bg-red-200 text-red-700'
-                                : 'bg-slate-100 hover:bg-red-50 text-slate-400 hover:text-red-600'
-                            }`}
-                            title={u.isBanned ? 'Unban Player' : 'Ban Player'}
-                          >
-                            <Ban className="w-4 h-4" />
-                          </button>
+                            {/* Inspect Full Dossier */}
+                            <button
+                              onClick={() => { setInspectUser(u); setInspectTab('SQUAD'); }}
+                              className="p-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/60 transition-colors cursor-pointer"
+                              title="Inspect User Activity &amp; Squad Dossier"
+                            >
+                              <Eye className="w-4 h-4 text-indigo-600" />
+                            </button>
 
-                        </div>
-                      </td>
+                            {/* Quick Adjust Balance */}
+                            <button
+                              onClick={() => setFundModal({
+                                isOpen: true,
+                                userId: u.id,
+                                userName: u.name,
+                                playerUniqueId: u.accountNumber || u.id,
+                                type: 'WALLET',
+                                amount: 100,
+                                action: 'ADD',
+                              })}
+                              className="p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/60 transition-colors cursor-pointer"
+                              title="Adjust Balance / Coins"
+                            >
+                              <DollarSign className="w-4 h-4" />
+                            </button>
 
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                            {/* WhatsApp Direct */}
+                            {u.phone && (
+                              <a
+                                href={`https://wa.me/${u.phone.replace(/[^0-9]/g, '')}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/60 transition-colors cursor-pointer"
+                                title="Direct WhatsApp"
+                              >
+                                <MessageCircle className="w-4 h-4 text-emerald-600" />
+                              </a>
+                            )}
+
+                            {/* Ban / Unban */}
+                            <button
+                              onClick={() => handleBanToggle(u.id, u.isBanned)}
+                              className={`p-2 rounded-xl transition-colors cursor-pointer ${
+                                u.isBanned
+                                  ? 'bg-red-100 hover:bg-red-200 text-red-700'
+                                  : 'bg-slate-100 hover:bg-red-50 text-slate-400 hover:text-red-600'
+                              }`}
+                              title={u.isBanned ? 'Unban Player' : 'Ban Player'}
+                            >
+                              <Ban className="w-4 h-4" />
+                            </button>
+
+                          </div>
+                        </td>
+
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
 
           {/* Pagination Controls */}
           {filteredUsers.length > 0 && pageSize !== -1 && totalPages > 1 && (
