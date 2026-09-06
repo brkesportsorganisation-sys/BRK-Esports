@@ -112,14 +112,14 @@ export default function HomeInstallSection() {
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
                 <span className="text-xs font-black font-heading text-white tracking-wide truncate">
-                  {isBangla ? 'হোম স্ক্রিনে অ্যাপ রাখুন' : 'Install EZBD App'}
+                  {isBangla ? 'অ্যাপ ইনস্টল করুন' : 'Install EZBD App'}
                 </span>
                 <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-orange-500/20 text-orange-400 border border-orange-500/30">
                   FAST
                 </span>
               </div>
               <p className="text-[10px] text-slate-400 truncate">
-                {isBangla ? '১-ক্লিকে অ্যাপের মতো ওপেন করুন' : 'Instant 1-click home screen access'}
+                {isBangla ? '১-ক্লিকে হোম স্ক্রিনে যোগ করুন' : 'Instant 1-click home screen access'}
               </p>
             </div>
           </div>
@@ -150,7 +150,7 @@ export default function HomeInstallSection() {
               </div>
               <div>
                 <h4 className="font-heading font-black text-base text-white">
-                  {isBangla ? 'হোম স্ক্রিনে যোগ করার নিয়ম' : 'How to Add to Home Screen'}
+                  {isBangla ? 'অ্যাপ ইনস্টল করার নিয়ম' : 'How to Install App'}
                 </h4>
                 <p className="text-[11px] text-slate-400">
                   {isIos 
