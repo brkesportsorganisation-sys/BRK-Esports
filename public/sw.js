@@ -1,7 +1,7 @@
-// ESPORTS ZONE BD — Service Worker v3
+// ESPORTS ZONE BD — Service Worker v4
 // Caching Strategy: Cache-First for static assets, Network-First for API
 
-const CACHE_VERSION = 'ezbd-v3';
+const CACHE_VERSION = 'ezbd-v4';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
 const API_CACHE = `${CACHE_VERSION}-api`;
