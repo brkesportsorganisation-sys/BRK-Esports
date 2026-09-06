@@ -764,7 +764,8 @@ export default function AdminUsersPage() {
             )}
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+            <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50 text-slate-700 text-[11px] uppercase font-bold border-b border-slate-200 select-none">
                 <tr>
@@ -1142,8 +1143,9 @@ export default function AdminUsersPage() {
               </div>
             </div>
           )}
-        )}
-      </div>
+        </>
+      )}
+    </div>
 
       {/* 5. User Activity Dossier Modal */}
       {inspectUser && (
