@@ -1161,12 +1161,12 @@ export default function AdminUsersPage() {
       {/* 5. User Activity Dossier Modal */}
       {inspectUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-3xl w-full border border-slate-200 shadow-2xl space-y-6 my-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
+          <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-4xl w-full border border-slate-200 shadow-2xl space-y-6 my-6 max-h-[92vh] overflow-y-auto custom-scrollbar">
             
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-5 gap-4">
               <div className="flex items-start sm:items-center space-x-3.5">
-                <div className="relative">
+                <div className="relative shrink-0">
                   <img
                     src={inspectUser.avatar || 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=150'}
                     alt={inspectUser.name}
@@ -1251,31 +1251,58 @@ export default function AdminUsersPage() {
 
               <button
                 onClick={() => setInspectUser(null)}
-                className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-sm cursor-pointer self-start"
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center font-bold text-sm cursor-pointer self-start transition-colors shrink-0"
+                title="Close"
               >
                 ✕
               </button>
             </div>
 
             {/* Dossier Navigation Tabs */}
-            <div className="flex items-center gap-2 border-b border-slate-200 pb-2 text-xs font-bold overflow-x-auto">
+            <div className="flex items-center gap-1.5 border-b border-slate-100 pb-1 text-xs font-bold overflow-x-auto scrollbar-none">
               {[
-                { key: 'SQUAD', label: `🛡️ Squad & Clan (${inspectUser.squad ? inspectUser.squad.name : 'Free Agent'})` },
-                { key: 'TOURNAMENTS', label: `🏆 Tournaments (${inspectUser.tournamentsJoined?.length || 0})` },
-                { key: 'FINANCIALS', label: '💰 Wallet & Payments' },
-                { key: 'STATS', label: '📊 Match Performance' },
-                { key: 'ROLES', label: '⚙️ Roles & Settings' },
+                { 
+                  key: 'SQUAD', 
+                  label: '🛡️ Squad & Clan', 
+                  badge: inspectUser.squad ? `[${inspectUser.squad.tag || 'SQ'}]` : 'Free Agent' 
+                },
+                { 
+                  key: 'TOURNAMENTS', 
+                  label: '🏆 Tournaments', 
+                  badge: String(inspectUser.tournamentsJoined?.length || 0) 
+                },
+                { 
+                  key: 'FINANCIALS', 
+                  label: '💰 Wallet & Payments' 
+                },
+                { 
+                  key: 'STATS', 
+                  label: '📊 Match Performance' 
+                },
+                { 
+                  key: 'ROLES', 
+                  label: '⚙️ Roles & Settings' 
+                },
               ].map((tab) => (
                 <button
                   key={tab.key}
                   onClick={() => setInspectTab(tab.key as any)}
-                  className={`px-4 py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
+                  className={`px-3.5 py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
                     inspectTab === tab.key
-                      ? 'bg-slate-900 text-white shadow-xs'
-                      : 'text-slate-600 hover:bg-slate-100'
+                      ? 'bg-slate-900 text-white shadow-xs font-bold'
+                      : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200 font-medium'
                   }`}
                 >
-                  {tab.label}
+                  <span>{tab.label}</span>
+                  {tab.badge && (
+                    <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${
+                      inspectTab === tab.key
+                        ? 'bg-white/20 text-white'
+                        : 'bg-slate-200 text-slate-700'
+                    }`}>
+                      {tab.badge}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
