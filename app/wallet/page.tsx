@@ -127,6 +127,8 @@ export default function WalletPage() {
 
   const walletBalance = Number(user?.walletBalance ?? (Number(user?.winningBalance ?? 0) + Number(user?.promoBalance ?? 0)));
   const coinBalance = Number(user?.coinBalance ?? 0);
+  const MIN_RESERVED_BALANCE = 20;
+  const maxWithdrawable = Math.max(0, walletBalance - MIN_RESERVED_BALANCE);
 
   const getMethodNumber = (method: PaymentMethod) => {
     switch (method) {
@@ -207,8 +209,12 @@ export default function WalletPage() {
   const handleWithdrawSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    if (withdrawAmount > walletBalance) {
-      alert(`Insufficient Wallet balance! (Available: ৳${walletBalance})`);
+    if (walletBalance < minWithdraw + MIN_RESERVED_BALANCE) {
+      alert(`উইথড্র করার পর ওয়ালেটে সর্বদা ৳${MIN_RESERVED_BALANCE} রিজার্ভ ব্যালেন্স থাকতে হবে। ন্যূনতম উইথড্র ৳${minWithdraw} করার জন্য আপনার ওয়ালেটে অন্তত ৳${minWithdraw + MIN_RESERVED_BALANCE} ব্যালেন্স প্রয়োজন। (আপনার বর্তমান ব্যালেন্স: ৳${walletBalance})`);
+      return;
+    }
+    if (withdrawAmount > maxWithdrawable) {
+      alert(`ওয়ালেটে সর্বদা ন্যূনতম ৳${MIN_RESERVED_BALANCE} ব্যালেন্স সংরক্ষিত থাকতে হবে। আপনার বর্তমান ব্যালেন্স ৳${walletBalance} হলে আপনি সর্বোচ্চ ৳${maxWithdrawable} উইথড্র করতে পারবেন।`);
       return;
     }
     if (withdrawAmount < minWithdraw) {
@@ -362,7 +368,7 @@ export default function WalletPage() {
               className="w-full py-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-heading font-black text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center space-x-2 cursor-pointer active:scale-[0.99]"
             >
               <ArrowUpRight className="w-5 h-5 text-amber-400" />
-              <span>WITHDRAW / CASHOUT (Min ৳{minWithdraw} • No Max Limit)</span>
+              <span>WITHDRAW / CASHOUT (Min ৳{minWithdraw} • ৳20 Reserve)</span>
             </button>
           </div>
         </div>
@@ -745,15 +751,30 @@ export default function WalletPage() {
               </button>
             </div>
             
-            <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-xs space-y-1">
-              <div className="font-black text-amber-900 text-sm flex items-center justify-between">
-                <span>Available Wallet Balance:</span>
-                <span className="text-base text-amber-700">৳{walletBalance.toLocaleString()}</span>
+            <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-xs space-y-2">
+              <div className="flex items-center justify-between text-slate-700">
+                <span className="font-bold">Total Wallet Balance:</span>
+                <span className="font-black text-slate-900 text-sm">৳{walletBalance.toLocaleString()}</span>
               </div>
-              <div className="text-[11px] text-slate-600">
-                আপনার একাউন্ট ওয়ালেট ব্যালেন্স সরাসরি ক্যাশআউট করুন। <strong>ন্যূনতম উইথড্র: ৳{minWithdraw}</strong> • <strong className="text-emerald-700">কোনো সর্বোচ্চ লিমিট নেই (No Max Limit)</strong>
+              <div className="flex items-center justify-between pt-1 border-t border-amber-200/70">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-black text-amber-900 text-sm">Max Withdrawable:</span>
+                  <span className="text-[10px] font-bold text-amber-800 bg-amber-200/80 px-1.5 py-0.5 rounded-md">
+                    ৳{MIN_RESERVED_BALANCE} সংরক্ষিত
+                  </span>
+                </div>
+                <span className="text-base font-black text-amber-700">৳{maxWithdrawable.toLocaleString()}</span>
+              </div>
+              <div className="text-[11px] text-slate-600 leading-relaxed">
+                আপনার ওয়ালেটে সর্বদা ন্যূনতম <strong>৳{MIN_RESERVED_BALANCE}</strong> সংরক্ষিত থাকবে। অবশিষ্ট <strong>৳{maxWithdrawable.toLocaleString()}</strong> এর যেকোনো পরিমাণ সরাসরি ক্যাশআউট করতে পারবেন। <strong>ন্যূনতম উইথড্র: ৳{minWithdraw}</strong>
               </div>
             </div>
+
+            {maxWithdrawable < minWithdraw && (
+              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold leading-relaxed">
+                ⚠️ উইথড্র করার পর ওয়ালেটে সর্বদা ৳{MIN_RESERVED_BALANCE} সংরক্ষিত থাকতে হবে। ন্যূনতম উইথড্র ৳{minWithdraw} করার জন্য আপনার ওয়ালেটে অন্তত ৳{minWithdraw + MIN_RESERVED_BALANCE} ব্যালেন্স থাকা প্রয়োজন (বর্তমান উইথড্রযোগ্য: ৳{maxWithdrawable})।
+              </div>
+            )}
 
             <form onSubmit={handleWithdrawSubmit} className="space-y-4 text-xs font-medium">
               <div>
@@ -798,23 +819,24 @@ export default function WalletPage() {
                       Min: ৳{minWithdraw}
                     </span>
                     <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200">
-                      Max: কোনো লিমিট নেই (Unlimited)
+                      Max: ৳{maxWithdrawable.toLocaleString()}
                     </span>
                   </div>
                 </div>
                 <input
                   type="number"
-                  value={withdrawAmount}
+                  value={withdrawAmount || ''}
                   onChange={(e) => setWithdrawAmount(Number(e.target.value))}
                   required
                   min={minWithdraw}
+                  max={maxWithdrawable}
                   className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 font-black text-base focus:outline-none focus:border-amber-500"
                 />
 
                 {/* Quick Chips for Withdrawal */}
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {[minWithdraw, 200, 500, 1000, 2000, 5000]
-                    .filter((amt, i, arr) => amt >= minWithdraw && arr.indexOf(amt) === i && amt <= (walletBalance || minWithdraw))
+                    .filter((amt, i, arr) => amt >= minWithdraw && arr.indexOf(amt) === i && amt <= (maxWithdrawable || minWithdraw))
                     .map((amt) => (
                       <button
                         key={amt}
@@ -827,15 +849,15 @@ export default function WalletPage() {
                         ৳{amt}
                       </button>
                     ))}
-                  {walletBalance >= minWithdraw && (
+                  {maxWithdrawable >= minWithdraw && (
                     <button
                       type="button"
-                      onClick={() => setWithdrawAmount(walletBalance)}
+                      onClick={() => setWithdrawAmount(maxWithdrawable)}
                       className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all ${
-                        withdrawAmount === walletBalance ? 'bg-amber-600 text-white' : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                        withdrawAmount === maxWithdrawable ? 'bg-amber-600 text-white' : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
                       }`}
                     >
-                      সব ব্যালেন্স (৳{walletBalance.toLocaleString()})
+                      সর্বোচ্চ উইথড্র (৳{maxWithdrawable.toLocaleString()})
                     </button>
                   )}
                 </div>
@@ -848,7 +870,7 @@ export default function WalletPage() {
                   <span>ক্যাশআউট প্রসেসিং তথ্য:</span>
                 </div>
                 <p>
-                  উইথড্র রিকোয়েস্ট করার পর অ্যাডমিন আপনার প্রদত্ত <strong>{withdrawMethod}</strong> নাম্বারে টাকা পাঠিয়ে রিকোয়েস্ট Approve করবেন। উইথড্রতে কোনো সর্বোচ্চ লিমিট (Max Limit) নেই, আপনার একাউন্টের যেকোনো পরিমাণ ব্যালেন্স ক্যাশআউট করতে পারবেন।
+                  উইথড্র রিকোয়েস্ট করার পর অ্যাডমিন আপনার প্রদত্ত <strong>{withdrawMethod}</strong> নাম্বারে টাকা পাঠিয়ে রিকোয়েস্ট Approve করবেন। একাউন্টে সর্বদা ৳{MIN_RESERVED_BALANCE} সংরক্ষিত থাকে, এবং অবশিষ্ট সমস্ত ব্যালেন্স (সর্বোচ্চ ৳{maxWithdrawable.toLocaleString()}) ক্যাশআউট করতে পারবেন।
                 </p>
               </div>
 
@@ -862,7 +884,7 @@ export default function WalletPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={withdrawLoading || walletBalance < minWithdraw}
+                  disabled={withdrawLoading || maxWithdrawable < minWithdraw}
                   className="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold flex items-center justify-center space-x-1 disabled:opacity-50 shadow-xs"
                 >
                   {withdrawLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>CONFIRM CASHOUT</span>}

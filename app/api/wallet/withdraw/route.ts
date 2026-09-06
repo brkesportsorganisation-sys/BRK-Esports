@@ -58,11 +58,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'User account not found.' }, { status: 404 });
     }
 
-    // Single Unified Wallet Balance check
+    // Single Unified Wallet Balance check with ৳20 minimum reserve
+    const MIN_RESERVED_BALANCE = 20;
     const currentWallet = Number(user.walletBalance ?? (Number(user.winningBalance || 0) + Number(user.promoBalance || 0)));
-    if (numAmount > currentWallet) {
+    const maxWithdrawable = Math.max(0, currentWallet - MIN_RESERVED_BALANCE);
+
+    if (currentWallet < minWithdraw + MIN_RESERVED_BALANCE) {
       return NextResponse.json({
-        message: `Insufficient Wallet balance. (Available: ৳${currentWallet}).`,
+        message: `উইথড্র করার পর ওয়ালেটে সর্বদা ন্যূনতম ৳${MIN_RESERVED_BALANCE} ব্যালেন্স অবশিষ্ট থাকতে হবে। ন্যূনতম উইথড্র ৳${minWithdraw} করার জন্য ওয়ালেটে অন্তত ৳${minWithdraw + MIN_RESERVED_BALANCE} ব্যালেন্স থাকতে হবে। (আপনার বর্তমান ব্যালেন্স: ৳${currentWallet})`,
+      }, { status: 400 });
+    }
+
+    if (numAmount > maxWithdrawable) {
+      return NextResponse.json({
+        message: `ওয়ালেটে সর্বদা ন্যূনতম ৳${MIN_RESERVED_BALANCE} ব্যালেন্স সংরক্ষিত থাকতে হবে। আপনার বর্তমান ব্যালেন্স ৳${currentWallet}—আপনি সর্বোচ্চ ৳${maxWithdrawable} উইথড্র করতে পারবেন।`,
       }, { status: 400 });
     }
 
