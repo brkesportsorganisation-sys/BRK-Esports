@@ -31,57 +31,76 @@ export default function HomeInstallSection() {
       const isIosDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
       setIsIos(isIosDevice);
 
-      if ((window as any).deferredPwaPrompt) {
-        setDeferredPrompt((window as any).deferredPwaPrompt);
+      const win = window as any;
+      if (win.__deferredPwaPrompt) {
+        setDeferredPrompt(win.__deferredPwaPrompt);
+      } else if (win.deferredPwaPrompt) {
+        setDeferredPrompt(win.deferredPwaPrompt);
       }
 
       const promptHandler = (e: any) => {
         e.preventDefault();
         setDeferredPrompt(e);
-        (window as any).deferredPwaPrompt = e;
+        win.__deferredPwaPrompt = e;
       };
 
-      const readyHandler = (e: any) => {
+      const capturedHandler = (e: any) => {
         if (e?.detail) setDeferredPrompt(e.detail);
-        else if ((window as any).deferredPwaPrompt) setDeferredPrompt((window as any).deferredPwaPrompt);
+        else if (win.__deferredPwaPrompt) setDeferredPrompt(win.__deferredPwaPrompt);
       };
 
       const appInstalledHandler = () => {
         setIsInstalled(true);
         setDeferredPrompt(null);
+        if (typeof window !== 'undefined') {
+          (window as any).__deferredPwaPrompt = null;
+        }
       };
 
       window.addEventListener('beforeinstallprompt', promptHandler);
-      window.addEventListener('pwa-prompt-ready', readyHandler);
+      window.addEventListener('pwa-prompt-captured', capturedHandler);
+      window.addEventListener('pwa-prompt-ready', capturedHandler);
       window.addEventListener('appinstalled', appInstalledHandler);
 
       return () => {
         window.removeEventListener('beforeinstallprompt', promptHandler);
-        window.removeEventListener('pwa-prompt-ready', readyHandler);
+        window.removeEventListener('pwa-prompt-captured', capturedHandler);
+        window.removeEventListener('pwa-prompt-ready', capturedHandler);
         window.removeEventListener('appinstalled', appInstalledHandler);
       };
     }
   }, []);
 
   const handleInstallClick = async () => {
-    if (deferredPrompt) {
+    const win = typeof window !== 'undefined' ? (window as any) : null;
+    const prompt = deferredPrompt || win?.__deferredPwaPrompt || win?.deferredPwaPrompt;
+
+    if (prompt) {
       try {
-        await deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
+        await prompt.prompt();
+        const { outcome } = await prompt.userChoice;
         if (outcome === 'accepted') {
           setIsInstalled(true);
           localStorage.setItem('pwa_prompt_dismissed', 'true');
         }
         setDeferredPrompt(null);
+        if (win) {
+          win.__deferredPwaPrompt = null;
+          win.deferredPwaPrompt = null;
+        }
+        return;
       } catch (err) {
         console.warn('Install error:', err);
-        setShowHelpModal(true);
       }
-    } else if (isInstalled) {
-      alert(isBangla ? 'অ্যাপটি আপনার ডিভাইসে অলরেডি ইনস্টল করা আছে!' : 'App is already installed on your device!');
-    } else {
-      setShowHelpModal(true);
     }
+
+    if (isInstalled) {
+      alert(isBangla ? 'অ্যাপটি আপনার ডিভাইসে অলরেডি ইনস্টল করা আছে!' : 'App is already installed on your device!');
+      return;
+    }
+
+    // Only if prompt is unavailable (e.g. real iOS Safari)
+    setShowHelpModal(true);
   };
 
   // If already running inside installed standalone app, hide it cleanly

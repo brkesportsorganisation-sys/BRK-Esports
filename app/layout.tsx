@@ -124,6 +124,22 @@ export default function RootLayout({
           }}
         />
 
+        {/* Early PWA install prompt capture before React hydration */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+(function() {
+  window.__deferredPwaPrompt = null;
+  window.addEventListener('beforeinstallprompt', function(e) {
+    e.preventDefault();
+    window.__deferredPwaPrompt = e;
+    window.dispatchEvent(new CustomEvent('pwa-prompt-captured', { detail: e }));
+  });
+})();
+`,
+          }}
+        />
+
         {/* Service Worker registration — non-blocking, fires after load */}
         <script
           async
