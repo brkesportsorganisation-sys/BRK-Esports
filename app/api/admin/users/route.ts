@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { verifyAdminSession, requireAdminRole, logAdminAction } from '@/lib/admin-auth';
 import { supabaseAdmin } from '@/lib/supabase';
 import { db } from '@/lib/db';
+import { getSquads } from '@/lib/squads';
 import bcrypt from 'bcryptjs';
 
 async function getSession() {
@@ -79,15 +80,60 @@ export async function GET(request: NextRequest) {
       payments = db.getPayments();
     }
 
+    // 5. Fetch all squads
+    let squadsList: any[] = [];
+    try {
+      squadsList = await getSquads();
+    } catch {}
+
     const now = Date.now();
     const fifteenMinsMs = 15 * 60 * 1000;
 
-    // 5. Enrich users with comprehensive tournament history, balances, and interaction data
+    // 6. Enrich users with comprehensive squad info, tournament history, balances, and interaction data
     const enrichedUsers = usersList.map((user, idx) => {
       const { password: _, ...cleanUser } = user;
 
-      // Find user's joined tournaments
-      const userParts = participants.filter((p) => p.userId === user.id || p.captainWhatsApp === user.phone);
+      // 1. Find user's squad
+      const userSquad = (squadsList || []).find((s: any) => 
+        !s.isDisbanded && (
+          s.leaderId === user.id || 
+          (Array.isArray(s.members) && s.members.some((m: any) => 
+            (m.userId && m.userId === user.id) || 
+            (user.inGameName && m.userName && m.userName.trim().toLowerCase() === user.inGameName.trim().toLowerCase())
+          ))
+        )
+      );
+
+      const squadData = userSquad ? {
+        id: userSquad.id,
+        name: userSquad.name,
+        tag: userSquad.tag || '',
+        logo: userSquad.logo || '',
+        role: userSquad.leaderId === user.id ? 'LEADER' : (userSquad.members?.find((m: any) => m.userId === user.id)?.role || 'MEMBER'),
+        memberType: userSquad.leaderId === user.id ? 'LEADER' : (userSquad.members?.find((m: any) => m.userId === user.id)?.memberType || 'MAIN'),
+        membersCount: userSquad.members?.length || 1,
+        members: userSquad.members || [],
+        stats: userSquad.stats || { matchesPlayed: 0, wins: 0, kills: 0, rank: 0 },
+      } : null;
+
+      // 2. Find user's joined tournaments (match by userId, phone, or in-game name across players)
+      const ign = (user.inGameName || '').trim().toLowerCase();
+      const userPhoneDigits = (user.phone || '').replace(/\D/g, '');
+
+      const userParts = participants.filter((p) => {
+        if (p.userId && p.userId === user.id) return true;
+        if (userPhoneDigits && userPhoneDigits.length >= 8 && p.captainWhatsApp && p.captainWhatsApp.replace(/\D/g, '').includes(userPhoneDigits)) return true;
+        if (ign && (
+          (p.iglName && p.iglName.trim().toLowerCase() === ign) ||
+          (p.player1Name && p.player1Name.trim().toLowerCase() === ign) ||
+          (p.player2Name && p.player2Name.trim().toLowerCase() === ign) ||
+          (p.player3Name && p.player3Name.trim().toLowerCase() === ign) ||
+          (p.player4Name && p.player4Name.trim().toLowerCase() === ign) ||
+          (p.backupPlayerName && p.backupPlayerName.trim().toLowerCase() === ign)
+        )) return true;
+        return false;
+      });
+
       const userPayments = payments.filter((p) => p.userId === user.id);
 
       const tournamentsList = userParts.map((p) => {
@@ -97,13 +143,19 @@ export async function GET(request: NextRequest) {
           tournamentId: p.tournamentId,
           tournamentTitle: tour.title || 'Free Fire Tournament',
           game: tour.game || 'FREE_FIRE',
+          gameName: tour.gameName || (tour.game === 'FREE_FIRE' ? 'Free Fire' : tour.game || 'Tournament'),
           mode: tour.mode || 'SQUAD',
+          format: tour.format || 'BR_RANKED',
           entryFee: tour.entryFee ?? 50,
           prizePool: tour.prizePool ?? 1000,
           tournamentStatus: tour.status || 'UPCOMING',
-          squadName: p.squadName || 'Squad',
+          matchTime: tour.matchTime || tour.tournamentStart,
+          squadName: p.squadName || (squadData ? squadData.name : 'Squad'),
           iglName: p.iglName || user.inGameName || user.name,
           captainWhatsApp: p.captainWhatsApp || user.phone,
+          roomLabel: p.roomLabel || (p.roomId ? `Room #${p.roomId}` : undefined),
+          slotNumber: p.slotNumberInRoom || p.slotNumber || undefined,
+          players: [p.player1Name, p.player2Name, p.player3Name, p.player4Name].filter(Boolean),
           status: p.status || 'VERIFIED',
           joinedAt: p.joinedAt || p.createdAt || user.createdAt,
         };
@@ -116,6 +168,15 @@ export async function GET(request: NextRequest) {
       const totalSpent = userPayments
         .filter((pay) => pay.status === 'VERIFIED')
         .reduce((sum, pay) => sum + (Number(pay.amount) || 0), 0);
+
+      const recentPayments = userPayments.slice(0, 6).map((pay) => ({
+        id: pay.id,
+        amount: Number(pay.amount) || 0,
+        method: pay.method || 'BKASH',
+        status: pay.status || 'VERIFIED',
+        trxId: pay.transactionId || pay.trxId || '',
+        createdAt: pay.createdAt,
+      }));
 
       // Determine online status: within 15 mins of updatedAt or top active users
       const lastActiveTime = new Date(user.updatedAt || user.createdAt).getTime();
@@ -160,10 +221,12 @@ export async function GET(request: NextRequest) {
         earnings: Number(cleanUser.earnings) || 0,
         totalKills: Number(cleanUser.totalKills) || 0,
         totalWins: Number(cleanUser.totalWins) || 0,
+        squad: squadData,
         tournamentsJoined: tournamentsList,
         totalTournamentsPlayed: tournamentsList.length,
         totalDeposits,
         totalSpent,
+        recentPayments,
         isOnline,
         lastActive: user.updatedAt || user.createdAt,
         interactionTier,

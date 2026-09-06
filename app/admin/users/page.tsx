@@ -49,15 +49,40 @@ interface EnrichedUser extends User {
     tournamentId: string;
     tournamentTitle: string;
     game: string;
+    gameName?: string;
     mode: string;
+    format?: string;
     entryFee: number;
     prizePool: number;
     tournamentStatus: string;
+    matchTime?: string;
     squadName: string;
     iglName: string;
     captainWhatsApp?: string;
+    roomLabel?: string;
+    slotNumber?: number;
+    players?: string[];
     status: string;
     joinedAt: string;
+  }>;
+  squad?: {
+    id: string;
+    name: string;
+    tag?: string;
+    logo?: string;
+    role: string;
+    memberType?: string;
+    membersCount: number;
+    members?: Array<{ userId: string; userName: string; role?: string; memberType?: string; status?: string }>;
+    stats?: { matchesPlayed?: number; wins?: number; kills?: number; rank?: number };
+  } | null;
+  recentPayments?: Array<{
+    id: string;
+    amount: number;
+    method: string;
+    status: string;
+    trxId?: string;
+    createdAt: string;
   }>;
   totalTournamentsPlayed?: number;
   totalDeposits?: number;
@@ -97,7 +122,7 @@ export default function AdminUsersPage() {
 
   // User Dossier Inspection Modal
   const [inspectUser, setInspectUser] = useState<EnrichedUser | null>(null);
-  const [inspectTab, setInspectTab] = useState<'FINANCIALS' | 'TOURNAMENTS' | 'STATS' | 'ROLES'>('TOURNAMENTS');
+  const [inspectTab, setInspectTab] = useState<'SQUAD' | 'TOURNAMENTS' | 'FINANCIALS' | 'STATS' | 'ROLES'>('SQUAD');
 
   // Quick Role Edit Modal State
   const [roleModal, setRoleModal] = useState<{
@@ -654,9 +679,9 @@ export default function AdminUsersPage() {
 
                           {/* Inspect Full Dossier */}
                           <button
-                            onClick={() => { setInspectUser(u); setInspectTab('TOURNAMENTS'); }}
-                            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors cursor-pointer"
-                            title="Inspect User Activity Dossier"
+                            onClick={() => { setInspectUser(u); setInspectTab('SQUAD'); }}
+                            className="p-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition-colors cursor-pointer"
+                            title="Inspect User Activity & Squad Dossier"
                           >
                             <Eye className="w-4 h-4 text-indigo-600" />
                           </button>
@@ -722,29 +747,30 @@ export default function AdminUsersPage() {
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-3xl w-full border border-slate-200 shadow-2xl space-y-6 my-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
             
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-              <div className="flex items-center space-x-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-5 gap-4">
+              <div className="flex items-start sm:items-center space-x-3.5">
                 <div className="relative">
                   <img
                     src={inspectUser.avatar || 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=150'}
                     alt={inspectUser.name}
-                    className="w-12 h-12 rounded-full object-cover border border-slate-200"
+                    className="w-14 h-14 rounded-2xl object-cover border-2 border-slate-200 shadow-sm"
                   />
                   {inspectUser.isOnline && (
-                    <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white" />
+                    <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white shadow-xs animate-pulse" />
                   )}
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
                     <h3 className="font-heading font-black text-xl text-slate-900">{inspectUser.name}</h3>
                     {inspectUser.isBanned ? (
                       <span className="px-2.5 py-0.5 rounded-full bg-red-100 text-red-700 font-bold text-[10px] uppercase border border-red-200 flex items-center gap-1">
                         <Ban className="w-3 h-3" />
-                        <span>BANNED FROM PLATFORM</span>
+                        <span>BANNED</span>
                       </span>
                     ) : inspectUser.isOnline ? (
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px]">
-                        ONLINE NOW
+                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px] border border-emerald-200 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        <span>ONLINE NOW</span>
                       </span>
                     ) : (
                       <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px]">
@@ -752,29 +778,76 @@ export default function AdminUsersPage() {
                       </span>
                     )}
                   </div>
-                  <div className="text-xs text-slate-500 flex items-center gap-2 font-mono">
-                    <span>{inspectUser.accountNumber || inspectUser.id}</span>
+
+                  <div className="text-xs text-slate-500 flex flex-wrap items-center gap-2 font-mono">
+                    <span className="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">{inspectUser.accountNumber || inspectUser.id}</span>
                     <span>•</span>
                     <span>{inspectUser.email}</span>
+                  </div>
+
+                  {/* Free Fire IGN, UID & Squad Quick Badges */}
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    {inspectUser.inGameName && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-800 text-[11px] font-bold">
+                        <Gamepad2 className="w-3 h-3 text-indigo-600" />
+                        <span>IGN: {inspectUser.inGameName}</span>
+                      </span>
+                    )}
+
+                    {inspectUser.freeFireUid && (
+                      <button
+                        onClick={() => handleCopyId(inspectUser.freeFireUid || '')}
+                        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-slate-100 border border-slate-200 hover:bg-slate-200 text-slate-700 text-[11px] font-mono transition-colors cursor-pointer"
+                        title="Copy Free Fire UID"
+                      >
+                        <span>UID: {inspectUser.freeFireUid}</span>
+                        {copiedId === inspectUser.freeFireUid ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3 text-slate-400" />}
+                      </button>
+                    )}
+
+                    {inspectUser.squad ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-purple-50 border border-purple-200 text-purple-800 text-[11px] font-bold">
+                        <Shield className="w-3 h-3 text-purple-600" />
+                        <span>[{inspectUser.squad.tag || 'SQUAD'}] {inspectUser.squad.name} ({inspectUser.squad.role === 'LEADER' ? '👑 Leader' : 'Member'})</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-slate-100 text-slate-500 text-[11px] font-medium">
+                        <span>Free Agent (No Squad)</span>
+                      </span>
+                    )}
+
+                    {inspectUser.phone && (
+                      <a
+                        href={`https://wa.me/${inspectUser.phone.replace(/[^0-9]/g, '')}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-[11px] font-bold transition-colors cursor-pointer"
+                        title="Chat on WhatsApp"
+                      >
+                        <MessageCircle className="w-3 h-3 text-emerald-600" />
+                        <span>WhatsApp</span>
+                      </a>
+                    )}
                   </div>
                 </div>
               </div>
 
               <button
                 onClick={() => setInspectUser(null)}
-                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-xs cursor-pointer"
+                className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-sm cursor-pointer self-start"
               >
                 ✕
               </button>
             </div>
 
-            {/* Dossier Tabs */}
+            {/* Dossier Navigation Tabs */}
             <div className="flex items-center gap-2 border-b border-slate-200 pb-2 text-xs font-bold overflow-x-auto">
               {[
-                { key: 'TOURNAMENTS', label: `Tournaments Played (${inspectUser.tournamentsJoined?.length || 0})` },
-                { key: 'FINANCIALS', label: 'Wallet & Balances' },
-                { key: 'STATS', label: 'Match Performance & Stats' },
-                { key: 'ROLES', label: 'Roles & Admin Controls ⚙️' },
+                { key: 'SQUAD', label: `🛡️ Squad & Clan (${inspectUser.squad ? inspectUser.squad.name : 'Free Agent'})` },
+                { key: 'TOURNAMENTS', label: `🏆 Tournaments (${inspectUser.tournamentsJoined?.length || 0})` },
+                { key: 'FINANCIALS', label: '💰 Wallet & Payments' },
+                { key: 'STATS', label: '📊 Match Performance' },
+                { key: 'ROLES', label: '⚙️ Roles & Settings' },
               ].map((tab) => (
                 <button
                   key={tab.key}
@@ -790,47 +863,197 @@ export default function AdminUsersPage() {
               ))}
             </div>
 
-            {/* Tab 1: Tournaments Played */}
+            {/* Tab 1: SQUAD & CLAN */}
+            {inspectTab === 'SQUAD' && (
+              <div className="space-y-4">
+                {inspectUser.squad ? (
+                  <div className="space-y-4">
+                    {/* Squad Card Banner */}
+                    <div className="p-5 rounded-2xl bg-gradient-to-r from-purple-50 via-indigo-50 to-slate-50 border border-purple-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-center space-x-3.5">
+                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-700 text-white flex items-center justify-center font-black text-xl shadow-md border-2 border-white overflow-hidden">
+                          {inspectUser.squad.logo ? (
+                            <img src={inspectUser.squad.logo} alt={inspectUser.squad.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <span>{inspectUser.squad.tag || 'SQ'}</span>
+                          )}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-heading font-black text-lg text-slate-900">{inspectUser.squad.name}</h4>
+                            {inspectUser.squad.tag && (
+                              <span className="px-2 py-0.5 rounded bg-purple-200 text-purple-900 font-mono font-bold text-xs">
+                                [{inspectUser.squad.tag}]
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-slate-600 flex items-center gap-2 pt-0.5">
+                            <span className="font-bold text-purple-700">
+                              {inspectUser.squad.role === 'LEADER' ? '👑 Squad Leader / Captain' : '🛡️ Official Squad Member'}
+                            </span>
+                            <span>•</span>
+                            <span>{inspectUser.squad.membersCount || inspectUser.squad.members?.length || 1} Registered Members</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Squad Combat Stats */}
+                      <div className="grid grid-cols-3 gap-2 text-center font-mono">
+                        <div className="bg-white/80 p-2.5 rounded-xl border border-purple-100">
+                          <div className="text-[10px] text-slate-500 font-bold uppercase">Matches</div>
+                          <div className="text-sm font-black text-slate-900">{inspectUser.squad.stats?.matchesPlayed || 0}</div>
+                        </div>
+                        <div className="bg-white/80 p-2.5 rounded-xl border border-purple-100">
+                          <div className="text-[10px] text-emerald-600 font-bold uppercase">Wins</div>
+                          <div className="text-sm font-black text-emerald-700">{inspectUser.squad.stats?.wins || 0}</div>
+                        </div>
+                        <div className="bg-white/80 p-2.5 rounded-xl border border-purple-100">
+                          <div className="text-[10px] text-indigo-600 font-bold uppercase">Kills</div>
+                          <div className="text-sm font-black text-indigo-700">{inspectUser.squad.stats?.kills || 0}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Squad Members Roster */}
+                    <div className="space-y-2.5">
+                      <h5 className="font-bold text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                        <Users className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>Squad Active Roster ({inspectUser.squad.members?.length || 0} Players)</span>
+                      </h5>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {(inspectUser.squad.members || []).map((m, mIdx) => {
+                          const isCurrent = m.userId === inspectUser.id || (inspectUser.inGameName && m.userName?.toLowerCase() === inspectUser.inGameName.toLowerCase());
+                          return (
+                            <div
+                              key={m.userId || mIdx}
+                              className={`p-3 rounded-2xl border flex items-center justify-between gap-3 text-xs transition-all ${
+                                isCurrent
+                                  ? 'bg-purple-50/70 border-purple-300 shadow-xs ring-2 ring-purple-400/20'
+                                  : 'bg-slate-50 border-slate-200'
+                              }`}
+                            >
+                              <div className="flex items-center space-x-2.5">
+                                <div className="w-8 h-8 rounded-xl bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs">
+                                  {m.userName ? m.userName.charAt(0).toUpperCase() : 'P'}
+                                </div>
+                                <div>
+                                  <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                                    <span>{m.userName || 'Teammate'}</span>
+                                    {isCurrent && (
+                                      <span className="px-1.5 py-0.2 rounded bg-purple-600 text-white font-black text-[9px] uppercase">
+                                        This User
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-[10px] text-slate-500 font-mono">
+                                    {m.role || 'Player'} • {m.memberType || 'MAIN'}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold">
+                                {m.status || 'ACTIVE'}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-12 text-center text-slate-500 text-xs space-y-3 bg-slate-50 rounded-2xl border border-slate-200">
+                    <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto border border-amber-200">
+                      <ShieldAlert className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-slate-800 text-sm">No Squad Joined (Free Agent Player)</p>
+                      <p className="text-slate-500 max-w-sm mx-auto mt-1">
+                        This player is currently not assigned to any registered squad. They can join tournaments as solo or be invited by an official squad captain.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Tab 2: Tournaments Played */}
             {inspectTab === 'TOURNAMENTS' && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className="font-heading font-black text-sm text-slate-900">
-                    Tournaments History & Squad Matches
+                    Tournaments History & Registered Matches
                   </h4>
-                  <span className="text-xs text-slate-500">{inspectUser.tournamentsJoined?.length || 0} Total Tournaments</span>
+                  <span className="text-xs text-slate-500 font-bold">{inspectUser.tournamentsJoined?.length || 0} Matches Found</span>
                 </div>
 
                 {!inspectUser.tournamentsJoined || inspectUser.tournamentsJoined.length === 0 ? (
-                  <div className="p-12 text-center text-slate-500 text-xs space-y-2 bg-slate-50 rounded-2xl">
+                  <div className="p-12 text-center text-slate-500 text-xs space-y-2 bg-slate-50 rounded-2xl border border-slate-200">
                     <Trophy className="w-8 h-8 text-slate-300 mx-auto" />
                     <p className="font-bold text-slate-700">No Tournaments Played Yet</p>
-                    <p>This user has not joined any tournament matches so far.</p>
+                    <p>This user has not registered or joined any tournament matches so far.</p>
                   </div>
                 ) : (
-                  <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1 custom-scrollbar">
+                  <div className="space-y-3 max-h-84 overflow-y-auto pr-1 custom-scrollbar">
                     {inspectUser.tournamentsJoined.map((tour) => (
                       <div
                         key={tour.id}
-                        className="p-4 rounded-2xl border border-slate-200 bg-slate-50/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                        className="p-4 rounded-2xl border border-slate-200 bg-slate-50/70 hover:bg-slate-50 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
                       >
-                        <div className="space-y-1">
-                          <div className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                        <div className="space-y-1.5 flex-1">
+                          <div className="font-bold text-slate-900 text-sm flex flex-wrap items-center gap-2">
                             <span>{tour.tournamentTitle}</span>
-                            <span className="px-2 py-0.5 rounded bg-indigo-100 text-indigo-700 font-mono text-[10px] font-bold">
-                              {tour.mode}
+                            <span className="px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-700 font-mono text-[10px] font-bold">
+                              {tour.gameName || 'Free Fire'} • {tour.mode}
                             </span>
+                            {tour.tournamentStatus === 'LIVE' ? (
+                              <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-black text-[10px] flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
+                                <span>LIVE NOW</span>
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 font-bold text-[10px]">
+                                {tour.tournamentStatus}
+                              </span>
+                            )}
                           </div>
-                          <div className="text-slate-500">
-                            Squad: <strong className="text-slate-800">{tour.squadName}</strong> (IGL: {tour.iglName})
+
+                          {/* Room & Slot Info */}
+                          <div className="flex flex-wrap items-center gap-3 text-slate-600 font-mono text-[11px]">
+                            {tour.roomLabel && (
+                              <span className="font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+                                🎯 {tour.roomLabel}
+                              </span>
+                            )}
+                            {tour.slotNumber && (
+                              <span className="font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                                🔢 Slot #{tour.slotNumber}
+                              </span>
+                            )}
+                            <span>Squad: <strong className="text-slate-800">{tour.squadName}</strong> (IGL: {tour.iglName})</span>
                           </div>
+
+                          {/* Players roster in that match */}
+                          {tour.players && tour.players.length > 0 && (
+                            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                              <span className="text-[10px] text-slate-400 font-medium">Roster:</span>
+                              {tour.players.map((pName, pIdx) => (
+                                <span key={pIdx} className="px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700 text-[10px] font-mono">
+                                  {pName}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
                           <div className="text-[10px] text-slate-400 font-mono">
                             Joined: {new Date(tour.joinedAt).toLocaleString()}
                           </div>
                         </div>
 
-                        <div className="flex sm:flex-col items-end justify-between gap-1 text-right">
-                          <span className="font-mono font-bold text-indigo-600">Fee: ৳{tour.entryFee}</span>
-                          <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px]">
+                        <div className="flex sm:flex-col items-end justify-between gap-1.5 text-right flex-shrink-0">
+                          <span className="font-mono font-bold text-indigo-600 text-sm">Fee: ৳{tour.entryFee}</span>
+                          <span className="font-mono text-[11px] text-slate-500">Prize: ৳{tour.prizePool}</span>
+                          <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">
                             {tour.status}
                           </span>
                         </div>
@@ -841,7 +1064,7 @@ export default function AdminUsersPage() {
               </div>
             )}
 
-            {/* Tab 2: Financials & Balance Breakdown */}
+            {/* Tab 3: Financials & Balance Breakdown */}
             {inspectTab === 'FINANCIALS' && (
               <div className="space-y-4 text-xs">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -862,6 +1085,39 @@ export default function AdminUsersPage() {
                     <div className="text-xl font-black text-purple-900 font-mono">৳ {(inspectUser.promoBalance || 0).toLocaleString()}</div>
                   </div>
                 </div>
+
+                {/* Lifetime Summary */}
+                <div className="grid grid-cols-2 gap-3 font-mono">
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                    <span className="text-[10px] text-slate-500 uppercase block">Lifetime Deposits:</span>
+                    <strong className="text-sm text-emerald-600">৳ {(inspectUser.totalDeposits || 0).toLocaleString()}</strong>
+                  </div>
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                    <span className="text-[10px] text-slate-500 uppercase block">Total Spent in Matches:</span>
+                    <strong className="text-sm text-slate-800">৳ {(inspectUser.totalSpent || 0).toLocaleString()}</strong>
+                  </div>
+                </div>
+
+                {/* Recent Payments Ledger */}
+                {inspectUser.recentPayments && inspectUser.recentPayments.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="font-bold text-slate-800 text-xs">Recent Transactions & Deposits</div>
+                    <div className="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar">
+                      {inspectUser.recentPayments.map((pay) => (
+                        <div key={pay.id} className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-[11px] font-mono">
+                          <div>
+                            <span className="font-bold text-slate-800">{pay.method}</span>
+                            {pay.trxId && <span className="text-slate-400 text-[10px] ml-2 font-mono">Trx: {pay.trxId}</span>}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-900">৳ {pay.amount}</span>
+                            <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[9px] font-bold">{pay.status}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
                   <div>
@@ -886,7 +1142,7 @@ export default function AdminUsersPage() {
               </div>
             )}
 
-            {/* Tab 3: Match Performance & Stats */}
+            {/* Tab 4: Match Performance & Stats */}
             {inspectTab === 'STATS' && (
               <div className="space-y-4 text-xs">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono">
@@ -908,23 +1164,36 @@ export default function AdminUsersPage() {
                   </div>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                  <div className="font-bold text-slate-800">Gaming Credentials</div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
+                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                  <div className="font-bold text-slate-800 text-sm">Gaming Credentials & Verification</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="p-3 rounded-xl bg-white border border-slate-200">
                       <span className="text-slate-500 block text-[10px]">Free Fire UID:</span>
                       <strong className="text-slate-900 font-mono text-sm">{inspectUser.freeFireUid || '-'}</strong>
                     </div>
-                    <div>
+                    <div className="p-3 rounded-xl bg-white border border-slate-200">
                       <span className="text-slate-500 block text-[10px]">In-Game Name (IGN):</span>
                       <strong className="text-slate-900 text-sm">{inspectUser.inGameName || '-'}</strong>
+                    </div>
+                    <div className="p-3 rounded-xl bg-white border border-slate-200">
+                      <span className="text-slate-500 block text-[10px]">Account Unique ID:</span>
+                      <strong className="text-slate-900 font-mono text-sm">{inspectUser.accountNumber || '-'}</strong>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 text-[11px] text-slate-600">
+                    <div>
+                      Registered Date: <strong>{new Date(inspectUser.createdAt).toLocaleDateString()}</strong>
+                    </div>
+                    <div>
+                      Last Active: <strong>{new Date(inspectUser.lastActive || inspectUser.createdAt).toLocaleString()}</strong>
                     </div>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Tab 4: Roles & Admin Controls */}
+            {/* Tab 5: Roles & Admin Controls */}
             {inspectTab === 'ROLES' && (
               <div className="space-y-5 text-xs">
                 {/* In-Game Role Selector */}
