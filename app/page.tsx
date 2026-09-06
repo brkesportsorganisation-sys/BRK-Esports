@@ -76,7 +76,7 @@ async function fetchBanners(): Promise<{ banners: Banner[]; shopBanner: Banner |
     const [bannersRes, settingsRes] = await Promise.all([
       supabaseAdmin
         .from('Banner')
-        .select('*')
+        .select('id, title, subtitle, imageUrl, mobileImageUrl, link, linkUrl, badge, badgeText, buttonText, placement, targetDevice, order, displayOrder, isActive')
         .order('order', { ascending: true }),
       supabaseAdmin
         .from('SiteSetting')

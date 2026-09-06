@@ -19,12 +19,12 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // 1. Fetch all users
+    // 1. Fetch all users (specific columns only, excluding password & heavy blobs)
     let usersList: any[] = [];
     try {
       const { data: users, error } = await supabaseAdmin
         .from('User')
-        .select('*')
+        .select('id, name, email, phone, inGameName, freeFireUid, accountNumber, role, inGameRole, walletBalance, coinBalance, promoBalance, winningBalance, totalKills, totalWins, totalEarnings, avatar, isBanned, createdAt, lastActive')
         .order('createdAt', { ascending: false });
 
       if (!error && users && users.length > 0) {
@@ -36,13 +36,14 @@ export async function GET(request: NextRequest) {
       usersList = db.getUsers ? db.getUsers() : [];
     }
 
-    // 2. Fetch all participants (tournaments joined)
+    // 2. Fetch all participants (specific columns only)
     let participants: any[] = [];
     try {
       const { data: partData } = await supabaseAdmin
         .from('Participant')
-        .select('*')
-        .order('joinedAt', { ascending: false });
+        .select('id, tournamentId, userId, squadName, iglName, captainWhatsApp, player1Name, player2Name, player3Name, player4Name, status, joinedAt')
+        .order('joinedAt', { ascending: false })
+        .limit(500);
       if (partData) participants = partData;
     } catch {}
 
@@ -66,13 +67,14 @@ export async function GET(request: NextRequest) {
       localTours.forEach((t) => { tournamentsMap[t.id] = t; });
     }
 
-    // 4. Fetch payments
+    // 4. Fetch payments (specific columns only)
     let payments: any[] = [];
     try {
       const { data: payData } = await supabaseAdmin
         .from('Payment')
-        .select('*')
-        .order('createdAt', { ascending: false });
+        .select('id, userId, method, amount, status, trxId, createdAt')
+        .order('createdAt', { ascending: false })
+        .limit(500);
       if (payData) payments = payData;
     } catch {}
 

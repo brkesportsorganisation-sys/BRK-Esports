@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { serverCache, CACHE_TTL } from '@/lib/server-cache';
 
 export const revalidate = 300;
 
@@ -26,6 +27,19 @@ const EXCLUDED_HEAVY_KEYS = [
 ];
 
 export async function GET() {
+  // 1. Check in-memory server cache first
+  const cached = serverCache.get<Record<string, string>>('site_settings_map');
+  if (cached) {
+    return NextResponse.json(
+      { settings: cached },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        },
+      }
+    );
+  }
+
   try {
     const { data: settings, error } = await supabaseAdmin
       .from('SiteSetting')
@@ -36,6 +50,7 @@ export async function GET() {
       console.warn('[GET /api/settings] Supabase warning:', error.message);
       return NextResponse.json({ settings: {} });
     }
+
 
     const settingsMap = (settings || []).reduce((acc: Record<string, string>, setting: any) => {
       const k = setting.key || '';
@@ -52,6 +67,9 @@ export async function GET() {
       acc[k] = setting.value;
       return acc;
     }, {});
+
+    // Save in server cache for CACHE_TTL.SITE_SETTINGS (5 minutes)
+    serverCache.set('site_settings_map', settingsMap, CACHE_TTL.SITE_SETTINGS);
 
     return NextResponse.json(
       { settings: settingsMap },

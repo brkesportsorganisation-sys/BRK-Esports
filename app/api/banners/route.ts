@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     try {
       const { data: dbBanners, error } = await supabaseAdmin
         .from('Banner')
-        .select('*')
+        .select('id, title, subtitle, imageUrl, mobileImageUrl, link, linkUrl, badge, badgeText, buttonText, placement, targetDevice, order, displayOrder, isActive, createdAt')
         .order('order', { ascending: true });
 
       if (!error && dbBanners && dbBanners.length > 0) {

@@ -27,9 +27,9 @@ export async function GET() {
     // 2. Fetch recent Participants from Supabase
     const { data: participants, error: partError } = await supabaseAdmin
       .from('Participant')
-      .select('id, tournamentId, userId, teamId, registrationId, status, entryFee, squadName, iglName, captainWhatsApp, player1Name, player2Name, player3Name, player4Name, backupPlayerName, joinedAt, createdAt')
+      .select('id, tournamentId, userId, teamId, registrationId, status, squadName, iglName, captainWhatsApp, player1Name, player2Name, player3Name, player4Name, backupPlayerName, joinedAt')
       .order('joinedAt', { ascending: false })
-      .limit(300);
+      .limit(60);
 
     if (partError) {
       console.warn('[GET /api/admin/registrations] Supabase Participant error:', partError.message);

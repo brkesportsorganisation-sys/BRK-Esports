@@ -59,7 +59,9 @@ export async function saveBase64Image(
       .upload(filename, compressedBuffer, {
         contentType: 'image/webp',
         upsert: true,
+        cacheControl: '31536000',
       });
+
 
     if (!error && data?.path) {
       const { data: publicUrlData } = supabaseAdmin.storage

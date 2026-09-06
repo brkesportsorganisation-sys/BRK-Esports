@@ -43,6 +43,7 @@ export async function POST(req: NextRequest) {
       .upload(fileName, buffer, {
         contentType: file.type,
         upsert: true,
+        cacheControl: '31536000',
       });
 
     if (error) {
