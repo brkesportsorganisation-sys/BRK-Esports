@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { 
   Users, 
@@ -38,7 +38,17 @@ import {
   ArrowUpRight,
   User as UserIcon,
   ShieldCheck,
-  Zap
+  Zap,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Filter,
+  RotateCcw,
+  SlidersHorizontal,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight
 } from 'lucide-react';
 import { User, Role } from '@/lib/types';
 
@@ -112,12 +122,40 @@ const SYSTEM_ROLES = [
   { role: 'SUPER_ADMIN', label: 'Super Admin', color: 'bg-red-100 text-red-700 border-red-200' },
 ];
 
+type SortOption = 
+  | 'NEWEST' 
+  | 'OLDEST' 
+  | 'ONLINE' 
+  | 'WALLET_DESC' 
+  | 'WALLET_ASC' 
+  | 'COINS_DESC' 
+  | 'TOURNAMENTS_DESC' 
+  | 'KILLS_DESC' 
+  | 'WINS_DESC' 
+  | 'NAME_ASC' 
+  | 'NAME_DESC';
+
+type FilterTabOption = 
+  | 'ALL' 
+  | 'ONLINE' 
+  | 'ACTIVE_TOURNAMENTS' 
+  | 'HIGH_BALANCE' 
+  | 'BANNED' 
+  | 'FREE_AGENTS' 
+  | 'IN_SQUAD' 
+  | 'HAS_UID';
+
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<EnrichedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterTab, setFilterTab] = useState<'ALL' | 'ONLINE' | 'ACTIVE_TOURNAMENTS' | 'HIGH_BALANCE' | 'BANNED'>('ALL');
-  const [roleFilter, setRoleFilter] = useState<string>('ALL');
+  const [filterTab, setFilterTab] = useState<FilterTabOption>('ALL');
+  const [systemRoleFilter, setSystemRoleFilter] = useState<string>('ALL');
+  const [inGameRoleFilter, setInGameRoleFilter] = useState<string>('ALL');
+  const [squadFilter, setSquadFilter] = useState<'ALL' | 'IN_SQUAD' | 'FREE_AGENT'>('ALL');
+  const [sortBy, setSortBy] = useState<SortOption>('NEWEST');
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(25);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // User Dossier Inspection Modal
@@ -303,32 +341,145 @@ export default function AdminUsersPage() {
     }
   };
 
-  // Filtered Users
-  const filteredUsers = users.filter((u) => {
+  // Computed Filtered and Sorted Users
+  const filteredUsers = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
-    const matchesSearch =
-      !q ||
-      u.name?.toLowerCase().includes(q) ||
-      u.inGameName?.toLowerCase().includes(q) ||
-      u.email?.toLowerCase().includes(q) ||
-      u.phone?.toLowerCase().includes(q) ||
-      u.freeFireUid?.toLowerCase().includes(q) ||
-      u.accountNumber?.toLowerCase().includes(q);
 
-    const matchesRole = roleFilter === 'ALL' || u.role === roleFilter;
+    const result = users.filter((u) => {
+      const matchesSearch =
+        !q ||
+        u.name?.toLowerCase().includes(q) ||
+        u.inGameName?.toLowerCase().includes(q) ||
+        u.email?.toLowerCase().includes(q) ||
+        u.phone?.toLowerCase().includes(q) ||
+        u.freeFireUid?.toLowerCase().includes(q) ||
+        u.accountNumber?.toLowerCase().includes(q);
 
-    if (!matchesSearch || !matchesRole) return false;
+      if (!matchesSearch) return false;
 
-    if (filterTab === 'ONLINE') return u.isOnline;
-    if (filterTab === 'ACTIVE_TOURNAMENTS') return (u.totalTournamentsPlayed || 0) > 0;
-    if (filterTab === 'HIGH_BALANCE') return (u.walletBalance || 0) >= 500 || (u.coinBalance || 0) >= 2000;
-    if (filterTab === 'BANNED') return u.isBanned;
+      // System Role Filter
+      if (systemRoleFilter !== 'ALL' && u.role !== systemRoleFilter) return false;
 
-    return true;
-  });
+      // In-Game Role Filter
+      if (inGameRoleFilter !== 'ALL' && (u.inGameRole || 'RUSHER') !== inGameRoleFilter) return false;
+
+      // Squad Status Filter
+      if (squadFilter === 'IN_SQUAD' && !u.squad) return false;
+      if (squadFilter === 'FREE_AGENT' && Boolean(u.squad)) return false;
+
+      // Quick Filter Tabs
+      if (filterTab === 'ONLINE') return Boolean(u.isOnline);
+      if (filterTab === 'ACTIVE_TOURNAMENTS') {
+        return (u.totalTournamentsPlayed || 0) > 0 || (u.tournamentsJoined && u.tournamentsJoined.length > 0);
+      }
+      if (filterTab === 'HIGH_BALANCE') {
+        return (Number(u.walletBalance) || 0) >= 500 || (Number(u.coinBalance) || 0) >= 2000;
+      }
+      if (filterTab === 'BANNED') return Boolean(u.isBanned);
+      if (filterTab === 'FREE_AGENTS') return !u.squad;
+      if (filterTab === 'IN_SQUAD') return Boolean(u.squad);
+      if (filterTab === 'HAS_UID') return Boolean(u.freeFireUid && u.freeFireUid.trim());
+
+      return true;
+    });
+
+    // Sorting Logic
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case 'NEWEST': {
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return dateB - dateA;
+        }
+        case 'OLDEST': {
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return dateA - dateB;
+        }
+        case 'ONLINE': {
+          if (Boolean(a.isOnline) === Boolean(b.isOnline)) {
+            return (Number(b.walletBalance) || 0) - (Number(a.walletBalance) || 0);
+          }
+          return a.isOnline ? -1 : 1;
+        }
+        case 'WALLET_DESC':
+          return (Number(b.walletBalance) || 0) - (Number(a.walletBalance) || 0);
+        case 'WALLET_ASC':
+          return (Number(a.walletBalance) || 0) - (Number(b.walletBalance) || 0);
+        case 'COINS_DESC':
+          return (Number(b.coinBalance) || 0) - (Number(a.coinBalance) || 0);
+        case 'TOURNAMENTS_DESC': {
+          const countA = a.tournamentsJoined?.length || a.totalTournamentsPlayed || 0;
+          const countB = b.tournamentsJoined?.length || b.totalTournamentsPlayed || 0;
+          return countB - countA;
+        }
+        case 'KILLS_DESC':
+          return (Number(b.totalKills) || 0) - (Number(a.totalKills) || 0);
+        case 'WINS_DESC':
+          return (Number(b.totalWins) || 0) - (Number(a.totalWins) || 0);
+        case 'NAME_ASC':
+          return (a.name || '').localeCompare(b.name || '');
+        case 'NAME_DESC':
+          return (b.name || '').localeCompare(a.name || '');
+        default:
+          return 0;
+      }
+    });
+
+    return result;
+  }, [users, searchQuery, systemRoleFilter, inGameRoleFilter, squadFilter, filterTab, sortBy]);
+
+  // Pagination
+  const totalPages = pageSize === -1 ? 1 : Math.max(1, Math.ceil(filteredUsers.length / pageSize));
+  
+  const paginatedUsers = useMemo(() => {
+    if (pageSize === -1) return filteredUsers;
+    const start = (currentPage - 1) * pageSize;
+    return filteredUsers.slice(start, start + pageSize);
+  }, [filteredUsers, currentPage, pageSize]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, systemRoleFilter, inGameRoleFilter, squadFilter, filterTab, sortBy, pageSize]);
+
+  const isAnyFilterActive = 
+    Boolean(searchQuery.trim()) || 
+    filterTab !== 'ALL' || 
+    systemRoleFilter !== 'ALL' || 
+    inGameRoleFilter !== 'ALL' || 
+    squadFilter !== 'ALL' || 
+    sortBy !== 'NEWEST';
+
+  const resetAllFilters = () => {
+    setSearchQuery('');
+    setFilterTab('ALL');
+    setSystemRoleFilter('ALL');
+    setInGameRoleFilter('ALL');
+    setSquadFilter('ALL');
+    setSortBy('NEWEST');
+    setCurrentPage(1);
+  };
+
+  const handleToggleSort = (column: 'NAME' | 'WALLET' | 'TOURNAMENTS' | 'PERFORMANCE') => {
+    if (column === 'NAME') {
+      setSortBy(prev => prev === 'NAME_ASC' ? 'NAME_DESC' : 'NAME_ASC');
+    } else if (column === 'WALLET') {
+      setSortBy(prev => prev === 'WALLET_DESC' ? 'WALLET_ASC' : prev === 'WALLET_ASC' ? 'COINS_DESC' : 'WALLET_DESC');
+    } else if (column === 'TOURNAMENTS') {
+      setSortBy(prev => prev === 'TOURNAMENTS_DESC' ? 'NEWEST' : 'TOURNAMENTS_DESC');
+    } else if (column === 'PERFORMANCE') {
+      setSortBy(prev => prev === 'KILLS_DESC' ? 'WINS_DESC' : 'KILLS_DESC');
+    }
+  };
 
   const totalUsers = users.length;
   const onlineUsers = users.filter((u) => u.isOnline).length;
+  const tournamentPlayersCount = users.filter((u) => (u.totalTournamentsPlayed || 0) > 0 || (u.tournamentsJoined && u.tournamentsJoined.length > 0)).length;
+  const highBalanceCount = users.filter((u) => (Number(u.walletBalance) || 0) >= 500 || (Number(u.coinBalance) || 0) >= 2000).length;
+  const bannedUsersCount = users.filter((u) => u.isBanned).length;
+  const freeAgentsCount = users.filter((u) => !u.squad).length;
+  const inSquadCount = users.filter((u) => Boolean(u.squad)).length;
+  const hasUidCount = users.filter((u) => Boolean(u.freeFireUid && u.freeFireUid.trim())).length;
   const totalWalletSystem = users.reduce((sum, u) => sum + (Number(u.walletBalance) || 0), 0);
   const totalCoinsSystem = users.reduce((sum, u) => sum + (Number(u.coinBalance) || 0), 0);
   const totalTournamentsJoinedAll = users.reduce((sum, u) => sum + (u.totalTournamentsPlayed || 0), 0);
@@ -421,39 +572,172 @@ export default function AdminUsersPage() {
       </div>
 
       {/* 3. Filter Bar and Search */}
-      <div className="bg-white border border-[#E2E8F0] rounded-[20px] p-4 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
-        <div className="relative w-full md:w-96">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search by IGN, Name, Phone, Free Fire UID, Account ID..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-600 transition-colors"
-          />
+      <div className="bg-white border border-[#E2E8F0] rounded-[24px] p-4 sm:p-5 shadow-sm space-y-3.5">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-3">
+          <div className="relative w-full md:w-96">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search by IGN, Name, Phone, Free Fire UID, Account ID..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-600 transition-colors"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                title="Clear search"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Quick Activity Filter Tabs */}
+          <div className="flex flex-wrap items-center gap-1.5 w-full md:w-auto text-xs font-semibold">
+            {[
+              { key: 'ALL', label: `All (${users.length})` },
+              { key: 'ONLINE', label: `Online (${onlineUsers}) 🟢` },
+              { key: 'ACTIVE_TOURNAMENTS', label: `Tournaments (${tournamentPlayersCount}) 🎮` },
+              { key: 'HIGH_BALANCE', label: `High Balance (${highBalanceCount}) 💎` },
+              { key: 'FREE_AGENTS', label: `Free Agents (${freeAgentsCount}) 🦅` },
+              { key: 'IN_SQUAD', label: `In Squad (${inSquadCount}) 🛡️` },
+              { key: 'HAS_UID', label: `Has UID (${hasUidCount}) 🔥` },
+              { key: 'BANNED', label: `Banned (${bannedUsersCount}) 🚫` },
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setFilterTab(tab.key as any)}
+                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
+                  filterTab === tab.key
+                    ? 'bg-slate-900 text-white shadow-xs font-bold'
+                    : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Quick Activity Filter Tabs */}
-        <div className="flex flex-wrap items-center gap-1.5 w-full md:w-auto text-xs font-semibold">
-          {[
-            { key: 'ALL', label: `All (${users.length})` },
-            { key: 'ONLINE', label: `Online (${onlineUsers}) 🟢` },
-            { key: 'ACTIVE_TOURNAMENTS', label: `Tournament Players 🎮` },
-            { key: 'HIGH_BALANCE', label: `High Balance 💎` },
-            { key: 'BANNED', label: `Banned 🚫` },
-          ].map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setFilterTab(tab.key as any)}
-              className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                filterTab === tab.key
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        {/* Advanced Filters & Sort Toolbar */}
+        <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2.5 text-xs">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Sort Dropdown */}
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 focus-within:border-indigo-500 shadow-2xs">
+              <ArrowUpDown className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+              <span className="text-[11px] font-bold text-slate-500 uppercase">Sort:</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortOption)}
+                className="bg-transparent font-bold text-slate-800 outline-none text-xs cursor-pointer pr-1"
+              >
+                <option value="NEWEST">🕒 Recently Registered (Newest)</option>
+                <option value="OLDEST">⏳ Oldest Registered First</option>
+                <option value="ONLINE">🟢 Online / Active First</option>
+                <option value="WALLET_DESC">💰 Highest Wallet (৳ High → Low)</option>
+                <option value="WALLET_ASC">💰 Lowest Wallet (৳ Low → High)</option>
+                <option value="COINS_DESC">🪙 Most EZBD Coins</option>
+                <option value="TOURNAMENTS_DESC">🏆 Most Tournaments Played</option>
+                <option value="KILLS_DESC">💥 Most Kills</option>
+                <option value="WINS_DESC">👑 Most Wins</option>
+                <option value="NAME_ASC">🔤 Name (A → Z)</option>
+                <option value="NAME_DESC">🔤 Name (Z → A)</option>
+              </select>
+            </div>
+
+            {/* System Role Filter */}
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 focus-within:border-indigo-500 shadow-2xs">
+              <ShieldCheck className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+              <span className="text-[11px] font-bold text-slate-500 uppercase">Role:</span>
+              <select
+                value={systemRoleFilter}
+                onChange={(e) => setSystemRoleFilter(e.target.value)}
+                className="bg-transparent font-bold text-slate-800 outline-none text-xs cursor-pointer pr-1"
+              >
+                <option value="ALL">All Roles</option>
+                <option value="USER">Player (User)</option>
+                <option value="ADMIN">Admin</option>
+                <option value="SUPER_ADMIN">Super Admin</option>
+                <option value="MODERATOR">Moderator</option>
+                <option value="VENDOR">Vendor</option>
+                <option value="SUB_ADMIN">Sub Admin</option>
+              </select>
+            </div>
+
+            {/* In-Game Role Filter */}
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 focus-within:border-indigo-500 shadow-2xs">
+              <Gamepad2 className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+              <span className="text-[11px] font-bold text-slate-500 uppercase">IGN Role:</span>
+              <select
+                value={inGameRoleFilter}
+                onChange={(e) => setInGameRoleFilter(e.target.value)}
+                className="bg-transparent font-bold text-slate-800 outline-none text-xs cursor-pointer pr-1"
+              >
+                <option value="ALL">All In-Game Roles</option>
+                <option value="RUSHER">Rusher ⚡</option>
+                <option value="SNIPER">Sniper 🎯</option>
+                <option value="IGL">IGL / Leader 👑</option>
+                <option value="NADER">Nader 💥</option>
+                <option value="SUPPORTER">Supporter 🛡️</option>
+                <option value="FLANKER">Flanker 🦅</option>
+                <option value="COACH">Coach 🧠</option>
+                <option value="ANALYST">Analyst 📊</option>
+              </select>
+            </div>
+
+            {/* Squad Status Filter */}
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 focus-within:border-indigo-500 shadow-2xs">
+              <Shield className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+              <span className="text-[11px] font-bold text-slate-500 uppercase">Squad:</span>
+              <select
+                value={squadFilter}
+                onChange={(e) => setSquadFilter(e.target.value as any)}
+                className="bg-transparent font-bold text-slate-800 outline-none text-xs cursor-pointer pr-1"
+              >
+                <option value="ALL">All Squad Status</option>
+                <option value="IN_SQUAD">In a Squad 🛡️</option>
+                <option value="FREE_AGENT">Free Agent (No Squad) 🦅</option>
+              </select>
+            </div>
+
+            {/* Reset Filter Button */}
+            {isAnyFilterActive && (
+              <button
+                onClick={resetAllFilters}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 font-bold border border-red-200 transition-all cursor-pointer shadow-2xs text-xs"
+                title="Reset all filters and sorting to default"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reset Filters</span>
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3 ml-auto text-xs font-semibold">
+            {/* Per Page Selector */}
+            <div className="flex items-center gap-1 text-slate-500">
+              <span>Show:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+                className="bg-slate-100 border border-slate-200 rounded-lg px-2 py-1 font-bold text-slate-800 outline-none cursor-pointer"
+              >
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+                <option value={-1}>All ({filteredUsers.length})</option>
+              </select>
+            </div>
+
+            <div className="text-slate-500 font-medium whitespace-nowrap">
+              Showing <strong className="text-slate-900 font-bold">{paginatedUsers.length}</strong> of <strong className="text-slate-900 font-bold">{filteredUsers.length}</strong>
+              {filteredUsers.length !== users.length && (
+                <span className="text-slate-400 text-[11px] ml-1">({users.length} total)</span>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -468,24 +752,78 @@ export default function AdminUsersPage() {
             <Users className="w-12 h-12 text-slate-300 mx-auto" />
             <div className="font-bold text-slate-800 text-base">No Users Found</div>
             <div className="text-xs text-slate-400">Try adjusting your search or filter options.</div>
+            {isAnyFilterActive && (
+              <div className="pt-2">
+                <button
+                  onClick={resetAllFilters}
+                  className="px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-xs shadow-sm hover:bg-slate-800 transition-colors"
+                >
+                  Clear All Filters
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-slate-700 text-[11px] uppercase font-bold border-b border-slate-200">
+              <thead className="bg-slate-50 text-slate-700 text-[11px] uppercase font-bold border-b border-slate-200 select-none">
                 <tr>
-                  <th className="py-4 px-5">Player Profile & Status</th>
-                  <th className="py-4 px-5">Free Fire IGN & UID</th>
-                  <th className="py-4 px-5">In-Game & System Role</th>
-                  <th className="py-4 px-5">Wallet & Coin Balances</th>
-                  <th className="py-4 px-5">Tournaments Played</th>
-                  <th className="py-4 px-5">Player Performance</th>
+                  <th
+                    onClick={() => handleToggleSort('NAME')}
+                    className="py-4 px-5 cursor-pointer hover:bg-slate-100/80 transition-colors group"
+                    title="Click to sort by Name (A-Z / Z-A)"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Player Profile &amp; Status</span>
+                      <span className="text-slate-400 group-hover:text-slate-700">
+                        {sortBy === 'NAME_ASC' ? <ArrowUp className="w-3.5 h-3.5 text-indigo-600" /> : sortBy === 'NAME_DESC' ? <ArrowDown className="w-3.5 h-3.5 text-indigo-600" /> : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+                      </span>
+                    </div>
+                  </th>
+                  <th className="py-4 px-5">Free Fire IGN &amp; UID</th>
+                  <th className="py-4 px-5">In-Game &amp; System Role</th>
+                  <th
+                    onClick={() => handleToggleSort('WALLET')}
+                    className="py-4 px-5 cursor-pointer hover:bg-slate-100/80 transition-colors group"
+                    title="Click to sort by Wallet / Coin Balance"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Wallet &amp; Coin Balances</span>
+                      <span className="text-slate-400 group-hover:text-slate-700">
+                        {sortBy === 'WALLET_DESC' ? <ArrowDown className="w-3.5 h-3.5 text-indigo-600" /> : sortBy === 'WALLET_ASC' ? <ArrowUp className="w-3.5 h-3.5 text-indigo-600" /> : sortBy === 'COINS_DESC' ? <Coins className="w-3.5 h-3.5 text-amber-500" /> : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+                      </span>
+                    </div>
+                  </th>
+                  <th
+                    onClick={() => handleToggleSort('TOURNAMENTS')}
+                    className="py-4 px-5 cursor-pointer hover:bg-slate-100/80 transition-colors group"
+                    title="Click to sort by Tournaments Played"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Tournaments Played</span>
+                      <span className="text-slate-400 group-hover:text-slate-700">
+                        {sortBy === 'TOURNAMENTS_DESC' ? <ArrowDown className="w-3.5 h-3.5 text-indigo-600" /> : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+                      </span>
+                    </div>
+                  </th>
+                  <th
+                    onClick={() => handleToggleSort('PERFORMANCE')}
+                    className="py-4 px-5 cursor-pointer hover:bg-slate-100/80 transition-colors group"
+                    title="Click to sort by Kills or Wins"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Player Performance</span>
+                      <span className="text-slate-400 group-hover:text-slate-700">
+                        {sortBy === 'KILLS_DESC' ? <Flame className="w-3.5 h-3.5 text-rose-500" /> : sortBy === 'WINS_DESC' ? <Trophy className="w-3.5 h-3.5 text-amber-500" /> : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+                      </span>
+                    </div>
+                  </th>
                   <th className="py-4 px-5">Interaction Badge</th>
                   <th className="py-4 px-5 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredUsers.map((u) => {
+                {paginatedUsers.map((u) => {
                   const tournamentsCount = u.tournamentsJoined?.length || 0;
                   const currentInGameRoleObj = ESPORTS_ROLES.find(r => r.role === (u.inGameRole || 'RUSHER')) || { role: u.inGameRole || 'RUSHER', label: u.inGameRole || 'Rusher', icon: '⚡' };
                   const currentSystemRoleObj = SYSTEM_ROLES.find(r => r.role === (u.role || 'USER')) || { role: u.role || 'USER', label: u.role || 'Player', color: 'bg-slate-100 text-slate-700 border-slate-200' };
@@ -738,6 +1076,72 @@ export default function AdminUsersPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Controls */}
+          {filteredUsers.length > 0 && pageSize !== -1 && totalPages > 1 && (
+            <div className="p-4 border-t border-slate-200 bg-slate-50/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+              <div className="text-slate-600 font-medium">
+                Showing <strong className="text-slate-900 font-bold">{Math.min((currentPage - 1) * pageSize + 1, filteredUsers.length)}</strong> to <strong className="text-slate-900 font-bold">{Math.min(currentPage * pageSize, filteredUsers.length)}</strong> of <strong className="text-slate-900 font-bold">{filteredUsers.length}</strong> players
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 font-bold transition-all cursor-pointer"
+                  title="First Page"
+                >
+                  <ChevronsLeft className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 font-bold transition-all cursor-pointer"
+                  title="Previous Page"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+
+                <div className="flex items-center gap-1 px-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, idx) => {
+                    let pageNum = idx + 1;
+                    if (totalPages > 5 && currentPage > 3) {
+                      pageNum = Math.min(totalPages - 4, currentPage - 2) + idx;
+                    }
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`w-7 h-7 rounded-lg font-bold text-xs transition-all cursor-pointer ${
+                          currentPage === pageNum
+                            ? 'bg-slate-900 text-white shadow-xs'
+                            : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 font-bold transition-all cursor-pointer"
+                  title="Next Page"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 font-bold transition-all cursor-pointer"
+                  title="Last Page"
+                >
+                  <ChevronsRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
         )}
       </div>
 
