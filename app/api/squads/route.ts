@@ -51,11 +51,19 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({ squads: allSquads });
+    return NextResponse.json(
+      { squads: allSquads },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+        },
+      }
+    );
   } catch (error: any) {
     console.error('[GET /api/squads]', error);
     return NextResponse.json({ message: error?.message || 'Failed to fetch squads.' }, { status: 500 });
   }
+
 }
 
 // 2. POST create squad

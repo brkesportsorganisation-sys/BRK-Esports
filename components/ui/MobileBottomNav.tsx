@@ -6,25 +6,37 @@ import { usePathname } from 'next/navigation';
 import { Flame, Trophy, Wallet, Radio, Users, Award, Swords, Gift, User as UserIcon } from 'lucide-react';
 import { useLanguage } from '@/lib/language-context';
 
+let cachedLiveStatus: boolean | null = null;
+let lastLiveCheck = 0;
+
 export default function MobileBottomNav() {
   const pathname = usePathname();
-  const [isLiveActive, setIsLiveActive] = useState(false);
+  const [isLiveActive, setIsLiveActive] = useState<boolean>(() => cachedLiveStatus ?? false);
   const { t } = useLanguage();
 
   useEffect(() => {
     async function checkLiveStatus() {
+      const now = Date.now();
+      if (cachedLiveStatus !== null && now - lastLiveCheck < 180000) {
+        setIsLiveActive(cachedLiveStatus);
+        return;
+      }
+
       try {
         const res = await fetch('/api/settings');
         if (res.ok) {
           const data = await res.json();
           const s = data.settings || {};
           const isLive = s.YOUTUBE_LIVE_IS_ACTIVE === 'true' || s.YOUTUBE_LIVE_IS_ACTIVE === true || Boolean(s.YOUTUBE_LIVE_URL);
-          setIsLiveActive(Boolean(isLive));
+          cachedLiveStatus = Boolean(isLive);
+          lastLiveCheck = Date.now();
+          setIsLiveActive(cachedLiveStatus);
         }
       } catch {}
     }
     checkLiveStatus();
   }, []);
+
 
   if (pathname?.startsWith('/admin') || pathname?.startsWith('/vendor')) {
     return null;

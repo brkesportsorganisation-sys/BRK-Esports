@@ -4,15 +4,25 @@ import { supabaseAdmin } from '@/lib/supabase';
 export const revalidate = 300;
 
 const EXCLUDED_HEAVY_KEYS = [
+  'EZBD_ESPORTS_SQUADS',
+  'BRK_ESPORTS_SQUADS',
+  'SQUADS',
   'WHATSAPP_MESSAGE_LOGS',
   'WHATSAPP_AUTOMATION_SCHEDULES',
   'WHATSAPP_TARGET_GROUPS',
   'WHATSAPP_FORWARDER_CONFIG',
   'PUSH_SUBSCRIPTIONS',
   'ARENA_DUELS',
-  'SQUADS',
   'CHAMPIONS',
   'SHOP_ORDERS',
+  // Private API secrets that should never be sent to public client
+  'RESEND_API_KEY',
+  'WAAPI_API_KEY',
+  'ZAVU_API_KEY',
+  'GREEN_API_TOKEN',
+  'SMTP_PASS',
+  'SMTP_USER',
+  'WHATSAPP_BOT_SECRET',
 ];
 
 export async function GET() {
@@ -28,7 +38,18 @@ export async function GET() {
     }
 
     const settingsMap = (settings || []).reduce((acc: Record<string, string>, setting: any) => {
-      acc[setting.key] = setting.value;
+      const k = setting.key || '';
+      // Safeguard against any heavy or private keys that might slip past the SQL 'in' filter
+      if (
+        !k ||
+        EXCLUDED_HEAVY_KEYS.includes(k) ||
+        k.startsWith('push_subscription_') ||
+        k.startsWith('TOURNAMENT_ROADMAP_') ||
+        k.startsWith('WHATSAPP_MESSAGE_')
+      ) {
+        return acc;
+      }
+      acc[k] = setting.value;
       return acc;
     }, {});
 
@@ -45,3 +66,4 @@ export async function GET() {
     return NextResponse.json({ settings: {} });
   }
 }
+
