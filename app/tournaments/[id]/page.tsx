@@ -57,6 +57,7 @@ interface SquadForm {
   player4Name: string;
   backupPlayerName: string;
   captainWhatsApp: string;
+  inGameUid?: string;
 }
 
 interface FieldErrors {
@@ -84,6 +85,7 @@ const emptyForm: SquadForm = {
   player4Name: '',
   backupPlayerName: '',
   captainWhatsApp: '',
+  inGameUid: '',
 };
 
 function FieldInput({
@@ -285,11 +287,17 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  const isGiveawayTournament = Boolean(
+  const tMode = (tournament?.mode || '').toUpperCase();
+  const tTitle = (tournament?.title || '').toLowerCase();
+  const isSoloMatch = tMode === 'SOLO' || tTitle.includes('solo') || tTitle.includes('1v1');
+  const isDuoMatch = tMode === 'DUO' || tTitle.includes('duo');
+
+  const isFreeMatch = Number(tournament?.entryFee || 0) === 0 && (!tournament?.coinEntryFee || Number(tournament?.coinEntryFee) === 0);
+  const isGiveawayTournament = !isSoloMatch && Boolean(
     tournament?.isGiveaway || 
     tournament?.requiresFullSquad || 
-    (Number(tournament?.entryFee) === 0 && (!tournament?.coinEntryFee || Number(tournament?.coinEntryFee) === 0)) ||
-    (tournament?.title && (tournament.title.toLowerCase().includes('giveaway') || tournament.title.toLowerCase().includes('free')))
+    (isFreeMatch && tTitle.includes('giveaway')) ||
+    tTitle.includes('giveaway')
   );
 
   const eligibleSquads = useMemo(() => {
@@ -560,7 +568,35 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
       setPaymentMethod('WALLET');
     }
 
-    if (isGiveawayTournament) {
+    if (isSoloMatch) {
+      setSelectedSquadId('');
+      const playerName = user?.inGameName || user?.name || '';
+      setForm({
+        squadName: playerName || 'Solo Player',
+        iglName: playerName || 'Solo Player',
+        player1Name: playerName,
+        player2Name: '',
+        player3Name: '',
+        player4Name: '',
+        backupPlayerName: '',
+        captainWhatsApp: user?.phone || user?.whatsApp || '',
+        inGameUid: user?.freeFireUid || '',
+      });
+    } else if (isDuoMatch) {
+      setSelectedSquadId('');
+      const p1 = user?.inGameName || user?.name || '';
+      setForm({
+        squadName: `${p1} Duo`,
+        iglName: p1,
+        player1Name: p1,
+        player2Name: '',
+        player3Name: '',
+        player4Name: '',
+        backupPlayerName: '',
+        captainWhatsApp: user?.phone || user?.whatsApp || '',
+        inGameUid: user?.freeFireUid || '',
+      });
+    } else if (isGiveawayTournament) {
       if (eligibleSquads.length > 0) {
         applySquadRoster(eligibleSquads[0]);
       } else if (userSquads.length > 0) {
@@ -575,7 +611,8 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
           player3Name: '',
           player4Name: '',
           backupPlayerName: '',
-          captainWhatsApp: user?.phone || '',
+          captainWhatsApp: user?.phone || user?.whatsApp || '',
+          inGameUid: user?.freeFireUid || '',
         });
       }
     } else {
@@ -591,7 +628,8 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
           player3Name: '',
           player4Name: '',
           backupPlayerName: '',
-          captainWhatsApp: user?.phone || '',
+          captainWhatsApp: user?.phone || user?.whatsApp || '',
+          inGameUid: user?.freeFireUid || '',
         });
       }
     }
@@ -668,6 +706,14 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
           userCoinBalance: activeUser.coinBalance,
           paymentType: paymentMethod,
           ...form,
+          ...(isSoloMatch ? {
+            squadName: form.player1Name || activeUser.inGameName || activeUser.name || 'Solo Player',
+            iglName: form.player1Name || activeUser.inGameName || activeUser.name || 'Solo Player',
+            player1Name: form.player1Name || activeUser.inGameName || activeUser.name || 'Solo Player',
+            player2Name: '',
+            player3Name: '',
+            player4Name: '',
+          } : {})
         }),
       });
 
@@ -848,7 +894,7 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                 className="px-7 py-3.5 sm:px-8 sm:py-4 rounded-2xl text-white font-heading font-black text-sm sm:text-base shadow-neon-cyan hover:scale-105 active:scale-95 transition-all flex items-center space-x-2.5 cursor-pointer bg-gradient-to-r from-green-600 to-emerald-600"
               >
                 <Check className="w-5 h-5 sm:w-6 sm:h-6" />
-                <span>REGISTER ANOTHER SQUAD (৳{tournament.entryFee})</span>
+                <span>{isSoloMatch ? 'ALREADY JOINED (JOIN AGAIN)' : `REGISTER ANOTHER SQUAD (৳${tournament.entryFee})`}</span>
               </button>
             ) : (
               <button
@@ -856,7 +902,7 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                 className="px-7 py-3.5 sm:px-8 sm:py-4 rounded-2xl text-white font-heading font-black text-sm sm:text-base shadow-neon-red hover:scale-105 active:scale-95 transition-all flex items-center space-x-2.5 cursor-pointer bg-gradient-to-r from-brand-red via-brand-orange to-brand-gold"
               >
                 <Trophy className="w-5 h-5 sm:w-6 sm:h-6" />
-                <span>JOIN (৳{tournament.entryFee})</span>
+                <span>{isSoloMatch ? 'JOIN SOLO' : 'JOIN'} ({isFree ? 'FREE' : `৳${tournament.entryFee}`})</span>
               </button>
             )}
           </div>
@@ -971,7 +1017,7 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                   </div>
                   <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-200/80">
                     <span className="text-slate-600 font-bold uppercase">Slots Registered</span>
-                    <span className="font-bold text-amber-600">{tournament.registeredCount} / {tournament.maxTeams} Teams</span>
+                    <span className="font-bold text-amber-600">{tournament.registeredCount} / {tournament.maxTeams} {isSoloMatch ? 'Players' : 'Teams'}</span>
                   </div>
                 </div>
 
@@ -990,7 +1036,7 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
               {myRegistrations.length > 0 && (
                 <div className="bg-orange-50/40 rounded-3xl p-6 border border-brand-orange/30 space-y-4 shadow-sm">
                   <h3 className="font-heading font-bold text-lg text-slate-900 border-b border-brand-orange/20 pb-3 flex items-center gap-2">
-                    <Trophy className="w-5 h-5 text-brand-orange" /> My Registered Squads ({myRegistrations.length})
+                    <Trophy className="w-5 h-5 text-brand-orange" /> {isSoloMatch ? 'My Registration' : 'My Registered Squads'} ({myRegistrations.length})
                   </h3>
                   <div className="space-y-3 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
                     {myRegistrations.map((reg) => (
@@ -1172,7 +1218,7 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                   <div className="rounded-xl border border-slate-200 bg-slate-50 divide-y divide-slate-200/80 text-xs">
                     {[
                       { label: 'Tournament', value: successData.tournamentTitle },
-                      { label: 'Squad Name', value: successData.squadName },
+                      { label: isSoloMatch ? 'Player Name' : 'Squad Name', value: successData.squadName },
                       { label: 'Registration ID', value: successData.registrationId, mono: true },
                       { label: 'Team ID', value: successData.teamId, mono: true },
                       { label: 'Entry Fee Deducted', value: `৳ ${successData.entryFee.toLocaleString()}`, highlight: 'red' },
@@ -1375,8 +1421,83 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                     )}
                   </div>
 
-                  {/* ── SECTION 2: Squad Information ── */}
-                  {isGiveawayTournament ? (
+                  {/* ── SECTION 2: Player & Squad Information ── */}
+                  {isSoloMatch ? (
+                    /* ════════════ SOLO MATCH SECTION (NO SQUAD REQUIRED) ════════════ */
+                    <div className="rounded-xl sm:rounded-2xl border border-orange-200/90 bg-gradient-to-br from-orange-50/60 via-white to-amber-50/40 p-3 sm:p-4 space-y-3">
+                      <div className="flex items-center justify-between pb-2 border-b border-orange-100">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                            <User className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <h4 className="text-xs sm:text-sm font-heading font-black uppercase tracking-wide text-slate-900 flex items-center gap-1.5">
+                              Solo Player Information
+                            </h4>
+                            <p className="text-[10px] text-slate-500 font-medium">
+                              সলো টুর্নামেন্টে কোনো স্কোয়াড লাগবে না। শুধু আপনার নিজের গেমিং ইনফো দিন।
+                            </p>
+                          </div>
+                        </div>
+                        <span className="px-2.5 py-0.5 rounded-full bg-orange-100 text-brand-orange text-[10px] font-black uppercase tracking-wider">
+                          SOLO (1v1)
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <FieldInput
+                          label="Player In-Game Name (IGN)"
+                          value={form.player1Name}
+                          onChange={(val) => {
+                            setField('player1Name')(val);
+                            setField('iglName')(val);
+                            setField('squadName')(val);
+                          }}
+                          error={fieldErrors.player1Name || fieldErrors.iglName}
+                          placeholder="e.g. TURJO_SARKER"
+                          badge="SOLO"
+                        />
+                        <FieldInput
+                          label="Free Fire Game UID"
+                          value={form.inGameUid || ''}
+                          onChange={setField('inGameUid')}
+                          placeholder="e.g. 2084920194"
+                          mono
+                          required={false}
+                        />
+                        <div className="sm:col-span-2">
+                          <FieldInput
+                            label="Your WhatsApp Number"
+                            value={form.captainWhatsApp}
+                            onChange={setField('captainWhatsApp')}
+                            error={fieldErrors.captainWhatsApp}
+                            placeholder="017xxxxxxxx"
+                            type="tel"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ) : isDuoMatch ? (
+                    /* ════════════ DUO MATCH SECTION (2 PLAYERS) ════════════ */
+                    <div className="rounded-xl sm:rounded-2xl border border-slate-200 bg-slate-50 p-2.5 sm:p-3 space-y-2">
+                      <div className="flex items-center justify-between pb-1 border-b border-slate-200/80">
+                        <h4 className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-brand-orange flex items-center gap-1.5">
+                          <Users className="w-3.5 h-3.5" /> Duo Team Information (2 Players)
+                        </h4>
+                        <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 text-[10px] font-bold uppercase">
+                          DUO (2v2)
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
+                        <FieldInput label="Team / Duo Name" value={form.squadName} onChange={setField('squadName')} error={fieldErrors.squadName} placeholder="e.g. Duo Kings" />
+                        <FieldInput label="WhatsApp Number" value={form.captainWhatsApp} onChange={setField('captainWhatsApp')} error={fieldErrors.captainWhatsApp} placeholder="017xxxxxxxx" type="tel" />
+                        
+                        <FieldInput label="Player 1 Name (IGN)" value={form.player1Name} onChange={setField('player1Name')} error={fieldErrors.player1Name} placeholder="Player 1 IGN" />
+                        <FieldInput label="Player 2 Name (IGN)" value={form.player2Name} onChange={setField('player2Name')} error={fieldErrors.player2Name} placeholder="Player 2 IGN" />
+                      </div>
+                    </div>
+                  ) : isGiveawayTournament ? (
                     /* ════════════ GIVEAWAY / 4-PLAYER SQUAD SPECIAL SECTION ════════════ */
                     <div className="space-y-3">
                       {/* Scenario 1: User has NO official squad */}
@@ -1623,6 +1744,12 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
                           Registering…
                         </>
+                      ) : isSoloMatch ? (
+                        isFree 
+                          ? 'CONFIRM SOLO REGISTRATION (FREE)' 
+                          : paymentMethod === 'COINS' 
+                          ? `CONFIRM SOLO REGISTRATION (${requiredCoins.toLocaleString()} 🪙)` 
+                          : `CONFIRM SOLO REGISTRATION (৳ ${requiredCash})`
                       ) : isGiveawayTournament ? (
                         'CONFIRM GIVEAWAY REGISTRATION (🎁 0 ৳)'
                       ) : isFree ? (

@@ -56,46 +56,76 @@ export async function POST(
     player4Name,
     backupPlayerName,
     captainWhatsApp,
+    inGameUid,
   } = body;
-
-  // Field validation
-  const errors: Record<string, string> = {};
-
-  const squadNameErr = validateText(squadName, 'Squad Name');
-  if (squadNameErr) errors.squadName = squadNameErr;
-
-  const iglNameErr = validateText(iglName, 'IGL Name');
-  if (iglNameErr) errors.iglName = iglNameErr;
-
-  const p1NameErr = validateText(player1Name, 'Player 1 Name');
-  if (p1NameErr) errors.player1Name = p1NameErr;
-
-  const p2NameErr = validateText(player2Name, 'Player 2 Name');
-  if (p2NameErr) errors.player2Name = p2NameErr;
-
-  const p3NameErr = validateText(player3Name, 'Player 3 Name');
-  if (p3NameErr) errors.player3Name = p3NameErr;
-
-  const p4NameErr = validateText(player4Name, 'Player 4 Name');
-  if (p4NameErr) errors.player4Name = p4NameErr;
-
-  const whatsappErr = validateWhatsApp(captainWhatsApp);
-  if (whatsappErr) errors.captainWhatsApp = whatsappErr;
-
-  if (backupPlayerName && backupPlayerName.trim()) {
-    const backupNameErr = validateText(backupPlayerName, 'Backup Player Name', false);
-    if (backupNameErr) errors.backupPlayerName = backupNameErr;
-  }
-
-  if (Object.keys(errors).length > 0) {
-    return NextResponse.json({ message: 'Validation failed.', errors }, { status: 422 });
-  }
 
   try {
     const tournament = await getTournamentByIdFromDb(tournamentId);
     if (!tournament) {
       return NextResponse.json({ message: 'Tournament not found.' }, { status: 404 });
     }
+
+    const tMode = (tournament.mode || '').toUpperCase();
+    const tTitle = (tournament.title || '').toLowerCase();
+    const isSoloMatch = tMode === 'SOLO' || tTitle.includes('solo') || tTitle.includes('1v1');
+    const isDuoMatch = tMode === 'DUO' || tTitle.includes('duo');
+
+    // Field validation based on match mode
+    const errors: Record<string, string> = {};
+
+    if (isSoloMatch) {
+      // SOLO: Only player IGN and WhatsApp are required
+      const p1NameErr = validateText(player1Name || iglName || squadName, 'Player In-Game Name');
+      if (p1NameErr) errors.player1Name = p1NameErr;
+
+      const whatsappErr = validateWhatsApp(captainWhatsApp);
+      if (whatsappErr) errors.captainWhatsApp = whatsappErr;
+    } else if (isDuoMatch) {
+      // DUO: Team name, WhatsApp, Player 1 & 2
+      const squadNameErr = validateText(squadName, 'Team / Duo Name');
+      if (squadNameErr) errors.squadName = squadNameErr;
+
+      const p1NameErr = validateText(player1Name, 'Player 1 Name');
+      if (p1NameErr) errors.player1Name = p1NameErr;
+
+      const p2NameErr = validateText(player2Name, 'Player 2 Name');
+      if (p2NameErr) errors.player2Name = p2NameErr;
+
+      const whatsappErr = validateWhatsApp(captainWhatsApp);
+      if (whatsappErr) errors.captainWhatsApp = whatsappErr;
+    } else {
+      // SQUAD (4 Players required)
+      const squadNameErr = validateText(squadName, 'Squad Name');
+      if (squadNameErr) errors.squadName = squadNameErr;
+
+      const iglNameErr = validateText(iglName, 'IGL Name');
+      if (iglNameErr) errors.iglName = iglNameErr;
+
+      const p1NameErr = validateText(player1Name, 'Player 1 Name');
+      if (p1NameErr) errors.player1Name = p1NameErr;
+
+      const p2NameErr = validateText(player2Name, 'Player 2 Name');
+      if (p2NameErr) errors.player2Name = p2NameErr;
+
+      const p3NameErr = validateText(player3Name, 'Player 3 Name');
+      if (p3NameErr) errors.player3Name = p3NameErr;
+
+      const p4NameErr = validateText(player4Name, 'Player 4 Name');
+      if (p4NameErr) errors.player4Name = p4NameErr;
+
+      const whatsappErr = validateWhatsApp(captainWhatsApp);
+      if (whatsappErr) errors.captainWhatsApp = whatsappErr;
+
+      if (backupPlayerName && backupPlayerName.trim()) {
+        const backupNameErr = validateText(backupPlayerName, 'Backup Player Name', false);
+        if (backupNameErr) errors.backupPlayerName = backupNameErr;
+      }
+    }
+
+    if (Object.keys(errors).length > 0) {
+      return NextResponse.json({ message: 'Validation failed.', errors }, { status: 422 });
+    }
+
     const dynStatus = getDynamicTournamentStatus(tournament);
     if (dynStatus === 'PENDING') {
       return NextResponse.json({ message: 'Registration is pending for this tournament.' }, { status: 400 });
@@ -113,12 +143,13 @@ export async function POST(
       return NextResponse.json({ message: 'This tournament is full. No more slots available.' }, { status: 400 });
     }
 
-    // Giveaway & Full Squad Verification
-    const isGiveawayTournament = Boolean(
+    // Giveaway & Full Squad Verification: ONLY apply to SQUAD tournaments, NEVER to SOLO!
+    const isFreeMatch = Number(tournament.entryFee || 0) === 0 && (!tournament.coinEntryFee || Number(tournament.coinEntryFee) === 0);
+    const isGiveawayTournament = !isSoloMatch && Boolean(
       tournament.isGiveaway || 
       tournament.requiresFullSquad || 
-      (Number(tournament.entryFee) === 0 && (!tournament.coinEntryFee || Number(tournament.coinEntryFee) === 0)) ||
-      (tournament.title && (tournament.title.toLowerCase().includes('giveaway') || tournament.title.toLowerCase().includes('free')))
+      (isFreeMatch && tTitle.includes('giveaway')) ||
+      tTitle.includes('giveaway')
     );
 
     if (isGiveawayTournament) {
@@ -272,6 +303,18 @@ export async function POST(
       .update(balanceUpdate)
       .eq('id', userId);
 
+    // Extract & prepare names according to match mode
+    const finalSquadName = isSoloMatch
+      ? (squadName?.trim() || player1Name?.trim() || userName?.trim() || 'Solo Player')
+      : squadName.trim();
+    const finalIglName = isSoloMatch
+      ? (player1Name?.trim() || userName?.trim() || 'Solo Player')
+      : iglName.trim();
+    const finalPlayer1Name = (player1Name || finalIglName).trim();
+    const finalPlayer2Name = isSoloMatch ? '' : (player2Name?.trim() || '');
+    const finalPlayer3Name = (isSoloMatch || isDuoMatch) ? '' : (player3Name?.trim() || '');
+    const finalPlayer4Name = (isSoloMatch || isDuoMatch) ? '' : (player4Name?.trim() || '');
+
     // 2. Assign to room (Auto Group 1, Group 2, Group 3 batching based on format & room capacity)
     let roomAssignment = {
       roomId: `room_${tournamentId}_1`,
@@ -285,8 +328,8 @@ export async function POST(
       roomAssignment = await assignParticipantToRoom(tournament, {
         id: registrationId,
         userId,
-        squadName: squadName.trim(),
-        iglName: iglName.trim(),
+        squadName: finalSquadName,
+        iglName: finalIglName,
         captainWhatsApp: captainWhatsApp ? captainWhatsApp.trim() : null,
       });
     } catch (roomErr: any) {
@@ -301,13 +344,13 @@ export async function POST(
       userId,
       teamId: null, // Avoid FK violation on dynamic squad names
       status: 'VERIFIED',
-      squadName: squadName.trim(),
-      iglName: iglName.trim(),
+      squadName: finalSquadName,
+      iglName: finalIglName,
       captainWhatsApp: captainWhatsApp ? captainWhatsApp.trim() : null,
-      player1Name: player1Name.trim(),
-      player2Name: player2Name.trim(),
-      player3Name: player3Name.trim(),
-      player4Name: player4Name.trim(),
+      player1Name: finalPlayer1Name,
+      player2Name: finalPlayer2Name,
+      player3Name: finalPlayer3Name,
+      player4Name: finalPlayer4Name,
       backupPlayerName: backupPlayerName?.trim() || null,
       roomId: roomAssignment.roomId,
       roomLabel: roomAssignment.roomLabel,
@@ -332,6 +375,21 @@ export async function POST(
       }
     }
 
+    // If inGameUid was provided by player, update their Free Fire UID
+    if (inGameUid && userId) {
+      try {
+        await supabaseAdmin
+          .from('User')
+          .update({
+            freeFireUid: String(inGameUid).trim(),
+            ...(finalPlayer1Name ? { inGameName: finalPlayer1Name } : {})
+          })
+          .eq('id', userId);
+      } catch (uidErr) {
+        console.warn('Could not update user Free Fire UID:', uidErr);
+      }
+    }
+
     // 4. Create Payment record
     const paymentId = `pay_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     await supabaseAdmin
@@ -339,14 +397,16 @@ export async function POST(
       .insert([{
         id: paymentId,
         userId,
-        userName: user.name || iglName.trim() || 'Player',
-        userEmail: user.email || '',
         tournamentId,
+        userName: userName || 'Player',
+        userEmail: userEmail || `${userId}@helian.gg`,
+        tournamentTitle: tournament.title,
         method: isPayingWithCoins ? 'COINS' : 'WALLET',
         amount: requiredFee,
-        trxId,
+        trxId: `TRX-${registrationId}`,
         status: 'VERIFIED',
-        notes: `Squad registration (${isPayingWithCoins ? `${requiredFee} Coins 🪙` : `৳ ${requiredFee} Wallet`}): ${squadName.trim()} | ${registrationId}`,
+        walletType: isPayingWithCoins ? 'COINS' : 'PROMO',
+        notes: `${isSoloMatch ? 'Solo' : 'Squad'} registration (${isPayingWithCoins ? `${requiredFee} Coins 🪙` : `৳ ${requiredFee} Wallet`}): ${finalSquadName} | ${registrationId}`,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }]);
@@ -367,13 +427,13 @@ export async function POST(
       userId,
       status: 'VERIFIED',
       registrationId,
-      squadName: squadName.trim(),
-      iglName: iglName.trim(),
-      captainWhatsApp: captainWhatsApp.trim(),
-      player1Name: player1Name.trim(),
-      player2Name: player2Name.trim(),
-      player3Name: player3Name.trim(),
-      player4Name: player4Name.trim(),
+      squadName: finalSquadName,
+      iglName: finalIglName,
+      captainWhatsApp: captainWhatsApp ? captainWhatsApp.trim() : '',
+      player1Name: finalPlayer1Name,
+      player2Name: finalPlayer2Name,
+      player3Name: finalPlayer3Name,
+      player4Name: finalPlayer4Name,
       backupPlayerName: backupPlayerName?.trim() || null,
       joinedAt: new Date().toISOString(),
     });
@@ -385,7 +445,9 @@ export async function POST(
         id: notifId,
         userId,
         title: `Registered: ${tournament.title} 🎮`,
-        message: `Your squad "${squadName.trim()}" has been registered successfully! Room ID and Password will be posted 10-15m before match start.`,
+        message: isSoloMatch
+          ? `You have joined the solo match successfully! Room ID and Password will be posted 10-15m before match start.`
+          : `Your squad "${finalSquadName}" has been registered successfully! Room ID and Password will be posted 10-15m before match start.`,
         isRead: false,
         createdAt: new Date().toISOString(),
       }]);
@@ -395,7 +457,7 @@ export async function POST(
       message: `Registration successful! ${tournament.entryFee} ${currencyUnit} has been deducted.`,
       registrationId,
       teamId,
-      squadName: squadName.trim(),
+      squadName: finalSquadName,
       tournamentTitle: tournament.title,
       entryFee: tournament.entryFee,
       remainingBalance: balanceUpdate.walletBalance ?? balanceUpdate.coinBalance ?? 0,
