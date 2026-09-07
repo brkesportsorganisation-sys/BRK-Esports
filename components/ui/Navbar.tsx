@@ -41,6 +41,11 @@ import { db } from '@/lib/db';
 import { User as UserType, Notification as NotificationType } from '@/lib/types';
 import { useLanguage } from '@/lib/language-context';
 import { useRealtimeUser, useRealtimeNotifications } from '@/lib/use-realtime';
+import { fetchWithClientCache, CLIENT_CACHE_TTL, invalidateClientCache } from '@/lib/client-cache';
+
+// Module-level timestamps survive across route changes (prevents unmount/mount fetch thrashes)
+let globalLastNotifFetch = 0;
+let globalLastLiveFetch = 0;
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -69,24 +74,21 @@ export default function Navbar() {
     setUnreadCount((prev) => prev + 1);
   });
 
-  const lastNotifFetchRef = useRef<number>(0);
-  const lastLiveFetchRef = useRef<number>(0);
-
   // Load user notifications from API (throttled to max once per 60 seconds to save Vercel CPU & Supabase DB)
   const loadUserNotifications = async (userId: string, force = false) => {
     if (!userId) return;
     const now = Date.now();
-    if (!force && now - lastNotifFetchRef.current < 60000) {
+    if (!force && now - globalLastNotifFetch < 60000) {
       return;
     }
-    lastNotifFetchRef.current = now;
+    globalLastNotifFetch = now;
     try {
-      const res = await fetch(`/api/notifications?userId=${userId}&limit=30`);
-      if (res.ok) {
-        const data = await res.json();
-        setNotifications(data.notifications || []);
-        setUnreadCount(data.unreadCount || 0);
-      }
+      const data = await fetchWithClientCache<{ notifications?: NotificationType[]; unreadCount?: number }>(
+        `/api/notifications?userId=${userId}&limit=30`,
+        { ttlMs: CLIENT_CACHE_TTL.NOTIFICATIONS, forceRefresh: force }
+      );
+      setNotifications(data?.notifications || []);
+      setUnreadCount(data?.unreadCount || 0);
     } catch (err) {
       console.warn('Failed to load user notifications:', err);
     }
@@ -108,41 +110,33 @@ export default function Navbar() {
     
     async function loadLiveNavbarData(force = false) {
       const now = Date.now();
-      if (!force && now - lastLiveFetchRef.current < 180000) {
+      if (!force && now - globalLastLiveFetch < 180000) {
         return; // Only re-fetch live navbar data every 3 minutes
       }
-      lastLiveFetchRef.current = now;
+      globalLastLiveFetch = now;
       try {
         const cur = db.getCurrentUser();
-        const [userRes, setRes] = await Promise.all([
-          cur?.id ? fetch(`/api/auth/me?id=${cur.id}`) : Promise.resolve(null),
-          fetch('/api/settings')
+        const [uData, setData] = await Promise.all([
+          cur?.id 
+            ? fetchWithClientCache<{ user?: UserType }>(`/api/auth/me?id=${cur.id}`, { ttlMs: CLIENT_CACHE_TTL.USER, forceRefresh: force })
+            : Promise.resolve(null),
+          fetchWithClientCache<{ settings?: Record<string, any> }>('/api/settings', { ttlMs: CLIENT_CACHE_TTL.SETTINGS, forceRefresh: force })
         ]);
 
-        if (setRes && setRes.ok) {
-          const setData = await setRes.json();
+        if (setData) {
           const s = setData.settings || {};
           const isLive = s.YOUTUBE_LIVE_IS_ACTIVE === 'true' || s.YOUTUBE_LIVE_IS_ACTIVE === true || Boolean(s.YOUTUBE_LIVE_URL);
           setIsLiveActive(Boolean(isLive));
         }
 
-        if (userRes) {
-          if (userRes.ok) {
-            const uData = await userRes.json();
-            if (uData.user) {
-              if (uData.user.isBanned) {
-                db.logout();
-                setCurrentUser(null);
-                return;
-              }
-              setCurrentUser(uData.user);
-              db.setCurrentUser(uData.user);
-            }
-          } else if (userRes.status === 401) {
+        if (uData && uData.user) {
+          if (uData.user.isBanned) {
             db.logout();
             setCurrentUser(null);
+            return;
           }
-          // Note: Do NOT clear local session on 404 or 500 error to guard against transient network/query glitches.
+          setCurrentUser(uData.user);
+          db.setCurrentUser(uData.user);
         }
       } catch (err) {
         console.warn('Navbar live load error:', err);
@@ -220,6 +214,7 @@ export default function Navbar() {
         body: JSON.stringify({ markAllAsRead: true, userId: currentUser.id })
       });
       if (res.ok) {
+        invalidateClientCache('/api/notifications');
         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
         setUnreadCount(0);
       }
@@ -237,6 +232,7 @@ export default function Navbar() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: notif.id, isRead: true })
         });
+        invalidateClientCache('/api/notifications');
         setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, isRead: true } : n));
         setUnreadCount(prev => Math.max(0, prev - 1));
       } catch {}
@@ -254,6 +250,7 @@ export default function Navbar() {
     try {
       const res = await fetch(`/api/notifications?id=${id}`, { method: 'DELETE' });
       if (res.ok) {
+        invalidateClientCache('/api/notifications');
         setNotifications(prev => prev.filter(n => n.id !== id));
       }
     } catch (err) {
@@ -262,6 +259,7 @@ export default function Navbar() {
   };
 
   const handleSignOut = () => {
+    invalidateClientCache();
     db.logout();
     setCurrentUser(null);
     setIsProfileOpen(false);

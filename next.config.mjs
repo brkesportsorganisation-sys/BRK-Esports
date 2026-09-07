@@ -57,13 +57,13 @@ const nextConfig = {
           },
         ],
       },
-      // PWA Manifest — must revalidate so updates to icons or app name are detected immediately
+      // PWA Manifest — 1 day cache with 7 day stale-while-revalidate
       {
         source: '/manifest.json',
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=0, must-revalidate',
+            value: 'public, max-age=86400, stale-while-revalidate=604800',
           },
           {
             key: 'Content-Type',

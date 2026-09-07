@@ -108,7 +108,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ message: 'Squad not found.' }, { status: 404 });
     }
 
-    return NextResponse.json({ squad });
+    return NextResponse.json(
+      { squad },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
+        },
+      }
+    );
   } catch (error: any) {
     console.error('[GET /api/squads/[id]]', error);
     return NextResponse.json({ message: error?.message || 'Error fetching squad.' }, { status: 500 });

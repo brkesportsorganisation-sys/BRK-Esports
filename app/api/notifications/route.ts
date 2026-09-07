@@ -29,10 +29,17 @@ export async function GET(req: NextRequest) {
     const list = notifications || [];
     const unreadCount = list.filter(n => !n.isRead).length;
 
-    return NextResponse.json({
-      notifications: list,
-      unreadCount,
-    });
+    return NextResponse.json(
+      {
+        notifications: list,
+        unreadCount,
+      },
+      {
+        headers: {
+          'Cache-Control': 'private, max-age=15, stale-while-revalidate=30',
+        },
+      }
+    );
   } catch (error: any) {
     console.error('[GET /api/notifications] Error:', error);
     return NextResponse.json({ notifications: [], unreadCount: 0 }, { status: 500 });

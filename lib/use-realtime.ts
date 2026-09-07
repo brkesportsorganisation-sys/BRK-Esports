@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { db } from '@/lib/db';
 import { User, Tournament, Notification as NotificationType } from '@/lib/types';
@@ -9,6 +9,9 @@ import { User, Tournament, Notification as NotificationType } from '@/lib/types'
  * Hook to subscribe to real-time Supabase updates for a specific User (Balance, Wins, Level)
  */
 export function useRealtimeUser(userId?: string, onUserUpdate?: (user: User) => void) {
+  const onUserUpdateRef = useRef(onUserUpdate);
+  onUserUpdateRef.current = onUserUpdate;
+
   useEffect(() => {
     if (!userId) return;
 
@@ -26,7 +29,7 @@ export function useRealtimeUser(userId?: string, onUserUpdate?: (user: User) => 
           if (payload.new) {
             const updated = payload.new as User;
             db.setCurrentUser(updated);
-            if (onUserUpdate) onUserUpdate(updated);
+            if (onUserUpdateRef.current) onUserUpdateRef.current(updated);
           }
         }
       )
@@ -35,13 +38,16 @@ export function useRealtimeUser(userId?: string, onUserUpdate?: (user: User) => 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId, onUserUpdate]);
+  }, [userId]);
 }
 
 /**
  * Hook to subscribe to real-time in-app Notifications for a specific User
  */
 export function useRealtimeNotifications(userId?: string, onNewNotif?: (notif: NotificationType) => void) {
+  const onNewNotifRef = useRef(onNewNotif);
+  onNewNotifRef.current = onNewNotif;
+
   useEffect(() => {
     if (!userId) return;
 
@@ -58,7 +64,7 @@ export function useRealtimeNotifications(userId?: string, onNewNotif?: (notif: N
         (payload) => {
           if (payload.new) {
             const newNotif = payload.new as NotificationType;
-            if (onNewNotif) onNewNotif(newNotif);
+            if (onNewNotifRef.current) onNewNotifRef.current(newNotif);
           }
         }
       )
@@ -67,13 +73,16 @@ export function useRealtimeNotifications(userId?: string, onNewNotif?: (notif: N
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId, onNewNotif]);
+  }, [userId]);
 }
 
 /**
  * Hook to subscribe to real-time Tournament updates (Slot count, Room ID/Pass release, Status changes)
  */
 export function useRealtimeTournament(tournamentId?: string, onTournamentUpdate?: (t: Tournament) => void) {
+  const onTournamentUpdateRef = useRef(onTournamentUpdate);
+  onTournamentUpdateRef.current = onTournamentUpdate;
+
   useEffect(() => {
     if (!tournamentId) return;
 
@@ -90,7 +99,7 @@ export function useRealtimeTournament(tournamentId?: string, onTournamentUpdate?
         (payload) => {
           if (payload.new) {
             const updated = payload.new as Tournament;
-            if (onTournamentUpdate) onTournamentUpdate(updated);
+            if (onTournamentUpdateRef.current) onTournamentUpdateRef.current(updated);
           }
         }
       )
@@ -99,19 +108,22 @@ export function useRealtimeTournament(tournamentId?: string, onTournamentUpdate?
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [tournamentId, onTournamentUpdate]);
+  }, [tournamentId]);
 }
 
 /**
  * Hook to subscribe to real-time Broadcast Events (Announcements, 1v1 Duels, Chat)
  */
 export function useRealtimeBroadcast(channelName: string, eventName: string, onEvent: (data: any) => void) {
+  const onEventRef = useRef(onEvent);
+  onEventRef.current = onEvent;
+
   useEffect(() => {
     const channel = supabase
       .channel(channelName)
       .on('broadcast', { event: eventName }, (response) => {
-        if (response.payload && onEvent) {
-          onEvent(response.payload);
+        if (response.payload && onEventRef.current) {
+          onEventRef.current(response.payload);
         }
       })
       .subscribe();
@@ -119,5 +131,5 @@ export function useRealtimeBroadcast(channelName: string, eventName: string, onE
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [channelName, eventName, onEvent]);
+  }, [channelName, eventName]);
 }

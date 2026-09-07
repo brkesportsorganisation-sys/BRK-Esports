@@ -44,6 +44,7 @@ import { getTournamentByIdFromDb } from '@/lib/tournament-store';
 import { getDynamicTournamentStatus } from '@/lib/tournament-utils';
 import { Tournament, User as UserType, TournamentStatus, TournamentPointsTable, TournamentRoom, TournamentRoadmapConfig } from '@/lib/types';
 import { db } from '@/lib/db';
+import { fetchWithClientCache, CLIENT_CACHE_TTL } from '@/lib/client-cache';
 
 /* ──────────────────────────────────────────────
    Types
@@ -210,8 +211,7 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
   const [youtubeLabel, setYoutubeLabel] = useState('YouTube Channel');
 
   useEffect(() => {
-    fetch('/api/settings')
-      .then((res) => res.json())
+    fetchWithClientCache<{ settings?: Record<string, any> }>('/api/settings', { ttlMs: CLIENT_CACHE_TTL.SETTINGS })
       .then((data) => {
         const s = data?.settings || {};
         const wa = s.TOURNAMENT_WHATSAPP_URL ?? s.WHATSAPP_GROUP_URL ?? (s.helpline ? `https://wa.me/${s.helpline.replace(/[^0-9]/g, '')}` : 'https://chat.whatsapp.com/sample');
@@ -347,10 +347,9 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
         if (isMounted) setCurrentUser(user);
 
         if (user?.id) {
-          fetch(`/api/squads?userId=${user.id}`)
-            .then(res => res.json())
+          fetchWithClientCache<{ squads?: any[] }>(`/api/squads?userId=${user.id}`, { ttlMs: CLIENT_CACHE_TTL.SQUADS })
             .then(d => {
-              if (isMounted && d.squads) setUserSquads(d.squads);
+              if (isMounted && d?.squads) setUserSquads(d.squads);
             })
             .catch(() => {});
         }

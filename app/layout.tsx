@@ -72,7 +72,6 @@ export default function RootLayout({
         <link rel="icon" href="/icons/icon-512x512.png" type="image/png" sizes="512x512" />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" sizes="180x180" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
-        <link rel="manifest" href="/manifest.json" />
 
         {/* Preload critical LCP image — logo */}
         <link rel="preload" href="/logo.png" as="image" type="image/png" fetchPriority="high" />

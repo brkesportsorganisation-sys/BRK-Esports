@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import SquadLogoUploader from '@/components/ui/SquadLogoUploader';
+import { fetchWithClientCache, CLIENT_CACHE_TTL, invalidateClientCache } from '@/lib/client-cache';
 
 export default function SquadTeamsHubPage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -71,28 +72,28 @@ export default function SquadTeamsHubPage() {
     return false;
   };
 
-  const loadData = async (user?: User | null) => {
+  const loadData = async (user?: User | null, force = false) => {
     setLoading(true);
     try {
+      if (force) {
+        invalidateClientCache('/api/squads');
+        invalidateClientCache('/api/user/squad-invites');
+      }
       const activeUser = user !== undefined ? user : currentUser;
-      const [allRes, userRes, invRes] = await Promise.all([
-        fetch('/api/squads'),
-        activeUser?.id ? fetch(`/api/squads?userId=${activeUser.id}`) : Promise.resolve(null),
-        activeUser?.id ? fetch(`/api/user/squad-invites?userId=${activeUser.id}`) : Promise.resolve(null),
+      const [allData, userData, invData] = await Promise.all([
+        fetchWithClientCache<{ squads?: Squad[] }>('/api/squads', { ttlMs: CLIENT_CACHE_TTL.SQUADS, forceRefresh: force }),
+        activeUser?.id 
+          ? fetchWithClientCache<{ squads?: Squad[] }>(`/api/squads?userId=${activeUser.id}`, { ttlMs: CLIENT_CACHE_TTL.SQUADS, forceRefresh: force })
+          : Promise.resolve(null),
+        activeUser?.id 
+          ? fetchWithClientCache<{ invites?: any[] }>(`/api/user/squad-invites?userId=${activeUser.id}`, { ttlMs: 30000, forceRefresh: force })
+          : Promise.resolve(null),
       ]);
 
-      let loadedAllSquads: Squad[] = [];
-      if (allRes.ok) {
-        const d = await allRes.json();
-        loadedAllSquads = d.squads || [];
-        setAllSquads(loadedAllSquads);
-      }
+      let loadedAllSquads: Squad[] = allData?.squads || [];
+      setAllSquads(loadedAllSquads);
 
-      let loadedMySquads: Squad[] = [];
-      if (userRes && userRes.ok) {
-        const ud = await userRes.json();
-        loadedMySquads = ud.squads || [];
-      }
+      let loadedMySquads: Squad[] = userData?.squads || [];
 
       // Fallback matching if server didn't find one
       if (loadedMySquads.length === 0 && activeUser && loadedAllSquads.length > 0) {
@@ -107,9 +108,8 @@ export default function SquadTeamsHubPage() {
       // Strict 1-Squad limit: A player can only have AT MOST 1 active squad
       setMySquads(loadedMySquads.slice(0, 1));
 
-      if (invRes && invRes.ok) {
-        const idData = await invRes.json();
-        setPendingInvites(idData.invites || []);
+      if (invData?.invites) {
+        setPendingInvites(invData.invites);
       }
     } catch (err) {
       console.warn('Failed to load squads:', err);
@@ -181,7 +181,7 @@ export default function SquadTeamsHubPage() {
         setFormTag('');
         setFormDescription('');
         setSuccessMessage('');
-        loadData(currentUser);
+        loadData(currentUser, true);
       }, 1000);
     } catch {
       setErrorMessage('Network error while creating squad.');
@@ -206,7 +206,7 @@ export default function SquadTeamsHubPage() {
       const d = await res.json();
       if (res.ok) {
         alert(d.message || (action === 'ACCEPT' ? 'Squad invitation accepted!' : 'Invitation declined.'));
-        loadData(currentUser);
+        loadData(currentUser, true);
       } else {
         alert(d.message || 'Failed to respond to invite.');
       }

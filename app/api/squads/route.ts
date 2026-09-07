@@ -33,7 +33,14 @@ export async function GET(req: NextRequest) {
 
     if (userId) {
       const userSquads = await getUserSquads(userId);
-      return NextResponse.json({ squads: userSquads });
+      return NextResponse.json(
+        { squads: userSquads },
+        {
+          headers: {
+            'Cache-Control': 'private, max-age=30, stale-while-revalidate=60',
+          },
+        }
+      );
     }
 
     let allSquads = await getSquads();

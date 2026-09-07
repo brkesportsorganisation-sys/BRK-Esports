@@ -26,6 +26,7 @@ import {
 import { db } from '@/lib/db';
 import { User } from '@/lib/types';
 import { useLanguage } from '@/lib/language-context';
+import { fetchWithClientCache, CLIENT_CACHE_TTL, invalidateClientCache } from '@/lib/client-cache';
 
 export default function ReferralSection() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -66,13 +67,10 @@ export default function ReferralSection() {
 
   const refreshUser = async (uid: string) => {
     try {
-      const res = await fetch(`/api/auth/me?id=${uid}`, { cache: 'no-store' });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.user) {
-          setCurrentUser(data.user);
-          db.setCurrentUser(data.user);
-        }
+      const data = await fetchWithClientCache<{ user?: User }>(`/api/auth/me?id=${uid}`, { ttlMs: CLIENT_CACHE_TTL.USER });
+      if (data?.user) {
+        setCurrentUser(data.user);
+        db.setCurrentUser(data.user);
       }
     } catch {}
   };
@@ -84,11 +82,8 @@ export default function ReferralSection() {
 
     async function loadSettings() {
       try {
-        const res = await fetch('/api/settings', { cache: 'no-store' });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.settings) setSiteSettings(data.settings);
-        }
+        const data = await fetchWithClientCache<{ settings?: Record<string, string> }>('/api/settings', { ttlMs: CLIENT_CACHE_TTL.SETTINGS });
+        if (data?.settings) setSiteSettings(data.settings);
       } catch (err) {
         console.warn('Failed to load settings:', err);
       }
@@ -138,6 +133,7 @@ export default function ReferralSection() {
       const data = await res.json();
 
       if (res.ok) {
+        invalidateClientCache('/api/auth/me');
         if (data.user) {
           setCurrentUser(data.user);
           db.setCurrentUser(data.user);

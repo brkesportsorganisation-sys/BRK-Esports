@@ -51,6 +51,7 @@ import Footer from '@/components/ui/Footer';
 import { db } from '@/lib/db';
 import { User, Tournament, Team, Squad, Payment, SupportTicket, SupportMessage } from '@/lib/types';
 import FormattedMessage from '@/components/ui/FormattedMessage';
+import { fetchWithClientCache, CLIENT_CACHE_TTL, invalidateClientCache } from '@/lib/client-cache';
 
 const parseShopOrderDetails = (notes?: string) => {
   if (!notes) return null;
@@ -234,55 +235,56 @@ function ProfilePageContent() {
     }
   };
 
-  const refreshProfileFromDb = async (userId: string) => {
+  const refreshProfileFromDb = async (userId: string, force = false) => {
     try {
-      const [uRes, sqRes, tRes, pRes, tourRes, sRes] = await Promise.all([
-        fetch(`/api/auth/me?id=${userId}`, { cache: 'no-store' }),
-        fetch(`/api/squads?userId=${userId}`, { cache: 'no-store' }),
-        fetch(`/api/teams?userId=${userId}`, { cache: 'no-store' }),
-        fetch(`/api/wallet/history?userId=${userId}`, { cache: 'no-store' }),
-        fetch(`/api/tournaments`, { cache: 'no-store' }),
-        fetch(`/api/settings`, { cache: 'no-store' }).catch(() => null)
+      if (force) {
+        invalidateClientCache(`/api/auth/me?id=${userId}`);
+        invalidateClientCache(`/api/squads?userId=${userId}`);
+        invalidateClientCache(`/api/teams?userId=${userId}`);
+        invalidateClientCache(`/api/wallet/history?userId=${userId}`);
+        invalidateClientCache('/api/tournaments');
+      }
+
+      const [uData, sqData, tData, pData, tourData, sData] = await Promise.all([
+        fetchWithClientCache<{ user?: User }>(`/api/auth/me?id=${userId}`, { ttlMs: CLIENT_CACHE_TTL.USER, forceRefresh: force }),
+        fetchWithClientCache<{ squads?: Squad[] }>(`/api/squads?userId=${userId}`, { ttlMs: CLIENT_CACHE_TTL.SQUADS, forceRefresh: force }),
+        fetchWithClientCache<{ teams?: Team[] }>(`/api/teams?userId=${userId}`, { ttlMs: CLIENT_CACHE_TTL.SQUADS, forceRefresh: force }),
+        fetchWithClientCache<{ payments?: Payment[] }>(`/api/wallet/history?userId=${userId}`, { ttlMs: 30000, forceRefresh: force }),
+        fetchWithClientCache<{ tournaments?: Tournament[] }>('/api/tournaments', { ttlMs: CLIENT_CACHE_TTL.TOURNAMENTS, forceRefresh: force }),
+        fetchWithClientCache<{ settings?: Record<string, any> }>('/api/settings', { ttlMs: CLIENT_CACHE_TTL.SETTINGS }).catch(() => null)
       ]);
 
-      if (uRes.ok) {
-        const uData = await uRes.json();
-        if (uData.user) {
-          setUser(uData.user);
-          setFullName(uData.user.name || '');
-          setFfUid(uData.user.freeFireUid || '');
-          setIgn(uData.user.inGameName || '');
-          setInGameRole(uData.user.inGameRole || 'RUSHER');
-          setAvatar(uData.user.avatar || '');
-          db.setCurrentUser(uData.user);
-        }
+      if (uData?.user) {
+        setUser(uData.user);
+        setFullName(uData.user.name || '');
+        setFfUid(uData.user.freeFireUid || '');
+        setIgn(uData.user.inGameName || '');
+        setInGameRole(uData.user.inGameRole || 'RUSHER');
+        setAvatar(uData.user.avatar || '');
+        db.setCurrentUser(uData.user);
       }
 
-      if (sqRes.ok) {
-        const sqData = await sqRes.json();
-        if (sqData.squads) setSquads(sqData.squads);
+      if (sqData?.squads) {
+        setSquads(sqData.squads);
       }
 
-      if (tRes.ok) {
-        const tData = await tRes.json();
-        if (tData.teams) setTeams(tData.teams);
+      if (tData?.teams) {
+        setTeams(tData.teams);
       }
 
-      if (pRes.ok) {
-        const pData = await pRes.json();
-        if (pData.payments) setPayments(pData.payments);
+      if (pData?.payments) {
+        setPayments(pData.payments);
       }
 
-      if (tourRes.ok) {
-        const tourData = await tourRes.json();
-        if (tourData.tournaments) setTournaments(tourData.tournaments);
+      if (tourData?.tournaments) {
+        setTournaments(tourData.tournaments);
       }
 
-      if (sRes && sRes.ok) {
-        const sData = await sRes.json();
-        const s = sData.settings || {};
+      if (sData?.settings) {
+        const s = sData.settings;
         const cover = s.PROFILE_COVER_URL || s.profile_cover_url;
         if (cover) setGlobalCoverUrl(cover);
+        setSiteSettings(s);
       }
     } catch (err) {
       console.warn('Live profile fetch warning:', err);
@@ -292,11 +294,10 @@ function ProfilePageContent() {
   };
 
   useEffect(() => {
-    // Fetch global cover photo + referral milestone settings
-    fetch('/api/settings', { cache: 'no-store' })
-      .then(res => res.json())
+    // Fetch global cover photo + referral milestone settings (shares cached settings)
+    fetchWithClientCache<{ settings?: Record<string, any> }>('/api/settings', { ttlMs: CLIENT_CACHE_TTL.SETTINGS })
       .then(data => {
-        const s = data.settings || {};
+        const s = data?.settings || {};
         const cover = s.PROFILE_COVER_URL || s.profile_cover_url;
         if (cover) setGlobalCoverUrl(cover);
         setSiteSettings(s);
@@ -407,6 +408,7 @@ function ProfilePageContent() {
         };
         setUser(updated);
         db.setCurrentUser(updated);
+        invalidateClientCache('/api/auth/me');
         setSaveSuccessMsg('Profile updated successfully!');
         setTimeout(() => {
           setIsEditModalOpen(false);
@@ -499,6 +501,7 @@ function ProfilePageContent() {
       if (res.ok && data.user) {
         setUser(data.user);
         db.setCurrentUser(data.user);
+        invalidateClientCache('/api/auth/me');
         alert(data.message || '🎉 Milestone reward claimed successfully!');
         return;
       } else if (!res.ok) {

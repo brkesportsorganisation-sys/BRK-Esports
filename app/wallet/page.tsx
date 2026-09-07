@@ -28,6 +28,7 @@ import Footer from '@/components/ui/Footer';
 import MobileBottomNav from '@/components/ui/MobileBottomNav';
 import { db } from '@/lib/db';
 import { User, Payment, PaymentMethod } from '@/lib/types';
+import { fetchWithClientCache, CLIENT_CACHE_TTL, invalidateClientCache } from '@/lib/client-cache';
 
 export default function WalletPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -65,42 +66,46 @@ export default function WalletPage() {
   // Load Settings from /api/settings
   const loadSettings = async () => {
     try {
-      const res = await fetch('/api/settings', { cache: 'no-store' });
-      if (res.ok) {
-        const data = await res.json();
-        const s = data.settings || {};
-        if (s.bkash_no) setBkashNo(s.bkash_no);
-        if (s.nagad_no) setNagadNo(s.nagad_no);
-        if (s.rocket_no) setRocketNo(s.rocket_no);
-        if (s.min_deposit) setMinDeposit(Number(s.min_deposit) || 20);
-        if (s.min_withdraw) setMinWithdraw(Number(s.min_withdraw) || 100);
-      }
+      const data = await fetchWithClientCache<{ settings?: Record<string, any> }>('/api/settings', {
+        ttlMs: CLIENT_CACHE_TTL.SETTINGS,
+      });
+      const s = data?.settings || {};
+      if (s.bkash_no) setBkashNo(s.bkash_no);
+      if (s.nagad_no) setNagadNo(s.nagad_no);
+      if (s.rocket_no) setRocketNo(s.rocket_no);
+      if (s.min_deposit) setMinDeposit(Number(s.min_deposit) || 20);
+      if (s.min_withdraw) setMinWithdraw(Number(s.min_withdraw) || 100);
     } catch (err) {
       console.warn('Failed to load settings:', err);
     }
   };
 
-  const refreshUserData = async (currentUser: User) => {
+  const refreshUserData = async (currentUser: User, force = false) => {
     setIsRefreshing(true);
     try {
-      const [userRes, payRes] = await Promise.all([
-        fetch(`/api/auth/me?id=${currentUser.id}`, { cache: 'no-store' }),
-        fetch(`/api/wallet/history?userId=${currentUser.id}`, { cache: 'no-store' })
-      ]);
-
-      if (userRes.ok) {
-        const uData = await userRes.json();
-        if (uData.user) {
-          setUser(uData.user);
-          db.setCurrentUser(uData.user);
-        }
+      if (force) {
+        invalidateClientCache(`/api/auth/me?id=${currentUser.id}`);
+        invalidateClientCache(`/api/wallet/history?userId=${currentUser.id}`);
       }
 
-      if (payRes.ok) {
-        const pData = await payRes.json();
-        if (pData.payments) {
-          setPayments(pData.payments);
-        }
+      const [uData, pData] = await Promise.all([
+        fetchWithClientCache<{ user?: User }>(`/api/auth/me?id=${currentUser.id}`, {
+          ttlMs: CLIENT_CACHE_TTL.USER,
+          forceRefresh: force,
+        }),
+        fetchWithClientCache<{ payments?: Payment[] }>(`/api/wallet/history?userId=${currentUser.id}`, {
+          ttlMs: 30000,
+          forceRefresh: force,
+        }),
+      ]);
+
+      if (uData?.user) {
+        setUser(uData.user);
+        db.setCurrentUser(uData.user);
+      }
+
+      if (pData?.payments) {
+        setPayments(pData.payments);
       }
     } catch (err) {
       console.warn('Wallet refresh error:', err);
@@ -198,7 +203,7 @@ export default function WalletPage() {
       setIsDepositOpen(false);
       setTrxId('');
       setScreenshotPreview(null);
-      await refreshUserData(user);
+      await refreshUserData(user, true);
     } catch {
       alert('Failed to submit deposit. Please check your network and try again.');
     } finally {
@@ -255,7 +260,7 @@ export default function WalletPage() {
       alert(data.message || `৳${withdrawAmount} উইথড্র রিকোয়েস্ট সফলভাবে জমা হয়েছে! এডমিন যাচাই করে আপনার ${withdrawMethod} নাম্বারে (${trimmedAccount}) টাকা পাঠিয়ে রিকোয়েস্ট Approve করবেন।`);
       setIsWithdrawOpen(false);
       setAccountNumber('');
-      await refreshUserData(user);
+      await refreshUserData(user, true);
     } catch {
       alert('Failed to submit withdrawal request.');
     } finally {
@@ -312,7 +317,7 @@ export default function WalletPage() {
             </div>
 
             <button
-              onClick={() => user && refreshUserData(user)}
+              onClick={() => user && refreshUserData(user, true)}
               disabled={isRefreshing}
               title="Refresh balances"
               className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"

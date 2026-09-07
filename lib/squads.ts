@@ -9,6 +9,42 @@ let inMemorySquads: Squad[] = [];
 
 const SQUADS_CACHE_KEY = 'squads:EZBD_ESPORTS_SQUADS';
 
+const DEFAULT_SQUAD_LOGO = 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=200';
+const DEFAULT_SQUAD_BANNER = 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1200';
+
+/**
+ * Sanitizes squad logo, banner, and member avatars to eliminate raw Base64 data strings.
+ * This prevents massive payload egress (>150KB JSON blobs) over the network.
+ */
+export function sanitizeSquadMedia(squad: Squad): Squad {
+  const logo = (squad.logoUrl && !squad.logoUrl.startsWith('data:image') && squad.logoUrl.length <= 500)
+    ? squad.logoUrl
+    : DEFAULT_SQUAD_LOGO;
+
+  const banner = (squad.bannerUrl && !squad.bannerUrl.startsWith('data:image') && squad.bannerUrl.length <= 500)
+    ? squad.bannerUrl
+    : DEFAULT_SQUAD_BANNER;
+
+  const cleanMembers = Array.isArray(squad.members)
+    ? squad.members.map(m => {
+        const avatar = (m.userAvatar && !m.userAvatar.startsWith('data:image') && m.userAvatar.length <= 500)
+          ? m.userAvatar
+          : `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.userName || m.userId || 'player')}`;
+        return {
+          ...m,
+          userAvatar: avatar,
+        };
+      })
+    : [];
+
+  return {
+    ...squad,
+    logoUrl: logo,
+    bannerUrl: banner,
+    members: cleanMembers,
+  };
+}
+
 /**
  * Strict 1-Squad Policy: Sanitizes squad rosters to ensure every player ID exists in AT MOST 1 squad.
  */
@@ -27,7 +63,8 @@ export function sanitizeSquadsRoster(squads: Squad[]): Squad[] {
   }
 
   // Pass 2: Clean members list per squad (Strip duplicates & multiple memberships)
-  for (const s of squads) {
+  for (let i = 0; i < squads.length; i++) {
+    const s = squads[i];
     if (s.isDisbanded || !Array.isArray(s.members)) continue;
     const cleanMembers: SquadMember[] = [];
     const seenUserIds = new Set<string>();
@@ -52,6 +89,7 @@ export function sanitizeSquadsRoster(squads: Squad[]): Squad[] {
     }
 
     s.members = cleanMembers;
+    squads[i] = sanitizeSquadMedia(s);
   }
 
   return squads;
@@ -100,6 +138,7 @@ export async function saveSquads(squads: Squad[]): Promise<boolean> {
   inMemorySquads = sanitized;
   // Invalidate cache so next read fetches fresh from DB
   serverCache.invalidate(SQUADS_CACHE_KEY);
+  serverCache.invalidatePrefix('user_squads:');
   try {
     const { error } = await supabaseAdmin
       .from('SiteSetting')
@@ -275,6 +314,10 @@ export async function getSquadByInviteToken(token: string): Promise<Squad | null
  */
 export async function getUserSquads(userId: string): Promise<Squad[]> {
   if (!userId) return [];
+  const cacheKey = `user_squads:${userId}`;
+  const cached = serverCache.get<Squad[]>(cacheKey);
+  if (cached) return cached;
+
   const squads = await getSquads();
 
   const isUserMember = (m: any) => {
@@ -298,7 +341,9 @@ export async function getUserSquads(userId: string): Promise<Squad[]> {
   if (found.length > 0) {
     // Return the primary squad (prioritize leadership squad if any, else first)
     const leaderSquad = found.find(s => isUserLeader(s));
-    return [leaderSquad || found[0]];
+    const result = [leaderSquad || found[0]];
+    serverCache.set(cacheKey, result, 60);
+    return result;
   }
 
   // Fallback: Query Supabase `Team` and `TeamMember` tables directly if not cached
@@ -325,7 +370,9 @@ export async function getUserSquads(userId: string): Promise<Squad[]> {
           isUserMember(m) && (m.status === 'ACTIVE' || !m.status)
         );
         if (isLeader || isActiveMember) {
-          return [imported]; // Return at most 1
+          const result = [imported];
+          serverCache.set(cacheKey, result, 60);
+          return result;
         }
       }
     }
@@ -333,6 +380,7 @@ export async function getUserSquads(userId: string): Promise<Squad[]> {
     console.warn('[getUserSquads] Supabase direct query notice:', err);
   }
 
+  serverCache.set(cacheKey, [], 60);
   return [];
 }
 

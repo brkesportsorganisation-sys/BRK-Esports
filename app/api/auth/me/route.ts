@@ -96,7 +96,14 @@ export async function GET(request: NextRequest) {
     delete sanitizedUser.passwordResetOtp;
     delete sanitizedUser.passwordResetExpires;
 
-    return NextResponse.json({ user: sanitizedUser });
+    return NextResponse.json(
+      { user: sanitizedUser },
+      {
+        headers: {
+          'Cache-Control': 'private, max-age=15, stale-while-revalidate=30',
+        },
+      }
+    );
   } catch (error: any) {
     console.error('[GET /api/auth/me]', error);
     return NextResponse.json({ message: error?.message || 'Failed to fetch user.' }, { status: 500 });
