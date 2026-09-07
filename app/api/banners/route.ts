@@ -5,9 +5,12 @@ import { Banner, BannerPlacement } from '@/lib/types';
 import { initialBanners } from '@/lib/mock-data';
 import { supabaseAdmin } from '@/lib/supabase';
 import { saveBase64Image } from '@/lib/upload';
+import { serverCache, CACHE_TTL } from '@/lib/server-cache';
 
 function purgeBannerCaches() {
   try {
+    serverCache.invalidate('banners_public_response');
+    serverCache.invalidate('site_settings_map');
     revalidatePath('/');
     revalidatePath('/tournaments');
     revalidatePath('/shop');
@@ -41,6 +44,18 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const all = searchParams.get('all') === 'true';
+
+    // Check in-memory server cache for public requests to eliminate Supabase egress
+    if (!all) {
+      const cached = serverCache.get<any>('banners_public_response');
+      if (cached) {
+        return NextResponse.json(cached, {
+          headers: {
+            'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+          },
+        });
+      }
+    }
 
     let banners: Banner[] = [];
     let settings: { autoSlideInterval: number; isEnabled: boolean; overlayOpacity: number } = { 
@@ -147,21 +162,29 @@ export async function GET(request: NextRequest) {
     const shopBanner = shopBanners[0] || null;
     const arenaBanner = activeBanners.find((b) => b.placement === 'ARENA_BANNER') || null;
 
+    const responsePayload = {
+      success: true,
+      banners: activeBanners,
+      settings,
+      mainSliders,
+      sideTop,
+      sideBottom,
+      shopBanner,
+      shopBanners,
+      arenaBanner,
+    };
+
+    if (!all) {
+      serverCache.set('banners_public_response', responsePayload, CACHE_TTL.BANNERS);
+    }
+
     return NextResponse.json(
-      {
-        success: true,
-        banners: activeBanners,
-        settings,
-        mainSliders,
-        sideTop,
-        sideBottom,
-        shopBanner,
-        shopBanners,
-        arenaBanner,
-      },
+      responsePayload,
       {
         headers: {
-          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          'Cache-Control': all 
+            ? 'no-store, no-cache, must-revalidate' 
+            : 'public, s-maxage=300, stale-while-revalidate=600',
         },
       }
     );

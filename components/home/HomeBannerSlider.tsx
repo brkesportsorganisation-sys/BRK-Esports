@@ -57,12 +57,14 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
   const [isHovered, setIsHovered] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Always fetch fresh banners from API on client mount (with no-store) to guarantee uploaded banners show immediately
+  // Only fetch banners from API if server initialData was not provided (e.g. on /tournaments)
   useEffect(() => {
+    if (initialData?.banners && initialData.banners.length > 0) return;
+
     let isMounted = true;
     async function loadBanners() {
       try {
-        const res = await fetch('/api/banners', { cache: 'no-store' });
+        const res = await fetch('/api/banners');
         if (res.ok) {
           const data = await res.json();
           if (data.banners && data.banners.length > 0) {
