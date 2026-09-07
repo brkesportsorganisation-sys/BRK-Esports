@@ -63,8 +63,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const MAX_AUTO_CREDIT_BDT = 499;
-    const shouldAutoCredit = numAmount < 500;
+    const MAX_AUTO_CREDIT_BDT = 100;
+    const shouldAutoCredit = numAmount <= 100;
 
     // 1. Fetch current player from User table
     const { data: playerUser, error: userFetchErr } = await supabaseAdmin
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
     let newWalletBalance = currentWallet;
     let newWinningBalance = currentWinning;
 
-    // 2. AUTO-CREDIT IF AMOUNT IS UNDER ৳500 (< 500 BDT)
+    // 2. AUTO-CREDIT ONLY IF AMOUNT IS ৳100 OR LESS (<= 100 BDT)
     if (shouldAutoCredit) {
       newWalletBalance = currentWallet + numAmount;
       newWinningBalance = currentWinning + numAmount;
@@ -116,8 +116,8 @@ export async function POST(request: NextRequest) {
       status: 'PENDING', // Admin reviews in Admin Panel (can approve or reject & auto-deduct)
       walletType: 'WINNING',
       notes: shouldAutoCredit
-        ? `[Auto-Credited: ৳${numAmount}] Instant auto-credit (< ৳500). Pending Admin Review.`
-        : `[Manual Approval Required: >= ৳500 (৳${numAmount}) - NOT Auto-Credited] Pending Admin Approval before wallet credit.`,
+        ? `[Auto-Credited: ৳${numAmount}] Instant auto-credit (<= ৳100). Pending Admin Review.`
+        : `[Manual Approval Required: > ৳100 (৳${numAmount}) - NOT Auto-Credited] Pending Admin Approval before wallet credit.`,
       communityAccessUnlocked: false,
       communityAccessRevoked: false,
       createdAt: new Date().toISOString(),
@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
           id: notifId,
           userId: userId,
           title: `ডিপোজিট রিকোয়েস্ট পেন্ডিং (৳${numAmount}) ⏳`,
-          message: `আপনার ${method} ডিপোজিট রিকোয়েস্টটি (TrxID: ${trimmedTrx}) ৳৫০০ বা তার বেশি হওয়ায় এডমিন প্যানেলে অনুমোদনের জন্য পাঠানো হয়েছে। এডমিন ভেরিফাই করে অ্যাপ্রুভ করার সাথে সাথে আপনার ওয়ালেটে ৳${numAmount} যোগ হয়ে যাবে।`,
+          message: `আপনার ${method} ডিপোজিট রিকোয়েস্টটি (TrxID: ${trimmedTrx}) ১০০ টাকার বেশি হওয়ায় এডমিন প্যানেলে অনুমোদনের জন্য পাঠানো হয়েছে। এডমিন ভেরিফাই করে অ্যাপ্রুভ করার সাথে সাথে আপনার ওয়ালেটে ৳${numAmount} যোগ হয়ে যাবে।`,
           isRead: false,
           createdAt: new Date().toISOString(),
         }]);
@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
       newWalletBalance: shouldAutoCredit ? newWalletBalance : currentWallet,
       message: shouldAutoCredit
         ? `৳${numAmount} ইনস্ট্যান্ট আপনার ওয়ালেটে যোগ হয়ে গেছে! আপনি এখনই টুর্নামেন্টে জয়েন করতে পারবেন। এডমিন প্যানেল থেকে ট্রানজেকশনটি রিভিউ করা হচ্ছে।`
-        : `আপনার ৳${numAmount} ডিপোজিট রিকোয়েস্টটি সফলভাবে জমা হয়েছে। ৫০০ টাকার বেশি হওয়ায় এটি এডমিন প্যানেলে অনুমোদনের জন্য পাঠানো হয়েছে। এডমিন অ্যাপ্রুভ করার সাথে সাথে ওয়ালেটে টাকা যোগ হবে।`,
+        : `আপনার ৳${numAmount} ডিপোজিট রিকোয়েস্টটি সফলভাবে জমা হয়েছে। ১০০ টাকার বেশি হওয়ায় এটি এডমিন প্যানেলে অনুমোদনের জন্য পাঠানো হয়েছে। এডমিন ভেরিফাই করে অ্যাপ্রুভ করার সাথে সাথে ওয়ালেটে টাকা যোগ হবে।`,
     }, { status: 201 });
   } catch (error: any) {
     console.error('[POST /api/wallet/deposit]', error);

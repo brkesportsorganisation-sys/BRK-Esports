@@ -357,15 +357,15 @@ export default function AdminPaymentsPage() {
 
                     <td className="py-4 px-5">
                       {p.status === 'PENDING' && (
-                        Number(p.amount) >= 500 || p.notes?.includes('NOT Auto-Credited') || p.notes?.includes('Manual Approval') ? (
+                        Number(p.amount) > 100 || p.notes?.includes('NOT Auto-Credited') || p.notes?.includes('Manual Approval') ? (
                           <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-purple-50 text-purple-700 border border-purple-300 inline-flex items-center gap-1.5 shadow-2xs">
                             <span className="w-1.5 h-1.5 rounded-full bg-purple-600 animate-ping" />
-                            <span>Pending Approval (&gt;= ৳500 • Not Credited)</span>
+                            <span>Pending Approval (&gt; ৳100 • Not Credited)</span>
                           </span>
                         ) : (
                           <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-amber-50 text-amber-700 border border-amber-300 inline-flex items-center gap-1.5 shadow-2xs">
                             <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
-                            <span>Auto-Credited (&lt; ৳500 • Pending Review)</span>
+                            <span>Auto-Credited (&le; ৳100 • Pending Review)</span>
                           </span>
                         )
                       )}
@@ -394,19 +394,19 @@ export default function AdminPaymentsPage() {
                             onClick={() => handleVerify(p.id, 'APPROVE')}
                             disabled={processingId === p.id}
                             className="px-3 py-1.5 rounded-[10px] bg-[#059669] hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all flex items-center space-x-1 disabled:opacity-50 cursor-pointer"
-                            title={Number(p.amount) >= 500 || p.notes?.includes('NOT Auto-Credited') || p.notes?.includes('Manual Approval') ? "Approve deposit and credit balance to player's wallet" : "Confirm payment and keep balance"}
+                            title={Number(p.amount) > 100 || p.notes?.includes('NOT Auto-Credited') || p.notes?.includes('Manual Approval') ? "Approve deposit and credit balance to player's wallet" : "Confirm payment and keep balance"}
                           >
                             <Check className="w-3.5 h-3.5" />
-                            <span>{Number(p.amount) >= 500 || p.notes?.includes('NOT Auto-Credited') || p.notes?.includes('Manual Approval') ? `Approve & Add ৳${p.amount}` : 'Confirm & Keep'}</span>
+                            <span>{Number(p.amount) > 100 || p.notes?.includes('NOT Auto-Credited') || p.notes?.includes('Manual Approval') ? `Approve & Add ৳${p.amount}` : 'Confirm & Keep'}</span>
                           </button>
                           <button
                             onClick={() => setRejectModalPayment(p)}
                             disabled={processingId === p.id}
                             className="px-3 py-1.5 rounded-[10px] bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-bold text-xs transition-all flex items-center space-x-1 disabled:opacity-50 cursor-pointer"
-                            title={Number(p.amount) >= 500 || p.notes?.includes('NOT Auto-Credited') || p.notes?.includes('Manual Approval') ? "Reject request without balance deduction" : "Reject fake deposit and deduct balance"}
+                            title={Number(p.amount) > 100 || p.notes?.includes('NOT Auto-Credited') || p.notes?.includes('Manual Approval') ? "Reject request without balance deduction" : "Reject fake deposit and deduct balance"}
                           >
                             <X className="w-3.5 h-3.5" />
-                            <span>{Number(p.amount) > 500 || p.notes?.includes('NOT Auto-Credited') ? 'Reject' : 'Reject & Minus'}</span>
+                            <span>{Number(p.amount) > 100 || p.notes?.includes('NOT Auto-Credited') ? 'Reject' : 'Reject & Minus'}</span>
                           </button>
                         </div>
                       ) : p.status === 'VERIFIED' ? (
@@ -466,7 +466,7 @@ export default function AdminPaymentsPage() {
               <h3 className="font-bold text-base text-red-600 flex items-center gap-1.5">
                 <AlertCircle className="w-5 h-5 text-red-600" />
                 <span>
-                  {Number(rejectModalPayment.amount) > 500 && rejectModalPayment.status === 'PENDING'
+                  {(Number(rejectModalPayment.amount) > 100 || rejectModalPayment.notes?.includes('NOT Auto-Credited')) && rejectModalPayment.status === 'PENDING'
                     ? 'Reject Deposit Request'
                     : 'Reject & Deduct Balance'}
                 </span>
@@ -483,15 +483,15 @@ export default function AdminPaymentsPage() {
               <div className="font-bold text-red-950 flex items-center justify-between">
                 <span>{rejectModalPayment.userName}</span>
                 <span className="text-red-700 font-extrabold font-mono text-sm">
-                  {Number(rejectModalPayment.amount) > 500 && rejectModalPayment.status === 'PENDING'
+                  {(Number(rejectModalPayment.amount) > 100 || rejectModalPayment.notes?.includes('NOT Auto-Credited')) && rejectModalPayment.status === 'PENDING'
                     ? `Amount: ৳${rejectModalPayment.amount}`
                     : `Deduct: -৳${rejectModalPayment.amount}`}
                 </span>
               </div>
               <div className="font-mono text-red-800/80 text-[11px]">TrxID: {rejectModalPayment.trxId} • {rejectModalPayment.method}</div>
               <div className="text-[10px] text-red-600 mt-1 font-medium">
-                {Number(rejectModalPayment.amount) > 500 && rejectModalPayment.status === 'PENDING'
-                  ? '⚠️ এই ডিপোজিটটি ৫০০ টাকার বেশি হওয়ায় ইউজারের ওয়ালেটে পূর্বে যুক্ত করা হয়নি। তাই কোনো ব্যালেন্স কর্তন হবে না, শুধুমাত্র রিকোয়েস্টটি বাতিল করা হবে।'
+                {(Number(rejectModalPayment.amount) > 100 || rejectModalPayment.notes?.includes('NOT Auto-Credited')) && rejectModalPayment.status === 'PENDING'
+                  ? '⚠️ এই ডিপোজিটটি ১০০ টাকার বেশি হওয়ায় ইউজারের ওয়ালেটে পূর্বে যুক্ত করা হয়নি। তাই কোনো ব্যালেন্স কর্তন হবে না, শুধুমাত্র রিকোয়েস্টটি বাতিল করা হবে।'
                   : `⚠️ এই ট্রানজেকশনটি বাতিল করা হলে ইউজারের ওয়ালেট থেকে স্বয়ংক্রিয়ভাবে ৳${rejectModalPayment.amount} মাইনাস (Deduct) হয়ে যাবে এবং ইউজারকে নোটিফিকেশন পাঠানো হবে।`}
               </div>
             </div>
@@ -544,7 +544,7 @@ export default function AdminPaymentsPage() {
               >
                 <X className="w-3.5 h-3.5" />
                 <span>
-                  {Number(rejectModalPayment.amount) > 500 && rejectModalPayment.status === 'PENDING'
+                  {(Number(rejectModalPayment.amount) > 100 || rejectModalPayment.notes?.includes('NOT Auto-Credited')) && rejectModalPayment.status === 'PENDING'
                     ? 'Confirm Reject'
                     : 'Confirm & Deduct'}
                 </span>

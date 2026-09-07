@@ -199,7 +199,9 @@ export default function WalletPage() {
         return;
       }
 
-      alert(data.message || `৳${depositAmount} ইনস্ট্যান্ট আপনার ওয়ালেটে যোগ হয়ে গেছে! আপনি এখনই টুর্নামেন্টে জয়েন করতে পারবেন।`);
+      alert(data.message || (depositAmount <= 100 
+        ? `৳${depositAmount} ইনস্ট্যান্ট আপনার ওয়ালেটে যোগ হয়ে গেছে! আপনি এখনই টুর্নামেন্টে জয়েন করতে পারবেন।`
+        : `আপনার ৳${depositAmount} ডিপোজিট রিকোয়েস্টটি সফলভাবে জমা হয়েছে। ১০০ টাকার বেশি হওয়ায় এটি এডমিন প্যানেলে অনুমোদনের জন্য পাঠানো হয়েছে। এডমিন ভেরিফাই করে অ্যাপ্রুভ করার সাথে সাথে ওয়ালেটে টাকা যোগ হবে।`));
       setIsDepositOpen(false);
       setTrxId('');
       setScreenshotPreview(null);
@@ -660,6 +662,18 @@ export default function WalletPage() {
                       </button>
                     ))}
                 </div>
+
+                {depositAmount > 100 ? (
+                  <div className="text-[11px] text-purple-700 bg-purple-50 p-2.5 rounded-xl border border-purple-200 mt-2.5 flex items-start gap-2 font-medium leading-snug">
+                    <Clock className="w-3.5 h-3.5 text-purple-600 shrink-0 mt-0.5" />
+                    <span>১০০ টাকার বেশি ডিপোজিট এডমিন প্যানেলে রিকোয়েস্ট হিসেবে যাবে। এডমিন ভেরিফাই করে অ্যাপ্রুভ করলে ব্যালেন্স যোগ হবে।</span>
+                  </div>
+                ) : (
+                  <div className="text-[11px] text-emerald-700 bg-emerald-50 p-2 rounded-xl border border-emerald-200 mt-2.5 flex items-center gap-1.5 font-medium">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>১০০ টাকা বা তার কম ডিপোজিট সাথে সাথে ইনস্ট্যান্ট ওয়ালেটে যোগ হবে ⚡</span>
+                  </div>
+                )}
               </div>
 
               {/* TrxID */}

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import MobileBottomNav from '@/components/ui/MobileBottomNav';
@@ -33,7 +33,9 @@ import {
   Shield,
   Layers,
   Camera,
-  X
+  X,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import Link from 'next/link';
 import SquadLogoUploader from '@/components/ui/SquadLogoUploader';
@@ -48,6 +50,13 @@ export default function SquadTeamsHubPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [gameFilter, setGameFilter] = useState<string>('ALL');
+  const [currentPage, setCurrentPage] = useState(1);
+  const SQUADS_PER_PAGE = 20;
+
+  // Reset to page 1 whenever search query or game filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, gameFilter]);
 
   // Create Modal State
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -215,14 +224,68 @@ export default function SquadTeamsHubPage() {
     }
   };
 
-  const filteredExploreSquads = allSquads.filter((s) => {
-    const matchesGame = gameFilter === 'ALL' || s.game === gameFilter;
-    const matchesSearch = searchQuery.trim() === '' || 
-      s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      s.tag.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (s.description && s.description.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesGame && matchesSearch;
-  });
+  const filteredExploreSquads = useMemo(() => {
+    return allSquads.filter((s) => {
+      const matchesGame = gameFilter === 'ALL' || s.game === gameFilter;
+      const matchesSearch = searchQuery.trim() === '' || 
+        s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        s.tag.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (s.description && s.description.toLowerCase().includes(searchQuery.toLowerCase()));
+      return matchesGame && matchesSearch;
+    });
+  }, [allSquads, gameFilter, searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredExploreSquads.length / SQUADS_PER_PAGE));
+  const validCurrentPage = Math.min(currentPage, totalPages);
+
+  const paginatedSquads = useMemo(() => {
+    const startIndex = (validCurrentPage - 1) * SQUADS_PER_PAGE;
+    return filteredExploreSquads.slice(startIndex, startIndex + SQUADS_PER_PAGE);
+  }, [filteredExploreSquads, validCurrentPage]);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > totalPages || newPage === validCurrentPage) return;
+    setCurrentPage(newPage);
+    if (typeof window !== 'undefined') {
+      const container = document.getElementById('explore-squads-container');
+      if (container) {
+        container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  };
+
+  const getPaginationRange = () => {
+    const delta = 1;
+    const range: (number | string)[] = [];
+    
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) {
+        range.push(i);
+      }
+      return range;
+    }
+
+    const left = Math.max(2, validCurrentPage - delta);
+    const right = Math.min(totalPages - 1, validCurrentPage + delta);
+
+    range.push(1);
+
+    if (left > 2) {
+      range.push('...');
+    }
+
+    for (let i = left; i <= right; i++) {
+      range.push(i);
+    }
+
+    if (right < totalPages - 1) {
+      range.push('...');
+    }
+
+    range.push(totalPages);
+
+    return range;
+  };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 flex flex-col font-sans pb-20 lg:pb-12">
@@ -523,135 +586,221 @@ export default function SquadTeamsHubPage() {
 
         {/* ════════════ TAB 2: EXPLORE ALL SQUADS ════════════ */}
         {activeTab === 'EXPLORE' && (
-          <div className="space-y-6">
+          <div id="explore-squads-container" className="space-y-6 scroll-mt-24">
+            {/* Meta Header / Counter */}
+            {filteredExploreSquads.length > 0 && (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1 text-xs text-slate-500 font-medium">
+                <div>
+                  Showing <strong className="text-slate-900 font-bold">{(validCurrentPage - 1) * SQUADS_PER_PAGE + 1}</strong> to <strong className="text-slate-900 font-bold">{Math.min(validCurrentPage * SQUADS_PER_PAGE, filteredExploreSquads.length)}</strong> of <strong className="text-slate-900 font-bold">{filteredExploreSquads.length}</strong> squads
+                  {searchQuery.trim() && <span> for &ldquo;{searchQuery}&rdquo;</span>}
+                </div>
+                {totalPages > 1 && (
+                  <div className="text-slate-500 text-xs font-medium">
+                    Page <span className="font-bold text-slate-900">{validCurrentPage}</span> of <span className="font-bold text-slate-900">{totalPages}</span> (20 per page)
+                  </div>
+                )}
+              </div>
+            )}
+
             {filteredExploreSquads.length === 0 ? (
               <div className="p-16 text-center text-slate-500 text-xs bg-white rounded-3xl border border-slate-200 shadow-sm">
                 No squads found matching your search.
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredExploreSquads.map((squad) => {
-                  const activeMembers = (squad.members || []).filter(m => m.status === 'ACTIVE' || !m.status);
-                  const isMySquad = mySquads.some(ms => ms.id === squad.id) || resolveIsMySquad(squad, currentUser);
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {paginatedSquads.map((squad) => {
+                    const activeMembers = (squad.members || []).filter(m => m.status === 'ACTIVE' || !m.status);
+                    const isMySquad = mySquads.some(ms => ms.id === squad.id) || resolveIsMySquad(squad, currentUser);
 
-                  return (
-                    <div
-                      key={squad.id}
-                      className="bg-white border border-slate-200 hover:border-orange-500/50 rounded-3xl p-5 space-y-4 flex flex-col justify-between transition-all shadow-sm hover:shadow-lg group"
-                    >
-                      {/* Top Clickable Squad Profile Area */}
-                      <Link 
-                        href={`/squads/${squad.id}`}
-                        className="space-y-3 cursor-pointer block group-hover:opacity-95"
-                        title="Touch to view full squad details and roster"
+                    return (
+                      <div
+                        key={squad.id}
+                        className="bg-white border border-slate-200 hover:border-orange-500/50 rounded-3xl p-5 space-y-4 flex flex-col justify-between transition-all shadow-sm hover:shadow-lg group"
                       >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <img 
-                              src={squad.logoUrl} 
-                              alt={squad.name} 
-                              className="w-12 h-12 rounded-2xl object-cover border border-slate-200 bg-slate-50 shrink-0 group-hover:scale-105 transition-transform" 
-                            />
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-1.5">
-                                <span className="px-2 py-0.5 rounded-md bg-orange-100 text-orange-700 font-mono text-[10px] font-black shrink-0">
-                                  [{squad.tag}]
+                        {/* Top Clickable Squad Profile Area */}
+                        <Link 
+                          href={`/squads/${squad.id}`}
+                          className="space-y-3 cursor-pointer block group-hover:opacity-95"
+                          title="Touch to view full squad details and roster"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <img 
+                                src={squad.logoUrl} 
+                                alt={squad.name} 
+                                className="w-12 h-12 rounded-2xl object-cover border border-slate-200 bg-slate-50 shrink-0 group-hover:scale-105 transition-transform" 
+                              />
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="px-2 py-0.5 rounded-md bg-orange-100 text-orange-700 font-mono text-[10px] font-black shrink-0">
+                                    [{squad.tag}]
+                                  </span>
+                                  <h4 className="font-black text-slate-900 text-sm truncate group-hover:text-brand-orange transition-colors">
+                                    {squad.name}
+                                  </h4>
+                                </div>
+                                <span className="text-[11px] text-slate-500 font-medium truncate block mt-0.5">
+                                  Leader: <strong className="text-slate-800">{squad.leaderName}</strong>
                                 </span>
-                                <h4 className="font-black text-slate-900 text-sm truncate group-hover:text-brand-orange transition-colors">
-                                  {squad.name}
-                                </h4>
                               </div>
-                              <span className="text-[11px] text-slate-500 font-medium truncate block mt-0.5">
-                                Leader: <strong className="text-slate-800">{squad.leaderName}</strong>
-                              </span>
+                            </div>
+
+                            <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black uppercase border border-slate-200 shrink-0">
+                              🎮 {squad.game}
+                            </span>
+                          </div>
+
+                          {squad.description && (
+                            <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                              {squad.description}
+                            </p>
+                          )}
+
+                          {/* Roster Quick Preview Avatars */}
+                          <div className="flex items-center justify-between bg-slate-50 p-2.5 rounded-2xl border border-slate-100">
+                            <div className="flex items-center -space-x-2 overflow-hidden">
+                              {activeMembers.slice(0, 4).map((m, idx) => (
+                                <img
+                                  key={m.id || idx}
+                                  src={m.userAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${m.userName}`}
+                                  alt={m.userName}
+                                  title={`${m.userName} (${m.inGameRole || 'PLAYER'})`}
+                                  className="inline-block h-6 w-6 rounded-full ring-2 ring-white object-cover bg-white"
+                                />
+                              ))}
+                              {activeMembers.length > 4 && (
+                                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-orange-100 text-[9px] font-black text-orange-700 ring-2 ring-white">
+                                  +{activeMembers.length - 4}
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="text-[11px] font-bold text-orange-600 flex items-center gap-1 font-mono">
+                              <span>{activeMembers.length}/6 Active</span>
+                              <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
                             </div>
                           </div>
+                        </Link>
 
-                          <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black uppercase border border-slate-200 shrink-0">
-                            🎮 {squad.game}
-                          </span>
-                        </div>
-
-                        {squad.description && (
-                          <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
-                            {squad.description}
-                          </p>
-                        )}
-
-                        {/* Roster Quick Preview Avatars */}
-                        <div className="flex items-center justify-between bg-slate-50 p-2.5 rounded-2xl border border-slate-100">
-                          <div className="flex items-center -space-x-2 overflow-hidden">
-                            {activeMembers.slice(0, 4).map((m, idx) => (
-                              <img
-                                key={m.id || idx}
-                                src={m.userAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${m.userName}`}
-                                alt={m.userName}
-                                title={`${m.userName} (${m.inGameRole || 'PLAYER'})`}
-                                className="inline-block h-6 w-6 rounded-full ring-2 ring-white object-cover bg-white"
-                              />
-                            ))}
-                            {activeMembers.length > 4 && (
-                              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-orange-100 text-[9px] font-black text-orange-700 ring-2 ring-white">
-                                +{activeMembers.length - 4}
-                              </span>
-                            )}
+                        {/* Stats & Actions */}
+                        <div className="pt-3 border-t border-slate-100 space-y-3">
+                          <div className="flex items-center justify-between text-xs text-slate-600 font-mono">
+                            <span>Matches: <strong className="text-slate-900 font-bold">{squad.matchesPlayed}</strong></span>
+                            <span>Wins: <strong className="text-emerald-600 font-bold">{squad.matchesWon}</strong></span>
+                            <span>Kills: <strong className="text-cyan-600 font-bold">{squad.totalKills}</strong></span>
                           </div>
 
-                          <div className="text-[11px] font-bold text-orange-600 flex items-center gap-1 font-mono">
-                            <span>{activeMembers.length}/6 Active</span>
-                            <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
-                          </div>
-                        </div>
-                      </Link>
-
-                      {/* Stats & Actions */}
-                      <div className="pt-3 border-t border-slate-100 space-y-3">
-                        <div className="flex items-center justify-between text-xs text-slate-600 font-mono">
-                          <span>Matches: <strong className="text-slate-900 font-bold">{squad.matchesPlayed}</strong></span>
-                          <span>Wins: <strong className="text-emerald-600 font-bold">{squad.matchesWon}</strong></span>
-                          <span>Kills: <strong className="text-cyan-600 font-bold">{squad.totalKills}</strong></span>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2">
-                          <Link
-                            href={`/squads/${squad.id}`}
-                            className="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold flex items-center justify-center gap-1.5 border border-slate-200 transition-colors text-center"
-                          >
-                            <Shield className="w-3.5 h-3.5 text-brand-orange" />
-                            <span>View Full Info</span>
-                          </Link>
-
-                          {isMySquad ? (
+                          <div className="grid grid-cols-2 gap-2">
                             <Link
                               href={`/squads/${squad.id}`}
-                              className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange text-white text-xs font-heading font-black uppercase flex items-center justify-center gap-1 shadow-md shadow-orange-500/15"
+                              className="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold flex items-center justify-center gap-1.5 border border-slate-200 transition-colors text-center"
                             >
-                              <span>Manage</span>
-                              <ArrowRight className="w-3 h-3" />
+                              <Shield className="w-3.5 h-3.5 text-brand-orange" />
+                              <span>View Full Info</span>
                             </Link>
-                          ) : mySquads.length >= 1 ? (
-                            <button
-                              disabled
-                              title="You already belong to an active squad (1-squad limit)."
-                              className="py-2.5 px-2 rounded-xl bg-slate-100 text-slate-400 text-[11px] font-bold flex items-center justify-center gap-1 border border-slate-200 cursor-not-allowed opacity-75"
-                            >
-                              <span>1/1 Limit</span>
-                            </button>
-                          ) : (
-                            <Link
-                              href={`/squad/join/${squad.inviteToken}`}
-                              className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange hover:brightness-110 text-white text-xs font-heading font-black uppercase flex items-center justify-center gap-1 shadow-md shadow-orange-500/15"
-                            >
-                              <UserPlus className="w-3.5 h-3.5" />
-                              <span>Request Join</span>
-                            </Link>
-                          )}
+
+                            {isMySquad ? (
+                              <Link
+                                href={`/squads/${squad.id}`}
+                                className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange text-white text-xs font-heading font-black uppercase flex items-center justify-center gap-1 shadow-md shadow-orange-500/15"
+                              >
+                                <span>Manage</span>
+                                <ArrowRight className="w-3 h-3" />
+                              </Link>
+                            ) : mySquads.length >= 1 ? (
+                              <button
+                                disabled
+                                title="You already belong to an active squad (1-squad limit)."
+                                className="py-2.5 px-2 rounded-xl bg-slate-100 text-slate-400 text-[11px] font-bold flex items-center justify-center gap-1 border border-slate-200 cursor-not-allowed opacity-75"
+                              >
+                                <span>1/1 Limit</span>
+                              </button>
+                            ) : (
+                              <Link
+                                href={`/squad/join/${squad.inviteToken}`}
+                                className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-brand-red to-brand-orange hover:brightness-110 text-white text-xs font-heading font-black uppercase flex items-center justify-center gap-1 shadow-md shadow-orange-500/15"
+                              >
+                                <UserPlus className="w-3.5 h-3.5" />
+                                <span>Request Join</span>
+                              </Link>
+                            )}
+                          </div>
                         </div>
                       </div>
+                    );
+                  })}
+                </div>
+
+                {/* ── Bottom Pagination Controls ── */}
+                {totalPages > 1 && (
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 pb-2 border-t border-slate-200">
+                    <div className="text-xs text-slate-500 font-medium order-2 sm:order-1">
+                      Showing <span className="font-bold text-slate-900">{(validCurrentPage - 1) * SQUADS_PER_PAGE + 1}</span> to <span className="font-bold text-slate-900">{Math.min(validCurrentPage * SQUADS_PER_PAGE, filteredExploreSquads.length)}</span> of <span className="font-bold text-slate-900">{filteredExploreSquads.length}</span> squads
                     </div>
-                  );
-                })}
-              </div>
+
+                    <div className="flex items-center gap-1.5 order-1 sm:order-2 flex-wrap justify-center">
+                      {/* Previous Button */}
+                      <button
+                        onClick={() => handlePageChange(validCurrentPage - 1)}
+                        disabled={validCurrentPage === 1}
+                        className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1 border transition-all ${
+                          validCurrentPage === 1
+                            ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-2xs active:scale-95 cursor-pointer'
+                        }`}
+                        title="Previous page"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                        <span>Prev</span>
+                      </button>
+
+                      {/* Page Number Buttons */}
+                      {getPaginationRange().map((pageItem, idx) => {
+                        if (pageItem === '...') {
+                          return (
+                            <span key={`ellipsis-${idx}`} className="px-2 py-1 text-slate-400 font-black text-xs select-none">
+                              •••
+                            </span>
+                          );
+                        }
+
+                        const pageNum = pageItem as number;
+                        const isActive = pageNum === validCurrentPage;
+
+                        return (
+                          <button
+                            key={`page-${pageNum}`}
+                            onClick={() => handlePageChange(pageNum)}
+                            className={`min-w-[38px] h-[38px] px-2 rounded-xl text-xs font-heading font-black transition-all cursor-pointer ${
+                              isActive
+                                ? 'bg-gradient-to-r from-brand-red to-brand-orange text-white shadow-md shadow-orange-500/25 scale-105'
+                                : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-2xs active:scale-95'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+
+                      {/* Next Button */}
+                      <button
+                        onClick={() => handlePageChange(validCurrentPage + 1)}
+                        disabled={validCurrentPage === totalPages}
+                        className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1 border transition-all ${
+                          validCurrentPage === totalPages
+                            ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-2xs active:scale-95 cursor-pointer'
+                        }`}
+                        title="Next page"
+                      >
+                        <span>Next</span>
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
