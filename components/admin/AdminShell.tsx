@@ -210,6 +210,7 @@ export default function AdminShell({ children }: AdminShellProps) {
   // Top Standalone Quick Access Links
   const topStandaloneLinks: NavLinkItem[] = [
     { href: '/admin', label: 'Dashboard Overview', icon: LayoutGrid, colorClass: 'text-blue-600', permission: 'view_dashboard' },
+    { href: '/admin/analytics', label: 'Growth & Analytics', icon: BarChart3, colorClass: 'text-emerald-500', permission: 'view_dashboard' },
   ];
 
   // 6 Clean, Organized Categories for Administrative Control
@@ -260,6 +261,7 @@ export default function AdminShell({ children }: AdminShellProps) {
     {
       title: '👥 PLAYERS & COMMUNITY',
       links: [
+        { href: '/admin/analytics', label: 'User Growth & Analytics (📈)', icon: BarChart3, colorClass: 'text-emerald-500', permission: 'manage_users' },
         { href: '/admin/users', label: 'Player Accounts Directory', icon: Users, colorClass: 'text-purple-600', permission: 'manage_users' },
         { href: '/admin/squads', label: 'Squad & Clan Management (🛡️)', icon: Swords, colorClass: 'text-orange-500', permission: 'manage_tournaments' },
         { href: '/admin/lfg', label: 'LFG Recruitment Board', icon: Crosshair, colorClass: 'text-blue-500', permission: 'moderate_lfg' },
