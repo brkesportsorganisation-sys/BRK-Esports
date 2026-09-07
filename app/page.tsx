@@ -76,7 +76,7 @@ async function fetchBanners(): Promise<{ banners: Banner[]; shopBanner: Banner |
     const [bannersRes, settingsRes] = await Promise.all([
       supabaseAdmin
         .from('Banner')
-        .select('id, title, subtitle, imageUrl, mobileImageUrl, link, linkUrl, badge, badgeText, buttonText, placement, targetDevice, order, displayOrder, isActive')
+        .select('id, title, subtitle, badge, imageUrl, linkUrl, buttonText, placement, order, isActive, createdAt, updatedAt')
         .order('order', { ascending: true }),
       supabaseAdmin
         .from('SiteSetting')
@@ -85,7 +85,14 @@ async function fetchBanners(): Promise<{ banners: Banner[]; shopBanner: Banner |
     ]);
 
     const dbBanners = bannersRes.data;
-    const bannersList: Banner[] = dbBanners && dbBanners.length > 0 ? (dbBanners as Banner[]) : initialBanners;
+    const bannersList: Banner[] = dbBanners && dbBanners.length > 0 
+      ? (dbBanners.map((b: any) => ({
+          ...b,
+          badgeText: b.badge || '',
+          link: b.linkUrl || '/tournaments',
+          displayOrder: b.order ?? 1,
+        })) as Banner[]) 
+      : initialBanners;
     const activeBanners = bannersList.filter((b) => b.isActive !== false);
     const shopBanner = activeBanners.find((b) => b.placement === 'SHOP_BANNER') || null;
 

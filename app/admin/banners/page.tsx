@@ -295,8 +295,8 @@ export default function AdminBannersPage() {
 
   const handleModalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!modalForm.title.trim() || !modalForm.imageUrl.trim()) {
-      alert('Title and Image URL are required.');
+    if (!modalForm.imageUrl.trim()) {
+      alert('Banner Image is required.');
       return;
     }
 

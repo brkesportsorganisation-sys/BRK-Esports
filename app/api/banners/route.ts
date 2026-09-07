@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
 import { Banner, BannerPlacement } from '@/lib/types';
 import { initialBanners } from '@/lib/mock-data';
 import { supabaseAdmin } from '@/lib/supabase';
 import { saveBase64Image } from '@/lib/upload';
+
+function purgeBannerCaches() {
+  try {
+    revalidatePath('/');
+    revalidatePath('/tournaments');
+    revalidatePath('/shop');
+    revalidatePath('/admin/banners');
+    revalidatePath('/admin/shop/banners');
+  } catch {}
+}
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -42,15 +53,15 @@ export async function GET(request: NextRequest) {
     try {
       const { data: dbBanners, error } = await supabaseAdmin
         .from('Banner')
-        .select('id, title, subtitle, imageUrl, mobileImageUrl, link, linkUrl, badge, badgeText, buttonText, placement, targetDevice, order, displayOrder, isActive, createdAt')
+        .select('id, title, subtitle, badge, imageUrl, linkUrl, buttonText, placement, order, isActive, createdAt, updatedAt')
         .order('order', { ascending: true });
 
       if (!error && dbBanners && dbBanners.length > 0) {
         banners = dbBanners.map((b: any) => ({
           ...b,
-          badgeText: b.badgeText || b.badge || '',
-          link: b.link || b.linkUrl || '',
-          displayOrder: b.displayOrder ?? b.order ?? 1,
+          badgeText: b.badge || '',
+          link: b.linkUrl || '/tournaments',
+          displayOrder: b.order ?? 1,
         })) as Banner[];
       } else if (error) {
         console.warn('[GET /api/banners] Supabase Banner query error:', error.message);
@@ -150,9 +161,7 @@ export async function GET(request: NextRequest) {
       },
       {
         headers: {
-          'Cache-Control': all 
-            ? 'no-store, no-cache, must-revalidate' 
-            : 'public, s-maxage=300, stale-while-revalidate=600',
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
         },
       }
     );
@@ -196,6 +205,7 @@ export async function POST(request: NextRequest) {
           ], { onConflict: 'key' });
       } catch {}
 
+      purgeBannerCaches();
       return NextResponse.json({ success: true, settings: updated });
     }
 
@@ -323,6 +333,7 @@ export async function POST(request: NextRequest) {
       } catch {}
     }
 
+    purgeBannerCaches();
     return NextResponse.json({
       success: true,
       message: 'Banner saved successfully!',
@@ -434,6 +445,7 @@ export async function PUT(request: NextRequest) {
       console.warn('[PUT /api/banners] SiteSetting shop banner sync error:', siteErr);
     }
 
+    purgeBannerCaches();
     return NextResponse.json({ success: true, banner: fullBanner });
   } catch (error: any) {
     console.error('[PUT /api/banners]', error);
@@ -484,6 +496,7 @@ export async function DELETE(request: NextRequest) {
       }
     } catch {}
 
+    purgeBannerCaches();
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('[DELETE /api/banners]', error);

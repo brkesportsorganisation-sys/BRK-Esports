@@ -15,6 +15,11 @@ interface HomeBannerSliderProps {
   };
 }
 
+const isDisplayableText = (str?: string | null): boolean => {
+  if (!str) return false;
+  return str.replace(/[\s\u2000-\u200F\u2028-\u202F\u205F-\u206F\uFEFF\u3164\uFFA0]/g, '').length > 0;
+};
+
 export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps) {
   const [banners, setBanners] = useState<Banner[]>(() => {
     if (initialData?.banners && initialData.banners.length > 0) return initialData.banners;
@@ -32,19 +37,11 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
     return initialBanners;
   });
 
+  // Sync if server initialData updates
   useEffect(() => {
-    try {
-      const initialHasSliders = initialData?.banners?.some((b) => b.placement === 'MAIN_SLIDER' && b.isActive !== false);
-      if (!initialHasSliders) {
-        const cached = localStorage.getItem('helian_banners');
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.some((b: any) => b.placement === 'MAIN_SLIDER' && b.isActive !== false)) {
-            setBanners(parsed);
-          }
-        }
-      }
-    } catch {}
+    if (initialData?.banners && initialData.banners.length > 0) {
+      setBanners(initialData.banners);
+    }
   }, [initialData?.banners]);
 
   const [slideInterval, setSlideInterval] = useState<number>(() => {
@@ -60,18 +57,17 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
   const [isHovered, setIsHovered] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Only fetch banners from API if server initialData was not provided
+  // Always fetch fresh banners from API on client mount (with no-store) to guarantee uploaded banners show immediately
   useEffect(() => {
-    if (initialData?.banners && initialData.banners.length > 0) return;
-
+    let isMounted = true;
     async function loadBanners() {
       try {
-        const res = await fetch('/api/banners');
+        const res = await fetch('/api/banners', { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
           if (data.banners && data.banners.length > 0) {
             const hasMain = data.banners.some((b: any) => b.placement === 'MAIN_SLIDER' && b.isActive !== false);
-            if (hasMain) {
+            if (hasMain && isMounted) {
               setBanners(data.banners);
               try {
                 if (typeof window !== 'undefined') {
@@ -80,11 +76,13 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
               } catch {}
             }
           }
-          if (data.settings?.autoSlideInterval) {
-            setSlideInterval(data.settings.autoSlideInterval);
-          }
-          if (data.settings?.overlayOpacity !== undefined) {
-            setOverlayOpacity(data.settings.overlayOpacity);
+          if (isMounted) {
+            if (data.settings?.autoSlideInterval) {
+              setSlideInterval(data.settings.autoSlideInterval);
+            }
+            if (data.settings?.overlayOpacity !== undefined) {
+              setOverlayOpacity(data.settings.overlayOpacity);
+            }
           }
         }
       } catch (err) {
@@ -92,13 +90,21 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
       }
     }
     loadBanners();
-  }, [initialData?.banners]);
+    return () => { isMounted = false; };
+  }, []);
 
   const mainSliders = banners.filter((b) => b.placement === 'MAIN_SLIDER' && b.isActive);
   const sideTop = banners.find((b) => b.placement === 'SIDE_TOP' && b.isActive) || banners.find((b) => b.placement === 'SIDE_TOP');
   const sideBottom = banners.find((b) => b.placement === 'SIDE_BOTTOM' && b.isActive) || banners.find((b) => b.placement === 'SIDE_BOTTOM');
 
   const slidesToDisplay = mainSliders.length > 0 ? mainSliders : initialBanners.filter((b) => b.placement === 'MAIN_SLIDER');
+
+  // Reset currentIndex if out of bounds
+  useEffect(() => {
+    if (currentIndex >= slidesToDisplay.length) {
+      setCurrentIndex(0);
+    }
+  }, [slidesToDisplay.length, currentIndex]);
 
   const handleNext = useCallback(() => {
     setCurrentIndex((prev) => (prev + 1) % slidesToDisplay.length);
@@ -146,7 +152,12 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
               transition={{ duration: 0.35, ease: 'easeOut' }}
               className="absolute inset-0 w-full h-full"
             >
-              <Link href={currentSlide?.linkUrl || '/tournaments'} className="block w-full h-full relative cursor-pointer group/mainlink">
+              <Link 
+                href={currentSlide?.linkUrl || '/tournaments'} 
+                target={currentSlide?.linkUrl?.startsWith('http') ? '_blank' : undefined}
+                rel={currentSlide?.linkUrl?.startsWith('http') ? 'noopener noreferrer' : undefined}
+                className="block w-full h-full relative cursor-pointer group/mainlink"
+              >
                 <Image
                   src={currentSlide?.imageUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1920&h=1080&fit=crop&q=85'}
                   alt={currentSlide?.title || 'Esports Banner'}
@@ -159,10 +170,10 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
 
                 {/* Rich Esports Cinematic Gradient Overlay (Only visible when banner has overlay text) */}
                 {Boolean(
-                  (currentSlide?.badge && currentSlide.badge.trim() !== '') ||
-                  (currentSlide?.title && currentSlide.title.trim() !== '') ||
-                  (currentSlide?.subtitle && currentSlide.subtitle.trim() !== '') ||
-                  (currentSlide?.buttonText && currentSlide.buttonText.trim() !== '')
+                  isDisplayableText(currentSlide?.badge) ||
+                  isDisplayableText(currentSlide?.title) ||
+                  isDisplayableText(currentSlide?.subtitle) ||
+                  isDisplayableText(currentSlide?.buttonText)
                 ) && (
                   <div className="absolute inset-0 transition-opacity duration-300 pointer-events-none" style={{ opacity: overlayOpacity / 100 }}>
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent"></div>
@@ -172,37 +183,37 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
 
                 {/* Banner Text & Action Content (Only renders fields that have text) */}
                 {Boolean(
-                  (currentSlide?.badge && currentSlide.badge.trim() !== '') ||
-                  (currentSlide?.title && currentSlide.title.trim() !== '') ||
-                  (currentSlide?.subtitle && currentSlide.subtitle.trim() !== '') ||
-                  (currentSlide?.buttonText && currentSlide.buttonText.trim() !== '')
+                  isDisplayableText(currentSlide?.badge) ||
+                  isDisplayableText(currentSlide?.title) ||
+                  isDisplayableText(currentSlide?.subtitle) ||
+                  isDisplayableText(currentSlide?.buttonText)
                 ) && (
                   <div className="absolute inset-0 p-5 sm:p-8 md:p-10 flex flex-col justify-end items-start z-10 space-y-2.5 sm:space-y-3.5 max-w-xl">
-                    {currentSlide?.badge && currentSlide.badge.trim() !== '' && (
+                    {isDisplayableText(currentSlide?.badge) && (
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-brand-red to-brand-orange text-white text-[10px] sm:text-xs font-black uppercase tracking-wider shadow-lg shadow-red-500/30 animate-pulse">
                         <Flame className="w-3.5 h-3.5" />
-                        <span>{currentSlide.badge}</span>
+                        <span>{currentSlide?.badge}</span>
                       </span>
                     )}
 
-                    {currentSlide?.title && currentSlide.title.trim() !== '' && (
+                    {isDisplayableText(currentSlide?.title) && (
                       <h2 className="font-heading font-black text-2xl sm:text-3xl md:text-4xl text-white leading-tight drop-shadow-md">
-                        {currentSlide.title}
+                        {currentSlide?.title}
                       </h2>
                     )}
 
-                    {currentSlide?.subtitle && currentSlide.subtitle.trim() !== '' && (
+                    {isDisplayableText(currentSlide?.subtitle) && (
                       <p className="text-xs sm:text-sm text-slate-200 font-medium line-clamp-2 drop-shadow-sm max-w-md">
-                        {currentSlide.subtitle}
+                        {currentSlide?.subtitle}
                       </p>
                     )}
 
-                    {currentSlide?.buttonText && currentSlide.buttonText.trim() !== '' && (
+                    {isDisplayableText(currentSlide?.buttonText) && (
                       <div className="pt-1">
                         <span
                           className="inline-flex items-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-white/95 text-slate-900 font-heading font-black text-[11px] sm:text-xs shadow-md transition-all duration-300 backdrop-blur-xs group-hover/mainlink:bg-brand-orange group-hover/mainlink:text-white"
                         >
-                          <span>{currentSlide.buttonText}</span>
+                          <span>{currentSlide?.buttonText}</span>
                           <ArrowRight className="w-3.5 h-3.5 text-brand-orange group-hover/mainlink:text-white group-hover/mainlink:translate-x-0.5 transition-transform" />
                         </span>
                       </div>
@@ -269,6 +280,8 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
           {/* Top Promo Banner */}
           <Link
             href={sideTop?.linkUrl || '/arena'}
+            target={sideTop?.linkUrl?.startsWith('http') ? '_blank' : undefined}
+            rel={sideTop?.linkUrl?.startsWith('http') ? 'noopener noreferrer' : undefined}
             className="relative rounded-3xl overflow-hidden flex-1 min-h-[160px] bg-slate-950 border border-slate-800/80 shadow-xl group cursor-pointer block transition-transform duration-300 hover:scale-[1.02]"
           >
             <Image
@@ -280,9 +293,9 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
             />
             {/* Gradient Overlay (Only if banner has overlay text) */}
             {Boolean(
-              (sideTop?.badge && sideTop.badge.trim() !== '') ||
-              (sideTop?.title && sideTop.title.trim() !== '') ||
-              (sideTop?.subtitle && sideTop.subtitle.trim() !== '')
+              isDisplayableText(sideTop?.badge) ||
+              isDisplayableText(sideTop?.title) ||
+              isDisplayableText(sideTop?.subtitle)
             ) && (
               <div className="absolute inset-0 transition-opacity duration-300 pointer-events-none" style={{ opacity: overlayOpacity / 100 }}>
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/70 to-transparent"></div>
@@ -292,24 +305,24 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
 
             {/* Content */}
             {Boolean(
-              (sideTop?.badge && sideTop.badge.trim() !== '') ||
-              (sideTop?.title && sideTop.title.trim() !== '') ||
-              (sideTop?.subtitle && sideTop.subtitle.trim() !== '')
+              isDisplayableText(sideTop?.badge) ||
+              isDisplayableText(sideTop?.title) ||
+              isDisplayableText(sideTop?.subtitle)
             ) && (
               <div className="absolute inset-0 p-5 flex flex-col justify-end items-start z-10 space-y-1.5">
-                {sideTop?.badge && sideTop.badge.trim() !== '' && (
+                {isDisplayableText(sideTop?.badge) && (
                   <span className="px-2.5 py-0.5 rounded-full bg-red-700 text-white text-[9px] font-black uppercase tracking-wider shadow-sm">
-                    {sideTop.badge}
+                    {sideTop?.badge}
                   </span>
                 )}
-                {sideTop?.title && sideTop.title.trim() !== '' && (
+                {isDisplayableText(sideTop?.title) && (
                   <h3 className="font-heading font-black text-lg text-white leading-tight group-hover:text-amber-400 transition-colors line-clamp-1">
-                    {sideTop.title}
+                    {sideTop?.title}
                   </h3>
                 )}
-                {sideTop?.subtitle && sideTop.subtitle.trim() !== '' && (
+                {isDisplayableText(sideTop?.subtitle) && (
                   <p className="text-[11px] text-slate-200 line-clamp-1 font-medium">
-                    {sideTop.subtitle}
+                    {sideTop?.subtitle}
                   </p>
                 )}
               </div>
@@ -319,6 +332,8 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
           {/* Bottom Promo Banner */}
           <Link
             href={sideBottom?.linkUrl || '/ads'}
+            target={sideBottom?.linkUrl?.startsWith('http') ? '_blank' : undefined}
+            rel={sideBottom?.linkUrl?.startsWith('http') ? 'noopener noreferrer' : undefined}
             className="relative rounded-3xl overflow-hidden flex-1 min-h-[160px] bg-slate-950 border border-slate-800/80 shadow-xl group cursor-pointer block transition-transform duration-300 hover:scale-[1.02]"
           >
             <Image
@@ -330,9 +345,9 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
             />
             {/* Gradient Overlay (Only if banner has overlay text) */}
             {Boolean(
-              (sideBottom?.badge && sideBottom.badge.trim() !== '') ||
-              (sideBottom?.title && sideBottom.title.trim() !== '') ||
-              (sideBottom?.subtitle && sideBottom.subtitle.trim() !== '')
+              isDisplayableText(sideBottom?.badge) ||
+              isDisplayableText(sideBottom?.title) ||
+              isDisplayableText(sideBottom?.subtitle)
             ) && (
               <div className="absolute inset-0 transition-opacity duration-300 pointer-events-none" style={{ opacity: overlayOpacity / 100 }}>
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/70 to-transparent"></div>
@@ -342,24 +357,24 @@ export default function HomeBannerSlider({ initialData }: HomeBannerSliderProps)
 
             {/* Content */}
             {Boolean(
-              (sideBottom?.badge && sideBottom.badge.trim() !== '') ||
-              (sideBottom?.title && sideBottom.title.trim() !== '') ||
-              (sideBottom?.subtitle && sideBottom.subtitle.trim() !== '')
+              isDisplayableText(sideBottom?.badge) ||
+              isDisplayableText(sideBottom?.title) ||
+              isDisplayableText(sideBottom?.subtitle)
             ) && (
               <div className="absolute inset-0 p-5 flex flex-col justify-end items-start z-10 space-y-1.5">
-                {sideBottom?.badge && sideBottom.badge.trim() !== '' && (
+                {isDisplayableText(sideBottom?.badge) && (
                   <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[9px] font-black uppercase tracking-wider shadow-sm">
-                    {sideBottom.badge}
+                    {sideBottom?.badge}
                   </span>
                 )}
-                {sideBottom?.title && sideBottom.title.trim() !== '' && (
+                {isDisplayableText(sideBottom?.title) && (
                   <h3 className="font-heading font-black text-lg text-white leading-tight group-hover:text-amber-400 transition-colors line-clamp-1">
-                    {sideBottom.title}
+                    {sideBottom?.title}
                   </h3>
                 )}
-                {sideBottom?.subtitle && sideBottom.subtitle.trim() !== '' && (
+                {isDisplayableText(sideBottom?.subtitle) && (
                   <p className="text-[11px] text-slate-200 line-clamp-1 font-medium">
-                    {sideBottom.subtitle}
+                    {sideBottom?.subtitle}
                   </p>
                 )}
               </div>
