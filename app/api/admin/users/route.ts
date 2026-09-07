@@ -24,63 +24,50 @@ export async function GET(request: NextRequest) {
     try {
       const { data: users, error } = await supabaseAdmin
         .from('User')
-        .select('id, name, email, phone, inGameName, freeFireUid, accountNumber, role, inGameRole, walletBalance, coinBalance, promoBalance, winningBalance, totalKills, totalWins, totalEarnings, avatar, isBanned, createdAt, lastActive')
+        .select('id, name, email, phone, inGameName, freeFireUid, accountNumber, role, walletBalance, coinBalance, promoBalance, winningBalance, totalKills, totalWins, earnings, avatar, isBanned, createdAt, updatedAt, deviceToken')
         .order('createdAt', { ascending: false });
 
       if (!error && users && users.length > 0) {
         usersList = users;
+      } else if (error) {
+        console.error('[GET /api/admin/users] Supabase User query error:', error.message);
       }
-    } catch {}
-
-    if (usersList.length === 0) {
-      usersList = db.getUsers ? db.getUsers() : [];
+    } catch (err) {
+      console.error('[GET /api/admin/users] Users load exception:', err);
     }
 
     // 2. Fetch all participants (specific columns only)
     let participants: any[] = [];
     try {
-      const { data: partData } = await supabaseAdmin
+      const { data: partData, error: partErr } = await supabaseAdmin
         .from('Participant')
         .select('id, tournamentId, userId, squadName, iglName, captainWhatsApp, player1Name, player2Name, player3Name, player4Name, status, joinedAt')
         .order('joinedAt', { ascending: false })
         .limit(500);
-      if (partData) participants = partData;
+      if (!partErr && partData) participants = partData;
     } catch {}
-
-    if (participants.length === 0 && db.getRegistrations) {
-      participants = db.getRegistrations();
-    }
 
     // 3. Fetch tournaments map
     let tournamentsMap: Record<string, any> = {};
     try {
-      const { data: tourData } = await supabaseAdmin
+      const { data: tourData, error: tourErr } = await supabaseAdmin
         .from('Tournament')
         .select('id, title, game, gameName, mode, format, entryFee, prizePool, status, matchTime, tournamentStart');
-      if (tourData) {
+      if (!tourErr && tourData) {
         tourData.forEach((t) => { tournamentsMap[t.id] = t; });
       }
     } catch {}
 
-    if (Object.keys(tournamentsMap).length === 0) {
-      const localTours = db.getTournaments ? db.getTournaments() : [];
-      localTours.forEach((t) => { tournamentsMap[t.id] = t; });
-    }
-
     // 4. Fetch payments (specific columns only)
     let payments: any[] = [];
     try {
-      const { data: payData } = await supabaseAdmin
+      const { data: payData, error: payErr } = await supabaseAdmin
         .from('Payment')
         .select('id, userId, method, amount, status, trxId, createdAt')
         .order('createdAt', { ascending: false })
         .limit(500);
-      if (payData) payments = payData;
+      if (!payErr && payData) payments = payData;
     } catch {}
-
-    if (payments.length === 0 && db.getPayments) {
-      payments = db.getPayments();
-    }
 
     // 5. Fetch all squads
     let squadsList: any[] = [];
@@ -180,10 +167,10 @@ export async function GET(request: NextRequest) {
         createdAt: pay.createdAt,
       }));
 
-      // Determine online status: within 15 mins of updatedAt or top active users
+      // Determine online status: within 15 mins of updatedAt
       const lastActiveTime = new Date(user.updatedAt || user.createdAt).getTime();
       const diffMs = now - lastActiveTime;
-      const isOnline = diffMs < fifteenMinsMs || idx === 0 || idx === 2; // Real or demo active
+      const isOnline = diffMs < fifteenMinsMs;
 
       // Interaction Tier badge
       let interactionTier = 'CASUAL';
@@ -296,7 +283,7 @@ export async function PATCH(request: NextRequest) {
     try {
       const { data: curUser } = await supabaseAdmin
         .from('User')
-        .select('deviceToken, inGameRole')
+        .select('deviceToken')
         .eq('id', targetId)
         .maybeSingle();
 

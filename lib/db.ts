@@ -27,22 +27,56 @@ class LocalDatabase {
 
   constructor() {
     if (typeof window !== 'undefined') {
+      const demoUserIds = ['usr_admin', 'usr_mod', 'vendor_01', 'usr_player1', 'usr_player2'];
       const savedUsers = localStorage.getItem('helian_users');
-      if (savedUsers) this.users = JSON.parse(savedUsers);
+      if (savedUsers) {
+        try {
+          const parsed = JSON.parse(savedUsers);
+          this.users = Array.isArray(parsed) ? parsed.filter((u: any) => !demoUserIds.includes(u.id)) : [];
+        } catch {
+          this.users = [];
+        }
+      }
 
       const savedTournaments = localStorage.getItem('helian_tournaments');
-      if (savedTournaments) this.tournaments = JSON.parse(savedTournaments);
+      if (savedTournaments) {
+        try {
+          this.tournaments = JSON.parse(savedTournaments);
+        } catch {
+          this.tournaments = [];
+        }
+      }
 
+      const demoPayIds = ['pay_101', 'pay_102'];
       const savedPayments = localStorage.getItem('helian_payments');
-      if (savedPayments) this.payments = JSON.parse(savedPayments);
+      if (savedPayments) {
+        try {
+          const parsed = JSON.parse(savedPayments);
+          this.payments = Array.isArray(parsed) ? parsed.filter((p: any) => !demoPayIds.includes(p.id)) : [];
+        } catch {
+          this.payments = [];
+        }
+      }
 
       const savedRegs = localStorage.getItem('helian_registrations');
-      if (savedRegs) this.registrations = JSON.parse(savedRegs);
+      if (savedRegs) {
+        try {
+          this.registrations = JSON.parse(savedRegs);
+        } catch {
+          this.registrations = [];
+        }
+      }
 
       const savedUser = localStorage.getItem('helian_current_user');
       if (savedUser) {
         try {
-          this.currentUser = JSON.parse(savedUser);
+          const parsed = JSON.parse(savedUser);
+          if (parsed && demoUserIds.includes(parsed.id)) {
+            this.currentUser = null;
+            localStorage.removeItem('helian_current_user');
+          } else {
+            this.currentUser = parsed;
+          }
         } catch {
           this.currentUser = null;
         }
@@ -50,8 +84,16 @@ class LocalDatabase {
         this.currentUser = null;
       }
       
+      const demoAnnIds = ['ann_1', 'ann_2'];
       const savedAnn = localStorage.getItem('helian_announcements');
-      if (savedAnn) this.announcements = JSON.parse(savedAnn);
+      if (savedAnn) {
+        try {
+          const parsed = JSON.parse(savedAnn);
+          this.announcements = Array.isArray(parsed) ? parsed.filter((a: any) => !demoAnnIds.includes(a.id)) : [];
+        } catch {
+          this.announcements = [];
+        }
+      }
 
       const savedBanners = localStorage.getItem('helian_banners');
       if (savedBanners) {

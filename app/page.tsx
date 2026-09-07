@@ -43,9 +43,9 @@ async function fetchAnnouncements(): Promise<Announcement[]> {
       .select('*')
       .order('createdAt', { ascending: false });
     if (data && data.length > 0) return data as Announcement[];
-    return initialAnnouncements;
+    return [];
   } catch {
-    return initialAnnouncements;
+    return [];
   }
 }
 

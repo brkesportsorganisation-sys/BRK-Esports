@@ -26,8 +26,6 @@ export async function GET() {
     let users: any[] = [];
     if (usersResult.status === 'fulfilled' && usersResult.value?.data) {
       users = usersResult.value.data;
-    } else {
-      users = db.getUsers().filter(u => u.role !== 'VENDOR').slice(0, 30);
     }
 
     let squads: any[] = [];
@@ -46,7 +44,7 @@ export async function GET() {
     return NextResponse.json({ 
       success: true,
       config: DEFAULT_CHAMPIONS_CONFIG,
-      availableUsers: db.getUsers().filter(u => u.role !== 'VENDOR').slice(0, 30),
+      availableUsers: [],
       availableSquads: [],
     });
   }
