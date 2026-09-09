@@ -319,18 +319,19 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     const { searchParams } = new URL(req.url);
     const requesterId = searchParams.get('userId');
     const memberId = searchParams.get('memberId');
+    const targetUserId = searchParams.get('targetUserId');
 
-    if (!requesterId || !memberId) {
+    if (!requesterId || (!memberId && !targetUserId)) {
       return NextResponse.json({ message: 'Requester ID and Member ID are required.' }, { status: 400 });
     }
 
-    let squads = await getSquads();
+    let squads = await getSquads(true);
     let index = squads.findIndex(s => s.id === id);
 
     if (index === -1) {
-      const imported = await getSquadById(id);
+      const imported = await getSquadById(id, true);
       if (imported) {
-        squads = await getSquads();
+        squads = await getSquads(true);
         index = squads.findIndex(s => s.id === id);
       }
     }
@@ -340,14 +341,37 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     }
 
     const currentSquad = squads[index];
-    const targetMember = currentSquad.members?.find(m => m.id === memberId || m.userId === memberId);
+    const targetMember = currentSquad.members?.find(m => 
+      (memberId && m.id === memberId) || 
+      (targetUserId && m.userId === targetUserId) ||
+      (memberId && m.userId === memberId)
+    );
 
     if (!targetMember) {
-      return NextResponse.json({ message: 'Member not found.' }, { status: 404 });
+      // Member is already not in the roster on server (ghost card or already removed)
+      // Clean up any residual TeamMember record in Supabase
+      try {
+        const toClean = targetUserId || memberId;
+        if (toClean) {
+          await supabaseAdmin
+            .from('TeamMember')
+            .delete()
+            .or(`teamId.eq.${id},teamId.eq.${currentSquad.id}`)
+            .or(`userId.eq.${toClean},id.eq.${toClean}`);
+        }
+      } catch (cleanErr) {
+        console.warn('[DELETE /api/squads/[id]/members] Residual cleanup notice:', cleanErr);
+      }
+
+      return NextResponse.json({ 
+        success: true, 
+        message: 'Member was already removed from the squad.', 
+        squad: currentSquad 
+      });
     }
 
     const isSelf = targetMember.userId === requesterId;
-    const isLeader = currentSquad.leaderId === requesterId;
+    const isLeader = currentSquad.leaderId === requesterId || currentSquad.createdBy === requesterId;
     const isManager = currentSquad.members?.some(m => m.userId === requesterId && m.memberType === 'MANAGER' && m.status === 'ACTIVE');
 
     // If removing someone else, must be Leader or Manager (cannot kick Leader)
@@ -355,12 +379,12 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       if (!isLeader && !isManager) {
         return NextResponse.json({ message: 'Only Squad Leader or Manager can remove members.' }, { status: 403 });
       }
-      if (targetMember.isLeader) {
+      if (targetMember.isLeader || targetMember.userId === currentSquad.leaderId) {
         return NextResponse.json({ message: 'The Squad Leader cannot be kicked. Leadership must be transferred first.' }, { status: 400 });
       }
     } else {
       // If leader is leaving, must transfer leadership first
-      if (targetMember.isLeader) {
+      if (targetMember.isLeader || targetMember.userId === currentSquad.leaderId) {
         const otherActiveMembers = (currentSquad.members || []).filter(m => m.userId !== requesterId && m.status === 'ACTIVE');
         if (otherActiveMembers.length > 0) {
           return NextResponse.json({ message: 'As the Squad Leader, you must transfer leadership to another member before leaving, or disband the squad.' }, { status: 400 });
@@ -369,9 +393,36 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     }
 
     // Remove from roster
-    currentSquad.members = (currentSquad.members || []).filter(m => m.id !== memberId && m.userId !== memberId);
+    currentSquad.members = (currentSquad.members || []).filter(m => {
+      if (targetMember.id && m.id === targetMember.id) return false;
+      if (targetMember.userId && m.userId === targetMember.userId) return false;
+      if (memberId && (m.id === memberId || m.userId === memberId)) return false;
+      if (targetUserId && m.userId === targetUserId) return false;
+      return true;
+    });
+
     squads[index] = { ...currentSquad, updatedAt: new Date().toISOString() };
     await saveSquads(squads);
+
+    // Sync deletion to legacy Supabase TeamMember table
+    try {
+      const userToDelete = targetMember.userId || targetUserId;
+      if (userToDelete) {
+        await supabaseAdmin
+          .from('TeamMember')
+          .delete()
+          .or(`teamId.eq.${id},teamId.eq.${currentSquad.id}`)
+          .eq('userId', userToDelete);
+      }
+      if (targetMember.id) {
+        await supabaseAdmin
+          .from('TeamMember')
+          .delete()
+          .eq('id', targetMember.id);
+      }
+    } catch (teamSyncErr) {
+      console.warn('[DELETE /api/squads/[id]/members] TeamMember sync error:', teamSyncErr);
+    }
 
     const msg = isSelf ? 'You have left the squad.' : `${targetMember.userName} was removed from the squad.`;
     return NextResponse.json({ success: true, message: msg, squad: currentSquad });

@@ -41,6 +41,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import SquadLogoUploader from '@/components/ui/SquadLogoUploader';
 import ImageUploadInput from '@/components/ui/ImageUploadInput';
+import { invalidateClientCache } from '@/lib/client-cache';
 
 export default function SquadDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -153,7 +154,13 @@ export default function SquadDetailsPage({ params }: { params: Promise<{ id: str
   const loadSquad = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/squads/${id}`);
+      const res = await fetch(`/api/squads/${id}?_t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+        },
+      });
       if (res.ok) {
         const data = await res.json();
         setSquad(data.squad);
@@ -301,20 +308,23 @@ export default function SquadDetailsPage({ params }: { params: Promise<{ id: str
   };
 
   const handleApproveRejectRequest = async (memberId: string, action: 'APPROVE_REQUEST' | 'REJECT_REQUEST') => {
-    if (!currentUser) return;
+    let user = currentUser || db.getCurrentUser();
+    if (!user) return;
     try {
       const res = await fetch(`/api/squads/${id}/members`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          requesterId: currentUser.id,
+          requesterId: user.id,
           memberId,
           action,
         }),
       });
 
       const data = await res.json();
-      if (res.ok) {
+      invalidateClientCache('/api/squads');
+      if (res.ok || data.success) {
+        if (data.squad) setSquad(data.squad);
         alert(data.message);
         loadSquad();
       } else {
@@ -327,7 +337,8 @@ export default function SquadDetailsPage({ params }: { params: Promise<{ id: str
 
   const handleUpdateMemberRole = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedMember || !currentUser) return;
+    let user = currentUser || db.getCurrentUser();
+    if (!selectedMember || !user) return;
 
     setIsUpdatingRole(true);
     try {
@@ -335,7 +346,7 @@ export default function SquadDetailsPage({ params }: { params: Promise<{ id: str
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          requesterId: currentUser.id,
+          requesterId: user.id,
           memberId: selectedMember.id,
           action: 'UPDATE_ROLE',
           inGameRole: editRole,
@@ -344,7 +355,9 @@ export default function SquadDetailsPage({ params }: { params: Promise<{ id: str
       });
 
       const data = await res.json();
-      if (res.ok) {
+      invalidateClientCache('/api/squads');
+      if (res.ok || data.success) {
+        if (data.squad) setSquad(data.squad);
         alert(data.message);
         setRoleModalOpen(false);
         loadSquad();
@@ -359,21 +372,24 @@ export default function SquadDetailsPage({ params }: { params: Promise<{ id: str
   };
 
   const handlePromoteLeader = async (member: SquadMember) => {
-    if (!currentUser || !confirm(`Transfer Squad Leadership to ${member.userName}? You will become a regular player.`)) return;
+    let user = currentUser || db.getCurrentUser();
+    if (!user || !confirm(`Transfer Squad Leadership to ${member.userName}? You will become a regular player.`)) return;
 
     try {
       const res = await fetch(`/api/squads/${id}/members`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          requesterId: currentUser.id,
+          requesterId: user.id,
           memberId: member.id,
           action: 'PROMOTE_LEADER',
         }),
       });
 
       const data = await res.json();
-      if (res.ok) {
+      invalidateClientCache('/api/squads');
+      if (res.ok || data.success) {
+        if (data.squad) setSquad(data.squad);
         alert(data.message);
         loadSquad();
       } else {
@@ -385,30 +401,66 @@ export default function SquadDetailsPage({ params }: { params: Promise<{ id: str
   };
 
   const handleRemoveMember = async (member: SquadMember) => {
-    if (!currentUser) return;
-    const isSelf = member.userId === currentUser.id;
-    const promptText = isSelf ? 'Are you sure you want to leave this squad?' : `Remove ${member.userName} from squad?`;
+    let user = currentUser || db.getCurrentUser();
+    if (!user) {
+      alert('Please log in first.');
+      return;
+    }
+
+    const isSelf = member.userId === user.id;
+    const promptText = isSelf 
+      ? 'Are you sure you want to leave this squad?' 
+      : member.status === 'INVITED' 
+      ? `Cancel invite for ${member.userName}?` 
+      : `Remove ${member.userName} from squad?`;
 
     if (!confirm(promptText)) return;
 
+    // Immediately update UI state so the member card disappears instantly
+    setSquad(prev => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        members: (prev.members || []).filter(m => 
+          m.id !== member.id && 
+          (!member.userId || m.userId !== member.userId)
+        )
+      };
+    });
+
     try {
-      const res = await fetch(`/api/squads/${id}/members?userId=${currentUser.id}&memberId=${member.id}`, {
+      const targetUid = member.userId || '';
+      const res = await fetch(`/api/squads/${id}/members?userId=${user.id}&memberId=${member.id}&targetUserId=${targetUid}`, {
         method: 'DELETE',
       });
 
       const data = await res.json();
-      if (res.ok) {
-        alert(data.message);
+
+      // Invalidate client-side caches
+      invalidateClientCache('/api/squads');
+      invalidateClientCache(`/api/squads?userId=${user.id}`);
+      if (targetUid) {
+        invalidateClientCache(`/api/squads?userId=${targetUid}`);
+      }
+
+      if (res.ok || data.success) {
+        if (data.squad) {
+          setSquad(data.squad);
+        }
+        alert(data.message || (isSelf ? 'You have left the squad.' : `${member.userName} was removed from the squad.`));
         if (isSelf) {
           router.push('/teams');
         } else {
           loadSquad();
         }
       } else {
+        // If server failed, reload true state from server
         alert(data.message || 'Failed to remove member.');
+        loadSquad();
       }
     } catch {
       alert('Error removing member.');
+      loadSquad();
     }
   };
 

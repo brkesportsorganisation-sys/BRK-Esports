@@ -99,10 +99,12 @@ export function sanitizeSquadsRoster(squads: Squad[]): Squad[] {
  * Loads all squads from cache → Supabase SiteSetting store → in-memory fallback.
  * Cached for CACHE_TTL.SQUADS seconds to dramatically reduce Supabase egress.
  */
-export async function getSquads(): Promise<Squad[]> {
-  // 1. Return from cache if available
-  const cached = serverCache.get<Squad[]>(SQUADS_CACHE_KEY);
-  if (cached) return cached;
+export async function getSquads(forceRefresh = false): Promise<Squad[]> {
+  // 1. Return from cache if available and not forced to refresh
+  if (!forceRefresh) {
+    const cached = serverCache.get<Squad[]>(SQUADS_CACHE_KEY);
+    if (cached) return cached;
+  }
 
   // 2. Fetch from Supabase
   try {
@@ -267,8 +269,8 @@ export async function importLegacyTeamAsSquad(teamId: string): Promise<Squad | n
 /**
  * Retrieves a single squad by ID.
  */
-export async function getSquadById(id: string): Promise<Squad | null> {
-  const squads = await getSquads();
+export async function getSquadById(id: string, forceRefresh = false): Promise<Squad | null> {
+  const squads = await getSquads(forceRefresh);
   let found = squads.find(s => s.id === id && !s.isDisbanded);
   if (found) return found;
 

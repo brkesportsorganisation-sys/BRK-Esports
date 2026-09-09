@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://amjenxlohtloytdjvird.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFtamVueGxvaHRsb3l0ZGp2aXJkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4MDI4ODksImV4cCI6MjEwMjM3ODg4OX0._MET-w_TBV0NAYSpWFcyDAyTXKZPobZh5auytfD0XMo';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFtamVueGxvaHRsb3l0ZGp2aXJkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NjgwMjg4OSwiZXhwIjoyMTAyMzc4ODg5fQ.KKgJN45aOw-Kn2c30sRYwJU9YYetBe85RP_IcT8paaA';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://svqdfbitilkfgcipdpdl.supabase.co';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN2cWRmYml0aWxrZmdjaXBkcGRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg5MjAyMTIsImV4cCI6MjEwNDQ5NjIxMn0.TY6C05Y04UkhWFECr0iFE1QFoEtMjIGGsIilOVyLj8U';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN2cWRmYml0aWxrZmdjaXBkcGRsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4ODkyMDIxMiwiZXhwIjoyMTA0NDk2MjEyfQ.ov_HbbOI1upIxNMEZnoDLrKm-wu1j3yHom4K8P5hPDo';
 
 // Public Supabase client (Client & Server side singleton to avoid duplicate GoTrueClient instances)
 function createBrowserSupabase() {
